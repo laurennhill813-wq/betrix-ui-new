@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+package-lock.json
+npm-debug.log
+yarn-error.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Cache & Temp
+.cache/
+.DS_Store
+tmp_*.json
+*.log
+cleanup-run.log
+
+# Build & Dist
+dist/
+build/
+.next/
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+*.iml
+.project
+.classpath
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Replit specific (DO NOT IGNORE)
+# .replit is needed - don't add it
+# replit.md is needed - don't add it
+
+# Don't ignore critical files
+!src/
+!package.json
+!render.yaml
+!replit.md
+
+# Docker (Render uses render.yaml instead)
+Dockerfile
+docker-compose.yml
+.dockerignore

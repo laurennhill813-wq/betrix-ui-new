@@ -1,0 +1,64 @@
+2025-11-23T17:06:48.510904954Z     at Module._load (node:internal/modules/cjs/loader:981:27)
+2025-11-23T17:06:48.510908354Z     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+2025-11-23T17:06:48.510914654Z     at node:internal/main/run_main_module:28:49 {
+2025-11-23T17:06:48.510918154Z   code: 'MODULE_NOT_FOUND',
+2025-11-23T17:06:48.510921335Z   requireStack: []
+2025-11-23T17:06:48.510923255Z }
+2025-11-23T17:06:48.510924915Z 
+2025-11-23T17:06:48.510927115Z Node.js v18.20.8
+2025-11-23T17:07:13.442725457Z node:internal/modules/cjs/loader:1143
+2025-11-23T17:07:13.442772138Z   throw err;
+2025-11-23T17:07:13.442775729Z   ^
+2025-11-23T17:07:13.442778159Z 
+2025-11-23T17:07:13.442781189Z Error: Cannot find module '/app/src/worker.js'
+2025-11-23T17:07:13.442784329Z     at Module._resolveFilename (node:internal/modules/cjs/loader:1140:15)
+2025-11-23T17:07:13.442786709Z     at Module._load (node:internal/modules/cjs/loader:981:27)
+2025-11-23T17:07:13.442789529Z     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+2025-11-23T17:07:13.442792699Z     at node:internal/main/run_main_module:28:49 {
+2025-11-23T17:07:13.442795719Z   code: 'MODULE_NOT_FOUND',
+2025-11-23T17:07:13.442798429Z   requireStack: []
+2025-11-23T17:07:13.442800679Z }
+2025-11-23T17:07:13.442802779Z 
+2025-11-23T17:07:13.44280495Z Node.js v18.20.8
+2025-11-23T17:07:58.458166822Z node:internal/modules/cjs/loader:1143
+2025-11-23T17:07:58.458206434Z   throw err;
+2025-11-23T17:07:58.458210094Z   ^
+2025-11-23T17:07:58.458213224Z 
+2025-11-23T17:07:58.458216764Z Error: Cannot find module '/app/src/worker.js'
+2025-11-23T17:07:58.458220474Z     at Module._resolveFilename (node:internal/modules/cjs/loader:1140:15)
+2025-11-23T17:07:58.458223474Z     at Module._load (node:internal/modules/cjs/loader:981:27)
+2025-11-23T17:07:58.458227184Z     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+2025-11-23T17:07:58.458231034Z     at node:internal/main/run_main_module:28:49 {
+2025-11-23T17:07:58.458234124Z   code: 'MODULE_NOT_FOUND',
+2025-11-23T17:07:58.458237524Z   requireStack: []
+2025-11-23T17:07:58.458240204Z }
+2025-11-23T17:07:58.458242615Z 
+2025-11-23T17:07:58.458245095Z Node.js v18.20.8
+2025-11-23T17:09:23.503448056Z node:internal/modules/cjs/loader:1143
+2025-11-23T17:09:23.503490537Z   throw err;
+2025-11-23T17:09:23.503494477Z   ^
+2025-11-23T17:09:23.503497237Z 
+2025-11-23T17:09:23.503499857Z Error: Cannot find module '/app/src/worker.js'
+2025-11-23T17:09:23.503503117Z     at Module._resolveFilename (node:internal/modules/cjs/loader:1140:15)
+2025-11-23T17:09:23.503506267Z     at Module._load (node:internal/modules/cjs/loader:981:27)
+2025-11-23T17:09:23.503510387Z     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+2025-11-23T17:09:23.503514498Z     at node:internal/main/run_main_module:28:49 {
+2025-11-23T17:09:23.503517508Z   code: 'MODULE_NOT_FOUND',
+2025-11-23T17:09:23.503520768Z   requireStack: []
+2025-11-23T17:09:23.503523358Z }
+2025-11-23T17:09:23.503525688Z 
+2025-11-23T17:09:23.503528428Z Node.js v18.20.8
+2025-11-23T17:12:09.616085706Z node:internal/modules/cjs/loader:1143
+2025-11-23T17:12:09.616132558Z   throw err;
+2025-11-23T17:12:09.616136478Z   ^
+2025-11-23T17:12:09.616138968Z 
+2025-11-23T17:12:09.616141718Z Error: Cannot find module '/app/src/worker.js'
+2025-11-23T17:12:09.616145448Z     at Module._resolveFilename (node:internal/modules/cjs/loader:1140:15)
+2025-11-23T17:12:09.616148888Z     at Module._load (node:internal/modules/cjs/loader:981:27)
+2025-11-23T17:12:09.616152818Z     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+2025-11-23T17:12:09.616156448Z     at node:internal/main/run_main_module:28:49 {
+2025-11-23T17:12:09.616159668Z   code: 'MODULE_NOT_FOUND',
+2025-11-23T17:12:09.616162918Z   requireStack: []
+2025-11-23T17:12:09.616165629Z }
+2025-11-23T17:12:09.616168069Z 
+2025-11-23T17:12:09.616170519Z Node.js v18.20.8

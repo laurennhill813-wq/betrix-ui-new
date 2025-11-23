@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: betrix-bot
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node src/worker-db.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+    envVarGroups:
+      - id: telegram
+        vars:
+          - key: TELEGRAM_TOKEN
+            sync: false
+      - id: ai
+        vars:
+          - key: GEMINI_API_KEY
+            sync: false
+      - id: database
+        vars:
+          - key: DATABASE_URL
+            sync: false
+      - id: cache
+        vars:
+          - key: REDIS_URL
+            sync: false
+
+databases:
+  - name: betrix-db
+    databaseName: betrix_production
+    plan: free
+    postgresMajorVersion: 14
