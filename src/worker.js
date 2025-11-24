@@ -2263,18 +2263,41 @@ app.get("/analytics", async (req, res) => {
 console.log("[EXPRESS] ✓ GET /analytics configured\n");
 
 // ============================================================================
-// STARTUP & GRACEFUL SHUTDOWN (100+ LINES)
+// STARTUP & GRACEFUL SHUTDOWN (Background Worker)
 // ============================================================================
 
-app.listen(safePort, "0.0.0.0", () => {
-  console.log("\n" + "=".repeat(130));
-  console.log("[✅ BETRIX] ULTIMATE UNIFIED PRODUCTION WORKER - 3000+ LINES FULLY EXPANDED");
-  console.log(`[🚀] HTTP Server listening on http://0.0.0.0:${safePort}`);
-  console.log("\n[📊] COMPLETE FEATURE SET (3000+ LINES):");
-  console.log("");
-  console.log("   CORE SERVICE ENGINES (10 total):");
+console.log("\n" + "=".repeat(130));
+console.log("[✅ BETRIX] ULTIMATE UNIFIED PRODUCTION WORKER - 3000+ LINES FULLY EXPANDED");
+console.log("[🚀] Background worker initialized (no HTTP server)");
+console.log("\n[📊] COMPLETE FEATURE SET (3000+ LINES):");
+
+console.log("   CORE SERVICE ENGINES (10 total):");
+console.log("   ├─ Analytics Engine (behavioral tracking, engagement metrics)");
+console.log("   ├─ Prediction Engine (ELO ratings, form scoring, ML confidence)");
+console.log("   ├─ Payment Engine (M-Pesa, PayPal, transactions)");
+console.log("   ├─ Admin Engine (metrics, revenue, users, broadcasts)");
+console.log("   ├─ Betting History (recording, stats, ROI)");
+console.log("   ├─ User Settings (preferences, personalization)");
+console.log("   ├─ Search Engine (matches, leagues, upcoming)");
+console.log("   ├─ Gemini AI (natural language conversations)");
+console.log("   ├─ API-Football (live, standings, odds)");
+console.log("   └─ Rate Limiter (tier-based limits)");
+
+process.on("SIGTERM", () => {
+  console.log("[SHUTDOWN] SIGTERM received, shutting down gracefully...");
+  process.exit(0);
 });
-  console.log("   ├─ Analytics Engine (behavioral tracking, engagement metrics)");
+
+process.on("unhandledRejection", (err) => {
+  console.error("[FATAL] Unhandled promise rejection:", err);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("[FATAL] Uncaught exception:", err);
+  process.exit(1);
+});
+
+console.log("[BETRIX] ✅ Ultimate unified worker fully initialized and operational\n");
   console.log("   ├─ Prediction Engine (ELO ratings, form scoring, ML confidence)");
   console.log("   ├─ Payment Engine (M-Pesa, PayPal, transactions)");
   console.log("   ├─ Admin Engine (metrics, revenue, users, broadcasts)");
