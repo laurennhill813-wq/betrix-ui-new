@@ -1,10 +1,11 @@
-﻿version: '3.8'
+﻿version: "3.8"
 services:
-  # adjust service name to match your worker service if different
   betrix-bot-worker:
     restart: unless-stopped
+    environment:
+      - SHUTDOWN_TIMEOUT_MS=60000
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
