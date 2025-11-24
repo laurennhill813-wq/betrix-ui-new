@@ -246,12 +246,7 @@ const baseLimiter = (windowMs, max, message) =>
     standardHeaders: true,
     legacyHeaders: false,
     skip: req => NODE_ENV === "development",
-    keyGenerator: req => {
-      // req.ip is proxy-aware when app.set('trust proxy') is configured
-      const ip = req.ip || (req.headers["x-forwarded-for"] || "").split(",")[0]?.trim();
-      return ip || "unknown";
-    }
-  });
+    keyGenerator: req => { try { return ipKeyGenerator(req); } catch { return req.ip || (req.headers["x-forwarded-for"]||"").split(",")[0]?.trim() || "unknown"; } } );
 
 const freeLimiter = baseLimiter(60 * 1000, 30, "Rate limit exceeded. Upgrade for higher limits.");
 const memberLimiter = baseLimiter(60 * 1000, 60, "Rate limit exceeded for member tier.");
@@ -530,3 +525,4 @@ const start = async () => {
 start();
 
 export { app, server, redis, wss };
+
