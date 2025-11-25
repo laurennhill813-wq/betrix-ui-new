@@ -14,6 +14,7 @@ import { APIFootballService } from "./services/api-football.js";
 import { GeminiService } from "./services/gemini.js";
 import { LocalAIService } from "./services/local-ai.js";
 import { HuggingFaceService } from "./services/huggingface.js";
+import { AzureAIService } from "./services/azure-ai.js";
 import { BotHandlers } from "./handlers.js";
 import { AdvancedHandler } from "./advanced-handler.js";
 import { PremiumService } from "./services/premium.js";
@@ -57,6 +58,12 @@ const gemini = new GeminiService(CONFIG.GEMINI.API_KEY);
 const hfModels = process.env.HUGGINGFACE_MODELS || process.env.HUGGINGFACE_MODEL || null;
 const huggingface = new HuggingFaceService(hfModels, process.env.HUGGINGFACE_TOKEN);
 const localAI = new LocalAIService();
+const azure = new AzureAIService(
+  process.env.AZURE_AI_ENDPOINT || process.env.AZURE_ENDPOINT || (CONFIG.AZURE && CONFIG.AZURE.ENDPOINT),
+  process.env.AZURE_AI_KEY || process.env.AZURE_KEY || (CONFIG.AZURE && CONFIG.AZURE.KEY),
+  process.env.AZURE_AI_DEPLOYMENT || process.env.AZURE_DEPLOYMENT || (CONFIG.AZURE && CONFIG.AZURE.DEPLOYMENT),
+  process.env.AZURE_API_VERSION || (CONFIG.AZURE && CONFIG.AZURE.API_VERSION) || '2023-05-15'
+);
 
 // Composite AI wrapper: try Gemini per-request, fall back to LocalAI on errors.
 const ai = {
@@ -72,6 +79,19 @@ const ai = {
         return out;
       } catch (err) {
         logger.warn("Gemini.chat failed for message, falling back", err?.message || String(err));
+      }
+    }
+
+    // Try Azure if configured
+    if (azure && azure.isHealthy()) {
+      try {
+        await redis.set("ai:active", "azure");
+        await redis.expire("ai:active", 30);
+        const out = await azure.chat(message, context);
+        logger.info("AI response", { provider: "azure", model: azure.lastUsed || null, length: String(out || "").length });
+        return out;
+      } catch (err) {
+        logger.warn("Azure.chat failed, falling back to next provider", err?.message || String(err));
       }
     }
 
@@ -164,7 +184,11 @@ async function main() {
       }
 
   // mark which AI is active for observability (set before processing)
-  const preferred = (gemini && gemini.enabled) ? "gemini" : ((huggingface && huggingface.isHealthy()) ? "huggingface" : "local");
+  const preferred = (gemini && gemini.enabled)
+    ? "gemini"
+    : (azure && azure.isHealthy())
+      ? "azure"
+      : ((huggingface && huggingface.isHealthy()) ? "huggingface" : "local");
   await redis.set("ai:active", preferred);
   await redis.expire("ai:active", 30);
 

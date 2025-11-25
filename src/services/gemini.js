@@ -27,7 +27,7 @@ class GeminiService {
     }
 
     try {
-      const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
       const systemPrompt = `You are BETRIX - a world-class autonomous sports AI assistant.
 
@@ -123,7 +123,7 @@ Now respond to the user's message with intelligence and personality.`;
     }
 
     try {
-      const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
       const result = await model.generateContent({
         contents: [
           {

@@ -361,13 +361,13 @@ if (GEMINI_API_KEY) {
     console.log("[GEMINI] Creating GoogleGenerativeAI instance... - worker.js:361");
     genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     
-    console.log("[GEMINI] Retrieving generative model: gemini1.5flash - worker.js:364");
+    console.log("[GEMINI] Retrieving generative model: gemini-2.5-flash - worker.js:364");
     geminiModel = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash"
+      model: "gemini-2.5-flash"
     });
     
     console.log("[GEMINI] ✅ Gemini AI initialized successfully - worker.js:369");
-    console.log("[GEMINI]   Model: gemini1.5flash - worker.js:370");
+    console.log("[GEMINI]   Model: gemini-2.5-flash - worker.js:370");
     console.log("[GEMINI]   Temperature: 0.7 - worker.js:371");
     console.log("[GEMINI]   Max output tokens: 400 - worker.js:372");
     console.log("[GEMINI]   Purpose: Natural language conversations with AI personality\n - worker.js:373");
