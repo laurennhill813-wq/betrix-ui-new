@@ -402,6 +402,19 @@ app.get("/admin/queue", async (req, res) => {
   }
 });
 
+// Admin: fetch Telegram getWebhookInfo (uses server-side token, no token exposure)
+app.get("/admin/webhook-info", async (req, res) => {
+  try {
+    if (!TELEGRAM_TOKEN) return res.status(400).json(formatResponse(false, null, "TELEGRAM_TOKEN not configured"));
+    const tg = new TelegramService(TELEGRAM_TOKEN);
+    const info = await tg.getWebhookInfo();
+    return res.json(formatResponse(true, info, "Webhook info retrieved"));
+  } catch (err) {
+    log("ERROR", "TELEGRAM", "getWebhookInfo failed", { err: err?.message || String(err) });
+    return res.status(500).json(formatResponse(false, null, "Failed to fetch webhook info"));
+  }
+});
+
 app.get("/dashboard", tierBasedRateLimiter, (req, res) => {
   res.json(formatResponse(true, { brand: BETRIX.brand, menu: BETRIX.menu?.main, stats: { totalUsers: 50000, activePredictions: 1234, uptime: process.uptime() } }));
 });
