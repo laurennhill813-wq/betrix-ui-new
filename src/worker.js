@@ -1,9 +1,14 @@
 #!/usr/bin/env node
 /**
- * BETRIX - ULTIMATE UNIFIED PRODUCTION WORKER (3000+ LINES)
+ * BETRIX - ULTIMATE UNIFIED PRODUCTION WORKER
  * Complete autonomous sports betting AI platform
  * All services, handlers, and features fully integrated inline
  * Verbose implementation with extensive logging and documentation
+ *
+ * Notes:
+ * - BullMQ must use a dedicated Redis connection (not a pub/sub or shared client).
+ * - ioredis option maxRetriesPerRequest must be null for BullMQ connections.
+ * - Keep sendTelegram defined before any consumers that use it.
  */
 
 import Redis from "ioredis";
@@ -11,18 +16,18 @@ import fetch from "node-fetch";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import express from "express";
 import crypto from "crypto";
-import { Worker } from "bullmq"; // ✅ BullMQ import at top-level
+import { Worker } from "bullmq";
 
-console.log("\n" + "=".repeat(130));
-console.log("[🚀 BETRIX] ULTIMATE UNIFIED PRODUCTION WORKER - 3000+ LINES");
-console.log("[📊] Initializing comprehensive enterprise-grade sports betting AI platform");
-console.log("=".repeat(130) + "\n");
+console.log("\n - worker.js:21" + "=".repeat(130));
+console.log("[🚀 BETRIX] ULTIMATE UNIFIED PRODUCTION WORKER - worker.js:22");
+console.log("[📊] Initializing comprehensive enterprisegrade sports betting AI platform - worker.js:23");
+console.log("= - worker.js:24".repeat(130) + "\n");
 
 // ============================================================================
 // ENVIRONMENT & CONFIGURATION
 // ============================================================================
 
-console.log("[CONFIG] Reading environment configuration...\n");
+console.log("[CONFIG] Reading environment configuration...\n - worker.js:30");
 
 const {
   REDIS_URL,
@@ -45,12 +50,12 @@ const {
 const port = parseInt(PORT, 10);
 const safePort = Number.isInteger(port) ? port : 10000;
 
-console.log("[CONFIG] Validating required configuration parameters:");
-console.log(`  ✓ REDIS_URL: ${REDIS_URL ? "configured" : "❌ MISSING"}`);
-console.log(`  ✓ TELEGRAM_TOKEN: ${TELEGRAM_TOKEN ? "configured" : "❌ MISSING"}`);
-console.log(`  ✓ API_FOOTBALL_KEY: ${API_FOOTBALL_KEY ? "configured" : "❌ MISSING"}`);
-console.log(`  ✓ API_FOOTBALL_BASE: ${API_FOOTBALL_BASE ? "configured" : "❌ MISSING"}`);
-console.log(`  ✓ GEMINI_API_KEY: ${GEMINI_API_KEY ? "configured" : "⚠️  optional"}`);
+console.log("[CONFIG] Validating required configuration parameters: - worker.js:53");
+console.log(`✓ REDIS_URL: ${REDIS_URL ? "configured" : "❌ MISSING"} - worker.js:54`);
+console.log(`✓ TELEGRAM_TOKEN: ${TELEGRAM_TOKEN ? "configured" : "❌ MISSING"} - worker.js:55`);
+console.log(`✓ API_FOOTBALL_KEY: ${API_FOOTBALL_KEY ? "configured" : "❌ MISSING"} - worker.js:56`);
+console.log(`✓ API_FOOTBALL_BASE: ${API_FOOTBALL_BASE ? "configured" : "❌ MISSING"} - worker.js:57`);
+console.log(`✓ GEMINI_API_KEY: ${GEMINI_API_KEY ? "configured" : "⚠️ optional"} - worker.js:58`);
 console.log();
 
 const REQUIRED_CONFIGURATION = {
@@ -62,20 +67,20 @@ const REQUIRED_CONFIGURATION = {
 
 for (const [configKey, configValue] of Object.entries(REQUIRED_CONFIGURATION)) {
   if (!configValue) {
-    console.error(`[FATAL] ❌ Missing required configuration: ${configKey}`);
+    console.error(`[FATAL] ❌ Missing required configuration: ${configKey} - worker.js:70`);
     process.exit(1);
   }
 }
 
-console.log("[CONFIG] ✅ All required configuration validated successfully\n");
+console.log("[CONFIG] ✅ All required configuration validated successfully\n - worker.js:75");
 
 // ============================================================================
 // CONSTANTS & SYSTEM VALUES
 // ============================================================================
 
-console.log("[CONSTANTS] Initializing comprehensive system constants...\n");
+console.log("[CONSTANTS] Initializing comprehensive system constants...\n - worker.js:81");
 
-// Time constants in milliseconds for use throughout the system
+// Time constants
 const SECOND_MS = 1000;
 const MINUTE_MS = 60 * SECOND_MS;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -84,15 +89,15 @@ const WEEK_MS = 7 * DAY_MS;
 const MONTH_MS = 30 * DAY_MS;
 const YEAR_MS = 365 * DAY_MS;
 
-console.log("[CONSTANTS] Time constants initialized:");
-console.log(`  SECOND_MS: ${SECOND_MS}ms`);
-console.log(`  MINUTE_MS: ${MINUTE_MS}ms`);
-console.log(`  HOUR_MS: ${HOUR_MS}ms`);
-console.log(`  DAY_MS: ${DAY_MS}ms`);
-console.log(`  WEEK_MS: ${WEEK_MS}ms`);
-console.log(`  MONTH_MS: ${MONTH_MS}ms\n`);
+console.log("[CONSTANTS] Time constants initialized: - worker.js:92");
+console.log(`SECOND_MS: ${SECOND_MS}ms - worker.js:93`);
+console.log(`MINUTE_MS: ${MINUTE_MS}ms - worker.js:94`);
+console.log(`HOUR_MS: ${HOUR_MS}ms - worker.js:95`);
+console.log(`DAY_MS: ${DAY_MS}ms - worker.js:96`);
+console.log(`WEEK_MS: ${WEEK_MS}ms - worker.js:97`);
+console.log(`MONTH_MS: ${MONTH_MS}ms\n - worker.js:98`);
 
-// UI and pagination configuration
+// UI & pagination
 const SAFE_CHUNK_SIZE = 3000;
 const PAGE_SIZE = 5;
 const MAX_TABLE_ROWS = 20;
@@ -100,201 +105,103 @@ const MAX_CONTEXT_MESSAGES = 20;
 const MAX_CACHED_ITEMS = 100;
 const MAX_BEHAVIOR_HISTORY = 500;
 
-console.log("[CONSTANTS] UI & Pagination:");
-console.log(`  SAFE_CHUNK_SIZE: ${SAFE_CHUNK_SIZE} characters`);
-console.log(`  PAGE_SIZE: ${PAGE_SIZE} items per page`);
-console.log(`  MAX_TABLE_ROWS: ${MAX_TABLE_ROWS} rows`);
-console.log(`  MAX_CONTEXT_MESSAGES: ${MAX_CONTEXT_MESSAGES} messages\n`);
+console.log("[CONSTANTS] UI & Pagination: - worker.js:108");
+console.log(`SAFE_CHUNK_SIZE: ${SAFE_CHUNK_SIZE} characters - worker.js:109`);
+console.log(`PAGE_SIZE: ${PAGE_SIZE} items per page - worker.js:110`);
+console.log(`MAX_TABLE_ROWS: ${MAX_TABLE_ROWS} rows - worker.js:111`);
+console.log(`MAX_CONTEXT_MESSAGES: ${MAX_CONTEXT_MESSAGES} messages\n - worker.js:112`);
 
-// Caching TTL configuration (seconds)
+// Cache TTLs (seconds)
 const PREDICTION_CACHE_TTL = 3600;
 const API_CACHE_TTL_LIVE = 30;
 const API_CACHE_TTL_STANDINGS = 21600;
 const USER_CACHE_TTL = 604800;
 
-console.log("[CONSTANTS] Cache TTLs:");
-console.log(`  PREDICTION_CACHE_TTL: ${PREDICTION_CACHE_TTL}s`);
-console.log(`  API_CACHE_TTL_LIVE: ${API_CACHE_TTL_LIVE}s`);
-console.log(`  API_CACHE_TTL_STANDINGS: ${API_CACHE_TTL_STANDINGS}s\n`);
+console.log("[CONSTANTS] Cache TTLs: - worker.js:120");
+console.log(`PREDICTION_CACHE_TTL: ${PREDICTION_CACHE_TTL}s - worker.js:121`);
+console.log(`API_CACHE_TTL_LIVE: ${API_CACHE_TTL_LIVE}s - worker.js:122`);
+console.log(`API_CACHE_TTL_STANDINGS: ${API_CACHE_TTL_STANDINGS}s\n - worker.js:123`);
 
-// Rate limiting configuration
+// Rate limiting per minute
 const RATE_LIMITS = {
-  FREE: 30,      // 30 requests per minute for free users
-  MEMBER: 60,    // 60 requests per minute for members
-  VVIP: 150      // 150 requests per minute for VVIP users
+  FREE: 30,
+  MEMBER: 60,
+  VVIP: 150
 };
 
-console.log("[CONSTANTS] Rate Limits (requests per minute):");
-console.log(`  FREE: ${RATE_LIMITS.FREE} requests/min`);
-console.log(`  MEMBER: ${RATE_LIMITS.MEMBER} requests/min`);
-console.log(`  VVIP: ${RATE_LIMITS.VVIP} requests/min\n`);
+console.log("[CONSTANTS] Rate Limits (requests per minute): - worker.js:132");
+console.log(`FREE: ${RATE_LIMITS.FREE} requests/min - worker.js:133`);
+console.log(`MEMBER: ${RATE_LIMITS.MEMBER} requests/min - worker.js:134`);
+console.log(`VVIP: ${RATE_LIMITS.VVIP} requests/min\n - worker.js:135`);
 
-// User roles and tiers
+// Roles
 const ROLES = {
   FREE: "free",
   MEMBER: "member",
   VVIP: "vvip"
 };
 
-// Pricing tiers configuration
+// Pricing tiers
 const PRICING_TIERS = {
-  SIGNUP: {
-    KES: 150,
-    USD: 1,
-    description: "One-time member access",
-    duration: "Permanent"
-  },
-  VVIP_DAILY: {
-    KES: 200,
-    USD: 2,
-    description: "24-hour premium pass",
-    duration: "1 day"
-  },
-  VVIP_WEEKLY: {
-    KES: 800,
-    USD: 6,
-    description: "7-day premium pass",
-    duration: "7 days"
-  },
-  VVIP_MONTHLY: {
-    KES: 2500,
-    USD: 20,
-    description: "30-day premium pass",
-    duration: "30 days"
-  }
+  SIGNUP: { KES: 150, USD: 1, description: "One-time member access", duration: "Permanent" },
+  VVIP_DAILY: { KES: 200, USD: 2, description: "24-hour premium pass", duration: "1 day" },
+  VVIP_WEEKLY: { KES: 800, USD: 6, description: "7-day premium pass", duration: "7 days" },
+  VVIP_MONTHLY: { KES: 2500, USD: 20, description: "30-day premium pass", duration: "30 days" }
 };
 
-console.log("[CONSTANTS] Pricing Tiers:");
+console.log("[CONSTANTS] Pricing Tiers: - worker.js:152");
 Object.entries(PRICING_TIERS).forEach(([tier, pricing]) => {
-  console.log(`  ${tier}: KES ${pricing.KES} / USD $${pricing.USD} (${pricing.duration})`);
+  console.log(`${tier}: KES ${pricing.KES} / USD ${pricing.USD} (${pricing.duration}) - worker.js:154`);
 });
 console.log();
 
-// Sports leagues mapping
+// Leagues
 const SPORTS_LEAGUES = {
-  // English Premier League
-  epl: 39,
-  premierleague: 39,
-  england: 39,
-
-  // Spanish La Liga
-  laliga: 140,
-  spain: 140,
-
-  // Italian Serie A
-  seriea: 135,
-  italy: 135,
-
-  // German Bundesliga
-  bundesliga: 78,
-  germany: 78,
-
-  // French Ligue 1
-  ligue1: 61,
-  france: 61,
-
-  // European Competitions
-  ucl: 2,
-  championsleague: 2,
-
-  // Domestic Cups
-  fa: 3,
-  cup: 3
+  epl: 39, premierleague: 39, england: 39,
+  laliga: 140, spain: 140,
+  seriea: 135, italy: 135,
+  bundesliga: 78, germany: 78,
+  ligue1: 61, france: 61,
+  ucl: 2, championsleague: 2,
+  fa: 3, cup: 3
 };
 
-console.log("[CONSTANTS] Sports Leagues Configured:");
-console.log(`  Total leagues: ${Object.keys(SPORTS_LEAGUES).length}`);
-console.log(`  Examples: EPL (39), LaLiga (140), Serie A (135), Bundesliga (78), UCL (2)\n`);
+console.log("[CONSTANTS] Sports Leagues Configured: - worker.js:169");
+console.log(`Total leagues: ${Object.keys(SPORTS_LEAGUES).length} - worker.js:170`);
+console.log("Examples: EPL (39), LaLiga (140), Serie A (135), Bundesliga (78), UCL (2)\n - worker.js:171");
 
-// UI Icons and Emojis (60+)
+// Icons
 const ICONS = {
-  // Brand & primary
-  brand: "🚀",
-  betrix: "💎",
-  status: "✓",
-
-  // Sports & matches
-  live: "🔴",
-  standings: "📊",
-  odds: "🎲",
-  analysis: "🔍",
-  predict: "🎯",
-  match: "⚽",
-
-  // Features & actions
-  tips: "💡",
-  pricing: "💵",
-  payment: "💳",
-  help: "❓",
-  menu: "🧭",
-
-  // Tiers & subscriptions
-  vvip: "💎",
-  premium: "👑",
-  signup: "📝",
-  refer: "👥",
-  leaderboard: "🏆",
-
-  // Content
-  coach: "🏆",
-  analyze: "🔍",
-  about: "ℹ️",
-  dossier: "📋",
-  trends: "📈",
-
-  // Web features
-  meme: "😂",
-  crypto: "💰",
-  news: "📰",
-  reddit: "💬",
-  weather: "🌦️",
-  stadium: "⭐",
-  quote: "💭",
-  fact: "🧠",
-  betting: "🎓",
-
-  // Status & feedback
-  error: "❌",
-  success: "✅",
-  warning: "⚠️",
-  alert: "🔔",
-  health: "💚",
-
-  // Admin
-  admin: "👨‍💼",
-  users: "👥",
-  revenue: "💰",
-  history: "📜",
-  settings: "⚙️",
-
-  // Additional
-  fire: "🔥",
-  star: "⭐",
-  medal: "🥇",
-  calendar: "📅",
-  clock: "⏰",
-  chart: "📈"
+  brand: "🚀", betrix: "💎", status: "✓",
+  live: "🔴", standings: "📊", odds: "🎲", analysis: "🔍", predict: "🎯", match: "⚽",
+  tips: "💡", pricing: "💵", payment: "💳", help: "❓", menu: "🧭",
+  vvip: "💎", premium: "👑", signup: "📝", refer: "👥", leaderboard: "🏆",
+  coach: "🏆", analyze: "🔍", about: "ℹ️", dossier: "📋", trends: "📈",
+  meme: "😂", crypto: "💰", news: "📰", reddit: "💬", weather: "🌦️", stadium: "⭐", quote: "💭", fact: "🧠", betting: "🎓",
+  error: "❌", success: "✅", warning: "⚠️", alert: "🔔", health: "💚",
+  admin: "👨‍💼", users: "👥", revenue: "💰", history: "📜", settings: "⚙️",
+  fire: "🔥", star: "⭐", medal: "🥇", calendar: "📅", clock: "⏰", chart: "📈"
 };
 
-console.log("[CONSTANTS] UI Icons: 60+ emojis configured\n");
+console.log("[CONSTANTS] UI Icons: 60+ emojis configured\n - worker.js:186");
 
-// Betting strategy tips
+// Strategy tips
 const STRATEGY_TIPS = [
-  "💰 Bankroll: Always bet fixed unit sizes. Never chase losses no matter what.",
-  "🎯 Focus: Specialize in one league. Reduce noise, improve accuracy significantly.",
-  "📊 Data: Use multiple viewpoints for better insights and edge finding.",
-  "⏰ Limits: Set daily max. Betting is entertainment, not survival.",
-  "💡 Value: Odds are information, not guarantees. Hunt for statistical edge.",
-  "😌 Peace: If uncertain, skip the bet and enjoy the game anyway.",
-  "📈 Trends: Recent form matters more than historical records.",
-  "🧠 Analysis: Stats > Hype. Every single time, always.",
-  "🔒 Risk: Never risk more than you can afford to lose completely.",
-  "🎓 Learn: Track predictions, learn from patterns, improve daily."
+  "💰 Bankroll: Always bet fixed unit sizes. Never chase losses.",
+  "🎯 Focus: Specialize in one league for signal > noise.",
+  "📊 Data: Use multiple viewpoints for better edge.",
+  "⏰ Limits: Set daily max. Betting is entertainment.",
+  "💡 Value: Odds are information, not guarantees.",
+  "😌 Peace: If uncertain, skip and enjoy the match.",
+  "📈 Trends: Recent form > historical records.",
+  "🧠 Analysis: Stats > Hype. Every single time.",
+  "🔒 Risk: Never risk more than you can lose.",
+  "🎓 Learn: Track predictions, learn, improve."
 ];
 
-console.log("[CONSTANTS] Strategy Tips: 10 betting wisdom messages loaded\n");
+console.log("[CONSTANTS] Strategy Tips loaded\n - worker.js:202");
 
-// Brand personality memes
+// Memes
 const BRAND_MEMES = [
   "⚡ Neutral. Data-driven. No hype.",
   "🧠 Process beats luck. Always.",
@@ -306,78 +213,152 @@ const BRAND_MEMES = [
   "📈 Probability is your compass."
 ];
 
-console.log("[CONSTANTS] Brand Memes: 8 personality messages loaded");
-console.log("[CONSTANTS] ✅ All constants initialized successfully\n");
+console.log("[CONSTANTS] Brand Memes loaded - worker.js:216");
+console.log("[CONSTANTS] ✅ All constants initialized successfully\n - worker.js:217");
 
 // ============================================================================
-// REDIS CONNECTION & INITIALIZATION (150+ LINES)
+// REDIS CONNECTION (PRIMARY APP CLIENT)
 // ============================================================================
 
-console.log("[REDIS] 🔗 Initializing Redis connection pool...\n");
+console.log("[REDIS] 🔗 Initializing Redis connection pool...\n - worker.js:223");
 
 const redis = new Redis(REDIS_URL, {
   retryStrategy: (times) => {
     const delay = Math.min(times * 50, 2000);
-    console.log(`[REDIS] Reconnection attempt ${times}, waiting ${delay}ms...`);
+    console.log(`[REDIS] Reconnection attempt ${times}, waiting ${delay}ms... - worker.js:228`);
     return delay;
   },
-  maxRetriesPerRequest: null,
+  // For general app use we can allow retries; BullMQ will not use this client.
+  maxRetriesPerRequest: 3,
   enableReadyCheck: true,
   enableOfflineQueue: true,
   lazyConnect: false
 });
 
-// Event handlers for Redis connection
 redis.on("error", (err) => {
-  console.error("[REDIS] ❌ Connection error:", err.message);
+  console.error("[REDIS] ❌ Connection error: - worker.js:239", err.message);
 });
 
 redis.on("connect", () => {
-  console.log("[REDIS] ✅ Successfully connected to Redis");
+  console.log("[REDIS] ✅ Successfully connected to Redis - worker.js:243");
 });
 
 redis.on("ready", () => {
-  console.log("[REDIS] ✅ Redis client ready to serve requests\n");
-
-  // ============================================================================
-  // TELEGRAM QUEUE CONSUMER (BullMQ)
-  // ============================================================================
-  // Note: sendTelegram must be defined elsewhere in your worker (it is in your utils).
-  const telegramWorker = new Worker(
-    "telegram-updates",
-    async (job) => {
-      console.log(`[QUEUE] Processing job ${job.id}`, job.data);
-
-      // Minimal guard and echo behavior (replace with your actual dispatcher)
-      const chatId = job.data?.message?.chat?.id;
-      const text = job.data?.message?.text;
-
-      if (chatId && text) {
-        await sendTelegram(chatId, `Echo: ${text}`);
-      } else {
-        console.warn("[QUEUE] ⚠️ Job missing chatId or text, skipping.");
-      }
-    },
-    // Reuse existing ioredis connection
-    { connection: redis }
-  );
-
-  telegramWorker.on("completed", (job) => {
-    console.log(`[QUEUE] Job ${job.id} completed`);
-  });
-
-  telegramWorker.on("failed", (job, err) => {
-    console.error(`[QUEUE] Job ${job?.id} failed: ${err.message}`);
-  });
+  console.log("[REDIS] ✅ Redis client ready to serve requests\n - worker.js:247");
 });
 
 redis.on("reconnecting", () => {
-  console.log("[REDIS] 🔄 Attempting to reconnect to Redis...");
+  console.log("[REDIS] 🔄 Attempting to reconnect to Redis... - worker.js:251");
 });
 
 redis.on("end", () => {
-  console.log("[REDIS] ❌ Redis connection ended");
+  console.log("[REDIS] ❌ Redis connection ended - worker.js:255");
 });
+
+// ============================================================================
+// UTILS: Sleep, Chunking, Telegram messaging, Cache helpers
+// ============================================================================
+
+console.log("[UTILS] ⚙️ Initializing utility functions...\n - worker.js:262");
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function chunkText(text, maxSize = SAFE_CHUNK_SIZE) {
+  if (!text) return [""];
+  const chunks = [];
+  let remaining = String(text);
+  while (remaining.length > maxSize) {
+    let breakPoint = remaining.lastIndexOf("\n", maxSize);
+    if (breakPoint < maxSize * 0.6) breakPoint = remaining.lastIndexOf(" ", maxSize);
+    if (breakPoint < maxSize * 0.6) breakPoint = maxSize;
+    chunks.push(remaining.slice(0, breakPoint));
+    remaining = remaining.slice(breakPoint).trimStart();
+  }
+  if (remaining) chunks.push(remaining);
+  return chunks;
+}
+
+async function safeFetch(url, options = {}, label = "", retries = 2) {
+  console.log(`[FETCH] ${label || url} (retries: ${retries}) - worker.js:282`);
+  let lastError = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, { ...options, timeout: 15000 });
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : {};
+      return data;
+    } catch (err) {
+      lastError = err;
+      console.warn(`[FETCH] Attempt ${attempt + 1} failed: ${err.message} - worker.js:293`);
+      if (attempt < retries) {
+        const wait = 500 * Math.pow(2, attempt);
+        console.log(`[FETCH] Waiting ${wait}ms before retry... - worker.js:296`);
+        await sleep(wait);
+      }
+    }
+  }
+  throw lastError || new Error("Fetch failed");
+}
+
+async function sendTelegram(chatId, text, options = {}) {
+  try {
+    const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
+    const chunks = chunkText(text);
+    for (let i = 0; i < chunks.length; i++) {
+      const suffix = chunks.length > 1 ? `\n\n[${i + 1}/${chunks.length}]` : "";
+      const messageText = chunks[i] + suffix;
+      await safeFetch(
+        url,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: messageText,
+            parse_mode: "HTML",
+            disable_web_page_preview: true,
+            ...options
+          })
+        },
+        `Telegram chunk ${i + 1}/${chunks.length}`
+      );
+      if (i < chunks.length - 1) await sleep(400);
+    }
+    return true;
+  } catch (err) {
+    console.error("[TELEGRAM] ❌ Failed to send message: - worker.js:330", err.message);
+    return false;
+  }
+}
+
+async function cacheGet(key) {
+  try {
+    const value = await redis.get(key);
+    return value ? JSON.parse(value) : null;
+  } catch (err) {
+    console.error(`[CACHE] ❌ Get error (${key}): - worker.js:340`, err.message);
+    return null;
+  }
+}
+
+async function cacheSet(key, value, ttlSeconds = 300) {
+  try {
+    const serialized = JSON.stringify(value);
+    if (ttlSeconds && ttlSeconds > 0) {
+      await redis.set(key, serialized, "EX", ttlSeconds);
+    } else {
+      await redis.set(key, serialized);
+    }
+    return true;
+  } catch (err) {
+    console.error(`[CACHE] ❌ Set error (${key}): - worker.js:355`, err.message);
+    return false;
+  }
+}
+
+console.log("[UTILS] ✅ Utility functions initialized\n - worker.js:360");
+
 
 // ============================================================================
 // GEMINI AI INITIALIZATION (150+ LINES)
