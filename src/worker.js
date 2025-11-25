@@ -11,6 +11,7 @@ import fetch from "node-fetch";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import express from "express";
 import crypto from "crypto";
+import { Worker } from "bullmq"; // ✅ BullMQ import at top-level
 
 console.log("\n" + "=".repeat(130));
 console.log("[🚀 BETRIX] ULTIMATE UNIFIED PRODUCTION WORKER - 3000+ LINES");
@@ -339,23 +340,25 @@ redis.on("ready", () => {
   console.log("[REDIS] ✅ Redis client ready to serve requests\n");
 
   // ============================================================================
-  // TELEGRAM QUEUE CONSUMER
+  // TELEGRAM QUEUE CONSUMER (BullMQ)
   // ============================================================================
-  import { Worker } from "bullmq";
-
+  // Note: sendTelegram must be defined elsewhere in your worker (it is in your utils).
   const telegramWorker = new Worker(
     "telegram-updates",
     async (job) => {
       console.log(`[QUEUE] Processing job ${job.id}`, job.data);
 
-      // Example: echo back the message text to the user
-      if (job.data.message?.chat?.id && job.data.message?.text) {
-        await sendTelegram(
-          job.data.message.chat.id,
-          `Echo: ${job.data.message.text}`
-        );
+      // Minimal guard and echo behavior (replace with your actual dispatcher)
+      const chatId = job.data?.message?.chat?.id;
+      const text = job.data?.message?.text;
+
+      if (chatId && text) {
+        await sendTelegram(chatId, `Echo: ${text}`);
+      } else {
+        console.warn("[QUEUE] ⚠️ Job missing chatId or text, skipping.");
       }
     },
+    // Reuse existing ioredis connection
     { connection: redis }
   );
 
