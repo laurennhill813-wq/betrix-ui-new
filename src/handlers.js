@@ -10,12 +10,13 @@ import { CONFIG } from "./config.js";
 const logger = new Logger("Handlers");
 
 class BotHandlers {
-  constructor(telegram, userService, apiFootball, gemini, redis) {
+  constructor(telegram, userService, apiFootball, gemini, redis, freeSports = null) {
     this.telegram = telegram;
     this.userService = userService;
     this.apiFootball = apiFootball;
     this.gemini = gemini;
     this.redis = redis;
+    this.freeSports = freeSports;
   }
 
   // ===== START & MENU =====
@@ -115,6 +116,18 @@ class BotHandlers {
       const data = await this.apiFootball.getStandings(leagueId, season);
 
       if (!data?.response?.[0]?.league?.standings) {
+        // Try free web fallback (Wikipedia)
+        if (this.freeSports) {
+          const guess = await this.freeSports.searchWiki(league);
+          if (guess) {
+            const rows = await this.freeSports.getStandings(guess, CONFIG.MAX_TABLE_ROWS || 10);
+            if (rows && rows.length) {
+              const text = `${ICONS.standings} <b>Standings — ${guess}</b>\n\n` +
+                rows.map(r => `${r.rank || '-'} . ${r.team || r.raw?.[1] || 'Team'} — ${r.points || r.raw?.slice(-1)[0] || '-'} pts`).join('\n');
+              return this.telegram.sendMessage(chatId, text);
+            }
+          }
+        }
         const msg = await this.gemini.chat(`No standings for league ${leagueId}. Friendly fallback.`);
         return this.telegram.sendMessage(chatId, `${ICONS.standings} ${msg}`);
       }
@@ -154,6 +167,12 @@ class BotHandlers {
       const data = await this.apiFootball.getOdds(fixtureId);
 
       if (!data?.response?.length) {
+        // No odds from API Football — try to provide a helpful guidance using free sources
+        if (this.freeSports) {
+          // Suggest checking local bookmakers or compare via search; provide a league summary if available
+          const msg = await this.gemini.chat("Odds unavailable from primary provider. Provide helpful guidance about where to find odds and how to interpret them in 2 lines.");
+          return this.telegram.sendMessage(chatId, `${ICONS.odds} ${msg}\n\nTip: Use /live to find recent fixtures and then try /odds [fixture-id].`);
+        }
         const msg = await this.gemini.chat("No odds available for this match. Helpful fallback.");
         return this.telegram.sendMessage(chatId, `${ICONS.odds} ${msg}`);
       }

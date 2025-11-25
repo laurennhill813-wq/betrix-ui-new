@@ -15,6 +15,7 @@ import { GeminiService } from "./services/gemini.js";
 import { LocalAIService } from "./services/local-ai.js";
 import { HuggingFaceService } from "./services/huggingface.js";
 import { AzureAIService } from "./services/azure-ai.js";
+import { FreeSportsService } from "./services/free-sports.js";
 import { BotHandlers } from "./handlers.js";
 import { AdvancedHandler } from "./advanced-handler.js";
 import { PremiumService } from "./services/premium.js";
@@ -64,6 +65,7 @@ const azure = new AzureAIService(
   process.env.AZURE_AI_DEPLOYMENT || process.env.AZURE_DEPLOYMENT || (CONFIG.AZURE && CONFIG.AZURE.DEPLOYMENT),
   process.env.AZURE_API_VERSION || (CONFIG.AZURE && CONFIG.AZURE.API_VERSION) || '2023-05-15'
 );
+const freeSports = new FreeSportsService();
 
 // Composite AI wrapper: try Gemini per-request, fall back to LocalAI on errors.
 const ai = {
@@ -152,7 +154,7 @@ const ai = {
 const analytics = new AnalyticsService(redis);
 const rateLimiter = new RateLimiter(redis);
 const contextManager = new ContextManager(redis);
-const basicHandlers = new BotHandlers(telegram, userService, apiFootball, ai, redis);
+const basicHandlers = new BotHandlers(telegram, userService, apiFootball, ai, redis, freeSports);
 const advancedHandler = new AdvancedHandler(basicHandlers, redis, telegram, userService, ai);
 const premiumService = new PremiumService(redis, ai);
 const adminDashboard = new AdminDashboard(redis, telegram, analytics);

@@ -1,0 +1,124 @@
+/**
+ * FreeSportsService
+ * - Uses public web endpoints (Wikipedia REST + MediaWiki) to fetch league summaries and standings
+ * - No API keys required
+ */
+
+import fetch from 'node-fetch';
+import cheerio from 'cheerio';
+import { Logger } from '../utils/logger.js';
+
+const logger = new Logger('FreeSports');
+
+class FreeSportsService {
+  constructor() {}
+
+  // Search Wikipedia for a matching page title for a league name
+  async searchWiki(title) {
+    try {
+      const q = encodeURIComponent(title);
+      const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${q}&format=json&srlimit=5`;
+      const res = await fetch(url, { headers: { 'User-Agent': 'BETRIX/1.0 (bot)' } });
+      const j = await res.json();
+      const first = j?.query?.search?.[0];
+      return first?.title || null;
+    } catch (err) {
+      logger.warn('Wiki search failed', err?.message || String(err));
+      return null;
+    }
+  }
+
+  // Get summary for a page title via the REST summary endpoint
+  async getLeagueSummary(title) {
+    try {
+      if (!title) return null;
+      const encoded = encodeURIComponent(title.replace(/ /g, '_'));
+      const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encoded}`;
+      const res = await fetch(url, { headers: { 'User-Agent': 'BETRIX/1.0 (bot)' } });
+      if (!res.ok) return null;
+      const j = await res.json();
+      return {
+        title: j.title,
+        extract: j.extract,
+        url: j.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encoded}`,
+      };
+    } catch (err) {
+      logger.warn('getLeagueSummary failed', err?.message || String(err));
+      return null;
+    }
+  }
+
+  // Parse standings table from a Wikipedia page via parse API and cheerio
+  async getStandings(pageTitle, maxRows = 10) {
+    try {
+      if (!pageTitle) return null;
+      const url = `https://en.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(pageTitle)}&prop=text&format=json`;
+      const res = await fetch(url, { headers: { 'User-Agent': 'BETRIX/1.0 (bot)' } });
+      if (!res.ok) return null;
+      const j = await res.json();
+      const html = j?.parse?.text?.['*'];
+      if (!html) return null;
+
+      const $ = cheerio.load(html);
+
+      // Look for the first table that looks like a standings table
+      const tables = $('table.wikitable, table.sortable');
+      let chosen = null;
+      tables.each((i, t) => {
+        if (chosen) return;
+        const headers = $(t).find('th').map((i, h) => $(h).text().toLowerCase()).get().join('|');
+        // crude check: headers contain 'pos' or 'p' and 'pts'
+        if (headers.includes('pos') || headers.includes('p') || headers.includes('pts') || headers.includes('points')) {
+          chosen = t;
+        }
+      });
+
+      if (!chosen) {
+        // fallback to first wikitable
+        chosen = tables.get(0);
+      }
+
+      if (!chosen) return null;
+
+      const rows = [];
+      $(chosen)
+        .find('tr')
+        .each((i, tr) => {
+          if (i === 0) return; // skip header
+          const cols = $(tr)
+            .find('td, th')
+            .map((j, td) => $(td).text().trim())
+            .get()
+            .filter(Boolean);
+          if (!cols || cols.length === 0) return;
+          // attempt to map: [pos, team, played, win, draw, loss, pts]
+          const entry = {
+            raw: cols,
+          };
+          // heuristics
+          if (cols.length >= 2) {
+            entry.rank = cols[0];
+            entry.team = cols[1];
+          }
+          if (cols.length >= 7) {
+            entry.played = cols[2];
+            entry.win = cols[3];
+            entry.draw = cols[4];
+            entry.loss = cols[5];
+            entry.points = cols[6];
+          } else if (cols.length >= 5) {
+            entry.played = cols[2];
+            entry.points = cols[cols.length - 1];
+          }
+          rows.push(entry);
+        });
+
+      return rows.slice(0, maxRows);
+    } catch (err) {
+      logger.warn('getStandings failed', err?.message || String(err));
+      return null;
+    }
+  }
+}
+
+export { FreeSportsService };
