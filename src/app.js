@@ -372,6 +372,26 @@ app.get("/metrics", async (req, res) => {
   }
 });
 
+// Admin queue status (safe: no secrets). Shows Redis queue lengths and worker heartbeat.
+app.get("/admin/queue", async (req, res) => {
+  try {
+    const telegramUpdates = await redis.llen("telegram:updates").catch(() => 0);
+    const telegramCallbacks = await redis.llen("telegram:callbacks").catch(() => 0);
+    const workerHeartbeat = await redis.get("worker:heartbeat").catch(() => null);
+    const commit = process.env.RENDER_GIT_COMMIT || process.env.COMMIT_SHA || null;
+
+    return res.json(formatResponse(true, {
+      telegram_updates: telegramUpdates,
+      telegram_callbacks: telegramCallbacks,
+      worker_heartbeat: workerHeartbeat ? Number(workerHeartbeat) : null,
+      commit: commit
+    }, "Queue status"));
+  } catch (err) {
+    log("ERROR", "ADMIN", "Failed to read queue status", { err: err.message });
+    return res.status(500).json(formatResponse(false, null, "Failed to read queue status"));
+  }
+});
+
 app.get("/dashboard", tierBasedRateLimiter, (req, res) => {
   res.json(formatResponse(true, { brand: BETRIX.brand, menu: BETRIX.menu?.main, stats: { totalUsers: 50000, activePredictions: 1234, uptime: process.uptime() } }));
 });

@@ -34,6 +34,16 @@ const redis = new Redis(CONFIG.REDIS_URL);
 redis.on("error", err => logger.error("Redis error", err));
 redis.on("connect", () => logger.info("✅ Redis connected"));
 
+// Worker heartbeat: update a small Redis key periodically so the web process can check worker health
+setInterval(async () => {
+  try {
+    await redis.set("worker:heartbeat", Date.now());
+    await redis.expire("worker:heartbeat", 30); // keep for 30s
+  } catch (err) {
+    logger.error("Heartbeat write failed", err);
+  }
+}, 10 * 1000);
+
 // Initialize all services
 const telegram = new TelegramService(CONFIG.TELEGRAM_TOKEN, CONFIG.TELEGRAM.SAFE_CHUNK);
 const userService = new UserService(redis);
