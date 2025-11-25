@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "bash start.sh",
-    "dev": "node src/worker-db.js",
+  "dev": "node src/worker-db.js",
+  "worker": "node src/worker-final.js",
     "test": "echo \"Tests coming soon\""
   },
   "dependencies": {
