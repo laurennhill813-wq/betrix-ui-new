@@ -46,7 +46,7 @@ import v2Handler from "./handlers/telegram-handler-v2-clean.js";
 import completeHandler from "./handlers/handler-complete.js";
 import SportMonksAPI from "./services/sportmonks-api.js";
 import SportsDataAPI from "./services/sportsdata-api.js";
-import { registerDataExposureAPI } from "./app.js";
+import { registerDataExposureAPI } from "./app_clean.js";
 import { Pool } from 'pg';
 import { reconcileWithLipana } from './tasks/reconcile-lipana.js';
 
