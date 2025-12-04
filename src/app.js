@@ -1,4 +1,5 @@
-﻿import express from 'express';
+﻿// Single-file clean implementation
+import express from 'express';
 import bodyParser from 'body-parser';
 import crypto from 'crypto';
 import { Pool } from 'pg';
@@ -7,7 +8,6 @@ import path from 'path';
 import os from 'os';
 import DataExposureHandler from './handlers/data-exposure-handler.js';
 
-// Single, clean app.js — remove duplicated blocks that caused SyntaxError
 process.env.PGSSLMODE = process.env.PGSSLMODE || 'require';
 
 const app = express();
@@ -17,8 +17,7 @@ app.use(bodyParser.json({ limit: '5mb', verify: (req, _res, buf) => { req.rawBod
 function safeLog(...args) { try { console.log(...args); } catch (e) {} }
 
 app.get('/health', (_req, res) => res.status(200).json({ ok: true }));
-
-app.get('/admin/queue', (req, res) => res.json({ ok: true, commit: process.env.RENDER_GIT_COMMIT || process.env.COMMIT_SHA || null }));
+app.get('/admin/queue', (_req, res) => res.json({ ok: true, commit: process.env.RENDER_GIT_COMMIT || process.env.COMMIT_SHA || null }));
 
 app.get('/admin/webhook-fallback', (req, res) => {
   try {
@@ -75,7 +74,7 @@ export function registerDataExposureAPI(sportsAggregator) {
   catch (err) { safeLog('DATA_EXPOSURE registration failed:', String(err)); }
 }
 
-if (process.argv[1] && process.argv[1].endsWith('src/app.js')) {
+if (require.main === module) {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => safeLog(`Server running on port ${PORT}`));
 }
