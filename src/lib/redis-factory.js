@@ -85,6 +85,43 @@ class MockRedis {
   }
 
   async ping() { return 'PONG'; }
+
+  // Compatibility methods used by the worker or other services
+  async expire(key, seconds) {
+    // No TTL semantics in MockRedis; pretend success
+    return 1;
+  }
+
+  async publish(channel, message) {
+    // Mock publish: no-op but return number of subscribers (0)
+    return 0;
+  }
+
+  async rpop(source) {
+    const arr = this.kv.get(source) || [];
+    const v = arr.pop();
+    this.kv.set(source, arr);
+    return v || null;
+  }
+
+  async lpush(dest, value) {
+    const arr = this.kv.get(dest) || [];
+    arr.unshift(value);
+    this.kv.set(dest, arr);
+    return arr.length;
+  }
+
+  async rpoplpush(source, dest) {
+    const val = await this.rpop(source);
+    if (!val) return null;
+    await this.lpush(dest, val);
+    return val;
+  }
+
+  async brpoplpush(source, dest, timeout = 0) {
+    // Blocking is not implemented for MockRedis; behave like rpoplpush
+    return await this.rpoplpush(source, dest);
+  }
 }
 
 export function getRedis(opts = {}) {
