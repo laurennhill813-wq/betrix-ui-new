@@ -47,6 +47,26 @@ export default function createAdminRouter() {
     }
   });
 
+  // Process info for debugging which entrypoint is running on the host
+  router.get('/process-info', (_req, res) => {
+    try {
+      const info = {
+        pid: process.pid,
+        argv: process.argv,
+        nodeVersion: process.version,
+        uptimeSeconds: Math.floor(process.uptime()),
+        env: {
+          PORT: process.env.PORT || null,
+          START_HTTP_IN_WORKER: process.env.START_HTTP_IN_WORKER || null,
+          NODE_ENV: process.env.NODE_ENV || null
+        }
+      };
+      return res.json({ ok: true, info });
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: e?.message || String(e) });
+    }
+  });
+
   // Diagnostic: list registered routes on the app
   router.get('/routes', (_req, res) => {
     try {
