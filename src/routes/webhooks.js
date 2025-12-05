@@ -52,6 +52,12 @@ export default function createWebhooksRouter() {
   // Also accept optional secret in path: /telegram or /telegram/:secret
   const telegramHandler = async (req, res) => {
     try {
+      // Lightweight stdout log so incoming Telegram updates appear immediately in platform logs
+      try {
+        const uid = req.body && (req.body.update_id || (req.body.message && req.body.message.message_id)) ? `update_id=${req.body.update_id || (req.body.message && req.body.message.message_id)}` : '';
+        console.log('[TELEGRAM] Update received', req.method, req.originalUrl, uid);
+      } catch (e) { /* don't let logging break the handler */ }
+
       // Ensure body parsed for POST/PUT; don't throw on parse errors
       // Log method, path, headers and body to webhooks.log for debugging on Render
       try {
