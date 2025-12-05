@@ -165,6 +165,54 @@ export function getRedis(opts = {}) {
     console.log('[redis-factory] ⚠️  Redis connection ended');
   });
 
+  // Compatibility wrappers: some hosted Redis clients or proxy libraries
+  // may not expose the exact ioredis method names (e.g. brpoplpush, expire, publish).
+  // If the methods are missing but the client supports `sendCommand` or `call`,
+  // provide thin wrappers so the rest of the codebase can use the expected API.
+  const sendCmd = typeof _instance.sendCommand === 'function' ? (args) => _instance.sendCommand(args) : null;
+  const callCmd = typeof _instance.call === 'function' ? (cmd, ...args) => _instance.call(cmd, ...args) : null;
+
+  function attachIfMissing(name, impl) {
+    if (typeof _instance[name] !== 'function') {
+      try {
+        _instance[name] = impl;
+        console.log(`[redis-factory] ⚙️  Attached compatibility wrapper for ${name}`);
+      } catch (e) {
+        console.warn(`[redis-factory] ⚠️  Could not attach wrapper for ${name}`, e && e.message ? e.message : e);
+      }
+    }
+  }
+
+  // EXPIRE key seconds
+  attachIfMissing('expire', async (key, seconds) => {
+    if (sendCmd) return (await sendCmd(['EXPIRE', key, String(seconds)]));
+    if (callCmd) return (await callCmd('EXPIRE', key, String(seconds)));
+    throw new Error('redis.expire not supported by client');
+  });
+
+  // PUBLISH channel message
+  attachIfMissing('publish', async (channel, message) => {
+    if (sendCmd) return (await sendCmd(['PUBLISH', channel, String(message)]));
+    if (callCmd) return (await callCmd('PUBLISH', channel, String(message)));
+    throw new Error('redis.publish not supported by client');
+  });
+
+  // BRPOPLPUSH source dest timeout
+  attachIfMissing('brpoplpush', async (source, dest, timeout = 0) => {
+    if (sendCmd) return (await sendCmd(['BRPOPLPUSH', source, dest, String(timeout)]));
+    if (callCmd) return (await callCmd('BRPOPLPUSH', source, dest, String(timeout)));
+    // Fallback: try BRPOP followed by LPUSH (non-atomic, only for best-effort fallback)
+    if (typeof _instance.brpop === 'function' && typeof _instance.lpush === 'function') {
+      const res = await _instance.brpop(source, timeout);
+      if (!res) return null;
+      // res can be [key, value]
+      const val = Array.isArray(res) ? res[1] : res;
+      await _instance.lpush(dest, val);
+      return val;
+    }
+    throw new Error('redis.brpoplpush not supported by client');
+  });
+
   return _instance;
 }
 

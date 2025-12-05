@@ -1,0 +1,68 @@
+import express from 'express';
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+
+export default function createWebhooksRouter() {
+  const router = express.Router();
+
+  router.post('/mpesa', express.json({ limit: '5mb', verify: (req, _res, buf) => { req.rawBody = buf; } }), async (req, res) => {
+    const pool = req.app && req.app.locals && req.app.locals.pool;
+    const secret = process.env.LIPANA_WEBHOOK_SECRET || process.env.MPESA_WEBHOOK_SECRET || process.env.LIPANA_SECRET;
+    const incoming = req.headers['x-lipana-signature'] || req.headers['x-signature'] || req.headers['signature'] || '';
+    try {
+      const raw = req.rawBody || Buffer.from(JSON.stringify(req.body || {}), 'utf8');
+      let computedHex = null;
+      let computedB64 = null;
+      if (secret) {
+        const h = crypto.createHmac('sha256', String(secret)).update(raw).digest();
+        computedHex = h.toString('hex');
+        computedB64 = h.toString('base64');
+      }
+
+      try {
+        if (pool) {
+          await pool.query(`CREATE TABLE IF NOT EXISTS webhooks (id SERIAL PRIMARY KEY, created_at timestamptz DEFAULT now(), raw_payload jsonb, headers jsonb, incoming_signature text, computed_hex text, computed_b64 text)`);
+          const insertRes = await pool.query('INSERT INTO webhooks(raw_payload, headers, incoming_signature, computed_hex, computed_b64) VALUES($1,$2,$3,$4,$5) RETURNING id', [req.body || {}, req.headers || {}, incoming, computedHex, computedB64]);
+          // Log successful DB insert
+          try { const insertedId = insertRes && insertRes.rows && insertRes.rows[0] && insertRes.rows[0].id; if (insertedId) console.log('[webhook/mpesa] DB insert OK id=', insertedId); } catch (e) { /* ignore logging error */ }
+        } else {
+          throw new Error('no-pool');
+        }
+      } catch (dbErr) {
+        try {
+          const rec = { ts: new Date().toISOString(), headers: req.headers || {}, body: req.body || {}, incoming_signature: incoming, computedHex, computedB64 };
+          const logPath = path.join(process.cwd(), 'webhooks.log');
+          const tmpPath = path.join(os.tmpdir(), 'webhooks.log');
+          fs.appendFileSync(logPath, JSON.stringify(rec) + '\n', { encoding: 'utf8' });
+          fs.appendFileSync(tmpPath, JSON.stringify(rec) + '\n', { encoding: 'utf8' });
+        } catch (fsErr) {
+          // best-effort fallback failed
+        }
+      }
+
+      return res.status(200).send('OK');
+    } catch (err) {
+      return res.status(200).send('OK');
+    }
+  });
+
+  // Telegram webhook endpoint — must return 200 OK to stop Telegram retries
+  router.post('/telegram', express.json({ limit: '1mb' }), async (req, res) => {
+    try {
+      // Minimal logging for debugging; avoid throwing
+      try {
+        const rec = { ts: new Date().toISOString(), source: 'telegram', body: req.body || {}, headers: req.headers || {} };
+        const logPath = path.join(process.cwd(), 'webhooks.log');
+        fs.appendFileSync(logPath, JSON.stringify(rec) + '\n', { encoding: 'utf8' });
+      } catch (e) { /* ignore logging errors */ }
+      // Respond 200 OK
+      return res.status(200).send('OK');
+    } catch (err) {
+      return res.status(200).send('OK');
+    }
+  });
+
+  return router;
+}
