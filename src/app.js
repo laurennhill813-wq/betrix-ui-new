@@ -180,6 +180,14 @@ app.all('/telegram', (req, res) => {
   } catch (e) { return res.status(200).send('OK'); }
 });
 
+// Very unique well-known test path to troubleshoot edge filtering
+app.get('/.well-known/betrix-check', (req, res) => {
+  try {
+    safeLog('[TOP-REQ] /.well-known/betrix-check');
+    return res.json({ ok: true, service: 'betrix-ui', ts: new Date().toISOString() });
+  } catch (e) { return res.status(500).json({ ok: false, error: e?.message || String(e) }); }
+});
+
 // Request-time debug middleware: logs incoming requests and route matching summary
 app.use((req, res, next) => {
   try {
