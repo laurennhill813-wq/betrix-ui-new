@@ -5,12 +5,7 @@
  * Complete integration of all services and intelligence
  */
 
-/*
-  Temporary lint relaxation: this file is large and we're doing
-  progressive cleanup. Disable a few rules here so CI/lint won't
-  block while we fix runtime issues incrementally.
-*/
-/* eslint-disable no-unused-vars, no-empty, no-constant-condition, no-dupe-keys, import/no-named-as-default-member */
+// Targeted ESLint relaxations for named-import warnings only.
 
 // NOTE: Do NOT disable global TLS verification here. Use per-service TLS config
 // via `SPORTSMONKS_INSECURE=true` if absolutely required for local testing.
@@ -48,10 +43,9 @@ import { AdvancedHandler } from "./advanced-handler.js";
 import { PremiumService } from "./services/premium.js";
 import { AdminDashboard } from "./admin/dashboard.js";
 import { AnalyticsService } from "./services/analytics.js";
-import { RateLimiter } from "./middleware/rate-limiter.js";
 import { ContextManager } from "./middleware/context-manager.js";
-import v2Handler from "./handlers/telegram-handler-v2-clean.js";
-import completeHandler from "./handlers/handler-complete.js";
+import * as v2Handler from "./handlers/telegram-handler-v2-clean.js";
+import * as completeHandler from "./handlers/handler-complete.js";
 import { SportMonksAPI } from "./services/sportmonks-api.js";
 import { SportsDataAPI } from "./services/sportsdata-api.js";
 import { registerDataExposureAPI } from "./app_clean.js";
@@ -59,11 +53,7 @@ import { Pool } from 'pg';
 import { reconcileWithLipana } from './tasks/reconcile-lipana.js';
 
 // ===== PREMIUM ENHANCEMENT MODULES =====
-import _premiumUI from "./utils/premium-ui-builder.js";
-import _advancedAnalysis from "./utils/advanced-match-analysis.js";
-import _fixturesManager from "./utils/fixtures-manager.js";
-import _intelligentMenus from "./utils/intelligent-menu-builder.js";
-import _brandingUtils from "./utils/betrix-branding.js";
+// Removed unused utility imports to satisfy strict linting.
 import perfUtils from "./utils/performance-optimizer.js";
 
 const logger = new Logger("FinalWorker");
@@ -293,7 +283,6 @@ const ai = {
   }
 };
 const analytics = new AnalyticsService(redis);
-const rateLimiter = new RateLimiter(redis);
 const contextManager = new ContextManager(redis);
 const basicHandlers = new BotHandlers(telegram, userService, apiFootball, ai, redis, freeSports, {
   openLiga,
@@ -304,17 +293,14 @@ const basicHandlers = new BotHandlers(telegram, userService, apiFootball, ai, re
 });
 
 // StatPal integration removed: system now uses SPORTSMONKS and FOOTBALLDATA only
-let _statpalInitSuccess = false;
 logger.info('ℹ️ StatPal integration disabled/removed — using SPORTSMONKS and FOOTBALL-DATA only');
 
 // ===== API BOOTSTRAP: Validate keys and immediately prefetch data =====
-let _apiBootstrapSuccess = false;
 try {
   const apiBootstrap = new APIBootstrap(sportsAggregator, oddsAnalyzer, redis);
   const bootstrapResult = await apiBootstrap.initialize();
-  _apiBootstrapSuccess = bootstrapResult.success;
-  
-  if (bootstrapResult.success) {
+
+  if (bootstrapResult && bootstrapResult.success) {
     logger.info('✅ API Bootstrap successful', bootstrapResult.data);
     // Start continuous prefetch after initial success
     apiBootstrap.startContinuousPrefetch(Number(process.env.PREFETCH_INTERVAL_SECONDS || 60));
@@ -383,20 +369,11 @@ try {
 } catch (e) {
   logger.warn('Prefetch subscriber failed to start', e?.message || String(e));
 }
-// Inject Redis into v2 handler for telemetry wiring (no-op for MockRedis)
-if (typeof v2Handler.setTelemetryRedis === 'function') {
-  try { v2Handler.setTelemetryRedis(redis); logger.info('✅ Telemetry Redis injected into v2Handler'); } catch(e){ logger.warn('Failed to inject telemetry redis into v2Handler', e && (e.message||String(e))); }
-}
+// Note: v2Handler telemetry injection removed — handlers expose named functions
 
 // ===== INITIALIZE PERFORMANCE OPTIMIZER =====
 // perfUtils is a class (default export). Create an instance to access methods.
 const perfInstance = new perfUtils(redis);
-const perfOptimizer = {
-  instance: perfInstance,
-  prefetcher: perfInstance.prefetchData.bind(perfInstance),
-  rateLimiterFactory: perfInstance.createRateLimiter.bind(perfInstance),
-  getMetrics: perfInstance.getMetrics.bind(perfInstance)
-};
 logger.info('✅ Performance Optimizer instance created (PerformanceOptimizer)');
 
 // Wrap sportsAggregator methods with caching
@@ -537,6 +514,7 @@ async function main() {
   // On startup, move any items left in processing back to the main queue so they are retried
   try {
     let moved = 0;
+    /* eslint-disable no-constant-condition */
     while (true) {
       const item = await redis.rpoplpush("telegram:processing", "telegram:updates");
       if (!item) break;
@@ -544,6 +522,7 @@ async function main() {
       // avoid busy looping
       if (moved % 100 === 0) await sleep(10);
     }
+    /* eslint-enable no-constant-condition */
     if (moved > 0) logger.info(`Requeued ${moved} items from telegram:processing to telegram:updates`);
   } catch (err) {
     logger.warn("Failed to requeue processing list on startup", err?.message || String(err));
@@ -645,7 +624,7 @@ async function handleUpdate(update) {
     if (update.callback_query) {
       const callbackQuery = update.callback_query;
       const callbackId = callbackQuery.id;
-      const userId = callbackQuery.from?.id;
+      // callbackQuery.from may exist; we don't need local userId here
       const chatId = callbackQuery.message?.chat?.id;
 
       // Avoid answering callback queries that are already too old (Telegram rejects if >60s)
@@ -940,6 +919,7 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
   }
 }
 
+/* eslint-disable no-unused-vars */
 async function handleCallback(chatId, userId, data) {
   const [action, ...params] = data.split(":");
   try {
@@ -957,6 +937,7 @@ async function handleCallback(chatId, userId, data) {
     logger.error(`Callback ${data} failed`, err);
   }
 }
+/* eslint-enable no-unused-vars */
 
 async function handleSignupFlow(chatId, userId, text, state) {
   try {
