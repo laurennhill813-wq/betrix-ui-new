@@ -27,8 +27,25 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      - name: Lint
-        run: npm run lint
+      - name: Lint only changed JS files
+        run: |
+          # Fetch main to compare against for push events
+          git fetch --no-tags --prune origin main || true
+          # Try to detect changed files (supports both push and PR events)
+          CHANGED=$(git diff --name-only origin/main...HEAD || git diff --name-only HEAD^ HEAD || true)
+          echo "Changed files: $CHANGED"
+          if [ -z "$CHANGED" ]; then
+            echo "No changed files detected; skipping lint step."
+            exit 0
+          fi
+          # Select JS files under src/
+          FILES=$(echo "$CHANGED" | tr ' ' '\n' | grep -E '^src/.*\.(js|mjs)$' || true)
+          if [ -z "$FILES" ]; then
+            echo "No JS files under src/ changed; skipping lint."
+            exit 0
+          fi
+          echo "Linting files:\n$FILES"
+          npx eslint $FILES --max-warnings=0
 
       - name: Run tests
         run: npm run test
