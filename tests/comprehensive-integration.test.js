@@ -9,12 +9,10 @@ import { test } from 'node:test';
 
 // Import all v3 handlers
 const { handleCommand } = await import('../src/handlers/commands-v3.js');
-const { handleMessage, classifyIntent } = await import('../src/handlers/message-handler-v3.js');
+const { classifyIntent } = await import('../src/handlers/message-handler-v3.js');
 const { handleCallbackQuery } = await import('../src/handlers/callbacks-v3.js');
 const { getBettingSitesForCountry, formatBettingSites } = await import('../src/handlers/betting-sites.js');
-const { 
-  createUserProfile, getUserProfile, updateUserProfile, formatCurrency, calculateVVIPExpiry 
-} = await import('../src/handlers/data-models.js');
+const { formatCurrency, calculateVVIPExpiry } = await import('../src/handlers/data-models.js');
 
 // Mock Redis
 const mockRedis = {
@@ -29,18 +27,18 @@ const mockRedis = {
     }
     return {};
   },
-  hset: async (key, ...args) => null,
+  hset: async () => null,
   hget: async (key, field) => {
     if (key.includes('user:123') && field === 'name') return 'John Doe';
     return null;
   },
-  get: async (key) => null,
-  set: async (key, val, ex, ttl) => null,
-  expire: async (key, ttl) => null,
-  del: async (key) => null,
-  incr: async (key) => 1,
-  lpush: async (key, ...vals) => null,
-  lrange: async (key, start, end) => []
+  get: async () => null,
+  set: async () => null,
+  expire: async () => null,
+  del: async () => null,
+  incr: async () => 1,
+  lpush: async () => null,
+  lrange: async () => []
 };
 
 // ============================================================================
@@ -84,7 +82,7 @@ test('NLP - Intent classification works with core commands', () => {
     ['back', 'menu']
   ];
   
-  intents.forEach(([text, expectedIntent]) => {
+  intents.forEach(([text]) => {
     const result = classifyIntent(text);
     assert(result !== undefined, `Failed for "${text}", returned undefined`);
   });
@@ -162,7 +160,6 @@ test('Betting sites - Kenya sites available with all info', async () => {
   assert(sites && Array.isArray(sites), 'Should return array');
   assert(sites.length > 0, 'Should have Kenya sites');
   
-  const keySites = ['Betika', 'SportPesa', 'Odibets', 'Betway', '1xBet'];
   sites.forEach(site => {
     assert(site.name, 'Site missing name');
     assert(site.bonus, 'Site missing bonus');
