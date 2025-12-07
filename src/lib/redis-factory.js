@@ -2,6 +2,15 @@ import Redis from 'ioredis';
 
 let _instance = null;
 
+// Fuse configuration: if Redis emits many writeable-stream errors in a short
+// window, flip to an in-memory MockRedis to protect request handlers from
+// raising immediate errors during provider flaps.
+let _errorCount = 0;
+let _firstErrorTs = 0;
+let _fuseTriggered = false;
+const ERROR_THRESHOLD = 10; // number of errors
+const ERROR_WINDOW_MS = 60_000; // window in ms
+
 class MockRedis {
   constructor() {
     this.kv = new Map();
@@ -176,23 +185,21 @@ export function getRedis(opts = {}) {
   _instance = new Redis(redisUrl, {
     // Connection options
     connectTimeout: 10000,
-    // allow a few retries per request; avoid infinite queuing
-    maxRetriesPerRequest: 5,
+    // Re-enable offline queue so transient blips are buffered instead of
+    // surfacing immediate `Stream isn't writeable` errors to request handlers.
+    enableOfflineQueue: true,
     enableReadyCheck: true,
-    // disable offline queue to fail fast for callers rather than building a huge queue
-    enableOfflineQueue: false,
     lazyConnect: false,
+    // Allow ioredis to manage retries per request (null = default behavior)
+    maxRetriesPerRequest: null,
 
     // Merge with provided options
     ...(opts || {}),
 
     // Improved retry strategy: exponential backoff with cap + jitter
     retryStrategy: opts.retryStrategy || ((times) => {
-      // exponential backoff base (ms)
       const base = 100;
-      // exponential with cap
       const exp = Math.min(Math.pow(2, Math.min(times, 10)) * base, 5000);
-      // add small jitter
       const jitter = Math.floor(Math.random() * 300);
       const delay = Math.min(exp + jitter, 5000);
 
@@ -211,18 +218,45 @@ export function getRedis(opts = {}) {
 
   // Connection event handlers
   _instance.on('error', (err) => {
-    if (err && err.message) {
-      if (err.message.includes('NOAUTH')) {
-        console.error('[redis-factory] ❌ NOAUTH: Invalid Redis password/auth');
-      } else if (err.message.includes('ECONNREFUSED')) {
-        console.error('[redis-factory] ❌ ECONNREFUSED: Cannot connect to Redis host');
-      } else if (err.message.includes('ETIMEDOUT')) {
-        console.error('[redis-factory] ❌ ETIMEDOUT: Redis connection timeout');
-      } else {
-        console.error(`[redis-factory] ❌ Redis error: ${err.message}`);
-      }
+    const msg = err && err.message ? err.message : String(err);
+    if (msg.includes('NOAUTH')) {
+      console.error('[redis-factory] ❌ NOAUTH: Invalid Redis password/auth');
+    } else if (msg.includes('ECONNREFUSED')) {
+      console.error('[redis-factory] ❌ ECONNREFUSED: Cannot connect to Redis host');
+    } else if (msg.includes('ETIMEDOUT')) {
+      console.error('[redis-factory] ❌ ETIMEDOUT: Redis connection timeout');
     } else {
-      console.error('[redis-factory] ❌ Unknown Redis error:', err);
+      console.error(`[redis-factory] ❌ Redis error: ${msg}`);
+    }
+
+    // Fuse counting: track writeable-stream-like errors and flip to MockRedis
+    try {
+      const now = Date.now();
+      if (!_firstErrorTs || now - _firstErrorTs > ERROR_WINDOW_MS) {
+        _firstErrorTs = now;
+        _errorCount = 0;
+      }
+      _errorCount++;
+
+      // Only trigger the fuse once to avoid flip-flopping
+      if (!_fuseTriggered && _errorCount >= ERROR_THRESHOLD && /writeable/i.test(msg)) {
+        _fuseTriggered = true;
+        console.error('[redis-factory] 🔥 Redis fuse triggered: switching to MockRedis to protect handlers');
+        try {
+          // gracefully disconnect the old client
+          if (_instance && typeof _instance.disconnect === 'function') {
+            _instance.disconnect();
+          } else if (_instance && typeof _instance.quit === 'function') {
+            _instance.quit();
+          }
+        } catch (e) {
+          // ignore errors from trying to disconnect
+        }
+
+        _instance = new MockRedis();
+      }
+    } catch (countErr) {
+      console.error('[redis-factory] ❌ Error while evaluating Redis fuse:', countErr);
     }
   });
 
