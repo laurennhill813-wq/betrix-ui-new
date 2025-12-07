@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import healthAzureAIHandler from './routes/health-azure-ai.js';
+import healthAzureAIEnvHandler from './routes/health-azure-ai-env.js';
 
 // Keep PGSSLMODE defaulted to 'require' on platforms like Render
 process.env.PGSSLMODE = process.env.PGSSLMODE || 'require';
@@ -63,6 +64,9 @@ app.get('/health/azure-ai', (req, res) => {
   }
   return healthAzureAIHandler(req, res);
 });
+
+// Diagnostic: report presence of Azure/OpenAI env vars (non-sensitive)
+app.get('/health/azure-ai/env', (_req, res) => healthAzureAIEnvHandler(_req, res));
 
 // Webhook endpoint for Lipana / M-Pesa
 app.post('/webhook/mpesa', async (req, res) => {
