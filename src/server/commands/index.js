@@ -5,6 +5,7 @@
 import { AzureAIService } from '../../services/azure-ai.js';
 import { getRedis } from '../../lib/redis-factory.js';
 import { handleCommand } from '../../handlers/commands.js';
+import { handleCallback } from '../../handlers/callbacks.js';
 import TelegramService from '../../services/telegram.js';
 
 // Singleton Azure AI service (will be marked disabled when config missing)
@@ -29,9 +30,27 @@ export default function commandRouter(app) {
     res.sendStatus(200);
 
     const update = req.body || {};
-    if (!update.message) return;
-    const text = update.message.text ? String(update.message.text).trim() : '';
-    const chatId = update.message?.chat?.id;
+    // Support both message updates and callback_query updates (inline buttons)
+    const isMessage = !!update.message;
+    const isCallback = !!update.callback_query;
+    if (!isMessage && !isCallback) return;
+
+    // Normalize fields for downstream handlers
+    let text = '';
+    let chatId = null;
+    let userId = null;
+    let callbackQuery = null;
+
+    if (isMessage) {
+      text = update.message.text ? String(update.message.text).trim() : '';
+      chatId = update.message?.chat?.id;
+      userId = update.message?.from?.id || update.from?.id || chatId;
+    } else if (isCallback) {
+      callbackQuery = update.callback_query;
+      chatId = callbackQuery?.message?.chat?.id;
+      userId = callbackQuery?.from?.id || chatId;
+      text = '';
+    }
     if (!chatId) return;
 
     // Background processing
@@ -61,6 +80,7 @@ export default function commandRouter(app) {
         console.log('INCOMING-UPDATE', { chatId, text });
 
         // If it's a slash command, delegate to the consolidated command handlers
+        // If it's a slash command, delegate to the consolidated command handlers
         if (text.startsWith('/')) {
           try {
             const userId = update.from?.id || update.message?.from?.id || chatId;
@@ -76,6 +96,35 @@ export default function commandRouter(app) {
           } catch (cmdErr) {
             console.error('Command handler error', cmdErr && (cmdErr.stack || cmdErr.message));
             try { await telegramService.sendMessage(chatId, '❌ Error processing command. Try /menu'); } catch(e){}
+          }
+          return;
+        }
+
+        // Handle callback_query (inline button actions)
+        if (callbackQuery) {
+          try {
+            const cbData = String(callbackQuery.data || '');
+            const result = await handleCallback(cbData, chatId, userId, redis, null);
+
+            // result may request editing the existing message or sending a new one
+            if (result && result.method === 'editMessageText') {
+              const msgId = callbackQuery.message && callbackQuery.message.message_id;
+              try {
+                await telegramService.editMessage(chatId, msgId, result.text || '', result.reply_markup || null);
+              } catch (e) {
+                console.error('editMessage failed for callback', e && (e.stack || e.message));
+              }
+            } else if (result && result.method === 'answerCallbackQuery') {
+              try {
+                await telegramService.answerCallback(callbackQuery.id, result.text || '', !!result.show_alert);
+              } catch (e) { console.error('answerCallback failed', e && (e.stack || e.message)); }
+            } else if (result && result.text) {
+              // Fallback: send a message to the chat
+              await telegramService.sendMessage(chatId, result.text, { reply_markup: result.reply_markup, parse_mode: result.parse_mode || 'Markdown' });
+            }
+          } catch (cbErr) {
+            console.error('Callback handler error', cbErr && (cbErr.stack || cbErr.message));
+            try { await telegramService.answerCallback(callbackQuery.id, '⚠️ Action failed', false); } catch (_) {}
           }
           return;
         }
