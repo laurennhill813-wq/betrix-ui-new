@@ -142,6 +142,12 @@ setInterval(async () => {
 }, 10 * 1000);
 
 // Initialize all services
+// Log a masked TELEGRAM token indicator to help diagnose Unauthorized errors in platform logs
+try {
+  const t = String(CONFIG.TELEGRAM_TOKEN || '');
+  const masked = t.length > 8 ? `${t.slice(0,4)}...${t.slice(-4)}` : (t ? '****' : '(empty)');
+  try { console.log('[CONFIG_TELEGRAM_MASK] length=' + t.length + ' token=' + masked); } catch(e){}
+} catch (e) { }
 const telegram = new TelegramService(CONFIG.TELEGRAM_TOKEN, CONFIG.TELEGRAM.SAFE_CHUNK);
 const userService = new UserService(redis);
 // Periodic Lipana reconciliation (runs only if Postgres pool is available)
