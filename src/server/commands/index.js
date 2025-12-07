@@ -85,6 +85,9 @@ export default function commandRouter(app) {
           try {
             const userId = update.from?.id || update.message?.from?.id || chatId;
             const result = await handleCommand(text, chatId, userId, redis, null);
+            try {
+              console.log('[COMMAND_RESULT]', JSON.stringify({ chatId, command: text, hasResult: !!result, type: typeof result, hasText: !!(result && result.text) }));
+            } catch (e) { /* ignore logging errors */ }
             if (result && result.method === 'sendMessage') {
               // Legacy form used by some handlers
               await telegramService.sendMessage(result.chat_id || chatId, result.text || '', { reply_markup: result.reply_markup, parse_mode: result.parse_mode || 'HTML' });
