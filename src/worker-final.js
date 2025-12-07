@@ -66,6 +66,8 @@ void logger;
 
 // Ensure express is available for the minimal webhook server
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
 
 // Global flag used to decide whether to start the minimal webhook server.
 // Default: enabled unless explicitly set to 'false'.
@@ -472,6 +474,20 @@ try {
 
     minimalApp.get('/admin/health', (req, res) => {
       res.json({ status: 'ok', role: 'worker', worker: true });
+    });
+
+    // Admin endpoint to expose outgoing events log written by the Telegram service
+    minimalApp.get('/admin/outgoing-events', (req, res) => {
+      try {
+        const n = Math.min(500, Number(req.query.n || 200));
+        const p = path.join(process.cwd(), 'logs', 'outgoing-events.log');
+        if (!fs.existsSync(p)) return res.json({ ok: true, lines: [] });
+        const txt = fs.readFileSync(p, 'utf8').split(/\r?\n/).filter(Boolean);
+        const tail = txt.slice(-n).map(l => { try { return JSON.parse(l); } catch { return l; } });
+        return res.json({ ok: true, lines: tail });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err?.message || String(err) });
+      }
     });
 
     minimalApp.post('/webhook/telegram', async (req, res) => {
