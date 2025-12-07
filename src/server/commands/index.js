@@ -79,7 +79,47 @@ export default function commandRouter(app) {
 
         console.log('INCOMING-UPDATE', { chatId, text });
 
-        // If it's a slash command, delegate to the consolidated command handlers
+        // Handle some aliases and quick handlers first (ensure commands map correctly)
+        if (/^\/vip\b/i.test(text)) {
+          // map /vip to the existing VVIP handler
+          text = '/vvip';
+        }
+
+        if (/^\/about\b/i.test(text)) {
+          // quick about response consistent with branding
+          try {
+            await telegramService.sendMessage(chatId, '🌀 BETRIX - Premium Sports Analytics\n\nBETRIX helps you find value bets and trends. Visit betrix.app for more.');
+            console.log('[SLASH_OUTGOING_OK]', chatId);
+          } catch (e) { console.error('[SLASH_OUTGOING_ERR] about send failed', e && (e.stack || e.message)); }
+          return;
+        }
+
+        if (/^\/meme\b/i.test(text)) {
+          // Delegate to NewFeaturesHandlers for /meme (modern feature)
+          try {
+            const mod = await import('../../handlers-new-features.js').catch(() => null);
+            const NewFeaturesHandlers = mod && (mod.NewFeaturesHandlers || mod.default) ? (mod.NewFeaturesHandlers || mod.default) : null;
+            if (NewFeaturesHandlers) {
+              const nf = new NewFeaturesHandlers(telegramService, null, null);
+              await nf.handleMeme(chatId);
+              console.log('[SLASH_OUTGOING_OK]', chatId);
+              return;
+            }
+          } catch (e) { console.error('[SLASH_HANDLER_ERR] meme', e && (e.stack || e.message)); }
+          // Fallback: continue to main handler
+        }
+
+        if (/^\/refer\b/i.test(text)) {
+          try {
+            let user = {};
+            try { user = redis ? (await redis.hgetall(`user:${userId}`) || {}) : {}; } catch (e) { /* ignore */ }
+            const ref = user.referral_code || `ref_${userId}_${Date.now()}`;
+            await telegramService.sendMessage(chatId, `🎁 Referral Code: ${ref}`);
+            console.log('[SLASH_OUTGOING_OK]', chatId);
+          } catch (e) { console.error('[SLASH_OUTGOING_ERR] refer send failed', e && (e.stack || e.message)); }
+          return;
+        }
+
         // If it's a slash command, delegate to the consolidated command handlers
         if (text.startsWith('/')) {
           try {
@@ -164,35 +204,35 @@ export default function commandRouter(app) {
           return;
         }
 
-        // Lightweight rate limiting: one AI request per chat every 5s
-        const rateKey = `tg:rate:${chatId}`;
-        try {
-          if (redis) {
-            const existing = await redis.get(rateKey);
-            if (existing) {
-              // Optionally inform the user they are being rate-limited
-              await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: chatId, text: 'Please wait a few seconds before sending another message.' })
-              });
-              console.log('RATE-LIMITED', { chatId });
-              return;
-            }
-            // set TTL 5s
-            if (typeof redis.setex === 'function') {
-              await redis.setex(rateKey, 5, '1');
-            } else {
-              await redis.set(rateKey, '1');
-              try { await redis.expire(rateKey, 5); } catch (e) { /* ignore */ }
-            }
-          }
-        } catch (e) {
-          console.warn('Rate limiter error (continuing):', e && e.message);
-        }
+        // NOTE: rate-limiting must only apply to AI/chat-style replies.
+        // We will apply a dedicated AI rate key just before calling the AI service below.
 
         // Build reply: prefer Azure AI when configured
         let replyText = `You said: ${text}`;
         if (aiService.isHealthy && aiService.isHealthy()) {
+          // AI-specific rate limiter (do not apply to commands / menu actions)
+          const aiRateKey = `tg:ai:rate:${chatId}`;
+          try {
+            if (redis) {
+              const existingAi = await redis.get(aiRateKey);
+              if (existingAi) {
+                try {
+                  await telegramService.sendMessage(chatId, 'Please wait a few seconds before sending another message.');
+                } catch (e) { /* swallow */ }
+                console.log('RATE-LIMITED', { chatId });
+                return;
+              }
+              if (typeof redis.setex === 'function') {
+                await redis.setex(aiRateKey, 5, '1');
+              } else {
+                await redis.set(aiRateKey, '1');
+                try { await redis.expire(aiRateKey, 5); } catch (e) { /* ignore */ }
+              }
+            }
+          } catch (rlErr) {
+            console.warn('AI rate limiter error (continuing):', rlErr && rlErr.message);
+          }
+
           try {
             replyText = await aiService.chat(text, { system: 'You are Betrix, a helpful sports assistant. Be concise and friendly.' });
           } catch (aiErr) {
@@ -203,10 +243,7 @@ export default function commandRouter(app) {
               try {
                 const payload = JSON.stringify({ chatId, text, ts: Date.now() });
                 await redis.rpush('ai:queue', payload);
-                await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-                  method: 'POST', headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ chat_id: chatId, text: 'AI is currently busy — your request has been queued and will be processed shortly.' })
-                });
+                try { await telegramService.sendMessage(chatId, 'AI is currently busy — your request has been queued and will be processed shortly.'); } catch(e){}
                 console.log('ENQUEUED-AI', { chatId });
                 return;
               } catch (qErr) {
