@@ -1,42 +1,133 @@
 /*
  * src/server/commands/index.js
- * Simple command router: /PING, /help, /bet (placeholder)
+ * Telegram webhook handler with quick commands, Azure AI integration, and lightweight rate-limiting.
  */
+import { AzureAIService } from '../../services/azure-ai.js';
+import { getRedis } from '../../lib/redis-factory.js';
+
+// Singleton Azure AI service (will be marked disabled when config missing)
+const aiService = new AzureAIService(
+  process.env.AZURE_OPENAI_ENDPOINT,
+  process.env.AZURE_OPENAI_KEY,
+  process.env.AZURE_OPENAI_DEPLOYMENT,
+  process.env.AZURE_OPENAI_API_VERSION || '2024-08-01-preview'
+);
+
+// Redis instance (factory returns MockRedis when no REDIS_URL)
+let redis;
+try { redis = getRedis(); } catch (e) { console.warn('Could not initialize redis for command router', e && e.message); redis = null; }
+
 export default function commandRouter(app) {
   // register commands for Telegram (optional server-side)
   app.post("/webhook/telegram", async (req, res) => {
-    // the actual webhook handler mounts this router; this file provides command dispatch
-    const update = req.body || {};
-    const text = (update.message && update.message.text) ? update.message.text.trim() : "";
-    // quick ack
-    res.status(200).send("OK");
+    // Acknowledge immediately so Telegram won't retry
+    res.sendStatus(200);
 
-    // background processing
+    const update = req.body || {};
+    if (!update.message) return;
+    const text = update.message.text ? String(update.message.text).trim() : '';
+    const chatId = update.message?.chat?.id;
+    if (!chatId) return;
+
+    // Background processing
     (async () => {
       try {
-        const chatId = update.message?.chat?.id;
-        if (!chatId) return;
-        const token = process.env.TELEGRAM_BOT_TOKEN;
-        const reply = { chat_id: chatId, text: "I am live. Try /PING", parse_mode: "HTML" };
-
-        if (/^\/PING\b/i.test(text)) {
-          reply.text = "PONG";
-        } else if (/^\/HELP\b/i.test(text)) {
-          reply.text = "BETRIX commands: /PING, /HELP, /BET <stake> <selection>";
-        } else if (/^\/BET\b/i.test(text)) {
-          // placeholder: send back structured acknowledgement and enqueue to retry worker if needed
-          reply.text = "Received bet request. Processing... (this is a placeholder)";
+        const token = process.env.TELEGRAM_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+        if (!token) {
+          console.error('Telegram token not configured');
+          return;
         }
 
-        const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(reply)
-        });
-        const data = await resp.json();
-        console.log("OUTGOING-RESPONSE", JSON.stringify({ ok: data.ok, description: data.description || null, payload: reply }));
+        // Quick built-in commands (not rate-limited)
+        if (/^\/PING\b/i.test(text)) {
+          await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, text: 'pong' })
+          });
+          console.log('INCOMING-UPDATE', { chatId, text: '/PING' });
+          return;
+        }
+
+        if (/^\/HELP\b/i.test(text)) {
+          const help = 'Available commands: /PING, /HELP, or ask me anything.';
+          await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, text: help })
+          });
+          console.log('INCOMING-UPDATE', { chatId, text: '/HELP' });
+          return;
+        }
+
+        console.log('INCOMING-UPDATE', { chatId, text });
+
+        // Lightweight rate limiting: one AI request per chat every 5s
+        const rateKey = `tg:rate:${chatId}`;
+        try {
+          if (redis) {
+            const existing = await redis.get(rateKey);
+            if (existing) {
+              // Optionally inform the user they are being rate-limited
+              await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: 'Please wait a few seconds before sending another message.' })
+              });
+              console.log('RATE-LIMITED', { chatId });
+              return;
+            }
+            // set TTL 5s
+            if (typeof redis.setex === 'function') {
+              await redis.setex(rateKey, 5, '1');
+            } else {
+              await redis.set(rateKey, '1');
+              try { await redis.expire(rateKey, 5); } catch (e) { /* ignore */ }
+            }
+          }
+        } catch (e) {
+          console.warn('Rate limiter error (continuing):', e && e.message);
+        }
+
+        // Build reply: prefer Azure AI when configured
+        let replyText = `You said: ${text}`;
+        if (aiService.isHealthy && aiService.isHealthy()) {
+          try {
+            replyText = await aiService.chat(text, { system: 'You are Betrix, a helpful sports assistant. Be concise and friendly.' });
+          } catch (aiErr) {
+            console.error('Azure AI error:', aiErr && (aiErr.stack || aiErr.message));
+            // If rate limited by Azure, enqueue and inform user
+            const isRate = (aiErr && String(aiErr.message || '').toLowerCase().includes('rate')) || (aiErr && aiErr.status === 429);
+            if (isRate && redis) {
+              try {
+                const payload = JSON.stringify({ chatId, text, ts: Date.now() });
+                await redis.rpush('ai:queue', payload);
+                await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                  method: 'POST', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ chat_id: chatId, text: 'AI is currently busy — your request has been queued and will be processed shortly.' })
+                });
+                console.log('ENQUEUED-AI', { chatId });
+                return;
+              } catch (qErr) {
+                console.error('Failed to enqueue AI request', qErr && (qErr.stack || qErr.message));
+              }
+            }
+            // fallback to echo
+            replyText = `You said: ${text}`;
+          }
+        }
+
+        // Send the reply
+        try {
+          const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, text: replyText, parse_mode: 'HTML' })
+          });
+          const data = await resp.json().catch(()=>null);
+          console.log('OUTGOING-RESPONSE', JSON.stringify({ ok: data?.ok ?? null, description: data?.description || null, payload: { chat_id: chatId, text: replyText } }));
+        } catch (sendErr) {
+          console.error('Failed to send Telegram reply', sendErr && (sendErr.stack || sendErr.message));
+        }
+
       } catch (err) {
-        console.error("COMMAND-PROCESS-ERR", err && (err.stack || err.message));
+        console.error('COMMAND-PROCESS-ERR', err && (err.stack || err.message));
       }
     })();
   });
