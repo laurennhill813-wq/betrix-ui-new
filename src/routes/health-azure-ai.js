@@ -5,10 +5,11 @@ import { AzureAIService } from '../services/azure-ai.js';
 // The probe will only run if AZURE_AI_ENDPOINT, AZURE_AI_KEY and AZURE_AI_DEPLOYMENT are set.
 
 export default async function healthAzureAIHandler(req, res) {
-  const endpoint = process.env.AZURE_AI_ENDPOINT;
-  const apiKey = process.env.AZURE_AI_KEY;
-  const deployment = process.env.AZURE_AI_DEPLOYMENT;
-  const apiVersion = process.env.AZURE_API_VERSION || undefined;
+  // Support both legacy `AZURE_AI_*` names and `AZURE_OPENAI_*` names
+  const endpoint = process.env.AZURE_AI_ENDPOINT || process.env.AZURE_OPENAI_ENDPOINT || process.env.AZURE_OPENAI_API_ENDPOINT;
+  const apiKey = process.env.AZURE_AI_KEY || process.env.AZURE_OPENAI_KEY;
+  const deployment = process.env.AZURE_AI_DEPLOYMENT || process.env.AZURE_OPENAI_DEPLOYMENT;
+  const apiVersion = process.env.AZURE_API_VERSION || process.env.AZURE_OPENAI_API_VERSION || undefined;
 
   if (!endpoint || !apiKey || !deployment) {
     return res.status(501).json({ ok: false, reason: 'Azure AI not configured' });
