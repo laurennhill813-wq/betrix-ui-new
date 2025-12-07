@@ -1,0 +1,29 @@
+name: Health Probe
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  probe:
+    name: Probe production health endpoint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for deployed probe to become healthy
+        run: |
+          set -e
+          TARGET_URL="https://betrix-ui-new.onrender.com/health/azure-ai"
+          echo "Probing $TARGET_URL"
+          # Try up to 12 times (~3 minutes) to allow the deploy to finish
+          for i in $(seq 1 12); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$TARGET_URL") || true
+            echo "Attempt $i: status=$STATUS"
+            if [ "$STATUS" -eq 200 ]; then
+              echo "✅ Probe healthy"
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "❌ Probe failed after retries"
+          curl -s "$TARGET_URL" || true
+          exit 1
