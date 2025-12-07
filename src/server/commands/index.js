@@ -4,6 +4,8 @@
  */
 import { AzureAIService } from '../../services/azure-ai.js';
 import { getRedis } from '../../lib/redis-factory.js';
+import { handleCommand } from '../../handlers/commands.js';
+import TelegramService from '../../services/telegram.js';
 
 // Singleton Azure AI service (will be marked disabled when config missing)
 const aiService = new AzureAIService(
@@ -16,6 +18,9 @@ const aiService = new AzureAIService(
 // Redis instance (factory returns MockRedis when no REDIS_URL)
 let redis;
 try { redis = getRedis(); } catch (e) { console.warn('Could not initialize redis for command router', e && e.message); redis = null; }
+
+// TelegramService instance will be created lazily once we have a token
+let telegramService = null;
 
 export default function commandRouter(app) {
   // register commands for Telegram (optional server-side)
@@ -37,28 +42,43 @@ export default function commandRouter(app) {
           console.error('Telegram token not configured');
           return;
         }
+        if (!telegramService) telegramService = new TelegramService(token);
 
         // Quick built-in commands (not rate-limited)
         if (/^\/PING\b/i.test(text)) {
-          await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chatId, text: 'pong' })
-          });
+          await telegramService.sendMessage(chatId, 'pong');
           console.log('INCOMING-UPDATE', { chatId, text: '/PING' });
           return;
         }
 
         if (/^\/HELP\b/i.test(text)) {
-          const help = 'Available commands: /PING, /HELP, or ask me anything.';
-          await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chatId, text: help })
-          });
+          const help = 'Available commands: /start, /menu, /fixtures, /odds, /predictions, /profile, /subscribe.';
+          await telegramService.sendMessage(chatId, help);
           console.log('INCOMING-UPDATE', { chatId, text: '/HELP' });
           return;
         }
 
         console.log('INCOMING-UPDATE', { chatId, text });
+
+        // If it's a slash command, delegate to the consolidated command handlers
+        if (text.startsWith('/')) {
+          try {
+            const userId = update.from?.id || update.message?.from?.id || chatId;
+            const result = await handleCommand(text, chatId, userId, redis, null);
+            if (result && result.method === 'sendMessage') {
+              // Legacy form used by some handlers
+              await telegramService.sendMessage(result.chat_id || chatId, result.text || '', { reply_markup: result.reply_markup, parse_mode: result.parse_mode || 'HTML' });
+            } else if (result && typeof result === 'object' && result.text) {
+              await telegramService.sendMessage(result.chat_id || chatId, result.text, { reply_markup: result.reply_markup, parse_mode: result.parse_mode || 'HTML' });
+            } else if (typeof result === 'string') {
+              await telegramService.sendMessage(chatId, result);
+            }
+          } catch (cmdErr) {
+            console.error('Command handler error', cmdErr && (cmdErr.stack || cmdErr.message));
+            try { await telegramService.sendMessage(chatId, '❌ Error processing command. Try /menu'); } catch(e){}
+          }
+          return;
+        }
 
         // Lightweight rate limiting: one AI request per chat every 5s
         const rateKey = `tg:rate:${chatId}`;
