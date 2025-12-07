@@ -20,11 +20,24 @@ class MockRedis {
   constructor() {
     this.kv = new Map();
     this.zsets = new Map();
+    this.ttlMap = new Map(); // key -> expiry timestamp (ms)
   }
 
-  async get(key) { return this.kv.has(key) ? this.kv.get(key) : null; }
-  async set(key, value) { this.kv.set(key, value); return 'OK'; }
-  async del(key) { this.kv.delete(key); return 1; }
+  async get(key) { this._pruneIfExpired(key); return this.kv.has(key) ? this.kv.get(key) : null; }
+  async set(key, value) { this.ttlMap.delete(key); this.kv.set(key, value); return 'OK'; }
+  async del(key) { this.ttlMap.delete(key); this.kv.delete(key); return 1; }
+
+  // Internal helper: remove key if expired
+  _pruneIfExpired(key) {
+    if (!this.ttlMap) return;
+    const exp = this.ttlMap.get(key);
+    if (typeof exp === 'number' && Date.now() > exp) {
+      this.ttlMap.delete(key);
+      this.kv.delete(key);
+      return true;
+    }
+    return false;
+  }
 
   // Hash helpers to emulate Redis hashes used by the app (hset/hgetall/hget/hdel)
   async hset(key, ...args) {
@@ -51,6 +64,7 @@ class MockRedis {
   }
 
   async hgetall(key) {
+    this._pruneIfExpired(key);
     const table = this.kv.get(key) || new Map();
     const out = {};
     for (const [k, v] of table.entries()) out[k] = v;
@@ -70,6 +84,7 @@ class MockRedis {
   }
 
   async lpop(key) {
+    this._pruneIfExpired(key);
     const arr = this.kv.get(key) || [];
     const v = arr.shift();
     this.kv.set(key, arr);
@@ -77,6 +92,7 @@ class MockRedis {
   }
 
   async rpush(key, value) {
+    this._pruneIfExpired(key);
     const arr = this.kv.get(key) || [];
     arr.push(value);
     this.kv.set(key, arr);
@@ -84,6 +100,7 @@ class MockRedis {
   }
 
   async lrange(key, start, stop) {
+    this._pruneIfExpired(key);
     const arr = this.kv.get(key) || [];
     return arr.slice(start, stop + 1);
   }
@@ -131,6 +148,7 @@ class MockRedis {
   }
 
   async incr(key) {
+    this._pruneIfExpired(key);
     const cur = Number(this.kv.get(key) || 0) + 1;
     this.kv.set(key, String(cur));
     return cur;
@@ -138,6 +156,10 @@ class MockRedis {
 
   async setex(key, seconds, value) {
     this.kv.set(key, value);
+    try {
+      const ms = Date.now() + Number(seconds) * 1000;
+      this.ttlMap.set(key, ms);
+    } catch (e) { /* ignore */ }
     return 'OK';
   }
 
@@ -145,17 +167,28 @@ class MockRedis {
 
   // Provide expiry semantics used by worker (best-effort; no real timer eviction)
   async expire(key, _seconds) {
-    // noop for in-memory mock; return 1 to indicate key exists/was set for TTL
-    return this.kv.has(key) ? 1 : 0;
+    if (!this.kv.has(key)) return 0;
+    try {
+      const ms = Date.now() + Number(_seconds) * 1000;
+      this.ttlMap.set(key, ms);
+      return 1;
+    } catch (e) { return 0; }
   }
 
   async ttl(_key) {
-    // no TTL tracking in this simple mock
-    return -1;
+    const key = _key;
+    this._pruneIfExpired(key);
+    if (!this.kv.has(key)) return -2; // key does not exist
+    const exp = this.ttlMap.get(key);
+    if (!exp) return -1; // no ttl
+    const secs = Math.max(-1, Math.floor((exp - Date.now()) / 1000));
+    return secs;
   }
 
   // Pop from (right) source and push to left of destination (non-blocking)
   async rpoplpush(source, dest) {
+    this._pruneIfExpired(source);
+    this._pruneIfExpired(dest);
     const src = this.kv.get(source) || [];
     if (!src.length) return null;
     const v = src.pop();
@@ -171,6 +204,8 @@ class MockRedis {
   async brpoplpush(source, dest, timeoutSeconds = 0) {
     // Try immediate rpoplpush; if nothing, wait up to timeout in 100ms intervals
     const attempt = () => {
+      this._pruneIfExpired(source);
+      this._pruneIfExpired(dest);
       const src = this.kv.get(source) || [];
       if (src.length) {
         const v = src.pop();
