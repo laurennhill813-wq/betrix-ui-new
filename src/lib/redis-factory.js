@@ -21,6 +21,49 @@ class MockRedis {
   async set(key, value) { this.kv.set(key, value); return 'OK'; }
   async del(key) { this.kv.delete(key); return 1; }
 
+  // Hash helpers to emulate Redis hashes used by the app (hset/hgetall/hget/hdel)
+  async hset(key, ...args) {
+    // Support: hset(key, object) OR hset(key, field, value) OR hset(key, field1, val1, field2, val2...)
+    const table = this.kv.get(key) || new Map();
+    let setCount = 0;
+    if (args.length === 1 && typeof args[0] === 'object') {
+      const obj = args[0];
+      for (const [f, v] of Object.entries(obj)) {
+        table.set(String(f), String(v));
+        setCount++;
+      }
+    } else if (args.length === 2) {
+      table.set(String(args[0]), String(args[1]));
+      setCount = 1;
+    } else if (args.length > 1 && args.length % 2 === 0) {
+      for (let i = 0; i < args.length; i += 2) {
+        table.set(String(args[i]), String(args[i + 1]));
+        setCount++;
+      }
+    }
+    this.kv.set(key, table);
+    return setCount;
+  }
+
+  async hgetall(key) {
+    const table = this.kv.get(key) || new Map();
+    const out = {};
+    for (const [k, v] of table.entries()) out[k] = v;
+    return out;
+  }
+
+  async hget(key, field) {
+    const table = this.kv.get(key) || new Map();
+    return table.has(String(field)) ? table.get(String(field)) : null;
+  }
+
+  async hdel(key, field) {
+    const table = this.kv.get(key) || new Map();
+    const existed = table.delete(String(field));
+    this.kv.set(key, table);
+    return existed ? 1 : 0;
+  }
+
   async lpop(key) {
     const arr = this.kv.get(key) || [];
     const v = arr.shift();
