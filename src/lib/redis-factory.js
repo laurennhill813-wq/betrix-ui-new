@@ -169,26 +169,42 @@ export function getRedis(opts = {}) {
   }
 
   // Create ioredis instance with proper configuration
+  // Track last log time so reconnect spam is throttled
+  let _lastReconnectLog = 0;
+  const throttleMs = 30 * 1000; // at most one reconnect log every 30s
+
   _instance = new Redis(redisUrl, {
     // Connection options
     connectTimeout: 10000,
-    maxRetriesPerRequest: 3,
+    // allow a few retries per request; avoid infinite queuing
+    maxRetriesPerRequest: 5,
     enableReadyCheck: true,
-    enableOfflineQueue: true,
+    // disable offline queue to fail fast for callers rather than building a huge queue
+    enableOfflineQueue: false,
     lazyConnect: false,
-    
+
     // Merge with provided options
     ...(opts || {}),
-    
-    // These options cannot be overridden
+
+    // Improved retry strategy: exponential backoff with cap + jitter
     retryStrategy: opts.retryStrategy || ((times) => {
-      const delay = Math.min(times * 50, 5000);
-      if (times === 1) {
-        console.log('[redis-factory] 🔄 Redis connection failed, attempting reconnect...');
+      // exponential backoff base (ms)
+      const base = 100;
+      // exponential with cap
+      const exp = Math.min(Math.pow(2, Math.min(times, 10)) * base, 5000);
+      // add small jitter
+      const jitter = Math.floor(Math.random() * 300);
+      const delay = Math.min(exp + jitter, 5000);
+
+      const now = Date.now();
+      if (now - _lastReconnectLog > throttleMs) {
+        if (times === 1) {
+          console.log('[redis-factory] 🔄 Redis connection failed, attempting reconnect...');
+        }
+        console.log(`[redis-factory] 🔄 Retry attempt ${times}, waiting ${delay}ms (throttled logs)`);
+        _lastReconnectLog = now;
       }
-      if (times % 5 === 0) {
-        console.log(`[redis-factory] 🔄 Retry attempt ${times}, waiting ${delay}ms...`);
-      }
+
       return delay;
     })
   });
