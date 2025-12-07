@@ -5,6 +5,7 @@ import { Pool } from 'pg';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import healthAzureAIHandler from './routes/health-azure-ai.js';
 
 // Keep PGSSLMODE defaulted to 'require' on platforms like Render
 process.env.PGSSLMODE = process.env.PGSSLMODE || 'require';
@@ -52,6 +53,15 @@ app.get('/admin/webhook-fallback', (req, res) => {
   } catch (err) {
     return res.status(500).json({ ok: false, error: err?.message || String(err) });
   }
+});
+
+// Azure AI health probe: safe, optional header protection using `HEALTH_SECRET`.
+// Wire the lightweight probe handler so it's available in production deployments.
+app.get('/health/azure-ai', (req, res) => {
+  if (process.env.HEALTH_SECRET && req.headers['x-health-secret'] !== process.env.HEALTH_SECRET) {
+    return res.status(403).json({ ok: false, reason: 'Forbidden' });
+  }
+  return healthAzureAIHandler(req, res);
 });
 
 // Webhook endpoint for Lipana / M-Pesa
