@@ -6,6 +6,7 @@
 import { Logger } from "../utils/logger.js";
 import { HttpClient } from "./http-client.js";
 import { chunkText } from "../utils/formatters.js";
+import { appendFile } from 'fs/promises';
 
 const logger = new Logger("Telegram");
 void logger;
@@ -41,11 +42,17 @@ class TelegramService {
         // ignore logging errors
       }
       try {
-        await HttpClient.fetch(`${this.baseUrl}/sendMessage`, {
+        const res = await HttpClient.fetch(`${this.baseUrl}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         }, `sendMessage to ${chatId}`);
+        // Append outgoing event to local file for easier debugging in deployed environments
+        try {
+          const entry = { ts: new Date().toISOString(), method: 'sendMessage', chatId, page: i+1, payloadSummary: { textLen: (payload.text||'').length, hasReplyMarkup: !!payload.reply_markup } };
+          await appendFile('./logs/outgoing-events.log', JSON.stringify(entry) + '\n', { encoding: 'utf8' }).catch(()=>{});
+        } catch(e){ /* ignore file logging errors */ }
+        return res;
       } catch (err) {
         logger.error("Send message failed", err);
         throw err;
@@ -67,11 +74,13 @@ class TelegramService {
     };
 
     try {
-      return await HttpClient.fetch(`${this.baseUrl}/editMessageText`, {
+      const res = await HttpClient.fetch(`${this.baseUrl}/editMessageText`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       }, `editMessage ${messageId}`);
+      try { const entry = { ts: new Date().toISOString(), method: 'editMessage', chatId, messageId, payloadSummary: { textLen: (text||'').length, hasReplyMarkup: !!replyMarkup } }; await appendFile('./logs/outgoing-events.log', JSON.stringify(entry)+'\n', { encoding:'utf8' }).catch(()=>{}); } catch(e){}
+      return res;
     } catch (err) {
       // Normalize error string
       const msg = String(err && (err.message || err) || '');
@@ -99,15 +108,21 @@ class TelegramService {
    * Answer callback query (inline button response)
    */
   async answerCallback(callbackQueryId, text = "", showAlert = false) {
-    return HttpClient.fetch(`${this.baseUrl}/answerCallbackQuery`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        callback_query_id: callbackQueryId,
-        text,
-        show_alert: showAlert,
-      }),
-    }, `answerCallback ${callbackQueryId}`);
+    try {
+      const res = await HttpClient.fetch(`${this.baseUrl}/answerCallbackQuery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          callback_query_id: callbackQueryId,
+          text,
+          show_alert: showAlert,
+        }),
+      }, `answerCallback ${callbackQueryId}`);
+      try { const entry = { ts: new Date().toISOString(), method: 'answerCallback', callbackQueryId, textLen: (text||'').length, showAlert }; await appendFile('./logs/outgoing-events.log', JSON.stringify(entry)+'\n', { encoding:'utf8' }).catch(()=>{}); } catch(e){}
+      return res;
+    } catch (err) {
+      throw err;
+    }
   }
 
   /**

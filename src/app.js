@@ -56,6 +56,22 @@ app.get('/admin/webhook-fallback', (req, res) => {
   }
 });
 
+// Admin: return last N outgoing Telegram events (written by the app to ./logs/outgoing-events.log)
+app.get('/admin/outgoing-events', (req, res) => {
+  try {
+    const n = Math.min(500, Number(req.query.n || 200));
+    const p = path.join(process.cwd(), 'logs', 'outgoing-events.log');
+    if (!fs.existsSync(p)) return res.json({ ok: true, lines: [] });
+    const txt = fs.readFileSync(p, 'utf8').split(/\r?\n/).filter(Boolean);
+    const tail = txt.slice(-n).map(l => {
+      try { return JSON.parse(l); } catch { return l; }
+    });
+    return res.json({ ok: true, lines: tail });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err?.message || String(err) });
+  }
+});
+
 // Azure AI health probe: safe, optional header protection using `HEALTH_SECRET`.
 // Wire the lightweight probe handler so it's available in production deployments.
 app.get('/health/azure-ai', (req, res) => {

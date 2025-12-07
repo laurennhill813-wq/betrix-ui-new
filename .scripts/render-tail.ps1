@@ -8,7 +8,13 @@ if (-not $env:RENDER_API_KEY) {
   exit 2
 }
 
-$ids = @('srv-d4pih78gjchc7383520g','srv-d4oq6ls9c44c73fma36g','red-d4op3l49c44c73flgmbg','dpg-d4op2oqdbo4c73f9c3j0-a')
+$ids = @(
+  'srv-d4qna3ur433s738bjmi0',
+  'srv-d4pih78gjchc7383520g',
+  'srv-d4oq6ls9c44c73fma36g',
+  'red-d4op3l49c44c73flgmbg',
+  'dpg-d4op2oqdbo4c73f9c3j0-a'
+)
 
 foreach ($id in $ids) {
   $out = Join-Path (Get-Location) "logs\$id.log"
