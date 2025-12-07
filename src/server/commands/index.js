@@ -90,11 +90,43 @@ export default function commandRouter(app) {
             } catch (e) { /* ignore logging errors */ }
             if (result && result.method === 'sendMessage') {
               // Legacy form used by some handlers
-              await telegramService.sendMessage(result.chat_id || chatId, result.text || '', { reply_markup: result.reply_markup, parse_mode: result.parse_mode || 'HTML' });
+              const dest = result.chat_id || chatId;
+              console.log('[SLASH_SEND] legacy sendMessage form ->', dest);
+              try {
+                await telegramService.sendMessage(dest, result.text || '', { reply_markup: result.reply_markup, parse_mode: result.parse_mode || 'HTML' });
+                console.log('[SLASH_OUTGOING_OK]', dest);
+              } catch (e) {
+                console.error('[SLASH_OUTGOING_ERR] legacy send failed', e && (e.stack || e.message));
+              }
             } else if (result && typeof result === 'object' && result.text) {
-              await telegramService.sendMessage(result.chat_id || chatId, result.text, { reply_markup: result.reply_markup, parse_mode: result.parse_mode || 'HTML' });
+              const dest = result.chat_id || chatId;
+              console.log('[SLASH_SEND] object result ->', dest, 'textLen=', (result.text||'').length);
+              try {
+                await telegramService.sendMessage(dest, result.text, { reply_markup: result.reply_markup, parse_mode: result.parse_mode || 'HTML' });
+                console.log('[SLASH_OUTGOING_OK]', dest);
+              } catch (e) {
+                console.error('[SLASH_OUTGOING_ERR] sendMessage failed', e && (e.stack || e.message));
+                // Fallback: attempt raw fetch to Telegram API to capture any different error
+                try {
+                  console.log('[SLASH_FALLBACK] attempting raw fetch to Telegram API');
+                  const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: dest, text: result.text, parse_mode: result.parse_mode || 'HTML', reply_markup: result.reply_markup })
+                  });
+                  const data = await resp.json().catch(()=>null);
+                  console.log('[SLASH_FALLBACK_RESP]', JSON.stringify({ ok: data?.ok ?? null, description: data?.description || null }));
+                } catch (fbErr) {
+                  console.error('[SLASH_FALLBACK_ERR] raw fetch failed', fbErr && (fbErr.stack || fbErr.message));
+                }
+              }
             } else if (typeof result === 'string') {
-              await telegramService.sendMessage(chatId, result);
+              console.log('[SLASH_SEND] string result ->', chatId);
+              try {
+                await telegramService.sendMessage(chatId, result);
+                console.log('[SLASH_OUTGOING_OK]', chatId);
+              } catch (e) {
+                console.error('[SLASH_OUTGOING_ERR] sendMessage string failed', e && (e.stack || e.message));
+              }
             }
           } catch (cmdErr) {
             console.error('Command handler error', cmdErr && (cmdErr.stack || cmdErr.message));
