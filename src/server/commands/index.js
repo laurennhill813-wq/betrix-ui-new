@@ -185,14 +185,12 @@ export default function commandRouter(app) {
 
         // Send the reply
         try {
-          const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chatId, text: replyText, parse_mode: 'HTML' })
-          });
-          const data = await resp.json().catch(()=>null);
-          console.log('OUTGOING-RESPONSE', JSON.stringify({ ok: data?.ok ?? null, description: data?.description || null, payload: { chat_id: chatId, text: replyText } }));
+          // Use TelegramService to send replies so outgoing events are logged centrally
+          console.log('[OUTGOING_ATTEMPT] send reply to', chatId);
+          await telegramService.sendMessage(chatId, replyText, { parse_mode: 'HTML' });
+          console.log('[OUTGOING_OK] reply sent to', chatId);
         } catch (sendErr) {
-          console.error('Failed to send Telegram reply', sendErr && (sendErr.stack || sendErr.message));
+          console.error('[OUTGOING_ERR] Failed to send Telegram reply', sendErr && (sendErr.stack || sendErr.message));
         }
 
       } catch (err) {
