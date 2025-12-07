@@ -2,7 +2,7 @@
  * src/server/commands/index.js
  * Simple command router: /PING, /help, /bet (placeholder)
  */
-module.exports = function commandRouter(app) {
+export default function commandRouter(app) {
   // register commands for Telegram (optional server-side)
   app.post("/webhook/telegram", async (req, res) => {
     // the actual webhook handler mounts this router; this file provides command dispatch
@@ -41,3 +41,4 @@ module.exports = function commandRouter(app) {
     })();
   });
 };
+
