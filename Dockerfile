@@ -25,16 +25,3 @@ RUN useradd --uid 1000 --create-home appuser || true
 USER appuser
 
 CMD ["npm","start"]
-# Use Node.js 20
-FROM node:20
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm install --production
-
-COPY . .
-
-EXPOSE 5000
-
-CMD ["node","src/worker-final.js"]
