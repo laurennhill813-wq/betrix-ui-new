@@ -66,7 +66,18 @@ app.get('/health/azure-ai', (req, res) => {
 });
 
 // Diagnostic: report presence of Azure/OpenAI env vars (non-sensitive)
-app.get('/health/azure-ai/env', (_req, res) => healthAzureAIEnvHandler(_req, res));
+app.get('/health/azure-ai/env', (req, res) => {
+  // Guard the diagnostic route: requires `HEALTH_DEBUG_SECRET` to be set on the host
+  // and the client must provide the same value in the `X-Debug-Secret` header.
+  const secret = process.env.HEALTH_DEBUG_SECRET;
+  if (!secret) {
+    return res.status(403).json({ ok: false, reason: 'Diagnostic endpoint disabled' });
+  }
+  if (req.headers['x-debug-secret'] !== secret) {
+    return res.status(403).json({ ok: false, reason: 'Forbidden' });
+  }
+  return healthAzureAIEnvHandler(req, res);
+});
 
 // Webhook endpoint for Lipana / M-Pesa
 app.post('/webhook/mpesa', async (req, res) => {
