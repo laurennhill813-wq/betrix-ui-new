@@ -5,13 +5,18 @@ import fetch from 'node-fetch';
  * Reads configuration from the constructor and only enables itself when endpoint, key and deployment are provided.
  */
 export class AzureAIService {
-  constructor(endpoint, apiKey, deployment, apiVersion = '2023-05-15') {
+  // endpoint: base URL, apiKey: Azure OpenAI key, deployment: model deployment name
+  // apiVersion: Azure OpenAI API version string
+  // options: { logger?, timeoutMs? }
+  constructor(endpoint, apiKey, deployment, apiVersion = '2023-05-15', options = {}) {
     this.endpoint = endpoint ? String(endpoint).replace(/\/$/, '') : null;
     this.apiKey = apiKey || null;
     this.deployment = deployment || null;
     this.apiVersion = apiVersion || '2023-05-15';
     this.enabled = Boolean(this.endpoint && this.apiKey && this.deployment);
     this.lastUsed = null;
+    this.logger = options.logger || console;
+    this.timeoutMs = typeof options.timeoutMs === 'number' ? options.timeoutMs : 60_000;
   }
 
   isHealthy() {
@@ -33,22 +38,44 @@ export class AzureAIService {
       temperature: 0.6,
     };
 
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': this.apiKey,
-      },
-      body: JSON.stringify(body),
-      timeout: 60_000,
-    });
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    let timeoutId = null;
+    if (controller) {
+      timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+    }
 
-    const text = await resp.text();
+    let resp;
+    let text = '';
+    try {
+      resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'api-key': this.apiKey,
+        },
+        body: JSON.stringify(body),
+        signal: controller ? controller.signal : undefined,
+      });
+
+      text = await resp.text();
+    } catch (err) {
+      if (timeoutId) clearTimeout(timeoutId);
+      const isAbort = err && (err.name === 'AbortError' || err.type === 'aborted');
+      const msg = isAbort ? `AzureAI request aborted after ${this.timeoutMs}ms` : `AzureAI fetch error: ${err && err.message ? err.message : String(err)}`;
+      try { this.logger.error(msg, { url, deployment: this.deployment, error: err }); } catch (e) { void e; }
+      const e = new Error(msg);
+      e.cause = err;
+      throw e;
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
     let json = null;
     try { json = text ? JSON.parse(text) : null; } catch (e) { void e; }
 
     if (!resp.ok) {
-      const errMsg = json?.error?.message || json?.error || text || `Azure returned ${resp.status}`;
+      const errMsg = json?.error?.message || json?.error || text || `${resp.status} ${resp.statusText}`;
+      try { this.logger.error('AzureAI non-OK response', { status: resp.status, body: errMsg }); } catch (e) { void e; }
       const e = new Error(`AzureAI error: ${errMsg}`);
       e.status = resp.status;
       throw e;
