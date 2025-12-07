@@ -38,6 +38,8 @@ const buildLiveMenuPayload = (games, title = 'Live', _tier = 'FREE', page = 1, p
   return { text: `*${title}* — ${String(_tier || 'FREE')}\n\n${list || '_No live matches currently_'}`, reply_markup: { inline_keyboard: [] } };
 };
 
+import { brand } from './menu-system.js';
+
 // Branding utils minimal shim
 const brandingUtils = {
   generateBetrixHeader: (tier) => `*BETRIX* — ${tier || 'FREE'}`,
@@ -1686,7 +1688,7 @@ async function startOnboarding(chatId, userId, redis) {
     return {
       method: 'sendMessage',
       chat_id: chatId,
-      text: '📝 Welcome to BETRIX! Let\'s set up your account. What is your full name?\n\n_Reply with your full name to continue._',
+      text: brand(`📝 Welcome to BETRIX! Let's set up your account. What is your full name?\n\n_Reply with your full name to continue._`, { suppressFooter: true }),
       parse_mode: 'Markdown'
     };
   } catch (e) {
@@ -1712,7 +1714,7 @@ async function handleOnboardingMessage(text, chatId, userId, redis, services) {
       await redis.hset(`user:${userId}:profile`, 'name', name);
       state.step = 'age';
       await redis.setex(`user:${userId}:onboarding`, 1800, JSON.stringify(state));
-      return { method: 'sendMessage', chat_id: chatId, text: `Thanks *${name}*! How old are you?`, parse_mode: 'Markdown' };
+      return { method: 'sendMessage', chat_id: chatId, text: brand(`Thanks *${name}*! How old are you?`, { suppressFooter: true }), parse_mode: 'Markdown' };
     }
 
     if (state.step === 'age') {
@@ -1731,7 +1733,7 @@ async function handleOnboardingMessage(text, chatId, userId, redis, services) {
         [ { text: '🌍 Other', callback_data: 'signup_country_OTHER' } ]
       ];
 
-      return { method: 'sendMessage', chat_id: chatId, text: 'Great — which country are you in? (choose below)', parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } };
+      return { method: 'sendMessage', chat_id: chatId, text: brand('Great — which country are you in? (choose below)', { suppressFooter: true }), parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } };
     }
 
     // default fallback
@@ -1762,7 +1764,7 @@ async function handleSignupCountry(data, chatId, userId, redis, services) {
     }]));
     keyboard.push([{ text: '🔙 Cancel', callback_data: 'menu_main' }]);
 
-    const text = `🌍 Great choice! Now, what's your preferred payment method?\n\n(These are available in your region)`;
+    const text = brand(`🌍 Great choice! Now, what's your preferred payment method?\n\n(These are available in your region)`, { suppressFooter: true });
 
     return { method: 'sendMessage', chat_id: chatId, text, parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } };
   } catch (e) {

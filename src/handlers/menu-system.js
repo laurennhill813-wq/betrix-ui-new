@@ -16,14 +16,22 @@ const BETRIX_EMOJI = '🌀';
 const BETRIX_HEADER = `${BETRIX_EMOJI} *BETRIX* - Premium Sports Analytics`;
 const TILL_NUMBER = process.env.MPESA_TILL || process.env.SAFARICOM_TILL_NUMBER || '606215';
 
+/**
+ * Brand wrapper: ensures all UI text includes consistent header and optional footer
+ */
+export function brand(body, opts = {}) {
+  const footer = opts.footer || `\n\n⚡ Visit https://betrix.app for more`;
+  // Trim leading/trailing whitespace and ensure spacing
+  const b = (body || '').toString().trim();
+  return `${BETRIX_HEADER}\n\n${b}${opts.suppressFooter ? '' : footer}`;
+}
+
 // ============================================================================
 // MAIN MENU
 // ============================================================================
 
 export const mainMenu = {
-  text: `${BETRIX_HEADER}
-
-Welcome back! 👋 Choose an option below or ask naturally (e.g. "Top picks tonight").`,
+  text: brand(`Welcome back! 👋 Choose an option below or ask naturally (e.g. "Top picks tonight").`, { suppressFooter: true }),
 
   // Modern compact grid: two-column primary actions, single-row utilities
   reply_markup: {
@@ -53,9 +61,7 @@ Welcome back! 👋 Choose an option below or ask naturally (e.g. "Top picks toni
 // ============================================================================
 
 export const sportsMenu = {
-  text: `${BETRIX_HEADER}
-
-*Select a Sport:*`,
+  text: brand(`*Select a Sport:*`, { suppressFooter: true }),
   
   reply_markup: {
     inline_keyboard: [
@@ -83,11 +89,7 @@ export const sportsMenu = {
 // ============================================================================
 
 export const subscriptionMenu = {
-  text: `${BETRIX_HEADER}
-
-🎉 Unlock Premium — simple plans, instant access.
-
-Choose a plan below. Payment methods shown after selection.`,
+  text: brand(`🎉 Unlock Premium — simple plans, instant access.\n\nChoose a plan below. Payment methods shown after selection.`, { suppressFooter: true }),
 
   // Compact subscription card layout
   reply_markup: {
@@ -105,11 +107,7 @@ Choose a plan below. Payment methods shown after selection.`,
 // ============================================================================
 
 export const paymentMethodsMenu = (tier) => ({
-  text: `${BETRIX_HEADER}
-
-*Choose Payment Method for ${tier} Tier*
-
-Select one of our secure payment options below:`,
+  text: brand(`*Choose Payment Method for ${tier} Tier*\n\nSelect one of our secure payment options below:`, { suppressFooter: true }),
   
   reply_markup: {
     inline_keyboard: [
@@ -134,11 +132,7 @@ Select one of our secure payment options below:`,
 // ============================================================================
 
 export const profileMenu = {
-  text: `${BETRIX_HEADER}
-
-*Your Profile*
-
-Manage your account, view stats, and preferences.`,
+  text: brand(`*Your Profile*\n\nManage your account, view stats, and preferences.`, { suppressFooter: true }),
   
   reply_markup: {
     inline_keyboard: [
@@ -162,32 +156,7 @@ Manage your account, view stats, and preferences.`,
 // ============================================================================
 
 export const helpMenu = {
-  text: `${BETRIX_HEADER}
-
-*Quick Help*
-
-📱 *How to use BETRIX:*
-
-1️⃣ *Ask naturally:*
-   "Which games are live today?"
-   "Show me odds for Liverpool"
-   "What's the best bet this week?"
-
-2️⃣ *Use Commands:*
-   /live - See live games
-   /odds - Get current odds  
-   /standings - League standings
-   /news - Latest news
-   /profile - Your account
-
-3️⃣ *Subscribe for premium:*
-   /vvip - Upgrade your plan
-
-📧 *Need Help?*
-Contact: support@betrix.app
-Response time: ~2 hours
-
-*What can I help with?*`,
+  text: brand(`*Quick Help*\n\n📱 *How to use BETRIX:*\n\n1️⃣ *Ask naturally:*\n   "Which games are live today?"\n   "Show me odds for Liverpool"\n   "What's the best bet this week?"\n\n2️⃣ *Use Commands:*\n   /live - See live games\n   /odds - Get current odds\n   /standings - League standings\n   /news - Latest news\n   /profile - Your account\n\n3️⃣ *Subscribe for premium:*\n   /vvip - Upgrade your plan\n\n📧 *Need Help?*\nContact: support@betrix.app\nResponse time: ~2 hours\n\n*What can I help with?*`, { suppressFooter: true }),
   
   reply_markup: {
     inline_keyboard: [
@@ -210,23 +179,10 @@ Response time: ~2 hours
 export function formatLiveGames(games, sport = 'Football') {
   // Lively, helpful fallback when no live matches
   if (!games || games.length === 0) {
-    return `${BETRIX_HEADER}
-
-🔴 *No live ${sport.toLowerCase()} matches right now*
-
-Seems quiet at the moment — here's what you can do:
-• 🔎 Try /today to see upcoming fixtures.
-• 🔔 Turn on alerts for your favourite teams in /profile.
-• 📈 Check trending odds: /odds <fixture-id>
-
-I'll notify you when a match starts. Meanwhile, want a quick prediction demo? Type "analyze Liverpool vs Man City".`;
+    return brand(`🔴 *No live ${sport.toLowerCase()} matches right now*\n\nSeems quiet at the moment — here's what you can do:\n• 🔎 Try /today to see upcoming fixtures.\n• 🔔 Turn on alerts for your favourite teams in /profile.\n• 📈 Check trending odds: /odds <fixture-id>\n\nI'll notify you when a match starts. Meanwhile, want a quick prediction demo? Type "analyze Liverpool vs Man City".`, { suppressFooter: true });
   }
 
-  let text = `${BETRIX_HEADER}
-
-🔴 *Live ${sport} Matches* (${games.length}) — quick highlights:
-
-`;
+  let text = brand(`🔴 *Live ${sport} Matches* (${games.length}) — quick highlights:\n\n`, { suppressFooter: true });
 
   for (let i = 0; i < Math.min(games.length, 10); i++) {
     const game = games[i];
@@ -267,7 +223,7 @@ export function formatOdds(odds, fixtureId) {
   const primary = aggregated[0] || snapshot(odds);
   const secondary = aggregated[1] || null;
 
-  let lines = `${BETRIX_HEADER}\n\n💰 *Odds & Quick Analysis*\n\nMatch: ${fixtureId || 'Fixture details'}\n\n`;
+  let lines = brand(`💰 *Odds & Quick Analysis*\n\nMatch: ${fixtureId || 'Fixture details'}\n\n`, { suppressFooter: true });
   lines += `🏷️ *Odds Snapshot* (${primary.label}):\n• Home: ${primary.home} · Draw: ${primary.draw} · Away: ${primary.away}\n`;
   if (secondary) {
     lines += `• Compared with ${secondary.label}: Home ${secondary.home}, Draw ${secondary.draw}, Away ${secondary.away}\n`;
@@ -284,15 +240,7 @@ export function formatOdds(odds, fixtureId) {
 
 export function formatStandings(league, leagueName = 'Premier League') {
   // Lively standings with short actionable note
-  return `${BETRIX_HEADER}
-
-🏆 *${leagueName} - Current Standings*
-
-1. Team A · MP:10 · W:7 · D:2 · L:1 · GD:+12 · Pts:23
-2. Team B · MP:10 · W:6 · D:3 · L:1 · GD:+10 · Pts:21
-3. Team C · MP:10 · W:6 · D:2 · L:2 · GD:+8  · Pts:20
-
-🔎 Want deeper analytics? Try /analyze <team1> vs <team2> or upgrade to VVIP for detailed trend reports.`;
+  return brand(`🏆 *${leagueName} - Current Standings*\n\n1. Team A · MP:10 · W:7 · D:2 · L:1 · GD:+12 · Pts:23\n2. Team B · MP:10 · W:6 · D:3 · L:1 · GD:+10 · Pts:21\n3. Team C · MP:10 · W:6 · D:2 · L:2 · GD:+8  · Pts:20\n\n🔎 Want deeper analytics? Try /analyze <team1> vs <team2> or upgrade to VVIP for detailed trend reports.`, { suppressFooter: true });
 }
 
 // ============================================================================
@@ -301,19 +249,10 @@ export function formatStandings(league, leagueName = 'Premier League') {
 
 export function formatNews(articles = []) {
   if (!articles || articles.length === 0) {
-    return `${BETRIX_HEADER}
-
-📰 *Latest Sports News*
-
-No fresh headlines right now — here's what's trending recently:
-• Transfer gossip: top 5 moves
-• Injury round-up: key players returning
-• Weekend previews: matches to watch
-
-Type /news <id> to open a story. Want a curated digest? Upgrade to VVIP for personalized news.`;
+    return brand(`📰 *Latest Sports News*\n\nNo fresh headlines right now — here's what's trending recently:\n• Transfer gossip: top 5 moves\n• Injury round-up: key players returning\n• Weekend previews: matches to watch\n\nType /news <id> to open a story. Want a curated digest? Upgrade to VVIP for personalized news.`, { suppressFooter: true });
   }
 
-  let text = `${BETRIX_HEADER}\n\n📰 *Latest Sports Headlines*\n\n`;
+  let text = brand(`📰 *Latest Sports Headlines*\n\n`, { suppressFooter: true });
   for (let i = 0; i < Math.min(5, articles.length); i++) {
     const a = articles[i];
     text += `• ${a.title || 'Headline ' + (i+1)} — ${a.source || 'Source'}\n`;
@@ -334,25 +273,7 @@ export function formatProfile(user) {
   const winRate = bets > 0 ? ((wins / bets) * 100).toFixed(1) : 0;
   const streak = user?.current_streak || 0;
 
-  return `${BETRIX_HEADER}
-
-👤 *Your Profile*
-
-ID: \`${user?.id || 'N/A'}\`
-⭐ Tier: *${tier}*
-📅 Joined: ${joined}
-
-📊 *Performance*
-• Total Bets: ${bets}
-• Wins: ${wins}
-• Win Rate: ${winRate}%
-• Current Streak: ${streak} wins
-
-🎯 *Pro Tip:* Keep your stakes proportional to bankroll. Use /vvip for full analytics and personalized staking plans.
-
-🎁 Referral Code: \`${user?.referral_code || 'N/A'}\`
-
-Need help? Tap /help or contact support@betrix.app`;
+  return brand(`👤 *Your Profile*\n\nID: \`${user?.id || 'N/A'}\`\n⭐ Tier: *${tier}*\n📅 Joined: ${joined}\n\n📊 *Performance*\n• Total Bets: ${bets}\n• Wins: ${wins}\n• Win Rate: ${winRate}%\n• Current Streak: ${streak} wins\n\n🎯 *Pro Tip:* Keep your stakes proportional to bankroll. Use /vvip for full analytics and personalized staking plans.\n\n🎁 Referral Code: \`${user?.referral_code || 'N/A'}\`\n\nNeed help? Tap /help or contact support@betrix.app`, { suppressFooter: true });
 }
 
 // ============================================================================
