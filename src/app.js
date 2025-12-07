@@ -121,6 +121,37 @@ app.post('/webhook/mpesa', async (req, res) => {
   }
 });
 
+// Lightweight Telegram webhook handler: quick ack + background echo reply
+app.post('/webhook/telegram', async (req, res) => {
+  try {
+    // Acknowledge immediately so Telegram won't retry
+    res.status(200).send('OK');
+
+    const update = req.body || {};
+    const chatId = update.message?.chat?.id || update.chat?.id;
+    const text = (update.message && update.message.text) ? update.message.text : '';
+    if (!chatId || !process.env.TELEGRAM_TOKEN) return;
+
+    // Minimal reply: echo or helpful ping
+    const replyText = /^\/start/i.test(text) ? 'Welcome — BOT is online.' : `Got your message: ${text ? text.slice(0,200) : '<no-text>'}`;
+
+    // Fire-and-forget sendMessage call
+    (async () => {
+      try {
+        await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, text: replyText })
+        });
+      } catch (e) {
+        console.warn('Telegram sendMessage failed', e && (e.message || String(e)).slice(0,200));
+      }
+    })();
+  } catch (err) {
+    try { console.error('Telegram webhook handler error', err && err.message); } catch (e) { void e; }
+  }
+});
+
 // Allow workers to register data-exposure endpoints without failing
 // The worker imports `registerDataExposureAPI` from this module; provide
 // a safe implementation that dynamically loads the handler if available.
