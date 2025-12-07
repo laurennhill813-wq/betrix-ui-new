@@ -10,6 +10,11 @@ let _firstErrorTs = 0;
 let _fuseTriggered = false;
 const ERROR_THRESHOLD = 10; // number of errors
 const ERROR_WINDOW_MS = 60_000; // window in ms
+// Reconnect churn fuse: if Redis is reconnecting too frequently, flip to MockRedis
+let _reconnectCount = 0;
+let _firstReconnectTs = 0;
+const RECONNECT_THRESHOLD = 20; // reconnect events
+const RECONNECT_WINDOW_MS = 60_000; // window in ms
 
 class MockRedis {
   constructor() {
@@ -313,6 +318,23 @@ export function getRedis(opts = {}) {
 
   _instance.on('reconnecting', () => {
     console.log('[redis-factory] 🔄 Redis reconnecting...');
+    try {
+      const now = Date.now();
+      if (!_firstReconnectTs || now - _firstReconnectTs > RECONNECT_WINDOW_MS) {
+        _firstReconnectTs = now;
+        _reconnectCount = 0;
+      }
+      _reconnectCount++;
+      if (!_fuseTriggered && _reconnectCount >= RECONNECT_THRESHOLD) {
+        _fuseTriggered = true;
+        console.error('[redis-factory] 🔥 Reconnect churn fuse triggered: switching to MockRedis to protect handlers');
+        try {
+          if (_instance && typeof _instance.disconnect === 'function') _instance.disconnect();
+          else if (_instance && typeof _instance.quit === 'function') _instance.quit();
+        } catch (e) { /* ignore */ }
+        _instance = new MockRedis();
+      }
+    } catch (e) { console.error('[redis-factory] Error evaluating reconnect fuse', e); }
   });
 
   _instance.on('end', () => {
