@@ -808,8 +808,10 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
           const result = await completeHandler.handleStart(chatId, sharedServices);
           await telegram.sendMessage(chatId, result.text, { reply_markup: result.reply_markup, parse_mode: result.parse_mode || 'Markdown' });
         } catch (e) {
-          logger.warn('/start handler error', e?.message);
-          await telegram.sendMessage(chatId, '❌ Error loading menu');
+          logger.warn('/start handler error', e?.message, { stack: e?.stack });
+          // include a short error snippet in the fallback message for debugging
+          const msg = `❌ Error loading menu: ${String(e?.message || 'unknown').slice(0,200)}`;
+          await telegram.sendMessage(chatId, msg).catch(()=>{});
         }
       },
       "/menu": async () => {
@@ -817,8 +819,9 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
           const result = await completeHandler.handleMenu(chatId, sharedServices);
           await telegram.sendMessage(chatId, result.text, { reply_markup: result.reply_markup, parse_mode: result.parse_mode || 'Markdown' });
         } catch (e) {
-          logger.warn('/menu handler error', e?.message);
-          await telegram.sendMessage(chatId, '❌ Error loading menu');
+          logger.warn('/menu handler error', e?.message, { stack: e?.stack });
+          const msg = `❌ Error loading menu: ${String(e?.message || 'unknown').slice(0,200)}`;
+          await telegram.sendMessage(chatId, msg).catch(()=>{});
         }
       },
       "/live": async () => {

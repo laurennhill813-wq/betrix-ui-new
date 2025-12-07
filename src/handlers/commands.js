@@ -101,6 +101,9 @@ export async function handleCommand(text, chatId, userId, redis, services) {
       
       case '/live':
         return await handleLive(chatId, userId, args[0], redis, services);
+
+      case '/fixtures':
+        return await handleFixtures(chatId, userId, redis, services);
       
       case '/odds':
         return await handleOdds(chatId, userId, args[0], redis, services);
@@ -582,6 +585,58 @@ export async function handleProfile(chatId, userId, redis) {
     return {
       chat_id: chatId,
       text: '❌ Error loading profile',
+      parse_mode: 'Markdown'
+    };
+  }
+}
+
+/**
+ * /fixtures - Show upcoming fixtures (fallbacks to available providers)
+ */
+export async function handleFixtures(chatId, userId, redis, services) {
+  try {
+    let fixtures = [];
+
+    // Prefer an injected sportsAggregator that has a fixtures method
+    try {
+      if (services && services.sportsAggregator && typeof services.sportsAggregator.getFixtures === 'function') {
+        fixtures = await services.sportsAggregator.getFixtures();
+      }
+    } catch (e) {
+      // ignore and continue to other providers
+    }
+
+    // Fallback: footballData fixturesFromCsv
+    if ((!fixtures || fixtures.length === 0) && services && services.footballData && typeof services.footballData.fixturesFromCsv === 'function') {
+      try {
+        const fd = await services.footballData.fixturesFromCsv();
+        fixtures = (fd && fd.fixtures) ? fd.fixtures.slice(0, 12) : [];
+      } catch (e) { /* ignore */ }
+    }
+
+    // Demo fallback
+    if (!fixtures || fixtures.length === 0) {
+      fixtures = [
+        { id: 'demo-1', home: 'Demo FC', away: 'Sample United', kickoff: 'TBD' },
+        { id: 'demo-2', home: 'Example Town', away: 'Test Rovers', kickoff: 'TBD' }
+      ];
+    }
+
+    const lines = (fixtures || []).slice(0, 8).map(f => `• ${f.home} vs ${f.away} ${f.kickoff ? '— ' + f.kickoff : ''}`);
+    const keyboard = (fixtures || []).slice(0, 6).map(f => [{ text: `${f.home} vs ${f.away}`, callback_data: `fixture:${f.id}` }]);
+    keyboard.push([{ text: '🔙 Back', callback_data: 'menu_main' }]);
+
+    return {
+      chat_id: chatId,
+      text: `📅 *Upcoming Fixtures*\n\n${lines.join('\n')}`,
+      reply_markup: { inline_keyboard: keyboard },
+      parse_mode: 'Markdown'
+    };
+  } catch (err) {
+    logger.error('handleFixtures error', err);
+    return {
+      chat_id: chatId,
+      text: '🛠️ Error loading fixtures. Try /menu or /help',
       parse_mode: 'Markdown'
     };
   }
