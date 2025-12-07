@@ -51,6 +51,8 @@ class TelegramService {
         try {
           const entry = { ts: new Date().toISOString(), method: 'sendMessage', chatId, page: i+1, payloadSummary: { textLen: (payload.text||'').length, hasReplyMarkup: !!payload.reply_markup } };
           await appendFile('./logs/outgoing-events.log', JSON.stringify(entry) + '\n', { encoding: 'utf8' }).catch(()=>{});
+          // Also write to stdout so platform log aggregation (Render) captures outgoing events
+          try { console.log('[OUTGOING_EVENT] ' + JSON.stringify(entry)); } catch (e) { /* ignore */ }
         } catch(e){ /* ignore file logging errors */ }
         return res;
       } catch (err) {
@@ -79,7 +81,7 @@ class TelegramService {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       }, `editMessage ${messageId}`);
-      try { const entry = { ts: new Date().toISOString(), method: 'editMessage', chatId, messageId, payloadSummary: { textLen: (text||'').length, hasReplyMarkup: !!replyMarkup } }; await appendFile('./logs/outgoing-events.log', JSON.stringify(entry)+'\n', { encoding:'utf8' }).catch(()=>{}); } catch(e){}
+      try { const entry = { ts: new Date().toISOString(), method: 'editMessage', chatId, messageId, payloadSummary: { textLen: (text||'').length, hasReplyMarkup: !!replyMarkup } }; await appendFile('./logs/outgoing-events.log', JSON.stringify(entry)+'\n', { encoding:'utf8' }).catch(()=>{}); try { console.log('[OUTGOING_EVENT] ' + JSON.stringify(entry)); } catch(e){} } catch(e){}
       return res;
     } catch (err) {
       // Normalize error string
@@ -118,7 +120,7 @@ class TelegramService {
           show_alert: showAlert,
         }),
       }, `answerCallback ${callbackQueryId}`);
-      try { const entry = { ts: new Date().toISOString(), method: 'answerCallback', callbackQueryId, textLen: (text||'').length, showAlert }; await appendFile('./logs/outgoing-events.log', JSON.stringify(entry)+'\n', { encoding:'utf8' }).catch(()=>{}); } catch(e){}
+      try { const entry = { ts: new Date().toISOString(), method: 'answerCallback', callbackQueryId, textLen: (text||'').length, showAlert }; await appendFile('./logs/outgoing-events.log', JSON.stringify(entry)+'\n', { encoding:'utf8' }).catch(()=>{}); try { console.log('[OUTGOING_EVENT] ' + JSON.stringify(entry)); } catch(e){} } catch(e){}
       return res;
     } catch (err) {
       throw err;
