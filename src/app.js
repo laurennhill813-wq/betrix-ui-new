@@ -180,7 +180,7 @@ app.get('/health/azure-ai/env', (req, res) => {
 });
 
 // Webhook endpoint for Lipana / M-Pesa
-app.post('/webhook/mpesa', async (req, res) => {
+async function webhookMpesaHandler(req, res) {
   const secret = process.env.LIPANA_WEBHOOK_SECRET || process.env.MPESA_WEBHOOK_SECRET || process.env.LIPANA_SECRET;
   const incoming = req.headers['x-lipana-signature'] || req.headers['x-signature'] || req.headers['signature'] || '';
   try {
@@ -194,6 +194,16 @@ app.post('/webhook/mpesa', async (req, res) => {
     }
 
     safeLog('[webhook/mpesa] incoming=', incoming, 'computedHexPrefix=', computedHex ? computedHex.slice(0,16) : null);
+
+    // If secret is configured, enforce signature match
+    if (secret) {
+      const incomingClean = String(incoming || '').trim();
+      const match = incomingClean === computedHex || incomingClean === computedB64;
+      if (!match) {
+        safeLog('[webhook/mpesa] Signature mismatch - rejecting webhook');
+        return res.status(403).json({ ok: false, reason: 'Invalid signature' });
+      }
+    }
 
     // Best-effort persistence: try DB, else write fallback files
     try {
@@ -213,51 +223,55 @@ app.post('/webhook/mpesa', async (req, res) => {
       safeLog('DB insert failed (webhook):', e?.message || String(e));
     }
 
-      // Attempt immediate reconciliation using Redis mapping so webhooks activate without worker
+    // Attempt immediate reconciliation using Redis mapping so webhooks activate without worker
+    try {
+      const payload = req.body || {};
+      // possible fields from Lipana: transactionId, reference, providerRef, id, data.id
+      const providerRef = payload.transaction_id || payload.transactionId || payload.reference || payload.providerRef || (payload.data && payload.data.id) || null;
+      const phone = payload.phone || payload.msisdn || (payload.data && payload.data.phone) || null;
+      const tx = providerRef || (`MPESA_${Date.now()}`);
+
       try {
-        const payload = req.body || {};
-        // possible fields from Lipana: transactionId, reference, providerRef, id, data.id
-        const providerRef = payload.transactionId || payload.reference || payload.providerRef || (payload.data && payload.data.id) || null;
-        const phone = payload.phone || payload.msisdn || (payload.data && payload.data.phone) || null;
-        const tx = providerRef || (`MPESA_${Date.now()}`);
-
-        try {
-          const redis = getRedis();
-          let orderId = null;
-          if (providerRef) {
-            // try common keys
-            orderId = await redis.get(`payment:by_provider_ref:MPESA:${providerRef}`) || await redis.get(`payment:by_provider_ref:MPESA:${providerRef}`);
-          }
-          if (!orderId && phone) {
-            const p = String(phone).replace(/\s|\+|-/g, '');
-            orderId = await redis.get(`payment:by_phone:${p}`);
-          }
-
-          if (orderId) {
-            try {
-              // Call verifyAndActivatePayment to mark order completed
-              const result = await verifyAndActivatePayment(redis, orderId, tx);
-              safeLog('[webhook/mpesa] Activated order via webhook', { providerRef, orderId, tx, result });
-            } catch (actErr) {
-              safeLog('[webhook/mpesa] Activation attempt failed', actErr?.message || String(actErr));
-            }
-          } else {
-            safeLog('[webhook/mpesa] No mapping found in Redis for webhook - mapping miss', { providerRef, phone });
-          }
-        } catch (redisErr) {
-          safeLog('[webhook/mpesa] Redis lookup failed', redisErr?.message || String(redisErr));
+        const redis = getRedis();
+        let orderId = null;
+        if (providerRef) {
+          // try common keys
+          orderId = await redis.get(`payment:by_provider_ref:MPESA:${providerRef}`) || await redis.get(`payment:by_provider_ref:MPESA:${providerRef}`);
         }
-      } catch (reconErr) {
-        safeLog('[webhook/mpesa] Reconciliation attempt error', reconErr?.message || String(reconErr));
-      }
+        if (!orderId && phone) {
+          const p = String(phone).replace(/\s|\+|-/g, '');
+          orderId = await redis.get(`payment:by_phone:${p}`);
+        }
 
-      // Return 200 so upstream won't retry while we debug
-      return res.status(200).send('OK');
+        if (orderId) {
+          try {
+            // Call verifyAndActivatePayment to mark order completed
+            const result = await verifyAndActivatePayment(redis, orderId, tx);
+            safeLog('[webhook/mpesa] Activated order via webhook', { providerRef, orderId, tx, result });
+          } catch (actErr) {
+            safeLog('[webhook/mpesa] Activation attempt failed', actErr?.message || String(actErr));
+          }
+        } else {
+          safeLog('[webhook/mpesa] No mapping found in Redis for webhook - mapping miss', { providerRef, phone });
+        }
+      } catch (redisErr) {
+        safeLog('[webhook/mpesa] Redis lookup failed', redisErr?.message || String(redisErr));
+      }
+    } catch (reconErr) {
+      safeLog('[webhook/mpesa] Reconciliation attempt error', reconErr?.message || String(reconErr));
+    }
+
+    // Return 200 so upstream won't retry while we debug
+    return res.status(200).send('OK');
   } catch (err) {
     safeLog('Webhook handler error:', err?.message || String(err));
     return res.status(200).send('OK');
   }
-});
+}
+
+// Register both singular and plural routes to match Lipana's callbacks
+app.post('/webhook/mpesa', webhookMpesaHandler);
+app.post('/webhooks/mpesa', webhookMpesaHandler);
 
 // Mount the richer server-side Telegram command router if present.
 // Allow both `TELEGRAM_BOT_TOKEN` and `TELEGRAM_TOKEN` env var names for compatibility.
