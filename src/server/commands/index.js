@@ -6,7 +6,7 @@ import { AzureAIService } from '../../services/azure-ai.js';
 import { getRedis } from '../../lib/redis-factory.js';
 import { handleCommand } from '../../handlers/commands.js';
 import { handleCallback } from '../../handlers/callbacks.js';
-import TelegramService from '../../services/telegram.js';
+import TelegramServiceDefault from '../../services/telegram.js';
 
 // Singleton Azure AI service (will be marked disabled when config missing)
 const aiService = new AzureAIService(
@@ -61,7 +61,7 @@ export default function commandRouter(app) {
           console.error('Telegram token not configured');
           return;
         }
-        if (!telegramService) telegramService = new TelegramService(token);
+        if (!telegramService) telegramService = new TelegramServiceDefault(token);
 
         // Quick built-in commands (not rate-limited)
         if (/^\/PING\b/i.test(text)) {
