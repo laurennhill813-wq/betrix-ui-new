@@ -6,7 +6,7 @@ import { AzureAIService } from '../../services/azure-ai.js';
 import { getRedis } from '../../lib/redis-factory.js';
 import { handleCommand } from '../../handlers/commands.js';
 import { handleCallback } from '../../handlers/callbacks.js';
-import TelegramService from '../../services/telegram.js';
+import TelegramServiceDefault from '../../services/telegram.js';
 
 // Singleton Azure AI service (will be marked disabled when config missing)
 const aiService = new AzureAIService(
@@ -61,7 +61,7 @@ export default function commandRouter(app) {
           console.error('Telegram token not configured');
           return;
         }
-        if (!telegramService) telegramService = new TelegramService(token);
+        if (!telegramService) telegramService = new TelegramServiceDefault(token);
 
         // Quick built-in commands (not rate-limited)
         if (/^\/PING\b/i.test(text)) {
@@ -112,7 +112,7 @@ export default function commandRouter(app) {
         if (/^\/refer\b/i.test(text)) {
           try {
             let user = {};
-            try { user = redis ? (await redis.hgetall(`user:${userId}`) || {}) : {}; } catch (e) { /* ignore */ }
+            try { user = redis ? (await redis.hgetall(`user:${userId}`) || {}) : {}; } catch (e) { void e; }
             const ref = user.referral_code || `ref_${userId}_${Date.now()}`;
             await telegramService.sendMessage(chatId, `🎁 Referral Code: ${ref}`);
             console.log('[SLASH_OUTGOING_OK]', chatId);
@@ -127,7 +127,7 @@ export default function commandRouter(app) {
             const result = await handleCommand(text, chatId, userId, redis, null);
             try {
               console.log('[COMMAND_RESULT]', JSON.stringify({ chatId, command: text, hasResult: !!result, type: typeof result, hasText: !!(result && result.text) }));
-            } catch (e) { /* ignore logging errors */ }
+            } catch (e) { void e; }
             if (result && result.method === 'sendMessage') {
               // Legacy form used by some handlers
               const dest = result.chat_id || chatId;
@@ -168,9 +168,9 @@ export default function commandRouter(app) {
                 console.error('[SLASH_OUTGOING_ERR] sendMessage string failed', e && (e.stack || e.message));
               }
             }
-          } catch (cmdErr) {
+            } catch (cmdErr) {
             console.error('Command handler error', cmdErr && (cmdErr.stack || cmdErr.message));
-            try { await telegramService.sendMessage(chatId, '❌ Error processing command. Try /menu'); } catch(e){}
+            try { await telegramService.sendMessage(chatId, '❌ Error processing command. Try /menu'); } catch(e){ void e; }
           }
           return;
         }
@@ -199,7 +199,7 @@ export default function commandRouter(app) {
             }
           } catch (cbErr) {
             console.error('Callback handler error', cbErr && (cbErr.stack || cbErr.message));
-            try { await telegramService.answerCallback(callbackQuery.id, '⚠️ Action failed', false); } catch (_) {}
+            try { await telegramService.answerCallback(callbackQuery.id, '⚠️ Action failed', false); } catch (_) { void 0; }
           }
           return;
         }
@@ -210,29 +210,8 @@ export default function commandRouter(app) {
         // Build reply: prefer Azure AI when configured
         let replyText = `You said: ${text}`;
         if (aiService.isHealthy && aiService.isHealthy()) {
-          // AI-specific rate limiter (do not apply to commands / menu actions)
-          const aiRateKey = `tg:ai:rate:${chatId}`;
-          try {
-            if (redis) {
-              const existingAi = await redis.get(aiRateKey);
-              if (existingAi) {
-                try {
-                  await telegramService.sendMessage(chatId, 'Please wait a few seconds before sending another message.');
-                } catch (e) { /* swallow */ }
-                console.log('RATE-LIMITED', { chatId });
-                return;
-              }
-              if (typeof redis.setex === 'function') {
-                await redis.setex(aiRateKey, 5, '1');
-              } else {
-                await redis.set(aiRateKey, '1');
-                try { await redis.expire(aiRateKey, 5); } catch (e) { /* ignore */ }
-              }
-            }
-          } catch (rlErr) {
-            console.warn('AI rate limiter error (continuing):', rlErr && rlErr.message);
-          }
-
+          // AI calls are attempted when the service is configured.
+          // NOTE: rate-limiting has been disabled here to avoid blocking user messages.
           try {
             replyText = await aiService.chat(text, { system: 'You are Betrix, a helpful sports assistant. Be concise and friendly.' });
           } catch (aiErr) {
@@ -243,7 +222,7 @@ export default function commandRouter(app) {
               try {
                 const payload = JSON.stringify({ chatId, text, ts: Date.now() });
                 await redis.rpush('ai:queue', payload);
-                try { await telegramService.sendMessage(chatId, 'AI is currently busy — your request has been queued and will be processed shortly.'); } catch(e){}
+                try { await telegramService.sendMessage(chatId, 'AI is currently busy — your request has been queued and will be processed shortly.'); } catch(e){ void e; }
                 console.log('ENQUEUED-AI', { chatId });
                 return;
               } catch (qErr) {
@@ -258,11 +237,22 @@ export default function commandRouter(app) {
         // Send the reply
         try {
           // Use TelegramService to send replies so outgoing events are logged centrally
-          console.log('[OUTGOING_ATTEMPT] send reply to', chatId);
+          console.log('[OUTGOING_ATTEMPT] send reply to', chatId, 'textLen=', (replyText||'').length);
           await telegramService.sendMessage(chatId, replyText, { parse_mode: 'HTML' });
           console.log('[OUTGOING_OK] reply sent to', chatId);
         } catch (sendErr) {
           console.error('[OUTGOING_ERR] Failed to send Telegram reply', sendErr && (sendErr.stack || sendErr.message));
+          // fallback: raw fetch to Telegram API to surface any different error
+          try {
+            console.log('[OUTGOING_FALLBACK] attempting raw fetch fallback');
+            await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN || process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: chatId, text: replyText, parse_mode: 'HTML' })
+            });
+            console.log('[OUTGOING_FALLBACK_OK]', chatId);
+          } catch (fb) {
+            console.error('[OUTGOING_FALLBACK_ERR]', fb && (fb.stack || fb.message));
+          }
         }
 
       } catch (err) {

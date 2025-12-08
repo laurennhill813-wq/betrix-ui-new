@@ -39,6 +39,7 @@ const buildLiveMenuPayload = (games, title = 'Live', _tier = 'FREE', page = 1, p
 };
 
 import { brand } from './menu-system.js';
+import lipana from '../lib/lipana-client.js';
 
 // Branding utils minimal shim
 const brandingUtils = {
@@ -164,7 +165,77 @@ export async function handleMessage(update, redis, services) {
     const message = update.message || update.edited_message;
     if (!message) return null;
     const chatId = message.chat.id;
+    const userId = message.from && message.from.id ? message.from.id : null;
     const text = message.text || '';
+
+    // Continuation handler: if user has a pending payment intent and they send
+    // a phone number in the expected format, resume the STK push flow.
+    try {
+      const phoneRe = /^2547\d{8}$/;
+      if (userId && text && phoneRe.test(text)) {
+        const pendingKey = `user:${userId}:pending_payment`;
+        const pendingRaw = await redis.get(pendingKey).catch(() => null);
+        if (pendingRaw) {
+          let pending = null;
+          try { pending = JSON.parse(pendingRaw); } catch (e) { pending = null; }
+          if (pending && pending.action && pending.action === 'signup_payment') {
+            // Save phone to profile
+            try {
+              await redis.hset(`user:${userId}:profile`, 'msisdn', text);
+              await redis.hset(`user:${userId}:profile`, 'phone', text);
+            } catch (e) { void e; }
+
+            // Resume payment: create order and trigger STK
+            try {
+              const { createCustomPaymentOrder } = await import('./payment-router.js');
+              const amount = Number(pending.amount || 300);
+              const order = await createCustomPaymentOrder(redis, userId, amount, 'MPESA', 'KE', { signup: true }).catch(() => null);
+
+              let providerCheckout = null;
+              try {
+                const callback = process.env.LIPANA_CALLBACK_URL || process.env.MPESA_CALLBACK_URL || null;
+                const resp = await lipana.stkPush({ amount, phone: text, tx_ref: order?.orderId || `ORD${userId}${Date.now()}`, reference: order?.orderId || null, callback_url: callback });
+                providerCheckout = resp?.raw?.data?.transactionId || resp?.raw?.data?._id || null;
+
+                // Persist payments row (best-effort)
+                try {
+                  const connStr = process.env.DATABASE_URL || null;
+                  if (connStr && order && order.orderId) {
+                    const { Pool } = await import('pg');
+                    const pool = new Pool({ connectionString: connStr, ssl: { rejectUnauthorized: false } });
+                    const insertSql = `INSERT INTO payments(tx_ref, user_id, amount, status, metadata, created_at)
+                      VALUES($1,$2,$3,$4,$5, now())`;
+                    const metadata = { provider: 'LIPANA', provider_checkout_id: providerCheckout, orderId: order.orderId };
+                    await pool.query(insertSql, [order.orderId, userId, order.totalAmount || amount, 'pending', JSON.stringify(metadata)]);
+                    try { await pool.end(); } catch(e){ void e; }
+                  }
+                } catch (ee) { void ee; }
+
+                // Map provider ref -> orderId for webhook reconciliation
+                try { if (providerCheckout && order && order.orderId) await redis.setex(`payment:by_provider_ref:MPESA:${providerCheckout}`, 900, order.orderId); } catch (e) { void e; }
+
+                // Cleanup pending intent
+                try { await redis.del(pendingKey); } catch (e) { void e; }
+
+                return {
+                  method: 'sendMessage',
+                  chat_id: chatId,
+                  text: `✅ STK push initiated for KES ${amount}. Please check your phone and enter your M-Pesa PIN.`,
+                  parse_mode: 'Markdown'
+                };
+              } catch (e) {
+                // STK failed
+                logger.warn('Failed to initiate STK on continuation', e?.message || String(e));
+                return { method: 'sendMessage', chat_id: chatId, text: '❌ Failed to initiate STK. Please try again or contact support.', parse_mode: 'Markdown' };
+              }
+            } catch (err) {
+              logger.warn('Failed to resume pending payment', err?.message || String(err));
+              return { method: 'sendMessage', chat_id: chatId, text: '❌ Could not resume payment. Please try again.', parse_mode: 'Markdown' };
+            }
+          }
+        }
+      }
+    } catch (e) { void e; }
 
     if (text && text.startsWith('/live')) {
       const games = await getLiveMatchesBySport('soccer', redis, services && services.sportsAggregator);
@@ -1834,6 +1905,25 @@ async function handleSignupPaymentCallback(data, chatId, userId, redis, services
     
     const profile = await redis.hgetall(`user:${userId}:profile`) || {};
     const country = profile.country || 'KE';
+
+    // If user selected M-Pesa (STK) but we don't have a phone number on file,
+    // ask for the phone first instead of creating the order immediately.
+    const msisdn = profile.msisdn || profile.phone || profile.mobile || null;
+    if ((method === 'MPESA' || String(method).toLowerCase().includes('mpesa')) && !msisdn) {
+      try {
+        // store a short-lived pending payment intent so the next message (phone) can continue flow
+        const pending = { action: 'signup_payment', method, amount, currency, createdAt: Date.now() };
+        try { await redis.setex(`user:${userId}:pending_payment`, 300, JSON.stringify(pending)); } catch (e) { void e; }
+      } catch (e) { void e; }
+
+      return { 
+        method: 'sendMessage', 
+        chat_id: chatId, 
+        text: '📱 To start M-Pesa STK we need your phone number. Please send it now in the format: 2547XXXXXXXX (or tap the phone button).',
+        parse_mode: 'Markdown',
+        reply_markup: { inline_keyboard: [[{ text: '🔙 Cancel', callback_data: 'menu_main' }]] }
+      };
+    }
 
     // Validate payment method is available in country
     const availableMethods = getAvailablePaymentMethods(country);
