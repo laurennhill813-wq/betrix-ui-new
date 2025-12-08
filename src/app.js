@@ -7,6 +7,7 @@ import path from 'path';
 import os from 'os';
 import healthAzureAIHandler from './routes/health-azure-ai.js';
 import healthAzureAIEnvHandler from './routes/health-azure-ai-env.js';
+import lipana from './lib/lipana-client.js';
 
 // Keep PGSSLMODE defaulted to 'require' on platforms like Render
 process.env.PGSSLMODE = process.env.PGSSLMODE || 'require';
@@ -69,6 +70,38 @@ app.get('/admin/outgoing-events', (req, res) => {
     return res.json({ ok: true, lines: tail });
   } catch (err) {
     return res.status(500).json({ ok: false, error: err?.message || String(err) });
+  }
+});
+
+// Admin: Lipana connectivity probe and test STK push (protected)
+function _adminAuth(req) {
+  const secret = process.env.HEALTH_SECRET || process.env.ADMIN_SECRET || process.env.LIPANA_ADMIN_SECRET || null;
+  if (!secret) return false; // disabled unless secret set
+  const h = req.headers['x-health-secret'] || req.headers['x-admin-secret'] || req.headers['x-lipana-admin'] || '';
+  return String(h) === String(secret);
+}
+
+app.get('/admin/lipana/ping', async (req, res) => {
+  if (!_adminAuth(req)) return res.status(403).json({ ok: false, reason: 'Forbidden' });
+  try {
+    const result = await lipana.ping();
+    return res.json({ ok: true, lipana: result });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e?.message || String(e) });
+  }
+});
+
+app.post('/admin/lipana/test-stk', async (req, res) => {
+  if (!_adminAuth(req)) return res.status(403).json({ ok: false, reason: 'Forbidden' });
+  const { phone, amount } = req.body || {};
+  if (!phone) return res.status(400).json({ ok: false, error: 'phone required' });
+  const amt = Number(amount || process.env.LIPANA_TEST_AMOUNT || 100);
+  try {
+    const callback = process.env.LIPANA_CALLBACK_URL || process.env.MPESA_CALLBACK_URL || null;
+    const resp = await lipana.stkPush({ amount: amt, phone, tx_ref: `test_${Date.now()}`, reference: `test_${Date.now()}`, callback_url: callback });
+    return res.json({ ok: true, result: resp });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e?.message || String(e) });
   }
 });
 

@@ -15,7 +15,7 @@
     "lint": "eslint . --ext .js,.mjs --max-warnings=0",
     "format": "prettier --write 'src/**/*.{js,json,md}'",
     "test": "npm run test:node",
-    "test:node": "node --test --timeout=60000 ./tests/*.test.js",
+    "test:node": "node --test ./tests/*.test.js",
     "docker:build": "docker build -t adminoroo/betrix-ui-new:latest .",
     "redis:validate": "node scripts/validate-redis-connection.js",
     "redis:monitor": "node scripts/monitor-redis-health.js",

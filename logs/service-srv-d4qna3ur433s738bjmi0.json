@@ -1,0 +1,62 @@
+{
+  "autoDeploy": "yes",
+  "autoDeployTrigger": "commit",
+  "branch": "main",
+  "createdAt": "2025-12-07T12:37:37.873055Z",
+  "dashboardUrl": "https://dashboard.render.com/web/srv-d4qna3ur433s738bjmi0",
+  "environmentId": "evm-d4oovhshg0os73dliq60",
+  "id": "srv-d4qna3ur433s738bjmi0",
+  "name": "betrix-ui-new",
+  "notifyOnFail": "default",
+  "ownerId": "tea-d4oou13e5dus73ce7et0",
+  "repo": "https://github.com/elijahjessy311-afk/betrix-ui-new",
+  "rootDir": "",
+  "serviceDetails": {
+    "buildPlan": "starter",
+    "cache": {
+      "profile": "no-cache"
+    },
+    "env": "docker",
+    "envSpecificDetails": {
+      "dockerCommand": "npm start",
+      "dockerContext": ".",
+      "dockerfilePath": "./Dockerfile"
+    },
+    "healthCheckPath": "/health",
+    "ipAllowList": [
+      {
+        "cidrBlock": "0.0.0.0/0",
+        "description": "everywhere"
+      }
+    ],
+    "maintenanceMode": {
+      "enabled": false,
+      "uri": ""
+    },
+    "numInstances": 1,
+    "openPorts": [
+      {
+        "port": 10000,
+        "protocol": "TCP"
+      },
+      {
+        "port": 10001,
+        "protocol": "TCP"
+      }
+    ],
+    "plan": "pro",
+    "previews": {
+      "generation": "off"
+    },
+    "pullRequestPreviewsEnabled": "no",
+    "region": "frankfurt",
+    "runtime": "docker",
+    "sshAddress": "srv-d4qna3ur433s738bjmi0@ssh.frankfurt.render.com",
+    "url": "https://betrix-ui-new.onrender.com"
+  },
+  "slug": "betrix-ui-new",
+  "suspended": "not_suspended",
+  "suspenders": [],
+  "type": "web_service",
+  "updatedAt": "2025-12-07T18:19:41.865211Z"
+}
