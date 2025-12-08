@@ -8,6 +8,8 @@ import os from 'os';
 import healthAzureAIHandler from './routes/health-azure-ai.js';
 import healthAzureAIEnvHandler from './routes/health-azure-ai-env.js';
 import lipana from './lib/lipana-client.js';
+import { getRedis } from './lib/redis-factory.js';
+import { verifyAndActivatePayment } from './handlers/payment-router.js';
 
 // Keep PGSSLMODE defaulted to 'require' on platforms like Render
 process.env.PGSSLMODE = process.env.PGSSLMODE || 'require';
@@ -102,6 +104,55 @@ app.post('/admin/lipana/test-stk', async (req, res) => {
     return res.json({ ok: true, result: resp });
   } catch (e) {
     return res.status(500).json({ ok: false, error: e?.message || String(e) });
+  }
+});
+
+// Admin: helper to create providerRef -> order mapping and immediately activate the order
+// This is a temporary endpoint for debugging and should be removed after manual verification.
+app.post('/admin/simulate/lipana-reconcile', async (req, res) => {
+  if (!_adminAuth(req)) return res.status(403).json({ ok: false, reason: 'Forbidden' });
+  const { providerRef, provider = 'MPESA', orderId: providedOrderId, amount = 150, userId = 'admin' } = req.body || {};
+  if (!providerRef) return res.status(400).json({ ok: false, error: 'providerRef required' });
+
+  try {
+    const redis = getRedis();
+
+    // Ensure we have an orderId; if none provided, create a lightweight test order in Redis
+    const orderId = providedOrderId || `SIMORD-${Date.now()}`;
+    try {
+      const existing = await redis.get(`payment:order:${orderId}`);
+      if (!existing) {
+        const orderData = {
+          orderId,
+          userId,
+          tier: 'SIGNUP',
+          paymentMethod: 'MPESA',
+          baseAmount: Number(amount),
+          fee: 0,
+          totalAmount: Number(amount),
+          currency: 'KES',
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+          metadata: { simulated: true }
+        };
+        await redis.setex(`payment:order:${orderId}`, 900, JSON.stringify(orderData));
+      }
+    } catch (e) { /* best-effort */ }
+
+    // Create mapping so webhook/reconcile logic can find the order
+    try {
+      await redis.setex(`payment:by_provider_ref:${provider}:${providerRef}`, 900, orderId);
+    } catch (e) { /* best-effort */ }
+
+    // Call verifyAndActivatePayment to simulate activation
+    try {
+      const result = await verifyAndActivatePayment(getRedis(), orderId, providerRef);
+      return res.json({ ok: true, activated: true, orderId, result });
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: e?.message || String(e) });
+    }
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err?.message || String(err) });
   }
 });
 
