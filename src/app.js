@@ -27,6 +27,28 @@ function safeLog(...args) { try { console.log(...args); } catch (e) { console.wa
 
 app.get('/health', (_req, res) => res.status(200).json({ ok: true }));
 
+// Lightweight DB and Redis health probes
+app.get('/health/db', async (_req, res) => {
+  try {
+    const r = await pool.query('SELECT 1 AS ok');
+    if (r && r.rows && r.rows[0] && r.rows[0].ok === 1) return res.json({ ok: true });
+    return res.status(500).json({ ok: false, error: 'unexpected db response' });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e?.message || String(e) });
+  }
+});
+
+app.get('/health/redis', async (_req, res) => {
+  try {
+    const redis = getRedis();
+    if (!redis) return res.status(500).json({ ok: false, error: 'redis client missing' });
+    const pong = await redis.ping();
+    return res.json({ ok: true, pong });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e?.message || String(e) });
+  }
+});
+
 app.get('/admin/queue', (_req, res) => {
   return res.json({ ok: true, commit: process.env.RENDER_GIT_COMMIT || process.env.COMMIT_SHA || null });
 });
