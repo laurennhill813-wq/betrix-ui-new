@@ -10,6 +10,7 @@ async function _safeJson(resp) {
 
 async function stkPush({ amount, phone, reference, tx_ref, callback_url }) {
   if (!LIPANA_PUBLISHABLE) throw new Error('LIPANA_API_KEY (publishable) not set');
+
   const url = `${LIPANA_BASE}/v1/transactions`;
   const body = {
     amount,
@@ -17,6 +18,29 @@ async function stkPush({ amount, phone, reference, tx_ref, callback_url }) {
     reference: reference || tx_ref || `betrix_${Date.now()}`,
     callback_url: callback_url || undefined
   };
+
+  // Masking helpers for safe logs
+  function maskPhone(p) {
+    try {
+      const s = String(p || '');
+      return s.replace(/(\d{3})\d+(\d{2})/, '$1****$2');
+    } catch { return '(masked)'; }
+  }
+  function maskKey(k) {
+    if (!k) return '(missing)';
+    const s = String(k);
+    if (s.length <= 8) return '****';
+    return `${s.slice(0,4)}…${s.slice(-4)}`;
+  }
+
+  // Log a masked request snapshot for diagnostics
+  try {
+    console.log('[LIPANA_STK_REQ]', JSON.stringify({
+      url,
+      body: { phone: maskPhone(body.phone), amount: body.amount, reference: body.reference, callback_url: body.callback_url },
+      headers: { 'x-api-key': maskKey(LIPANA_PUBLISHABLE) }
+    }));
+  } catch (e) { /* ignore logging errors */ }
 
   let resp; let parsed;
   try {
@@ -31,8 +55,14 @@ async function stkPush({ amount, phone, reference, tx_ref, callback_url }) {
     parsed = await _safeJson(resp);
   } catch (e) {
     // Network / timeout / fetch error
+    try { console.error('[LIPANA_STK_ERR]', String(e)); } catch {};
     return { status: 0, error: String(e), raw: null };
   }
+
+  // Log response snapshot
+  try {
+    console.log('[LIPANA_STK_RES]', JSON.stringify({ status: resp.status, ok: resp.ok, body: parsed }));
+  } catch (e) { /* ignore logging errors */ }
 
   // Normalize response shape for callers
   if (!resp.ok) {
