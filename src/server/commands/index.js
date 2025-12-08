@@ -112,7 +112,7 @@ export default function commandRouter(app) {
         if (/^\/refer\b/i.test(text)) {
           try {
             let user = {};
-            try { user = redis ? (await redis.hgetall(`user:${userId}`) || {}) : {}; } catch (e) { /* ignore */ }
+            try { user = redis ? (await redis.hgetall(`user:${userId}`) || {}) : {}; } catch (e) { void e; }
             const ref = user.referral_code || `ref_${userId}_${Date.now()}`;
             await telegramService.sendMessage(chatId, `🎁 Referral Code: ${ref}`);
             console.log('[SLASH_OUTGOING_OK]', chatId);
@@ -127,7 +127,7 @@ export default function commandRouter(app) {
             const result = await handleCommand(text, chatId, userId, redis, null);
             try {
               console.log('[COMMAND_RESULT]', JSON.stringify({ chatId, command: text, hasResult: !!result, type: typeof result, hasText: !!(result && result.text) }));
-            } catch (e) { /* ignore logging errors */ }
+            } catch (e) { void e; }
             if (result && result.method === 'sendMessage') {
               // Legacy form used by some handlers
               const dest = result.chat_id || chatId;
@@ -168,9 +168,9 @@ export default function commandRouter(app) {
                 console.error('[SLASH_OUTGOING_ERR] sendMessage string failed', e && (e.stack || e.message));
               }
             }
-          } catch (cmdErr) {
+            } catch (cmdErr) {
             console.error('Command handler error', cmdErr && (cmdErr.stack || cmdErr.message));
-            try { await telegramService.sendMessage(chatId, '❌ Error processing command. Try /menu'); } catch(e){}
+            try { await telegramService.sendMessage(chatId, '❌ Error processing command. Try /menu'); } catch(e){ void e; }
           }
           return;
         }
@@ -199,7 +199,7 @@ export default function commandRouter(app) {
             }
           } catch (cbErr) {
             console.error('Callback handler error', cbErr && (cbErr.stack || cbErr.message));
-            try { await telegramService.answerCallback(callbackQuery.id, '⚠️ Action failed', false); } catch (_) {}
+            try { await telegramService.answerCallback(callbackQuery.id, '⚠️ Action failed', false); } catch (_) { void 0; }
           }
           return;
         }
@@ -222,7 +222,7 @@ export default function commandRouter(app) {
               try {
                 const payload = JSON.stringify({ chatId, text, ts: Date.now() });
                 await redis.rpush('ai:queue', payload);
-                try { await telegramService.sendMessage(chatId, 'AI is currently busy — your request has been queued and will be processed shortly.'); } catch(e){}
+                try { await telegramService.sendMessage(chatId, 'AI is currently busy — your request has been queued and will be processed shortly.'); } catch(e){ void e; }
                 console.log('ENQUEUED-AI', { chatId });
                 return;
               } catch (qErr) {

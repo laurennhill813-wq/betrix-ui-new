@@ -128,10 +128,9 @@ class TelegramService {
    * Answer callback query (inline button response)
    */
   async answerCallback(callbackQueryId, text = "", showAlert = false) {
+    let res;
     try {
-      let res;
-      try {
-        res = await HttpClient.fetch(`${this.baseUrl}/answerCallbackQuery`, {
+      res = await HttpClient.fetch(`${this.baseUrl}/answerCallbackQuery`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -140,15 +139,18 @@ class TelegramService {
           show_alert: showAlert,
         }),
       }, `answerCallback ${callbackQueryId}`);
-      } catch (apiErr) {
-        try { console.error('[TELEGRAM_API_ERROR] answerCallback', apiErr && apiErr.message ? apiErr.message : String(apiErr)); } catch(e){ void e; }
-        throw apiErr;
-      }
-      try { const entry = { ts: new Date().toISOString(), method: 'answerCallback', callbackQueryId, textLen: (text||'').length, showAlert }; await appendFile('./logs/outgoing-events.log', JSON.stringify(entry)+'\n', { encoding:'utf8' }).catch(()=>{}); try { console.log('[OUTGOING_EVENT] ' + JSON.stringify(entry)); } catch(e){ void e; } } catch(e){ void e; }
-      return res;
-    } catch (err) {
-      throw err;
+    } catch (apiErr) {
+      try { console.error('[TELEGRAM_API_ERROR] answerCallback', apiErr && apiErr.message ? apiErr.message : String(apiErr)); } catch(e){ void e; }
+      throw apiErr;
     }
+
+    try {
+      const entry = { ts: new Date().toISOString(), method: 'answerCallback', callbackQueryId, textLen: (text||'').length, showAlert };
+      await appendFile('./logs/outgoing-events.log', JSON.stringify(entry)+'\n', { encoding:'utf8' }).catch(()=>{});
+      try { console.log('[OUTGOING_EVENT] ' + JSON.stringify(entry)); } catch(e){ void e; }
+    } catch(e){ void e; }
+
+    return res;
   }
 
   /**
