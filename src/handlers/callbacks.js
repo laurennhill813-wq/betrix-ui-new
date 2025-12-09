@@ -117,17 +117,20 @@ function handleSportCallback(data, chatId, redis) {
 // --- Live matches handler (global, not league-specific) ---
 async function handleLiveCallback(_data, chatId, redis, services = {}) {
   try {
+    // Defensive: normalize explicit null to an object so subsequent guards work reliably
+    services = services || {};
     let matches = [];
-    // Prefer aggregator global live endpoint
-    const agg = services.sportsAggregator || null;
+    // Prefer aggregator global live endpoint (guard services possibly null)
+    const agg = (services && services.sportsAggregator) ? services.sportsAggregator : null;
     if (agg && typeof agg.getAllLiveMatches === 'function') {
       try { matches = await agg.getAllLiveMatches(); } catch (e) { logger.warn('handleLiveCallback: aggregator getAllLiveMatches failed', e?.message || String(e)); }
     }
 
-    // Fallback to prefetch consolidated key
+    // Fallback to consolidated SGO prefetch key (prefer cached prefetch for reliability)
     if ((!matches || matches.length === 0) && redis && typeof redis.get === 'function') {
       try {
-        const raw = await redis.get('betrix:prefetch:live:by-sport');
+        // Try the SGO-backed consolidated prefetch key first
+        const raw = await redis.get('betrix:prefetch:live:by-sport') || await redis.get('prefetch:sgo:live:by-sport');
         if (raw) {
           const parsed = JSON.parse(raw);
           // flatten samples across sports
@@ -384,6 +387,8 @@ function getTierDisplayName(tier) {
 export async function handleCallback(data, chatId, userId, redis, services = {}) {
   logger.info('Callback received', { userId, data });
   try {
+    // Defensive: callers may pass `null` explicitly for services — normalize to empty object
+    services = services || {};
     if (!data || typeof data !== 'string') return mkSend(chatId, 'Invalid action');
     if (data.startsWith('sport_')) return await handleSportCallback(data, chatId, redis);
     if (data === 'menu_live') return await handleLiveCallback(data, chatId, redis, services);

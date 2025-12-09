@@ -135,7 +135,7 @@ export default function commandRouter(app) {
         if (text.startsWith('/')) {
           try {
             const userId = update.from?.id || update.message?.from?.id || chatId;
-            const result = await handleCommand(text, chatId, userId, redis, null);
+            const result = await handleCommand(text, chatId, userId, redis, {});
             try {
               console.log('[COMMAND_RESULT]', JSON.stringify({ chatId, command: text, hasResult: !!result, type: typeof result, hasText: !!(result && result.text) }));
             } catch (e) { void e; }
@@ -190,7 +190,7 @@ export default function commandRouter(app) {
         if (callbackQuery) {
           try {
             const cbData = String(callbackQuery.data || '');
-            const result = await handleCallback(cbData, chatId, userId, redis, null);
+            const result = await handleCallback(cbData, chatId, userId, redis, {});
 
             // result may request editing the existing message or sending a new one
             if (result && result.method === 'editMessageText') {
