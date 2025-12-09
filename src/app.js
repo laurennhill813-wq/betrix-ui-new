@@ -445,18 +445,37 @@ app.post('/webhooks/binance', webhookBinanceHandler);
 // Allow both `TELEGRAM_BOT_TOKEN` and `TELEGRAM_TOKEN` env var names for compatibility.
 process.env.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_TOKEN || process.env.TELEGRAM_TOKEN;
 (async () => {
+  // We intentionally avoid silently swallowing import errors here so that
+  // runtime import failures surface in Render logs and can be debugged.
   try {
-    const mod = await import('./server/commands/index.js').catch(() => null);
+    let mod;
+    try {
+      mod = await import('./server/commands/index.js');
+    } catch (impErr) {
+      // Log full stack/message so Render's logs include the root cause
+      try { safeLog('COMMAND_ROUTER_IMPORT_ERR', impErr && (impErr.stack || impErr.message || String(impErr))); } catch (e) { console.error('Failed logging import error', e); }
+      mod = null;
+    }
+
     const commandRouter = (mod && (mod.default || mod)) || null;
     if (typeof commandRouter === 'function') {
       try {
         commandRouter(app);
         safeLog('MOUNTED: server/commands/index.js -> /webhook/telegram');
-      } catch (e) { safeLog('MOUNT_CMD_ROUTER_ERR', String(e)); }
+      } catch (e) {
+        try { safeLog('MOUNT_CMD_ROUTER_ERR', e && (e.stack || e.message || String(e))); } catch (le) { console.error('Failed logging mount error', le); }
+      }
     } else {
-      safeLog('COMMAND_ROUTER_NOT_FOUND; leaving webhook unmounted');
+      // If import returned null or module doesn't export a function, provide
+      // a clearer log message to aid debugging rather than silently leaving
+      // the webhook unmounted.
+      safeLog('COMMAND_ROUTER_NOT_FOUND; leaving webhook unmounted - import returned null or exported value is not a function');
     }
-  } catch (e) { safeLog('COMMAND_ROUTER_IMPORT_ERR', String(e)); }
+  } catch (e) {
+    // Defensive catch: should not normally happen because inner import errors
+    // are handled explicitly, but we log here just in case.
+    try { safeLog('COMMAND_ROUTER_TOPLEVEL_ERR', e && (e.stack || e.message || String(e))); } catch (le) { console.error('Failed logging to safeLog', le); }
+  }
 })();
 
 // Allow workers to register data-exposure endpoints without failing

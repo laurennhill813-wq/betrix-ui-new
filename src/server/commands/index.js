@@ -8,6 +8,17 @@ import { handleCommand } from '../../handlers/commands.js';
 import { handleCallback } from '../../handlers/callbacks.js';
 import TelegramServiceDefault from '../../services/telegram.js';
 
+// Diagnostic: log module load and presence of critical env vars (do NOT log secrets)
+try {
+  console.log('COMMANDS_MODULE_LOADED', {
+    telegramTokenPresent: !!(process.env.TELEGRAM_TOKEN || process.env.TELEGRAM_BOT_TOKEN),
+    redisUrlPresent: !!process.env.REDIS_URL,
+    azureAiConfigured: !!(process.env.AZURE_OPENAI_KEY && process.env.AZURE_OPENAI_DEPLOYMENT)
+  });
+} catch (e) {
+  console.error('COMMANDS_MODULE_LOG_ERR', e && (e.stack || e.message || String(e)));
+}
+
 // Singleton Azure AI service (will be marked disabled when config missing)
 const aiService = new AzureAIService(
   process.env.AZURE_OPENAI_ENDPOINT,
