@@ -136,7 +136,8 @@ export function startPrefetchScheduler({ redis, openLiga, rss, scorebat, footbal
             const live = await sportsAggregator.getAllLiveMatches().catch(async (err) => { await recordFailure('sportsmonks'); throw err; });
             if (live && live.length > 0) {
               const cappedLive = Array.isArray(live) ? live.slice(0, Math.min(MAX_PREFETCH_STORE, live.length)) : [];
-              await safeSet('prefetch:sportsmonks:live', { fetchedAt: ts, count: live.length, data: cappedLive }, 30);
+              // Store SportMonks results under a legacy prefix so runtime prefers SGO
+              await safeSet('prefetch:legacy:sportsmonks:live', { fetchedAt: ts, count: live.length, data: cappedLive }, 30);
               // Only write the consolidated betrix key if SportGameOdds isn't present
               if (!sportsgameodds) {
                 const bySport = { sports: { soccer: { fetchedAt: ts, count: live.length, samples: cappedLive } } };
@@ -147,7 +148,8 @@ export function startPrefetchScheduler({ redis, openLiga, rss, scorebat, footbal
             const fixtures = await sportsAggregator.getFixtures().catch(async (_err) => { await recordFailure('sportsmonks-fixtures'); return []; });
             if (fixtures && fixtures.length > 0) {
               const cappedFixtures = Array.isArray(fixtures) ? fixtures.slice(0, Math.min(MAX_PREFETCH_STORE, fixtures.length)) : [];
-              await safeSet('prefetch:sportsmonks:fixtures', { fetchedAt: ts, count: fixtures.length, data: cappedFixtures }, 60);
+              // Store SportMonks fixtures under a legacy prefix so runtime prefers SGO
+              await safeSet('prefetch:legacy:sportsmonks:fixtures', { fetchedAt: ts, count: fixtures.length, data: cappedFixtures }, 60);
               // Only publish consolidated upcoming fixtures if SportGameOdds isn't present
               if (!sportsgameodds) {
                 await safeSet('betrix:prefetch:upcoming:by-sport', { sports: { soccer: { fetchedAt: ts, count: fixtures.length, samples: cappedFixtures } } }, 60);

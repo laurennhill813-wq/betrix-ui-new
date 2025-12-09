@@ -192,8 +192,9 @@ const rssAggregator = new RSSAggregator(cache, { ttlSeconds: 60 });
 const footballDataService = new FootballDataService();
 const scorebatService = new ScoreBatService(process.env.SCOREBAT_TOKEN || null, cache, { retries: Number(process.env.SCOREBAT_RETRIES || 3), cacheTtlSeconds: Number(process.env.SCOREBAT_CACHE_TTL || 60) });
 const scrapers = new Scrapers(redis);
-// Initialize SportsAggregator with enforced provider priority: only SportMonks and Football-Data
-const sportsAggregator = new SportsAggregator(redis, { scorebat: scorebatService, rss: rssAggregator, openLiga, allowedProviders: ['SPORTSMONKS','FOOTBALLDATA'] });
+// Initialize SportsAggregator with enforced provider priority: prefer SportGameOdds and Football-Data
+// Keep SportMonks disabled by default (non-destructive approach).
+const sportsAggregator = new SportsAggregator(redis, { scorebat: scorebatService, rss: rssAggregator, openLiga, allowedProviders: ['SPORTSGAMEODDS','FOOTBALLDATA'] });
 const oddsAnalyzer = new OddsAnalyzer(redis, sportsAggregator, null);
 const multiSportAnalyzer = new MultiSportAnalyzer(redis, sportsAggregator, null);
 const sportMonksAPI = new SportMonksAPI();
@@ -338,7 +339,8 @@ try {
 
 // Start prefetch scheduler (runs in-worker). Interval controlled by PREFETCH_INTERVAL_SECONDS (default 60s).
 try {
-  startPrefetchScheduler({ redis, openLiga, rss: rssAggregator, scorebat: scorebatService, footballData: footballDataService, sportsAggregator: sportsAggregator, intervalSeconds: Number(process.env.PREFETCH_INTERVAL_SECONDS || 60) });
+  // Pass the SportGameOdds wrapper to the scheduler so the scheduler prefers SGO
+  startPrefetchScheduler({ redis, openLiga, rss: rssAggregator, scorebat: scorebatService, footballData: footballDataService, sportsAggregator: sportsAggregator, sportsgameodds: sportsgameodds, intervalSeconds: Number(process.env.PREFETCH_INTERVAL_SECONDS || 60) });
   logger.info('Prefetch scheduler started', { intervalSeconds: Number(process.env.PREFETCH_INTERVAL_SECONDS || 60) });
 } catch (e) {
   logger.warn('Prefetch scheduler failed to start', e?.message || String(e));
@@ -471,14 +473,34 @@ logger.info("🚀 BETRIX Final Worker - All Services Initialized");
 
 // --- Startup health check: SportGameOdds (SGO) quick probe ---
 try {
-  const probeLeague = (process.env.SGO_PREFETCH_LEAGUES || 'EPL').split(',')[0].trim();
   (async () => {
     try {
+      // Prefer discovering a valid league via fetchLeagues() instead of assuming code names
+      const discovered = await sportsgameodds.fetchLeagues({ redis, forceFetch: false }).catch(() => null);
+      let probeLeague = null;
+      if (Array.isArray(discovered) && discovered.length) {
+        // pick the first league with an explicit id/leagueID/code we can use
+        const pick = discovered.find(l => l.leagueID || l.id || l.code) || discovered[0];
+        probeLeague = pick.leagueID || pick.id || pick.code || null;
+      }
+
+      // if no league discovered, fall back to env-provided probe (but avoid 'EPL' default)
+      if (!probeLeague) {
+        const envProbe = (process.env.SGO_PREFETCH_LEAGUES || '').split(',').map(s => s.trim()).find(Boolean) || null;
+        probeLeague = envProbe;
+      }
+
+      if (!probeLeague) {
+        logger.info('SGO healthcheck skipped (no probe league available)');
+        return;
+      }
+
       const sample = await sportsgameodds.fetchEvents({ league: probeLeague, redis, forceFetch: false });
       const count = Array.isArray(sample) ? sample.length : (sample && typeof sample === 'object' ? Object.keys(sample).length : 0);
       logger.info('SGO healthcheck OK', { provider: 'sportsgameodds', league: probeLeague, items: count });
     } catch (err) {
-      logger.warn('SGO healthcheck failed', { provider: 'sportsgameodds', league: probeLeague, error: String(err?.message || err) });
+      // Surface raw message for diagnosis; common SGO responses will include subscription guidance
+      logger.warn('SGO healthcheck failed', { provider: 'sportsgameodds', error: String(err?.message || err) });
     }
   })();
 } catch (e) {
