@@ -58,22 +58,22 @@ function handleSportCallback(data, chatId, _redis) {
   // Quick static mapping of common sports -> popular league IDs used by provider
   const sportLeagues = {
     football: [
-      { id: 'eng_premier', label: 'England - Premier League' },
-      { id: 'esp_primera', label: 'Spain - LaLiga' },
-      { id: 'ita_serie_a', label: 'Italy - Serie A' },
-      { id: 'ger_bundesliga', label: 'Germany - Bundesliga' }
+      { id: 'EPL', label: 'England - Premier League' },
+      { id: 'SP1', label: 'Spain - LaLiga' },
+      { id: 'SA', label: 'Italy - Serie A' },
+      { id: 'BL1', label: 'Germany - Bundesliga' }
     ],
     basketball: [
-      { id: 'nba', label: 'NBA' },
-      { id: 'euroleague', label: 'EuroLeague' }
+      { id: 'NBA', label: 'NBA' },
+      { id: 'EUL', label: 'EuroLeague' }
     ],
     tennis: [
-      { id: 'atp', label: 'ATP Tours' },
-      { id: 'wta', label: 'WTA Tours' }
+      { id: 'ATP', label: 'ATP Tours' },
+      { id: 'WTA', label: 'WTA Tours' }
     ],
     nfl: [ { id: 'nfl', label: 'NFL' } ],
     hockey: [ { id: 'nhl', label: 'NHL' } ],
-    baseball: [ { id: 'mlb', label: 'MLB' } ]
+    baseball: [ { id: 'MLB', label: 'MLB' } ]
   };
 
   const leagues = sportLeagues[sport] || [];
