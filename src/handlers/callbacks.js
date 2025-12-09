@@ -116,8 +116,55 @@ function handleSportCallback(data, chatId, redis) {
 // --- League / Event / Odds handlers ---
 async function handleLeagueCallback(data, chatId, redis) {
   const leagueId = String(data).replace(/^league_/, '').trim();
+  let events = null;
   try {
-    const events = await sportsgameodds.fetchAllEvents({ league: leagueId, redis, forceFetch: false });
+    events = await sportsgameodds.fetchAllEvents({ league: leagueId, redis, forceFetch: false });
+  } catch (err) {
+    const msg = String(err?.message || err || '');
+    logger.warn('handleLeagueCallback error', msg);
+    // If provider reports subscription tier restriction, surface a clear message
+    if (/subscription|subscription tier|unavailable at your current/i.test(msg)) {
+      return mkSend(chatId, '❌ This league is unavailable on the current SportGameOdds subscription tier.');
+    }
+
+    // Try to resolve alternate league identifiers from cached SGO leagues
+    try {
+      if (redis && typeof redis.get === 'function') {
+        const raw = await redis.get('prefetch:sgo:leagues');
+        const leaguesList = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : null;
+        if (Array.isArray(leaguesList) && leaguesList.length) {
+          // Find candidate leagues where some field matches provided leagueId
+          const lc = leagueId.toLowerCase();
+          const candidates = leaguesList.filter(l => {
+            const fields = [l.id, l.leagueID, l.code, l.slug, l.name, l.key, l._id].filter(Boolean).map(f => String(f).toLowerCase());
+            return fields.includes(lc) || (l.name && String(l.name).toLowerCase().includes(lc));
+          });
+          for (const c of candidates) {
+            const tryIds = [c.leagueID, c.id, c.code, c.slug, c.key].filter(Boolean);
+            for (const tryId of tryIds) {
+              try {
+                const alt = await sportsgameodds.fetchAllEvents({ league: tryId, redis, forceFetch: false });
+                if (alt && (Array.isArray(alt) ? alt.length > 0 : Object.keys(alt || {}).length > 0)) {
+                  events = alt;
+                  break;
+                }
+              } catch (e2) {
+                // ignore and continue trying
+                logger.debug('handleLeagueCallback alt fetch failed', { tryId, err: String(e2?.message || e2) });
+              }
+            }
+            if (events) break;
+          }
+        }
+      }
+    } catch (e2) {
+      logger.warn('handleLeagueCallback fallback resolution failed', e2?.message || String(e2));
+    }
+
+    if (!events) return mkSend(chatId, '❌ Error loading league events');
+  }
+
+  try {
     const keyboard = { inline_keyboard: [] };
     if (Array.isArray(events) && events.length) {
       for (let i = 0; i < Math.min(8, events.length); i++) {
@@ -133,7 +180,7 @@ async function handleLeagueCallback(data, chatId, redis) {
     keyboard.inline_keyboard.push([{ text: '🔙 Back', callback_data: 'menu_standings' }]);
     return mkEdit(chatId, `🏟️ *${leagueId}*\n\nEvents:`, keyboard);
   } catch (err) {
-    logger.warn('handleLeagueCallback error', err?.message || String(err));
+    logger.warn('handleLeagueCallback final render failed', err?.message || String(err));
     return mkSend(chatId, '❌ Error loading league events');
   }
 }
