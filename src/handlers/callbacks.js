@@ -52,43 +52,65 @@ function handleMenuCallback(data, chatId) {
 }
 
 // --- Sport selector handler (maps a sport button to a list of leagues) ---
-function handleSportCallback(data, chatId, _redis) {
+function handleSportCallback(data, chatId, redis) {
   const sport = String(data).replace(/^sport_/, '').trim().toLowerCase();
-
-  // Quick static mapping of common sports -> popular league IDs used by provider
-  const sportLeagues = {
-    football: [
-      { id: 'EPL', label: 'England - Premier League' },
-      { id: 'SP1', label: 'Spain - LaLiga' },
-      { id: 'SA', label: 'Italy - Serie A' },
-      { id: 'BL1', label: 'Germany - Bundesliga' }
-    ],
-    basketball: [
-      { id: 'NBA', label: 'NBA' },
-      { id: 'EUL', label: 'EuroLeague' }
-    ],
-    tennis: [
-      { id: 'ATP', label: 'ATP Tours' },
-      { id: 'WTA', label: 'WTA Tours' }
-    ],
-    nfl: [ { id: 'nfl', label: 'NFL' } ],
-    hockey: [ { id: 'nhl', label: 'NHL' } ],
-    baseball: [ { id: 'MLB', label: 'MLB' } ]
-  };
-
-  const leagues = sportLeagues[sport] || [];
   const keyboard = { inline_keyboard: [] };
 
-  if (leagues.length) {
-    for (const l of leagues) {
-      keyboard.inline_keyboard.push([{ text: l.label, callback_data: `league_${l.id}` }]);
-    }
-  } else {
-    keyboard.inline_keyboard.push([{ text: 'Popular Leagues', callback_data: 'menu_standings' }]);
-  }
+  // Try to read cached SportGameOdds leagues populated at startup
+  return (async () => {
+    try {
+      const raw = await (redis && typeof redis.get === 'function' ? redis.get('prefetch:sgo:leagues') : null);
+      let leaguesList = null;
+      if (raw) {
+        try { leaguesList = JSON.parse(raw); } catch (e) { leaguesList = raw; }
+      }
 
-  keyboard.inline_keyboard.push([{ text: '🔙 Back', callback_data: 'menu_main' }]);
-  return mkEdit(chatId, `🏁 Select a league for *${sport}*`, keyboard);
+      // If we have a leagues list from SGO, filter by sport and build buttons
+      if (Array.isArray(leaguesList) && leaguesList.length) {
+        const matches = leaguesList.filter(l => {
+          // provider may use fields like sport, category or type — accept any that match sport string
+          const s = (l.sport || l.category || l.type || l.name || '').toString().toLowerCase();
+          return s.includes(sport) || (l.code || l.id || '').toString().toLowerCase().includes(sport);
+        }).slice(0, 12);
+
+        if (matches.length) {
+          for (const m of matches) {
+            const id = m.id || m.leagueID || m.code || m.name || String(m._id || '');
+            const label = m.name || m.longName || (m.country ? `${m.country} - ${m.name}` : m.name) || id;
+            keyboard.inline_keyboard.push([{ text: String(label).slice(0, 40), callback_data: `league_${id}` }]);
+          }
+          keyboard.inline_keyboard.push([{ text: '🔙 Back', callback_data: 'menu_main' }]);
+          return mkEdit(chatId, `🏁 Select a league for *${sport}*`, keyboard);
+        }
+      }
+    } catch (e) {
+      logger.warn('handleSportCallback: failed to load SGO cached leagues', e?.message || String(e));
+    }
+
+    // Fallback static mapping if no dynamic list available
+    const sportLeaguesFallback = {
+      football: [
+        { id: 'EPL', label: 'England - Premier League' },
+        { id: 'SP1', label: 'Spain - LaLiga' },
+        { id: 'SA', label: 'Italy - Serie A' },
+        { id: 'BL1', label: 'Germany - Bundesliga' }
+      ],
+      basketball: [ { id: 'NBA', label: 'NBA' }, { id: 'EUL', label: 'EuroLeague' } ],
+      tennis: [ { id: 'ATP', label: 'ATP Tours' }, { id: 'WTA', label: 'WTA Tours' } ],
+      nfl: [ { id: 'NFL', label: 'NFL' } ],
+      hockey: [ { id: 'NHL', label: 'NHL' } ],
+      baseball: [ { id: 'MLB', label: 'MLB' } ]
+    };
+
+    const fallback = sportLeaguesFallback[sport] || [];
+    if (fallback.length) {
+      for (const l of fallback) keyboard.inline_keyboard.push([{ text: l.label, callback_data: `league_${l.id}` }]);
+    } else {
+      keyboard.inline_keyboard.push([{ text: 'Popular Leagues', callback_data: 'menu_standings' }]);
+    }
+    keyboard.inline_keyboard.push([{ text: '🔙 Back', callback_data: 'menu_main' }]);
+    return mkEdit(chatId, `🏁 Select a league for *${sport}*`, keyboard);
+  })();
 }
 
 // --- League / Event / Odds handlers ---

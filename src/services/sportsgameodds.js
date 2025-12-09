@@ -227,12 +227,32 @@ async function fetchAllOdds({ league, eventIDs, limit = 100, redis = null, force
   return all;
 }
 
-export { fetchOdds, fetchEvents, fetchAllEvents, fetchAllTeams, fetchAllOdds };
+/**
+ * Fetch provider leagues list. Caches result in Redis under `prefetch:sgo:leagues`.
+ * Returns an array of league objects as provided by SGO.
+ */
+async function fetchLeagues({ redis = null, forceFetch = false } = {}) {
+  const r = redis || getRedis();
+  const cacheKey = 'prefetch:sgo:leagues';
+  if (!forceFetch) {
+    try {
+      const cached = await r.get(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch (e) { /* ignore */ }
+  }
+
+  const data = await _request('/leagues', {}, 'sportsgameodds:leagues');
+  try { await r.setex(cacheKey, CACHE_TTL_SECONDS * 6, JSON.stringify(data)); } catch (e) { logger.warn('Redis setex failed', e?.message || String(e)); }
+  return data;
+}
+
+export { fetchOdds, fetchEvents, fetchAllEvents, fetchAllTeams, fetchAllOdds, fetchLeagues };
 
 export default {
   fetchOdds,
   fetchEvents,
   fetchAllEvents,
   fetchAllTeams,
-  fetchAllOdds
+  fetchAllOdds,
+  fetchLeagues
 };

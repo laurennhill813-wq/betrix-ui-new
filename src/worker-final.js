@@ -485,6 +485,23 @@ try {
   logger.warn('SGO healthcheck setup failed', e?.message || String(e));
 }
 
+// --- Bootstrap SportGameOdds leagues into cache for dynamic menus ---
+try {
+  (async () => {
+    try {
+      const leagues = await sportsgameodds.fetchLeagues({ redis, forceFetch: true }).catch(() => null);
+      if (leagues && Array.isArray(leagues) && leagues.length) {
+        // ensure key exists (fetchLeagues already caches) and log count
+        logger.info('SGO leagues bootstrap complete', { count: leagues.length });
+      } else {
+        logger.info('SGO leagues bootstrap: no leagues returned');
+      }
+    } catch (err) {
+      logger.warn('SGO leagues bootstrap failed', err?.message || String(err));
+    }
+  })();
+} catch (e) { logger.warn('SGO leagues bootstrap setup failed', e?.message || String(e)); }
+
 let running = true; // flag used to gracefully stop the main loop on SIGTERM/SIGINT
 
 // Start a minimal HTTP server that accepts Telegram webhook POSTs and a health check.
