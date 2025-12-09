@@ -562,6 +562,26 @@ try {
       }
     });
 
+    // Admin endpoint to view consolidated prefetch overview (protected)
+    minimalApp.get('/admin/prefetch/overview', async (req, res) => {
+      try {
+        const adminKey = process.env.ADMIN_API_KEY || (CONFIG && CONFIG.ADMIN_API_KEY) || null;
+        const provided = (req.header('X-ADMIN-KEY') || req.header('X-API-Key') || req.query.key || '').toString();
+        if (!adminKey || !provided || provided !== adminKey) return res.status(403).json({ ok: false, error: 'unauthorized' });
+        if (!redis || typeof redis.get !== 'function') return res.status(503).json({ ok: false, error: 'redis unavailable' });
+
+        const upcoming = await redis.get('betrix:prefetch:upcoming:by-sport').catch(()=>null);
+        const live = await redis.get('betrix:prefetch:live:by-sport').catch(()=>null);
+        const sgoIndex = await redis.get('prefetch:sgo:leagues:index').catch(()=>null);
+        const bySport = await redis.get('prefetch:sgo:leagues:by-sport').catch(()=>null);
+
+        const parsed = (v) => { try { return v ? JSON.parse(v) : null; } catch { return v; } };
+        return res.json({ ok: true, upcoming: parsed(upcoming), live: parsed(live), sgoIndex: parsed(sgoIndex), sgoBySport: parsed(bySport) });
+      } catch (e) {
+        return res.status(500).json({ ok: false, error: e?.message || String(e) });
+      }
+    });
+
     minimalApp.post('/webhook/telegram', async (req, res) => {
       try {
         const body = req.body;

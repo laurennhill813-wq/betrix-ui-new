@@ -240,10 +240,44 @@ async function fetchLeagues({ redis = null, forceFetch = false } = {}) {
       if (cached) return JSON.parse(cached);
     } catch (e) { /* ignore */ }
   }
-
   const data = await _request('/leagues', {}, 'sportsgameodds:leagues');
-  try { await r.setex(cacheKey, CACHE_TTL_SECONDS * 6, JSON.stringify(data)); } catch (e) { logger.warn('Redis setex failed', e?.message || String(e)); }
-  return data;
+  // Normalize to an array of league objects (provider may return { data: [...] } or raw array)
+  const leaguesArray = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+
+  try {
+    // Cache the raw response under the main key
+    await r.setex(cacheKey, CACHE_TTL_SECONDS * 6, JSON.stringify(leaguesArray));
+
+    // Build a lightweight lookup index to help fallback/resolution in callbacks:
+    // map keys: id, leagueID, slug, lowercased name
+    const index = {};
+    const bySport = {};
+    for (const lg of leaguesArray) {
+      try {
+        if (!lg) continue;
+        if (lg.id) index[String(lg.id)] = lg;
+        if (lg.leagueID) index[String(lg.leagueID)] = lg;
+        if (lg.slug) index[String(lg.slug).toLowerCase()] = lg;
+        if (lg.name) index[String(lg.name).toLowerCase()] = lg;
+        if (lg.code) index[String(lg.code).toLowerCase()] = lg;
+
+        // Determine sport key (best-effort)
+        const sportKey = String(lg.sport || lg.sportID || lg.sportName || (lg.sport && (lg.sport.id || lg.sport.code)) || 'unknown');
+        if (!bySport[sportKey]) bySport[sportKey] = [];
+        bySport[sportKey].push(lg);
+      } catch (e) {
+        /* ignore per-item */
+      }
+    }
+
+    // Persist helpful indexes
+    try { await r.setex('prefetch:sgo:leagues:index', CACHE_TTL_SECONDS * 6, JSON.stringify(index)); } catch (e) { logger.warn('Redis setex failed for leagues index', e?.message || String(e)); }
+    try { await r.setex('prefetch:sgo:leagues:by-sport', CACHE_TTL_SECONDS * 6, JSON.stringify(bySport)); } catch (e) { logger.warn('Redis setex failed for leagues by-sport', e?.message || String(e)); }
+  } catch (e) {
+    logger.warn('Redis setex failed', e?.message || String(e));
+  }
+
+  return leaguesArray;
 }
 
 export { fetchOdds, fetchEvents, fetchAllEvents, fetchAllTeams, fetchAllOdds, fetchLeagues };

@@ -1,4 +1,5 @@
 import Redis from 'ioredis';
+import { EventEmitter } from 'events';
 
 let _instance = null;
 
@@ -21,6 +22,9 @@ class MockRedis {
     this.kv = new Map();
     this.zsets = new Map();
     this.ttlMap = new Map(); // key -> expiry timestamp (ms)
+    // lightweight pub/sub support for single-process dev: not a full Redis replacement
+    this._emitter = new EventEmitter();
+    this._subscribers = new Map(); // channel -> Set
   }
 
   async get(key) { this._pruneIfExpired(key); return this.kv.has(key) ? this.kv.get(key) : null; }
@@ -234,8 +238,33 @@ class MockRedis {
 
   // Pub/sub noop: return 0 subscribers
   async publish(_channel, _message) {
-    // No real pub/sub in mock — noop
-    return 0;
+    // Best-effort pub/sub: notify local subscribers registered via `subscribe` and
+    // emit a 'message' event like node-ioredis would: (channel, message)
+    try {
+      const channel = String(_channel);
+      const message = String(_message);
+      const subs = this._subscribers.get(channel);
+      const count = subs ? subs.size : 0;
+      // Emit a 'message' event for compatibility with listeners using client.on('message', ...)
+      this._emitter.emit('message', channel, message);
+      return count;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  // Emulate simple subscribe semantics. Returns number of subscriptions for the channel.
+  async subscribe(channel) {
+    const ch = String(channel);
+    const set = this._subscribers.get(ch) || new Set();
+    set.add(true);
+    this._subscribers.set(ch, set);
+    return 1;
+  }
+
+  // Allow attaching event listeners similar to ioredis: client.on('message', cb)
+  on(eventName, cb) {
+    this._emitter.on(eventName, cb);
   }
 
 }
@@ -247,7 +276,8 @@ export function getRedis(opts = {}) {
   const useMock = process.env.USE_MOCK_REDIS === '1' || !redisUrl;
   
   if (useMock) {
-    console.log('[redis-factory] ⚠️  Using MockRedis (no REDIS_URL or USE_MOCK_REDIS=1)');
+    console.error('[redis-factory] ⚠️  Using MockRedis (no REDIS_URL or USE_MOCK_REDIS=1).');
+    console.error('[redis-factory] ⚠️  MockRedis is a single-process, development-only fallback and does not provide cross-process pub/sub. Do NOT rely on this in production.');
     _instance = new MockRedis();
     return _instance;
   }
