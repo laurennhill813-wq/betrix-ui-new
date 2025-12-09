@@ -51,6 +51,46 @@ function handleMenuCallback(data, chatId) {
   return mkEdit(chatId, menu.text || 'Menu', menu.reply_markup || {});
 }
 
+// --- Sport selector handler (maps a sport button to a list of leagues) ---
+function handleSportCallback(data, chatId, _redis) {
+  const sport = String(data).replace(/^sport_/, '').trim().toLowerCase();
+
+  // Quick static mapping of common sports -> popular league IDs used by provider
+  const sportLeagues = {
+    football: [
+      { id: 'eng_premier', label: 'England - Premier League' },
+      { id: 'esp_primera', label: 'Spain - LaLiga' },
+      { id: 'ita_serie_a', label: 'Italy - Serie A' },
+      { id: 'ger_bundesliga', label: 'Germany - Bundesliga' }
+    ],
+    basketball: [
+      { id: 'nba', label: 'NBA' },
+      { id: 'euroleague', label: 'EuroLeague' }
+    ],
+    tennis: [
+      { id: 'atp', label: 'ATP Tours' },
+      { id: 'wta', label: 'WTA Tours' }
+    ],
+    nfl: [ { id: 'nfl', label: 'NFL' } ],
+    hockey: [ { id: 'nhl', label: 'NHL' } ],
+    baseball: [ { id: 'mlb', label: 'MLB' } ]
+  };
+
+  const leagues = sportLeagues[sport] || [];
+  const keyboard = { inline_keyboard: [] };
+
+  if (leagues.length) {
+    for (const l of leagues) {
+      keyboard.inline_keyboard.push([{ text: l.label, callback_data: `league_${l.id}` }]);
+    }
+  } else {
+    keyboard.inline_keyboard.push([{ text: 'Popular Leagues', callback_data: 'menu_standings' }]);
+  }
+
+  keyboard.inline_keyboard.push([{ text: '🔙 Back', callback_data: 'menu_main' }]);
+  return mkEdit(chatId, `🏁 Select a league for *${sport}*`, keyboard);
+}
+
 // --- League / Event / Odds handlers ---
 async function handleLeagueCallback(data, chatId, redis) {
   const leagueId = String(data).replace(/^league_/, '').trim();
@@ -160,9 +200,11 @@ async function handlePaymentCallback(data, chatId, _userId, redis, _services) {
   const tier = parts.slice(2).join('_');
   try {
     // createPaymentOrder signature: (redis, userId, tier, paymentMethod, userRegion?, metadata?)
-    const order = await createPaymentOrder(redis, _userId || 'guest', tier || 'VVIP', method);
+    const methodNorm = (method || '').toUpperCase();
+    const tierNorm = (tier || '').toUpperCase();
+    const order = await createPaymentOrder(redis, _userId || 'guest', tierNorm || 'VVIP', methodNorm);
     // getPaymentInstructions signature: (redis, orderId, paymentMethod)
-    const instr = await getPaymentInstructions(redis, order.orderId || order.orderId, method).catch(() => null);
+    const instr = await getPaymentInstructions(redis, order.orderId || order.id || order.orderId, methodNorm).catch(() => null);
     const keyboard = { inline_keyboard: [[{ text: 'Open Payment', url: instr?.checkoutUrl || instr?.url || (instr && instr.checkoutUrl) || undefined }], [{ text: '🔙 Back', callback_data: 'menu_vvip' }]] };
     return mkEdit(chatId, `Payment created. Order: ${order.orderId || 'N/A'}`, keyboard);
   } catch (err) {
@@ -199,6 +241,7 @@ export async function handleCallback(data, chatId, userId, redis, services = {})
   logger.info('Callback received', { userId, data });
   try {
     if (!data || typeof data !== 'string') return mkSend(chatId, 'Invalid action');
+    if (data.startsWith('sport_')) return await handleSportCallback(data, chatId, redis);
     if (data.startsWith('menu_')) return handleMenuCallback(data, chatId);
     if (data.startsWith('league_')) return await handleLeagueCallback(data, chatId, redis);
     if (data.startsWith('event_')) return await handleEventCallback(data, chatId, redis);
