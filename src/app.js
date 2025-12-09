@@ -10,6 +10,8 @@ import healthAzureAIEnvHandler from './routes/health-azure-ai-env.js';
 import lipana from './lib/lipana-client.js';
 import { getRedis } from './lib/redis-factory.js';
 import { verifyAndActivatePayment } from './handlers/payment-router.js';
+import * as newsService from './services/news-service.js';
+import * as sportsgameodds from './services/sportsgameodds.js';
 
 // Keep PGSSLMODE defaulted to 'require' on platforms like Render
 process.env.PGSSLMODE = process.env.PGSSLMODE || 'require';
@@ -97,6 +99,49 @@ app.get('/admin/outgoing-events', (req, res) => {
   }
 });
 
+// Admin: report presence of critical env vars (non-sensitive names only)
+app.get('/admin/envs', (req, res) => {
+  if (!_adminAuth(req)) return res.status(403).json({ ok: false, reason: 'Forbidden' });
+  try {
+    const keys = ['PAYPAL_CLIENT_ID','PAYPAL_CLIENT_SECRET','BINANCE_API_KEY','BINANCE_API_SECRET','REDIS_URL','TELEGRAM_TOKEN','SPORTSGAMEODDS_API_KEY'];
+    const result = {};
+    for (const k of keys) result[k] = !!process.env[k];
+    return res.json({ ok: true, envs: result });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e?.message || String(e) });
+  }
+});
+
+// Admin: verify worker connectivity basics (Redis ping and presence of outgoing queue)
+app.get('/admin/verify-worker', async (req, res) => {
+  if (!_adminAuth(req)) return res.status(403).json({ ok: false, reason: 'Forbidden' });
+  try {
+    const redis = getRedis();
+    if (!redis) return res.status(500).json({ ok: false, error: 'redis client missing' });
+    const pong = await redis.ping();
+    // Check outgoing telegram queue length (best-effort)
+    let qlen = null;
+    try { qlen = await redis.llen('outgoing:telegram'); } catch (e) { qlen = 'unknown'; }
+    return res.json({ ok: true, redis: { pong, outgoingTelegramQueueLength: qlen }, telegramTokenPresent: !!process.env.TELEGRAM_TOKEN });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e?.message || String(e) });
+  }
+});
+
+// Admin: quick SportsGameOdds diagnostic (fetch sample odds)
+app.get('/admin/sportsgameodds', async (req, res) => {
+  if (!_adminAuth(req)) return res.status(403).json({ ok: false, reason: 'Forbidden' });
+  try {
+    const league = String(req.query.league || 'nba');
+    const eventId = req.query.eventId || null;
+    const redis = getRedis();
+    const data = await sportsgameodds.fetchOdds({ league, eventId, redis, forceFetch: !!req.query.force });
+    return res.json({ ok: true, league, eventId, sample: data });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e?.message || String(e) });
+  }
+});
+
 // Admin: Lipana connectivity probe and test STK push (protected)
 function _adminAuth(req) {
   const secret = process.env.HEALTH_SECRET || process.env.ADMIN_SECRET || process.env.LIPANA_ADMIN_SECRET || null;
@@ -112,6 +157,21 @@ app.get('/admin/lipana/ping', async (req, res) => {
     return res.json({ ok: true, lipana: result });
   } catch (e) {
     return res.status(500).json({ ok: false, error: e?.message || String(e) });
+  }
+});
+
+// Admin: return last N persisted Lipana STK request/response entries (masked)
+app.get('/admin/lipana-stk-logs', (req, res) => {
+  if (!_adminAuth(req)) return res.status(403).json({ ok: false, reason: 'Forbidden' });
+  try {
+    const n = Math.min(500, Number(req.query.n || 100));
+    const p = path.join(process.cwd(), 'logs', 'lipana-stk.log');
+    if (!fs.existsSync(p)) return res.json({ ok: true, lines: [] });
+    const txt = fs.readFileSync(p, 'utf8').split(/\r?\n/).filter(Boolean);
+    const tail = txt.slice(-n).map(l => { try { return JSON.parse(l); } catch { return l; } });
+    return res.json({ ok: true, lines: tail });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err?.message || String(err) });
   }
 });
 
@@ -170,6 +230,32 @@ app.post('/admin/simulate/lipana-reconcile', async (req, res) => {
     try {
       const result = await verifyAndActivatePayment(getRedis(), orderId, providerRef);
       return res.json({ ok: true, activated: true, orderId, result });
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: e?.message || String(e) });
+    }
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err?.message || String(err) });
+  }
+});
+
+// Admin: manual payment confirm (provider, providerRef or orderId) - useful for Binance manual flows
+app.post('/admin/payments/confirm', async (req, res) => {
+  if (!_adminAuth(req)) return res.status(403).json({ ok: false, reason: 'Forbidden' });
+  const { provider, providerRef, orderId, transactionId } = req.body || {};
+  if (!provider && !orderId) return res.status(400).json({ ok: false, error: 'provider or orderId required' });
+
+  try {
+    const redis = getRedis();
+    let oid = orderId || null;
+    if (!oid && provider && providerRef) {
+      oid = await redis.get(`payment:by_provider_ref:${provider.toUpperCase()}:${providerRef}`);
+    }
+    if (!oid) return res.status(404).json({ ok: false, error: 'Order not found for given provider/providerRef' });
+
+    const tx = transactionId || providerRef || `MANUAL-${Date.now()}`;
+    try {
+      const result = await verifyAndActivatePayment(redis, oid, tx);
+      return res.json({ ok: true, activated: true, orderId: oid, result });
     } catch (e) {
       return res.status(500).json({ ok: false, error: e?.message || String(e) });
     }
@@ -295,6 +381,66 @@ async function webhookMpesaHandler(req, res) {
 app.post('/webhook/mpesa', webhookMpesaHandler);
 app.post('/webhooks/mpesa', webhookMpesaHandler);
 
+// Webhook endpoint for Binance (Binance Pay or other notifications)
+async function webhookBinanceHandler(req, res) {
+  try {
+    const payload = req.body || {};
+    safeLog('[webhook/binance] payload:', payload);
+
+    // Persist to DB / fallback files
+    try {
+      await pool.query(`CREATE TABLE IF NOT EXISTS webhooks (id SERIAL PRIMARY KEY, created_at timestamptz DEFAULT now(), raw_payload jsonb, headers jsonb)`);
+      await pool.query('INSERT INTO webhooks(raw_payload, headers) VALUES($1,$2)', [payload, req.headers || {}]);
+    } catch (e) {
+      try {
+        const rec = { ts: new Date().toISOString(), headers: req.headers || {}, body: payload };
+        const logPath = path.join(process.cwd(), 'webhooks.log');
+        fs.appendFileSync(logPath, JSON.stringify(rec) + '\n');
+      } catch (fsErr) {
+        safeLog('[webhook/binance] fallback write failed', fsErr?.message || String(fsErr));
+      }
+    }
+
+    // Attempt reconciliation: look for provider-specific order id fields
+    try {
+      const redis = getRedis();
+      const possibleRef = payload.merchantTradeNo || payload.merchantOrderId || payload.orderId || payload.transactionId || payload.data?.merchantOrderId || payload.data?.orderId || null;
+      const phone = payload.payerPhone || payload.payer || payload.data?.payerPhone || null;
+      const providerRef = possibleRef;
+      let orderId = null;
+      if (providerRef) {
+        orderId = await redis.get(`payment:by_provider_ref:BINANCE:${providerRef}`);
+      }
+      if (!orderId && phone) {
+        const p = String(phone).replace(/\+|\s|-/g, '');
+        orderId = await redis.get(`payment:by_phone:${p}`);
+      }
+
+      if (orderId) {
+        const tx = providerRef || (`BINANCE_${Date.now()}`);
+        try {
+          const result = await verifyAndActivatePayment(redis, orderId, tx);
+          safeLog('[webhook/binance] Activated order', { orderId, tx, result });
+        } catch (e) {
+          safeLog('[webhook/binance] Activation failed', e?.message || e);
+        }
+      } else {
+        safeLog('[webhook/binance] No mapping found for webhook', { providerRef, phone });
+      }
+    } catch (e) {
+      safeLog('[webhook/binance] Redis reconciliation error', e?.message || e);
+    }
+
+    return res.status(200).send('OK');
+  } catch (err) {
+    safeLog('[webhook/binance] handler error', err?.message || String(err));
+    return res.status(200).send('OK');
+  }
+}
+
+app.post('/webhook/binance', webhookBinanceHandler);
+app.post('/webhooks/binance', webhookBinanceHandler);
+
 // Mount the richer server-side Telegram command router if present.
 // Allow both `TELEGRAM_BOT_TOKEN` and `TELEGRAM_TOKEN` env var names for compatibility.
 process.env.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_TOKEN || process.env.TELEGRAM_TOKEN;
@@ -339,14 +485,73 @@ export function registerDataExposureAPI(sportsAggregator) {
 
 // Single PORT binding and listen
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  // start auxiliary realtime WS server (runs on PORT+1 by default)
+const SHOULD_LISTEN = !(process.env.WORKER_ONLY === 'true' || process.env.BACKGROUND_WORKER === 'true' || process.env.NODE_ENV === 'test');
+
+// News API endpoints
+app.get('/api/news', async (req, res) => {
   try {
-    import('./services/realtime.js').then(mod => mod.startRealtimeServer()).catch(err => console.warn('Realtime import failed', err?.message || err));
+    const max = Math.min(50, Number(req.query.max || 10));
+    const headlines = await newsService.getCachedHeadlines({ max });
+    return res.json({ ok: true, headlines });
   } catch (e) {
-    console.warn('Could not start realtime server:', e?.message || e);
+    return res.status(500).json({ ok: false, error: e?.message || String(e) });
   }
 });
+
+// Backwards-compatible `/news` route used by internal callbacks/services
+app.get('/news', async (req, res) => {
+  try {
+    const max = Math.min(50, Number(req.query.max || 10));
+    const headlines = await newsService.getCachedHeadlines({ max });
+    return res.json(headlines);
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e?.message || String(e) });
+  }
+});
+
+// Return Betrix-branded HTML for an article. Accept either `link` query or news id path.
+app.get('/api/news/:id/html', async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!id) return res.status(400).send('id required');
+    let link = null;
+    try {
+      const r = await pool.query('SELECT link FROM news WHERE id = $1 LIMIT 1', [id]);
+      if (r && r.rows && r.rows[0]) link = r.rows[0].link;
+    } catch (e) { /* ignore */ }
+    if (!link) return res.status(404).send('Article not found');
+    const html = await newsService.fetchArticleHtmlByLink(link);
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    return res.send(html);
+  } catch (e) {
+    return res.status(500).send('Failed to fetch article');
+  }
+});
+
+app.get('/api/news/html', async (req, res) => {
+  try {
+    const link = req.query.link;
+    if (!link) return res.status(400).send('link required');
+    const html = await newsService.fetchArticleHtmlByLink(link);
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    return res.send(html);
+  } catch (e) {
+    return res.status(500).send('Failed to fetch article');
+  }
+});
+
+if (SHOULD_LISTEN) {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    // start auxiliary realtime WS server (runs on PORT+1 by default)
+    try {
+      import('./services/realtime.js').then(mod => mod.startRealtimeServer()).catch(err => console.warn('Realtime import failed', err?.message || err));
+    } catch (e) {
+      console.warn('Could not start realtime server:', e?.message || e);
+    }
+  });
+} else {
+  console.log('Skipping HTTP listen (worker/background mode)');
+}
 
 export default app;

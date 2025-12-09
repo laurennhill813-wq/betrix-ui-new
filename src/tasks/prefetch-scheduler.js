@@ -6,7 +6,7 @@
 import { setTimeout as wait } from 'timers/promises';
 void wait;
 
-export function startPrefetchScheduler({ redis, openLiga, rss, scorebat, footballData, sportsAggregator, intervalSeconds = null } = {}) {
+export function startPrefetchScheduler({ redis, openLiga, rss, scorebat, footballData, sportsAggregator, sportsgameodds, intervalSeconds = null } = {}) {
   if (!redis) throw new Error('redis required');
   intervalSeconds = intervalSeconds || Number(process.env.PREFETCH_INTERVAL_SECONDS || 60);
 
@@ -151,6 +151,42 @@ export function startPrefetchScheduler({ redis, openLiga, rss, scorebat, footbal
         } catch (e) {
           await redis.publish('prefetch:error', JSON.stringify({ type: 'sportsmonks', error: e.message || String(e), ts }));
           await recordFailure('sportsmonks');
+        }
+      }
+
+      // 6) SportGameOdds (sgo) - use pagination helpers to fetch league events and sample odds
+      if (sportsgameodds) {
+        try {
+          if (!await isAllowedToRun('sportsgameodds')) { /* skip due to backoff */ }
+          else {
+            const cfg = process.env.SGO_PREFETCH_LEAGUES || 'EPL,NBA,NFL';
+            const leagues = cfg.split(',').map(s=>s.trim()).filter(Boolean).slice(0,10);
+            for (const league of leagues) {
+              try {
+                const events = await sportsgameodds.fetchAllEvents({ league, redis, forceFetch: true }).catch(async (err) => { await recordFailure(`sgo-events:${league}`); throw err; });
+                if (events) {
+                  const capped = Array.isArray(events) ? events.slice(0, Math.min(MAX_PREFETCH_STORE, events.length)) : events;
+                  await safeSet(`prefetch:sgo:events:${league}`, { fetchedAt: ts, count: Array.isArray(events)?events.length:0, data: capped }, 60);
+                  // For the first few events, fetch odds to warm odds caches
+                  const sampleIds = (Array.isArray(capped) ? capped.slice(0,5).map(ev => ev.id || ev.eventId || ev._id).filter(Boolean) : []).slice(0,5);
+                  if (sampleIds.length) {
+                    try {
+                      const odds = await sportsgameodds.fetchAllOdds({ league, eventIDs: sampleIds.join(','), redis, forceFetch: true }).catch(async (err) => { await recordFailure(`sgo-odds:${league}`); throw err; });
+                      if (odds) await safeSet(`prefetch:sgo:odds:${league}`, { fetchedAt: ts, sample: sampleIds.length, data: odds }, 60);
+                    } catch (e) { console.warn('sgo fetchAllOdds failed', e?.message || String(e)); }
+                  }
+                  await recordSuccess('sportsgameodds');
+                }
+              } catch (e) {
+                await redis.publish('prefetch:error', JSON.stringify({ type: 'sportsgameodds', league, error: e.message || String(e), ts }));
+                await recordFailure('sportsgameodds');
+              }
+            }
+            await redis.publish('prefetch:updates', JSON.stringify({ type: 'sportsgameodds', ts }));
+          }
+        } catch (e) {
+          await redis.publish('prefetch:error', JSON.stringify({ type: 'sportsgameodds', error: e.message || String(e), ts }));
+          await recordFailure('sportsgameodds');
         }
       }
 

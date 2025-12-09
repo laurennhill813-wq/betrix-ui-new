@@ -1,0 +1,595 @@
+{
+  "createdAt": "2025-12-08T17:48:38.055Z",
+  "env": {
+    "callback": "https://betrix-ui-new.onrender.com/webhook/mpesa"
+  },
+  "transactions": [
+    {
+      "txn": "TXN1765215021263W842O8",
+      "_id": "69370b2d094436f0db3a6d39"
+    },
+    {
+      "txn": "TXN1765215200154JXWB17",
+      "_id": "69370be0094436f0db3a6e1d"
+    },
+    {
+      "txn": "TXN1765215303276OI025V",
+      "_id": "69370c47094436f0db3a6e3a"
+    },
+    {
+      "txn": "TXN1765215602444C61220",
+      "_id": "69370d72094436f0db3a6ee5"
+    },
+    {
+      "txn": "TXN1765215603946CKDOX2",
+      "_id": "69370d73094436f0db3a6eeb"
+    },
+    {
+      "txn": "TXN1765215605634SADCCY",
+      "_id": "69370d75094436f0db3a6f03"
+    },
+    {
+      "txn": "TXN1765215606763SHM6N3",
+      "_id": "69370d76094436f0db3a6f08"
+    },
+    {
+      "txn": "TXN1765215608625G0F7BN",
+      "_id": "69370d78094436f0db3a6f0d"
+    },
+    {
+      "txn": "TXN1765216100750Z6JN4X",
+      "_id": "69370f64094436f0db3a7f1e"
+    },
+    {
+      "txn": "TXN176521610344818IWFH",
+      "_id": "69370f67094436f0db3a7f25"
+    },
+    {
+      "txn": "TXN1765216104957Z2HAIP",
+      "_id": "69370f68094436f0db3a7f2a"
+    }
+  ],
+  "logs": [
+    {
+      "ts": "2025-12-08T17:30:20.069Z",
+      "request": {
+        "url": "https://api.lipana.dev/v1/transactions",
+        "body": {
+          "phone": "254****99",
+          "amount": 10,
+          "reference": "dbg_1765215016733",
+          "callback_url": "https://betrix-ui-new.onrender.com/webhooks/mpesa"
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent": "BETRIX/1.0",
+          "x-api-key": "lip_…096b"
+        }
+      },
+      "response": {
+        "status": 201,
+        "ok": true,
+        "body": {
+          "success": true,
+          "data": {
+            "userId": "692d555a9a01e7c887f04d99",
+            "amount": 10,
+            "phone": "254741118999",
+            "reference": "dbg_1765215016733",
+            "status": "pending",
+            "transactionId": "TXN1765215021263W842O8",
+            "payoutStatus": "not_initiated",
+            "reversalStatus": "not_initiated",
+            "_id": "69370b2d094436f0db3a6d39",
+            "createdAt": "2025-12-08T17:30:21.265Z",
+            "updatedAt": "2025-12-08T17:30:21.265Z",
+            "__v": 0
+          }
+        }
+      }
+    },
+    {
+      "ts": "2025-12-08T17:33:21.070Z",
+      "request": {
+        "url": "https://api.lipana.dev/v1/transactions",
+        "body": {
+          "phone": "254****99",
+          "amount": 10,
+          "reference": "dbg_1765215195823",
+          "callback_url": "https://betrix-ui-new.onrender.com/webhooks/mpesa"
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent": "BETRIX/1.0",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Connection": "keep-alive",
+          "Origin": null,
+          "Referer": null,
+          "x-api-key": "lip_…096b",
+          "Authorization": "Bearer lip_…"
+        }
+      },
+      "response": {
+        "status": 201,
+        "ok": true,
+        "body": {
+          "success": true,
+          "data": {
+            "userId": "692d555a9a01e7c887f04d99",
+            "amount": 10,
+            "phone": "254741118999",
+            "reference": "dbg_1765215195823",
+            "status": "pending",
+            "transactionId": "TXN1765215200154JXWB17",
+            "payoutStatus": "not_initiated",
+            "reversalStatus": "not_initiated",
+            "_id": "69370be0094436f0db3a6e1d",
+            "createdAt": "2025-12-08T17:33:20.245Z",
+            "updatedAt": "2025-12-08T17:33:20.245Z",
+            "__v": 0
+          }
+        }
+      }
+    },
+    {
+      "ts": "2025-12-08T17:35:01.951Z",
+      "request": {
+        "url": "https://api.lipana.dev/v1/transactions",
+        "body": {
+          "phone": "254****99",
+          "amount": 10,
+          "reference": "live_1765215299844",
+          "callback_url": "https://betrix-ui-new.onrender.com/webhook/mpesa"
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent": "BETRIX/1.0",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Connection": "keep-alive",
+          "Origin": null,
+          "Referer": null,
+          "x-api-key": "lip_…096b",
+          "Authorization": "Bearer lip_…"
+        }
+      },
+      "response": {
+        "status": 201,
+        "ok": true,
+        "body": {
+          "success": true,
+          "data": {
+            "userId": "692d555a9a01e7c887f04d99",
+            "amount": 10,
+            "phone": "254741118999",
+            "reference": "live_1765215299844",
+            "status": "pending",
+            "transactionId": "TXN1765215303276OI025V",
+            "payoutStatus": "not_initiated",
+            "reversalStatus": "not_initiated",
+            "_id": "69370c47094436f0db3a6e3a",
+            "createdAt": "2025-12-08T17:35:03.359Z",
+            "updatedAt": "2025-12-08T17:35:03.359Z",
+            "__v": 0
+          }
+        }
+      }
+    },
+    {
+      "ts": "2025-12-08T17:35:46.255Z",
+      "request": {
+        "url": "https://api.lipana.dev/v1/transactions",
+        "body": {
+          "phone": "254****99",
+          "amount": 10,
+          "reference": "tryua_1765215341995",
+          "callback_url": "https://betrix-ui-new.onrender.com/webhook/mpesa"
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Connection": "keep-alive",
+          "Origin": "https://app.lipana.dev",
+          "Referer": "https://app.lipana.dev",
+          "x-api-key": "lip_…096b",
+          "Authorization": "Bearer lip_…"
+        }
+      },
+      "response": {
+        "status": 500,
+        "ok": false,
+        "body": {
+          "success": false,
+          "message": "Not allowed by CORS"
+        }
+      }
+    },
+    {
+      "ts": "2025-12-08T17:39:38.549Z",
+      "request": {
+        "url": "https://api.lipana.dev/v1/transactions",
+        "body": {
+          "phone": "254****99",
+          "amount": 10,
+          "reference": "var1_1765215574072",
+          "callback_url": "https://betrix-ui-new.onrender.com/webhook/mpesa"
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Connection": "keep-alive",
+          "Origin": "https://app.lipana.dev",
+          "Referer": "https://app.lipana.dev",
+          "x-api-key": "lip_…096b",
+          "Authorization": "Bearer lip_…"
+        }
+      },
+      "response": {
+        "status": 500,
+        "ok": false,
+        "body": {
+          "success": false,
+          "message": "Not allowed by CORS"
+        }
+      }
+    },
+    {
+      "ts": "2025-12-08T17:40:01.318Z",
+      "request": {
+        "url": "https://api.lipana.dev/v1/transactions",
+        "body": {
+          "phone": "254****99",
+          "amount": 10,
+          "reference": "v1_1765215598871",
+          "callback_url": "https://betrix-ui-new.onrender.com/webhook/mpesa"
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent": "BETRIX/1.0",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Connection": "keep-alive",
+          "Origin": null,
+          "Referer": null,
+          "x-api-key": "lip_…096b",
+          "Authorization": "Bearer lip_…"
+        }
+      },
+      "response": {
+        "status": 201,
+        "ok": true,
+        "body": {
+          "success": true,
+          "data": {
+            "userId": "692d555a9a01e7c887f04d99",
+            "amount": 10,
+            "phone": "254741118999",
+            "reference": "v1_1765215598871",
+            "status": "pending",
+            "transactionId": "TXN1765215602444C61220",
+            "payoutStatus": "not_initiated",
+            "reversalStatus": "not_initiated",
+            "_id": "69370d72094436f0db3a6ee5",
+            "createdAt": "2025-12-08T17:40:02.446Z",
+            "updatedAt": "2025-12-08T17:40:02.446Z",
+            "__v": 0
+          }
+        }
+      }
+    },
+    {
+      "ts": "2025-12-08T17:40:02.736Z",
+      "request": {
+        "url": "https://api.lipana.dev/v1/transactions",
+        "body": {
+          "phone": "254****99",
+          "amount": 10,
+          "reference": "v2_1765215602136",
+          "callback_url": "https://betrix-ui-new.onrender.com/webhook/mpesa"
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent": "BETRIX/1.0",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Connection": "keep-alive",
+          "Origin": null,
+          "Referer": null,
+          "x-api-key": "lip_…096b",
+          "Authorization": "Bearer lip_…"
+        }
+      },
+      "response": {
+        "status": 201,
+        "ok": true,
+        "body": {
+          "success": true,
+          "data": {
+            "userId": "692d555a9a01e7c887f04d99",
+            "amount": 10,
+            "phone": "254741118999",
+            "reference": "v2_1765215602136",
+            "status": "pending",
+            "transactionId": "TXN1765215603946CKDOX2",
+            "payoutStatus": "not_initiated",
+            "reversalStatus": "not_initiated",
+            "_id": "69370d73094436f0db3a6eeb",
+            "createdAt": "2025-12-08T17:40:03.952Z",
+            "updatedAt": "2025-12-08T17:40:03.952Z",
+            "__v": 0
+          }
+        }
+      }
+    },
+    {
+      "ts": "2025-12-08T17:40:04.246Z",
+      "request": {
+        "url": "https://api.lipana.dev/v1/transactions",
+        "body": {
+          "phone": "254****99",
+          "amount": 10,
+          "reference": "v3_1765215603559",
+          "callback_url": "https://betrix-ui-new.onrender.com/webhook/mpesa"
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent": "BETRIX/1.0",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Connection": "keep-alive",
+          "Origin": null,
+          "Referer": null,
+          "x-api-key": "lip_…096b",
+          "Authorization": "Bearer lip_…"
+        }
+      },
+      "response": {
+        "status": 201,
+        "ok": true,
+        "body": {
+          "success": true,
+          "data": {
+            "userId": "692d555a9a01e7c887f04d99",
+            "amount": 10,
+            "phone": "254741118999",
+            "reference": "v3_1765215603559",
+            "status": "pending",
+            "transactionId": "TXN1765215605634SADCCY",
+            "payoutStatus": "not_initiated",
+            "reversalStatus": "not_initiated",
+            "_id": "69370d75094436f0db3a6f03",
+            "createdAt": "2025-12-08T17:40:05.635Z",
+            "updatedAt": "2025-12-08T17:40:05.635Z",
+            "__v": 0
+          }
+        }
+      }
+    },
+    {
+      "ts": "2025-12-08T17:40:06.049Z",
+      "request": {
+        "url": "https://api.lipana.dev/v1/transactions",
+        "body": {
+          "phone": "254****99",
+          "amount": 10,
+          "reference": "v4_1765215605057",
+          "callback_url": "https://betrix-ui-new.onrender.com/webhook/mpesa"
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent": "BETRIX/1.0",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Connection": "keep-alive",
+          "Origin": null,
+          "Referer": null,
+          "x-api-key": "lip_…096b",
+          "Authorization": "Bearer lip_…"
+        }
+      },
+      "response": {
+        "status": 201,
+        "ok": true,
+        "body": {
+          "success": true,
+          "data": {
+            "userId": "692d555a9a01e7c887f04d99",
+            "amount": 10,
+            "phone": "254741118999",
+            "reference": "v4_1765215605057",
+            "status": "pending",
+            "transactionId": "TXN1765215606763SHM6N3",
+            "payoutStatus": "not_initiated",
+            "reversalStatus": "not_initiated",
+            "_id": "69370d76094436f0db3a6f08",
+            "createdAt": "2025-12-08T17:40:06.779Z",
+            "updatedAt": "2025-12-08T17:40:06.779Z",
+            "__v": 0
+          }
+        }
+      }
+    },
+    {
+      "ts": "2025-12-08T17:40:07.849Z",
+      "request": {
+        "url": "https://api.lipana.dev/v1/transactions",
+        "body": {
+          "phone": "254****99",
+          "amount": 10,
+          "reference": "v5_1765215606866",
+          "callback_url": "https://betrix-ui-new.onrender.com/webhook/mpesa"
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent": "BETRIX/1.0",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Connection": "keep-alive",
+          "Origin": null,
+          "Referer": null,
+          "x-api-key": "lip_…096b",
+          "Authorization": "Bearer lip_…"
+        }
+      },
+      "response": {
+        "status": 201,
+        "ok": true,
+        "body": {
+          "success": true,
+          "data": {
+            "userId": "692d555a9a01e7c887f04d99",
+            "amount": 10,
+            "phone": "254741118999",
+            "reference": "v5_1765215606866",
+            "status": "pending",
+            "transactionId": "TXN1765215608625G0F7BN",
+            "payoutStatus": "not_initiated",
+            "reversalStatus": "not_initiated",
+            "_id": "69370d78094436f0db3a6f0d",
+            "createdAt": "2025-12-08T17:40:08.628Z",
+            "updatedAt": "2025-12-08T17:40:08.628Z",
+            "__v": 0
+          }
+        }
+      }
+    },
+    {
+      "ts": "2025-12-08T17:48:20.706Z",
+      "request": {
+        "url": "https://api.lipana.dev/v1/transactions",
+        "body": {
+          "phone": "254****99",
+          "amount": 10,
+          "reference": "stepA_1765216097867",
+          "callback_url": "https://betrix-ui-new.onrender.com/webhook/mpesa"
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent": "BETRIX/1.0",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Connection": "keep-alive",
+          "Origin": null,
+          "Referer": null,
+          "x-api-key": "lip_…096b",
+          "Authorization": "Bearer lip_…"
+        }
+      },
+      "response": {
+        "status": 201,
+        "ok": true,
+        "body": {
+          "success": true,
+          "data": {
+            "userId": "692d555a9a01e7c887f04d99",
+            "amount": 10,
+            "phone": "254741118999",
+            "reference": "stepA_1765216097867",
+            "status": "pending",
+            "transactionId": "TXN1765216100750Z6JN4X",
+            "payoutStatus": "not_initiated",
+            "reversalStatus": "not_initiated",
+            "_id": "69370f64094436f0db3a7f1e",
+            "createdAt": "2025-12-08T17:48:20.776Z",
+            "updatedAt": "2025-12-08T17:48:20.776Z",
+            "__v": 0
+          }
+        }
+      }
+    },
+    {
+      "ts": "2025-12-08T17:48:22.040Z",
+      "request": {
+        "url": "https://api.lipana.dev/v1/transactions",
+        "body": {
+          "phone": "+254****99",
+          "amount": 10,
+          "reference": "stepB_1765216101619",
+          "callback_url": "https://betrix-ui-new.onrender.com/webhook/mpesa"
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent": "BETRIX/1.0",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Connection": "keep-alive",
+          "Origin": null,
+          "Referer": null,
+          "x-api-key": "lip_…096b",
+          "Authorization": "Bearer lip_…"
+        }
+      },
+      "response": {
+        "status": 201,
+        "ok": true,
+        "body": {
+          "success": true,
+          "data": {
+            "userId": "692d555a9a01e7c887f04d99",
+            "amount": 10,
+            "phone": "+254741118999",
+            "reference": "stepB_1765216101619",
+            "status": "pending",
+            "transactionId": "TXN176521610344818IWFH",
+            "payoutStatus": "not_initiated",
+            "reversalStatus": "not_initiated",
+            "_id": "69370f67094436f0db3a7f25",
+            "createdAt": "2025-12-08T17:48:23.450Z",
+            "updatedAt": "2025-12-08T17:48:23.450Z",
+            "__v": 0
+          }
+        }
+      }
+    },
+    {
+      "ts": "2025-12-08T17:48:23.561Z",
+      "request": {
+        "url": "https://api.lipana.dev/v1/transactions",
+        "body": {
+          "phone": "254****99",
+          "amount": 10,
+          "reference": "stepC_1765216102946",
+          "callback_url": "https://betrix-ui-new.onrender.com/webhook/mpesa"
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent": "BETRIX/1.0",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Connection": "keep-alive",
+          "Origin": null,
+          "Referer": null,
+          "x-api-key": "lip_…096b",
+          "Authorization": "Bearer lip_…"
+        }
+      },
+      "response": {
+        "status": 201,
+        "ok": true,
+        "body": {
+          "success": true,
+          "data": {
+            "userId": "692d555a9a01e7c887f04d99",
+            "amount": 10,
+            "phone": "254741118999",
+            "reference": "stepC_1765216102946",
+            "status": "pending",
+            "transactionId": "TXN1765216104957Z2HAIP",
+            "payoutStatus": "not_initiated",
+            "reversalStatus": "not_initiated",
+            "_id": "69370f68094436f0db3a7f2a",
+            "createdAt": "2025-12-08T17:48:24.958Z",
+            "updatedAt": "2025-12-08T17:48:24.958Z",
+            "__v": 0
+          }
+        }
+      }
+    }
+  ]
+}

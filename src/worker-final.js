@@ -19,6 +19,7 @@ import Redis from "ioredis";
 import { getRedis, MockRedis } from "./lib/redis-factory.js";
 import { CONFIG, validateConfig } from "./config.js";
 import { Logger } from "./utils/logger.js";
+import crypto from 'crypto';
 import { TelegramService } from "./services/telegram.js";
 import { UserService } from "./services/user.js";
 // API-Football removed from runtime per operator request — prefer SportMonks and Football-Data
@@ -688,6 +689,36 @@ async function handleUpdate(update) {
 
       try {
         const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI };
+
+        // Short per-chat dedupe: if the same callback payload was handled recently,
+        // skip reprocessing to avoid duplicate edits caused by rapid double-taps or
+        // duplicate Telegram deliveries. This is NOT a rate-limit — it only
+        // suppresses identical callbacks for a small TTL (default 2s).
+        let _skipDuplicateCallback = false;
+        try {
+          const dedupeSeconds = Number(process.env.CALLBACK_DEDUPE_SECONDS || 2);
+          const sigSrc = JSON.stringify({ data: callbackQuery.data || null, msgId: callbackQuery.message?.message_id || null });
+          const sig = crypto.createHash('sha1').update(sigSrc).digest('hex');
+          const dedupeKey = `callback:last:${chatId}`;
+          try {
+            const prev = await redis.get(dedupeKey);
+            if (prev && prev === sig) {
+              try { await telegram.answerCallback(callbackId, 'Already up to date', false); } catch (e) { /* ignore */ }
+              _skipDuplicateCallback = true;
+            }
+          } catch (e) { /* ignore redis read errors, proceed to handle */ }
+
+          try { await redis.setex(dedupeKey, dedupeSeconds, sig); } catch (e) { /* ignore */ }
+        } catch (e) {
+          // best-effort dedupe; never block callback processing
+          logger.debug('Callback dedupe check failed', e && e.message ? e.message : e);
+        }
+
+        if (_skipDuplicateCallback) {
+          // Skip processing this update (duplicate callback); exit the callback handler early.
+          return;
+        }
+
         const res = await completeHandler.handleCallbackQuery(callbackQuery, redis, services);
         if (!res) return;
 
@@ -705,8 +736,27 @@ async function handleUpdate(update) {
               const messageId = action.message_id || callbackQuery.message?.message_id;
               const text = action.text || '';
               const reply_markup = action.reply_markup || null;
-              await telegram.editMessage(chatId, messageId, text, reply_markup);
-              logger.info('Dispatched editMessageText', { chatId, messageId });
+              const parseMode = (action.parse_mode || action.parseMode || 'HTML');
+              // Attempt to edit existing message; if Telegram reports "not modified",
+              // fall back to sending a new message so the user sees a visible response.
+              try {
+                const editRes = await telegram.editMessage(chatId, messageId, text, reply_markup, parseMode);
+                logger.info('Dispatched editMessageText', { chatId, messageId, parseMode, editRes });
+
+                // editRes may be an object like { ok: false, reason: 'not_modified' }
+                if (editRes && (editRes.reason === 'not_modified' || editRes.ok === false)) {
+                  try {
+                    await telegram.sendMessage(chatId, text, { reply_markup, parse_mode: parseMode, fallbackAfterEdit: true });
+                    logger.info('Fallback sendMessage after no-op editMessage', { chatId, messageId });
+                  } catch (sendErr) {
+                    logger.warn('Fallback sendMessage after editMessage no-op failed', sendErr && sendErr.message ? sendErr.message : sendErr);
+                  }
+                }
+              } catch (e) {
+                // If editMessage throws (unexpected), attempt sendMessage as a recovery
+                logger.warn('editMessage threw an error, attempting sendMessage fallback', e && e.message ? e.message : e);
+                try { await telegram.sendMessage(chatId, text, { reply_markup, parse_mode: parseMode, fallbackAfterEdit: true }); } catch (sendErr) { logger.error('Fallback sendMessage failed after editMessage error', sendErr && sendErr.message ? sendErr.message : sendErr); }
+              }
               continue;
             }
 
