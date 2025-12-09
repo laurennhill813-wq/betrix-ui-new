@@ -153,16 +153,18 @@ function handleSubscriptionCallback(data, chatId) {
   return mkEdit(chatId, text, keyboard);
 }
 
-async function handlePaymentCallback(data, chatId, _userId, redis, services) {
+async function handlePaymentCallback(data, chatId, _userId, redis, _services) {
   // Example callback: pay_PAYPAL_PRO  or pay_BINANCE_VVIP
   const parts = data.split('_');
   const method = parts[1];
   const tier = parts.slice(2).join('_');
   try {
-    const order = await createPaymentOrder({ method, tier, redis, services });
-    const instr = getPaymentInstructions(order, method);
-    const keyboard = { inline_keyboard: [[{ text: 'Open Payment', url: instr.url || undefined }], [{ text: '🔙 Back', callback_data: 'menu_vvip' }]] };
-    return mkEdit(chatId, `Payment created. Order: ${order.id || 'N/A'}`, keyboard);
+    // createPaymentOrder signature: (redis, userId, tier, paymentMethod, userRegion?, metadata?)
+    const order = await createPaymentOrder(redis, _userId || 'guest', tier || 'VVIP', method);
+    // getPaymentInstructions signature: (redis, orderId, paymentMethod)
+    const instr = await getPaymentInstructions(redis, order.orderId || order.orderId, method).catch(() => null);
+    const keyboard = { inline_keyboard: [[{ text: 'Open Payment', url: instr?.checkoutUrl || instr?.url || (instr && instr.checkoutUrl) || undefined }], [{ text: '🔙 Back', callback_data: 'menu_vvip' }]] };
+    return mkEdit(chatId, `Payment created. Order: ${order.orderId || 'N/A'}`, keyboard);
   } catch (err) {
     logger.warn('handlePaymentCallback error', err?.message || String(err));
     return mkSend(chatId, '❌ Error initiating payment');
