@@ -314,9 +314,9 @@ const basicHandlers = new BotHandlers(telegram, userService, apiFootball, ai, re
   scrapers,
 });
 
-// StatPal integration removed: system now uses SPORTSMONKS and FOOTBALLDATA only
+// StatPal integration removed: system now prefers SportGameOdds and Football-Data
 let statpalInitSuccess = false;
-logger.info('ℹ️ StatPal integration disabled/removed — using SPORTSMONKS and FOOTBALL-DATA only');
+logger.info('ℹ️ StatPal integration disabled/removed — preferring SPORTSGAMEODDS and FOOTBALL-DATA');
 
 // ===== API BOOTSTRAP: Validate keys and immediately prefetch data =====
 let apiBootstrapSuccess = false;

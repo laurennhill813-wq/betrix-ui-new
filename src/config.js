@@ -43,9 +43,17 @@ const CONFIG = {
   },
 
   // SportsMonks
+  // SportMonks kept for legacy but disabled by default. Prefer SportGameOdds.
   SPORTSMONKS: {
-    KEY: process.env.SPORTSMONKS_API || process.env.SPORTSMONKS_API_KEY,
-    BASE: process.env.SPORTSMONKS_BASE || 'https://api.sportsmonks.com/v3',
+    KEY: process.env.SPORTSMONKS_API || process.env.SPORTSMONKS_API_KEY || null,
+    BASE: process.env.SPORTSMONKS_BASE || 'https://api.sportmonks.com/v3',
+    ENABLED: false
+  },
+
+  // SportGameOdds (preferred primary source)
+  SPORTSGAMEODDS: {
+    KEY: process.env.SPORTSGAMEODDS_API_KEY || null,
+    BASE: process.env.SPORTSGAMEODDS_BASE_URL || process.env.SPORTSGAMEODDS_BASE || 'https://api.sportsgameodds.com/v2',
   },
 
   // StatPal removed: no longer used in this deployment
@@ -166,15 +174,16 @@ const CONFIG = {
   },
 
   // Provider health & feature flags
-  // SportMonks and Football-Data are ALWAYS enabled (trust Render env vars)
+  // Prefer SPORTSGAMEODDS as primary provider
   PROVIDERS: {
     SPORTSDATA: { enabled: process.env.PROVIDER_SPORTSDATA_ENABLED === 'true', priority: 1 },
-    SPORTSMONKS: { enabled: true, priority: 2 },
-    API_SPORTS: { enabled: false, priority: 3 },
-    FOOTBALLDATA: { enabled: true, priority: 4 },
-    SOFASCORE: { enabled: false, priority: 5 },
-    ALLSPORTS: { enabled: process.env.PROVIDER_ALLSPORTS_ENABLED === 'true', priority: 6 },
-    ESPN: { enabled: process.env.PROVIDER_ESPN_ENABLED === 'true', priority: 7 },
+    SPORTSGAMEODDS: { enabled: true, priority: 2 },
+    SPORTSMONKS: { enabled: false, priority: 3 },
+    API_SPORTS: { enabled: false, priority: 4 },
+    FOOTBALLDATA: { enabled: true, priority: 5 },
+    SOFASCORE: { enabled: false, priority: 6 },
+    ALLSPORTS: { enabled: process.env.PROVIDER_ALLSPORTS_ENABLED === 'true', priority: 7 },
+    ESPN: { enabled: process.env.PROVIDER_ESPN_ENABLED === 'true', priority: 8 },
     CLAUDE: { enabled: process.env.PROVIDER_CLAUDE_ENABLED === 'true', priority: 0 }
   },
 

@@ -125,13 +125,21 @@ async function getLiveMatchesBySport(sport, redis, sportsAggregator) {
       }
     }
 
-    // Try provider-specific prefetch keys if the consolidated key wasn't set
+    // Try SportGameOdds provider-specific prefetch keys if consolidated key wasn't set
     try {
-      const pm = await redis.get('prefetch:sportsmonks:live').catch(() => null);
-      const parsedPm = tryParseJson(pm);
-      if (parsedPm && Array.isArray(parsedPm.data)) {
-        logger.info(`📦 Got cached soccer matches from prefetch:sportsmonks:live (${parsedPm.count || parsedPm.data.length})`);
-        return parsedPm.data;
+      // Look for a cached per-sport league grouping and pick first league to read events from
+      const sgoBySportRaw = await redis.get('prefetch:sgo:leagues:by-sport').catch(() => null);
+      const sgoBySport = tryParseJson(sgoBySportRaw) || null;
+      if (sgoBySport && sgoBySport[sport] && Array.isArray(sgoBySport[sport]) && sgoBySport[sport].length > 0) {
+        // pick first league identifier found
+        const lg = sgoBySport[sport][0];
+        const leagueId = lg.leagueID || lg.id || lg.slug || lg.code || null;
+        if (leagueId) {
+          const eventsRaw = await redis.get(`prefetch:sgo:events:${leagueId}`).catch(() => null);
+          const parsed = tryParseJson(eventsRaw) || (eventsRaw ? eventsRaw : null);
+          if (parsed && Array.isArray(parsed.data)) return parsed.data;
+          if (Array.isArray(parsed)) return parsed;
+        }
       }
     } catch (e) { void e; }
 
