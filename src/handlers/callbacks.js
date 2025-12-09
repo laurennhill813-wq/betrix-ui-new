@@ -114,6 +114,70 @@ function handleSportCallback(data, chatId, redis) {
 }
 
 // --- League / Event / Odds handlers ---
+// --- Live matches handler (global, not league-specific) ---
+async function handleLiveCallback(_data, chatId, redis, services = {}) {
+  try {
+    let matches = [];
+    // Prefer aggregator global live endpoint
+    const agg = services.sportsAggregator || null;
+    if (agg && typeof agg.getAllLiveMatches === 'function') {
+      try { matches = await agg.getAllLiveMatches(); } catch (e) { logger.warn('handleLiveCallback: aggregator getAllLiveMatches failed', e?.message || String(e)); }
+    }
+
+    // Fallback to prefetch consolidated key
+    if ((!matches || matches.length === 0) && redis && typeof redis.get === 'function') {
+      try {
+        const raw = await redis.get('betrix:prefetch:live:by-sport');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          // flatten samples across sports
+          const bySport = parsed.sports || {};
+          const all = Object.values(bySport).flatMap(s => (s.samples || []));
+          if (all && all.length) matches = all;
+        }
+      } catch (e) { logger.warn('handleLiveCallback: fallback prefetch read failed', e?.message || String(e)); }
+    }
+
+    // Final fallback: try sportsmonks cached live key
+    if ((!matches || matches.length === 0) && redis && typeof redis.get === 'function') {
+      try {
+        const raw2 = await redis.get('prefetch:sportsmonks:live');
+        if (raw2) {
+          const parsed2 = JSON.parse(raw2);
+          matches = (parsed2 && parsed2.data) || [];
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    // Format output
+    const sportName = matches && matches.length ? (matches[0].sport || matches[0].sportName || 'Matches') : 'Matches';
+    // Use format helper from menu-system if available
+    try {
+      const { formatLiveGames } = await import('./menu-system.js');
+      const body = formatLiveGames(matches || [], sportName);
+      return mkEdit(chatId, body);
+    } catch (e) {
+      // Fallback simple list
+      let body = `🔴 Live Matches (${(matches && matches.length) || 0}):\n\n`;
+      if (matches && matches.length) {
+        for (let i = 0; i < Math.min(10, matches.length); i++) {
+          const m = matches[i];
+          const home = m.home?.name || m.home_team || m.home || m.homeName || m.home || 'Home';
+          const away = m.away?.name || m.away_team || m.away || m.awayName || m.away || 'Away';
+          const minute = m.minute ? ` • ${m.minute}'` : '';
+          body += `${i + 1}. *${home}* vs *${away}*${minute}\n`;
+        }
+      } else {
+        body += 'No live matches right now.';
+      }
+      return mkEdit(chatId, body);
+    }
+  } catch (err) {
+    logger.warn('handleLiveCallback failed', err?.message || String(err));
+    return mkSend(chatId, '❌ Error loading live matches');
+  }
+}
+
 async function handleLeagueCallback(data, chatId, redis) {
   const leagueId = String(data).replace(/^league_/, '').trim();
   let events = null;
@@ -187,12 +251,23 @@ async function handleLeagueCallback(data, chatId, redis) {
 
 async function handleEventCallback(data, chatId, redis) {
   const parts = data.split('_');
-  if (parts.length < 3) return mkSend(chatId, 'Invalid event selection');
-  const league = parts[1];
-  const eventId = parts.slice(2).join('_');
+  if (parts.length < 2) return mkSend(chatId, 'Invalid event selection');
+  let league = null;
+  let eventId = null;
+  if (parts.length === 2) {
+    // format: event_<eventId> (no league)
+    eventId = parts[1];
+  } else {
+    // format: event_<league>_<eventId>
+    league = parts[1];
+    eventId = parts.slice(2).join('_');
+  }
   try {
     let odds = null;
-    try { odds = await sportsgameodds.fetchOdds({ league, eventId, redis, forceFetch: false }); } catch (e) { logger.warn('fetchOdds failed', e?.message || String(e)); }
+    try {
+      if (league) odds = await sportsgameodds.fetchOdds({ league, eventId, redis, forceFetch: false });
+      else odds = await sportsgameodds.fetchAllOdds({ eventIDs: eventId, redis, forceFetch: false });
+    } catch (e) { logger.warn('fetchOdds failed', e?.message || String(e)); }
     if (!odds || Object.keys(odds || {}).length === 0) {
       try { const all = await sportsgameodds.fetchAllOdds({ league, eventIDs: eventId, redis, forceFetch: false }); odds = Array.isArray(all) ? all[0] : all; } catch (e) { logger.warn('fetchAllOdds fallback failed', e?.message || String(e)); }
     }
@@ -311,6 +386,7 @@ export async function handleCallback(data, chatId, userId, redis, services = {})
   try {
     if (!data || typeof data !== 'string') return mkSend(chatId, 'Invalid action');
     if (data.startsWith('sport_')) return await handleSportCallback(data, chatId, redis);
+    if (data === 'menu_live') return await handleLiveCallback(data, chatId, redis, services);
     if (data.startsWith('menu_')) return handleMenuCallback(data, chatId);
     if (data.startsWith('league_')) return await handleLeagueCallback(data, chatId, redis);
     if (data.startsWith('event_')) return await handleEventCallback(data, chatId, redis);
