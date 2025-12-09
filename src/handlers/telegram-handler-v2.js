@@ -171,8 +171,31 @@ export async function handleMessage(update, redis, services) {
     // Continuation handler: if user has a pending payment intent and they send
     // a phone number in the expected format, resume the STK push flow.
     try {
+      // Normalize phone helper: accept various Telegram contact formats
+      const normalizePhone = (raw) => {
+        if (!raw) return null;
+        let p = String(raw).replace(/[^0-9]/g, '');
+        // Convert common local formats to international +254
+        if (p.length === 10 && p.startsWith('0')) p = '254' + p.slice(1);
+        if (p.length === 9 && p.startsWith('7')) p = '254' + p;
+        if (p.length === 12 && p.startsWith('254')) return p;
+        // If already has country code like 254
+        if (p.length >= 9) return p;
+        return null;
+      };
+
       const phoneRe = /^2547\d{8}$/;
-      if (userId && text && phoneRe.test(text)) {
+      // Accept phone sent as text OR as a Telegram shared contact
+      let detectedPhone = null;
+      if (message && message.contact && message.contact.phone_number) {
+        detectedPhone = normalizePhone(message.contact.phone_number);
+      }
+      if (!detectedPhone && userId && text) {
+        const maybe = normalizePhone(text);
+        if (maybe && phoneRe.test(maybe)) detectedPhone = maybe;
+      }
+
+      if (userId && detectedPhone && phoneRe.test(detectedPhone)) {
         const pendingKey = `user:${userId}:pending_payment`;
         const pendingRaw = await redis.get(pendingKey).catch(() => null);
         if (pendingRaw) {
@@ -181,8 +204,8 @@ export async function handleMessage(update, redis, services) {
           if (pending && pending.action && pending.action === 'signup_payment') {
             // Save phone to profile
             try {
-              await redis.hset(`user:${userId}:profile`, 'msisdn', text);
-              await redis.hset(`user:${userId}:profile`, 'phone', text);
+              await redis.hset(`user:${userId}:profile`, 'msisdn', detectedPhone);
+              await redis.hset(`user:${userId}:profile`, 'phone', detectedPhone);
             } catch (e) { void e; }
 
             // Resume payment: create order and trigger STK
@@ -194,7 +217,7 @@ export async function handleMessage(update, redis, services) {
               let providerCheckout = null;
               try {
                 const callback = process.env.LIPANA_CALLBACK_URL || process.env.MPESA_CALLBACK_URL || null;
-                const resp = await lipana.stkPush({ amount, phone: text, tx_ref: order?.orderId || `ORD${userId}${Date.now()}`, reference: order?.orderId || null, callback_url: callback });
+                const resp = await lipana.stkPush({ amount, phone: detectedPhone, tx_ref: order?.orderId || `ORD${userId}${Date.now()}`, reference: order?.orderId || null, callback_url: callback });
                 providerCheckout = resp?.raw?.data?.transactionId || resp?.raw?.data?._id || null;
 
                 // Persist payments row (best-effort)
@@ -1919,9 +1942,16 @@ async function handleSignupPaymentCallback(data, chatId, userId, redis, services
       return { 
         method: 'sendMessage', 
         chat_id: chatId, 
-        text: '📱 To start M-Pesa STK we need your phone number. Please send it now in the format: 2547XXXXXXXX (or tap the phone button).',
+        text: '📱 To start M-Pesa STK we need your phone number. Please share your phone using the button below or send it in the format: 2547XXXXXXXX.',
         parse_mode: 'Markdown',
-        reply_markup: { inline_keyboard: [[{ text: '🔙 Cancel', callback_data: 'menu_main' }]] }
+        reply_markup: {
+          keyboard: [
+            [{ text: 'Share phone', request_contact: true }],
+            [{ text: 'Cancel' }]
+          ],
+          one_time_keyboard: true,
+          resize_keyboard: true
+        }
       };
     }
 
@@ -1953,6 +1983,11 @@ async function handleSignupPaymentCallback(data, chatId, userId, redis, services
     const keyboard = [];
     if (instructions && instructions.checkoutUrl) {
       keyboard.push([{ text: '🔗 Open Payment Link', url: instructions.checkoutUrl }]);
+    }
+    // If a QR image is available (Binance or other providers), expose it as a quick link
+    if (instructions && instructions.qr) {
+      // Show a direct QR button; clients will open the image URL
+      keyboard.splice(0, 0, [{ text: '🔳 View QR', url: instructions.qr }]);
     }
     
     keyboard.push([

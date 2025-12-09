@@ -1,16 +1,13 @@
 /**
- * BETRIX Callback Handlers - Consolidated
- * Handles all inline button clicks from menus
- * 
- * Callback Types:
- * - menu_* → Menu navigation
- * - sport_* → Sport selection
- * - sub_* → Subscription tier selection
- * - pay_* → Payment method selection
- * - profile_* → Profile sub-menus
- * - help_* → Help sub-menus
+ * Overwrite: a minimal, clean callbacks handler.
+/**
+ * BETRIX Callback Handlers - Consolidated Single File
+ *
+ * This file provides a compact, robust router for Telegram inline keyboard
+ * callbacks. It uses the existing `news-service` and `sportsgameodds` services
+ * and returns payloads suitable for `telegram.editMessageText` or a fallback
+ * `telegram.sendMessage` (handled by caller).
  */
-
 import { Logger } from '../utils/logger.js';
 import {
   mainMenu,
@@ -21,521 +18,197 @@ import {
   helpMenu
 } from './menu-system.js';
 import { createPaymentOrder, getPaymentInstructions } from './payment-router.js';
+import * as newsService from '../services/news-service.js';
+import * as sportsgameodds from '../services/sportsgameodds.js';
 
 const logger = new Logger('CallbackHandlers');
 void logger;
 
-/**
- * Main callback router
- * Dispatches to specific handler based on callback_data prefix
- */
-export async function handleCallback(data, chatId, userId, redis, _services) {
-  logger.info('Callback received', { userId, data });
-
-  try {
-    // Route by prefix
-    if (data.startsWith('menu_')) {
-      return handleMenuCallback(data, chatId, userId, redis);
-    }
-    
-    if (data.startsWith('sport_')) {
-      return handleSportCallback(data, chatId, userId, redis);
-    }
-    
-    if (data.startsWith('league_')) {
-      return await handleLeagueCallback(data, chatId, userId, redis, _services);
-    }
-    
-    if (data.startsWith('sub_')) {
-      return handleSubscriptionCallback(data, chatId, userId, redis);
-    }
-    
-    if (data.startsWith('pay_')) {
-      return await handlePaymentCallback(data, chatId, userId, redis, _services);
-    }
-
-    if (data.startsWith('news_')) {
-      return await handleNewsArticleCallback(data, chatId, userId, redis, _services);
-    }
-    
-    if (data.startsWith('profile_')) {
-      return handleProfileCallback(data, chatId, userId, redis);
-    }
-    
-    if (data.startsWith('help_')) {
-      return handleHelpCallback(data, chatId, userId, redis);
-    }
-    
-    // Unknown callback
-    return {
-      chat_id: chatId,
-      text: '🤔 Unknown action. Try /menu',
-      parse_mode: 'Markdown'
-    };
-  } catch (err) {
-    logger.error(`Callback ${data} failed`, err);
-    return {
-      chat_id: chatId,
-      text: '❌ Error processing action',
-      parse_mode: 'Markdown'
-    };
-  }
+// --- Helpers ---
+function mkEdit(chatId, text, reply_markup) {
+  return { method: 'editMessageText', chat_id: chatId, text, reply_markup, parse_mode: 'Markdown' };
 }
 
-// ============================================================================
-// MENU CALLBACKS (menu_*)
-// ============================================================================
+function mkSend(chatId, text) {
+  return { chat_id: chatId, text, parse_mode: 'Markdown' };
+}
 
-function handleMenuCallback(data, chatId, _userId, _redis) {
-  logger.info('handleMenuCallback', { data });
-
+// --- Menu handler ---
+function handleMenuCallback(data, chatId) {
   const menuMap = {
     'menu_main': mainMenu,
-    'menu_live': {
-      text: '⚽ *Select a Sport for Live Matches:*',
-      reply_markup: sportsMenu.reply_markup
-    },
-    'menu_odds': {
-      text: '📊 *Select a Sport for Odds & Analysis:*',
-      reply_markup: sportsMenu.reply_markup
-    },
-    'menu_standings': {
-      text: '🏆 *Select a League for Standings:*',
-      reply_markup: sportsMenu.reply_markup
-    },
-    'menu_news': {
-      text: '📰 *Loading latest sports news...*\n\nTop stories: Transfers, injuries, previews',
-      reply_markup: mainMenu.reply_markup
-    },
+    'menu_live': { text: '⚽ *Select a Sport for Live Matches:*', reply_markup: sportsMenu.reply_markup },
+    'menu_odds': { text: '📊 *Select a Sport for Odds & Analysis:*', reply_markup: sportsMenu.reply_markup },
+    'menu_standings': { text: '🏆 *Select a League for Standings:*', reply_markup: sportsMenu.reply_markup },
+    'menu_news': { text: '📰 *Latest Sports News*', reply_markup: mainMenu.reply_markup },
     'menu_profile': profileMenu,
     'menu_vvip': subscriptionMenu,
     'menu_help': helpMenu
   };
-
   const menu = menuMap[data];
-  if (!menu) {
-    return {
-      chat_id: chatId,
-      text: '🤔 Menu not found',
-      parse_mode: 'Markdown'
-    };
-  }
-
-  return {
-    method: 'editMessageText',
-    chat_id: chatId,
-    text: menu.text,
-    reply_markup: menu.reply_markup,
-    parse_mode: 'Markdown'
-  };
+  if (!menu) return mkSend(chatId, '🤔 Menu not found');
+  return mkEdit(chatId, menu.text || 'Menu', menu.reply_markup || {});
 }
 
-// ============================================================================
-// SPORT CALLBACKS (sport_*)
-// ============================================================================
-
-function handleSportCallback(data, chatId, _userId, _redis) {
-  logger.info('handleSportCallback', { data });
-
-  const sport = data.replace('sport_', '').toUpperCase();
-  const sportNames = {
-    'FOOTBALL': '⚽ Football',
-    'BASKETBALL': '🏀 Basketball',
-    'TENNIS': '🎾 Tennis',
-    'NFL': '🏈 American Football',
-    'HOCKEY': '🏒 Ice Hockey',
-    'BASEBALL': '⚾ Baseball'
-  };
-
-  const sportName = sportNames[sport] || sport;
-
-  return {
-    method: 'editMessageText',
-    chat_id: chatId,
-    text: `${sportName} - *Loading matches...*\n\n⏳ Fetching live games and odds`,
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '🔄 Refresh', callback_data: `sport_${sport.toLowerCase()}` }],
-        [{ text: '🔙 Back', callback_data: 'menu_live' }]
-      ]
-    },
-    parse_mode: 'Markdown'
-  };
-}
-
-// ============================================================================
-// LEAGUE CALLBACKS (league_*) - placeholder implementation
-// Adds a minimal handler so callers do not hit undefined references.
-async function handleLeagueCallback(data, chatId, userId, redis, _services) {
-  logger.info('handleLeagueCallback', { data, userId });
-  void redis;
+// --- League / Event / Odds handlers ---
+async function handleLeagueCallback(data, chatId, redis) {
+  const leagueId = String(data).replace(/^league_/, '').trim();
   try {
-    const parts = data.split('_');
-    const leagueId = parts[1] || 'unknown';
-
-    // Minimal safe response: avoid throwing if services are missing
-    return {
-      method: 'editMessageText',
-      chat_id: chatId,
-      text: `🏆 League details for *${leagueId}* are not available yet.`,
-      reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_standings' }]] },
-      parse_mode: 'Markdown'
-    };
-  } catch (e) {
-    logger.warn('handleLeagueCallback error', e);
-    return {
-      chat_id: chatId,
-      text: '❌ Error loading league details',
-      parse_mode: 'Markdown'
-    };
-  }
-}
-
-// ============================================================================
-// SUBSCRIPTION CALLBACKS (sub_*)
-// ============================================================================
-
-function handleSubscriptionCallback(data, chatId, _userId, _redis) {
-  logger.info('handleSubscriptionCallback', { data });
-
-  const tier = data.replace('sub_', '').toUpperCase();
-  
-  const tierPrices = {
-    'FREE': { name: 'Free Community', price: 'Free', benefits: 'Basic access' },
-    'PRO': { name: 'Pro Tier', price: 'KES 899/month', benefits: 'AI analysis + real-time odds' },
-    'VVIP': { name: 'VVIP (Most Popular)', price: 'KES 2,699/month', benefits: 'All Pro + predictions' },
-    'PLUS': { name: 'BETRIX Plus', price: 'KES 8,999/month', benefits: 'Everything + VIP support' }
-  };
-
-  const tierInfo = tierPrices[tier] || tierPrices['FREE'];
-
-  const text = `🎯 *${tierInfo.name}*
-
-💰 Price: ${tierInfo.price}
-✨ Features: ${tierInfo.benefits}
-
-Ready to upgrade? Select a payment method below:`;
-
-  // Only show payment methods for non-free tiers
-  const keyboard = tier === 'FREE'
-    ? mainMenu.reply_markup
-    : paymentMethodsMenu(tier).reply_markup;
-
-  return {
-    method: 'editMessageText',
-    chat_id: chatId,
-    text: text,
-    reply_markup: keyboard,
-    parse_mode: 'Markdown'
-  };
-}
-
-// ============================================================================
-// PAYMENT CALLBACKS (pay_*)
-// ============================================================================
-
-async function handlePaymentCallback(data, chatId, userId, redis, _services) {
-  logger.info('handlePaymentCallback', { data, userId });
-
-  try {
-    // Parse: pay_METHOD_TIER
-    const parts = data.split('_');
-    const method = parts[1].toUpperCase();
-    const tier = parts[2]?.toUpperCase() || 'VVIP';
-
-    // Create payment order
-    const order = await createPaymentOrder(redis, userId, tier, method, 'KE', {});
-    
-    if (!order) {
-      return {
-        chat_id: chatId,
-        text: '❌ Error creating payment order. Try again later.',
-        parse_mode: 'Markdown'
-      };
-    }
-
-      // Get payment instructions (use redis + orderId signature)
-      const instructions = await getPaymentInstructions(redis, order.orderId, method);
-
-      // Normalize instructions into a markdown-friendly block
-      let instructionsText = '';
-      try {
-        if (!instructions) {
-          instructionsText = '_No instructions available for this method._';
-        } else if (instructions.checkoutUrl) {
-          // PayPal or similar
-          instructionsText = `${instructions.description || ''}\n\n[🔗 Click to Pay](${instructions.checkoutUrl})`;
-        } else if (instructions.tillNumber) {
-          // Safaricom till
-          instructionsText = `${instructions.description || ''}\n\nTill: \`${instructions.tillNumber}\`\nRef: \`${instructions.reference}\`\nAmount: *${instructions.amount} ${instructions.currency || 'KES'}*`;
-        } else if (instructions.steps && Array.isArray(instructions.steps)) {
-          instructionsText = `${instructions.description || ''}\n\n` + instructions.steps.map((s, i) => `${i + 1}. ${s}`).join('\n');
-        } else {
-          // Fallback: stringify
-          instructionsText = JSON.stringify(instructions, null, 2);
-        }
-      } catch (e) {
-        logger.warn('Failed to render payment instructions', e);
-        instructionsText = instructions && typeof instructions === 'string' ? instructions : '_Unable to build payment instructions_';
-      }
-
-
-
-
-
-
-
-
-
-      // Build comprehensive confirmation screen
-      let confirmText = `✅ *Payment Order Created*\n\n📋 *Order Details:*\nOrder ID: \`${order.orderId}\`\nUser ID: \`${userId}\`\nTier: *${getTierDisplayName(tier)}*\nAmount: *KES ${getTierAmount(tier)}*\nStatus: ⏳ Pending Payment\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n💳 *Payment Method: ${getMethodName(method)}*\n\n${instructionsText}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n⏱️ *Next Steps:*\n1️⃣ Send payment using the details above\n2️⃣ Wait for confirmation (usually instant)\n3️⃣ Click "✅ Confirm Payment Sent" when done\n\n❗ *Important:*\n• Screenshot your payment confirmation for support\n• Payment may take 5-10 minutes to appear\n• Check "Check Status" to verify payment\n\n*Questions?* Contact support@betrix.app`;
-
-    // Build keyboard with confirmation + status check
-    // If PayPal checkout URL is available, show a direct Pay button linking to PayPal
+    const events = await sportsgameodds.fetchAllEvents({ league: leagueId, redis, forceFetch: false });
     const keyboard = { inline_keyboard: [] };
-    if (instructions && instructions.checkoutUrl) {
-      keyboard.inline_keyboard.push([
-        { text: '💳 Pay with PayPal', url: instructions.checkoutUrl }
-      ]);
-      // Also provide a server-side checkout redirect (use PUBLIC_URL if configured)
-      try {
-        const base = process.env.PUBLIC_URL || 'https://betrix.app';
-        const redirect = `${base.replace(/\/$/, '')}/pay/checkout?orderId=${order.orderId}`;
-        keyboard.inline_keyboard.push([
-          { text: '🔗 Open Checkout (BETRIX)', url: redirect }
-        ]);
-      } catch (e) {
-        // ignore
+    if (Array.isArray(events) && events.length) {
+      for (let i = 0; i < Math.min(8, events.length); i++) {
+        const ev = events[i];
+        const id = ev.id || ev.eventId || ev._id || String(i);
+        const home = ev.home?.name || ev.home_team || ev.home || 'Home';
+        const away = ev.away?.name || ev.away_team || ev.away || 'Away';
+        keyboard.inline_keyboard.push([{ text: `${home} vs ${away}`.slice(0, 40), callback_data: `event_${leagueId}_${id}` }]);
       }
+    } else {
+      keyboard.inline_keyboard.push([{ text: 'No upcoming events', callback_data: 'menu_standings' }]);
     }
-    keyboard.inline_keyboard.push([
-      { text: '✅ Confirm Payment Sent', callback_data: `verify_${order.orderId}` },
-      { text: '🔄 Check Status', callback_data: `status_${order.orderId}` }
-    ]);
-    keyboard.inline_keyboard.push([
-      { text: '❌ Cancel Order', callback_data: 'menu_vvip' }
-    ]);
-
-    return {
-      method: 'editMessageText',
-      chat_id: chatId,
-      text: confirmText,
-      reply_markup: keyboard,
-      parse_mode: 'Markdown'
-    };
+    keyboard.inline_keyboard.push([{ text: '🔙 Back', callback_data: 'menu_standings' }]);
+    return mkEdit(chatId, `🏟️ *${leagueId}*\n\nEvents:`, keyboard);
   } catch (err) {
-    logger.error('handlePaymentCallback error', err);
-    return {
-      chat_id: chatId,
-      text: `❌ Payment error: ${err.message}\n\nTry again or contact support`,
-      parse_mode: 'Markdown'
-    };
+    logger.warn('handleLeagueCallback error', err?.message || String(err));
+    return mkSend(chatId, '❌ Error loading league events');
   }
 }
 
-// ============================================================================
-// PROFILE CALLBACKS (profile_*)
-// ============================================================================
-
-function handleProfileCallback(data, chatId, _userId, _redis) {
-  logger.info('handleProfileCallback', { data });
-
-  const subMenuMap = {
-    'profile_stats': {
-      text: `📊 *Your Stats*
-
-Bets Placed: 42
-Win Rate: 64%
-Favorite Sport: Football
-
-View detailed analytics in VVIP tier.`,
-      keyboard: profileMenu.reply_markup
-    },
-    'profile_bets': {
-      text: `💰 *Your Transactions*
-
-Recent:
-• Nov 25: +KES 2,699 (Pro upgrade)
-• Nov 24: +KES 1,500 (Credit)
-• Nov 23: -KES 500 (Bet)`,
-      keyboard: profileMenu.reply_markup
-    },
-    'profile_favorites': {
-      text: `⭐ *Your Favorites*
-
-Teams: Liverpool, Manchester City
-Leagues: Premier League, La Liga
-Sports: Football, Basketball`,
-      keyboard: profileMenu.reply_markup
-    },
-    'profile_settings': {
-      text: `⚙️ *Settings*
-
-🔔 Notifications: Enabled
-🌙 Theme: Auto
-🔐 Privacy: Private
-
-Contact support for more options.`,
-      keyboard: profileMenu.reply_markup
-    }
-  };
-
-  const submenu = subMenuMap[data] || subMenuMap['profile_stats'];
-
-  return {
-    method: 'editMessageText',
-    chat_id: chatId,
-    text: submenu.text,
-    reply_markup: submenu.keyboard,
-    parse_mode: 'Markdown'
-  };
-}
-
-// ============================================================================
-// HELP CALLBACKS (help_*)
-// ============================================================================
-
-function handleHelpCallback(data, chatId, _userId, _redis) {
-  logger.info('handleHelpCallback', { data });
-
-  const helpTopics = {
-    'help_faq': `❓ *Frequently Asked Questions*
-
-**Q: How do I get live odds?**
-A: Use /live command or select from menu
-
-**Q: What's the win rate accuracy?**
-A: 85%+ in VVIP tier
-
-**Q: Do you support international users?**
-A: Yes! PayPal available for most countries`,
-    
-    'help_demo': `🎮 *Try Demo Features*
-
-Here's a sample match analysis:
-
-Liverpool vs Man City
-Confidence: 82%
-Prediction: Draw
-
-Full analysis in VVIP tier.`,
-    
-    'help_contact': `📧 *Contact Support*
-
-Email: support@betrix.app
-Response: ~2 hours
-Chat: Available in VVIP tier
-
-Hours: 9 AM - 6 PM EAT`
-  };
-
-  const content = helpTopics[data] || helpTopics['help_faq'];
-
-  return {
-    method: 'editMessageText',
-    chat_id: chatId,
-    text: content,
-    reply_markup: helpMenu.reply_markup,
-    parse_mode: 'Markdown'
-  };
-}
-
-// ============================================================================
-// NEWS ARTICLE CALLBACK (news_<index>)
-// ============================================================================
-
-async function handleNewsArticleCallback(data, chatId, userId, redis, services) {
-  logger.info('handleNewsArticleCallback', { data, userId });
-
+async function handleEventCallback(data, chatId, redis) {
   const parts = data.split('_');
-  const idx = Number(parts[1]);
-
-  // Try to fetch articles from services
-  let articles = [];
+  if (parts.length < 3) return mkSend(chatId, 'Invalid event selection');
+  const league = parts[1];
+  const eventId = parts.slice(2).join('_');
   try {
-    if (services && services.api) {
-      if (typeof services.api.fetchNews === 'function') {
-        articles = await services.api.fetchNews();
-      } else if (typeof services.api.get === 'function') {
-        const res = await services.api.get('/news');
-        articles = res?.data || res || [];
-      }
+    let odds = null;
+    try { odds = await sportsgameodds.fetchOdds({ league, eventId, redis, forceFetch: false }); } catch (e) { logger.warn('fetchOdds failed', e?.message || String(e)); }
+    if (!odds || Object.keys(odds || {}).length === 0) {
+      try { const all = await sportsgameodds.fetchAllOdds({ league, eventIDs: eventId, redis, forceFetch: false }); odds = Array.isArray(all) ? all[0] : all; } catch (e) { logger.warn('fetchAllOdds fallback failed', e?.message || String(e)); }
     }
-  } catch (e) {
-    logger.warn('Failed to fetch news in callback', e);
+    const ev = odds?.event || odds?.match || (odds && (odds.event || odds)) || {};
+    const home = ev.home?.name || ev.home_team || ev.home || 'Home';
+    const away = ev.away?.name || ev.away_team || ev.away || 'Away';
+    const text = `*${home}* vs *${away}*`;
+    const keyboard = { inline_keyboard: [[{ text: '📊 View Odds', callback_data: `odds_${league}_${eventId}` }], [{ text: '🔙 Back', callback_data: `league_${league}` }]] };
+    return mkEdit(chatId, text, keyboard);
+  } catch (err) {
+    logger.warn('handleEventCallback error', err?.message || String(err));
+    return mkSend(chatId, '❌ Error loading event');
   }
-
-  const article = Array.isArray(articles) && articles[idx] ? articles[idx] : null;
-
-  if (!article) {
-    return {
-      method: 'editMessageText',
-      chat_id: chatId,
-      text: '📰 Article not available. Try /news to refresh.',
-      reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_news' }]] },
-      parse_mode: 'Markdown'
-    };
-  }
-
-  const text = `📰 *${article.title || 'Article'}*\n\n${article.summary || article.description || article.content || 'Read more at the source.'}\n\n🔗 [Open in browser](${article.url || '#'})`;
-
-  const keyboard = {
-    inline_keyboard: [
-      [{ text: 'Open in Browser', url: article.url || undefined }],
-      [{ text: '🔙 Back to News', callback_data: 'menu_news' }]
-    ]
-  };
-
-  return {
-    method: 'editMessageText',
-    chat_id: chatId,
-    text,
-    reply_markup: keyboard,
-    parse_mode: 'Markdown'
-  };
 }
 
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
+async function handleOddsCallback(data, chatId, redis) {
+  const parts = data.split('_');
+  if (parts.length < 3) return mkSend(chatId, 'Invalid odds selection');
+  const league = parts[1];
+  const eventId = parts.slice(2).join('_');
+  try {
+    let odds = null;
+    try { odds = await sportsgameodds.fetchOdds({ league, eventId, redis, forceFetch: false }); } catch (e) { logger.warn('fetchOdds failed', e?.message || String(e)); }
+    if (!odds || Object.keys(odds || {}).length === 0) { try { const all = await sportsgameodds.fetchAllOdds({ league, eventIDs: eventId, redis, forceFetch: false }); odds = Array.isArray(all) ? all[0] : all; } catch (e) { logger.warn('fetchAllOdds fallback failed', e?.message || String(e)); } }
+    const markets = odds?.markets || odds?.market || [];
+    let text = `📊 *Odds for ${eventId}*`;
+    if (!markets || (Array.isArray(markets) && !markets.length)) text += '\n\nNo structured markets available.';
+    const keyboard = { inline_keyboard: [[{ text: '🔙 Back to Event', callback_data: `event_${league}_${eventId}` }]] };
+    return mkEdit(chatId, text, keyboard);
+  } catch (err) {
+    logger.warn('handleOddsCallback error', err?.message || String(err));
+    return mkSend(chatId, '❌ Error loading odds');
+  }
+}
 
+// --- News handlers ---
+async function handleNewsArticleCallback(data, chatId, redis) {
+  const id = String(data).replace(/^news_/, '');
+  try {
+    const article = await newsService.getById(id, { redis });
+    if (!article) return mkSend(chatId, 'Article not found');
+    const text = `📰 *${article.title || 'Article'}*\n\n${article.summary || article.description || article.content || 'Read more at the source.'}`;
+    const keyboard = { inline_keyboard: [[{ text: 'Open in Browser', url: article.url || undefined }], [{ text: '🔙 Back to News', callback_data: 'menu_news' }]] };
+    return mkEdit(chatId, text, keyboard);
+  } catch (err) {
+    logger.warn('handleNewsArticleCallback', err?.message || String(err));
+    return mkSend(chatId, '❌ Error loading article');
+  }
+}
+
+// --- Subscription / Payment handlers (minimal safe implementations) ---
+function handleSubscriptionCallback(data, chatId) {
+  const tier = String(data).replace(/^sub_/, '');
+  const price = getTierAmount(tier);
+  const text = `You selected *${getTierDisplayName(tier)}* - Amount: *KES ${price}*`;
+  const keyboard = { inline_keyboard: [[{ text: 'Proceed to Pay', callback_data: `pay_PAYPAL_${tier}` }], [{ text: '🔙 Back', callback_data: 'menu_vvip' }]] };
+  return mkEdit(chatId, text, keyboard);
+}
+
+async function handlePaymentCallback(data, chatId, _userId, redis, services) {
+  // Example callback: pay_PAYPAL_PRO  or pay_BINANCE_VVIP
+  const parts = data.split('_');
+  const method = parts[1];
+  const tier = parts.slice(2).join('_');
+  try {
+    const order = await createPaymentOrder({ method, tier, redis, services });
+    const instr = getPaymentInstructions(order, method);
+    const keyboard = { inline_keyboard: [[{ text: 'Open Payment', url: instr.url || undefined }], [{ text: '🔙 Back', callback_data: 'menu_vvip' }]] };
+    return mkEdit(chatId, `Payment created. Order: ${order.id || 'N/A'}`, keyboard);
+  } catch (err) {
+    logger.warn('handlePaymentCallback error', err?.message || String(err));
+    return mkSend(chatId, '❌ Error initiating payment');
+  }
+}
+
+// --- Profile / Help ---
+function handleProfileCallback(data, chatId) {
+  return mkEdit(chatId, '*Profile*\n\nManage your preferences here.', profileMenu.reply_markup);
+}
+
+function handleHelpCallback(data, chatId) {
+  return mkEdit(chatId, '*Help*\n\nUse /menu to open the main menu.', helpMenu.reply_markup);
+}
+
+// --- Small utility helpers used above ---
 function getTierAmount(tier) {
-  const amounts = {
-    'PRO': 899,
-    'VVIP': 2699,
-    'PLUS': 8999,
-    'FREE': 0
-  };
+  const amounts = { PRO: 899, VVIP: 2699, PLUS: 8999, FREE: 0 };
   return amounts[tier] || 2699;
 }
 
 function getTierDisplayName(tier) {
-  const names = {
-    'PRO': 'Pro Tier 📊',
-    'VVIP': 'VVIP Tier 👑',
-    'PLUS': 'BETRIX Plus 💎',
-    'FREE': 'Free Tier'
-  };
+  const names = { PRO: 'Pro Tier 📊', VVIP: 'VVIP Tier 👑', PLUS: 'BETRIX Plus 💎', FREE: 'Free Tier' };
   return names[tier] || tier;
 }
 
 function getMethodName(method) {
   const names = {
-    'TILL': `🏪 Safaricom Till #${process.env.MPESA_TILL || '606215'}`,
-    'MPESA': '📱 M-Pesa (STK)',
-    'PAYPAL': '💳 PayPal',
-    'BINANCE': '₿ Binance Pay',
-    'SWIFT': '🏦 Bank Transfer'
+    TILL: `🏪 Safaricom Till #${process.env.MPESA_TILL || '606215'}`,
+    MPESA: '📱 M-Pesa (STK)',
+    PAYPAL: '💳 PayPal',
+    BINANCE: '₿ Binance Pay',
+    SWIFT: '🏦 Bank Transfer'
   };
   return names[method] || method;
 }
 
-export default {
-  handleCallback,
-  handleMenuCallback,
-  handleSportCallback,
-  handleSubscriptionCallback,
-  handlePaymentCallback,
-  handleProfileCallback,
-  handleHelpCallback
-};
+// --- Main exported router ---
+export async function handleCallback(data, chatId, userId, redis, services = {}) {
+  logger.info('Callback received', { userId, data });
+  try {
+    if (!data || typeof data !== 'string') return mkSend(chatId, 'Invalid action');
+    if (data.startsWith('menu_')) return handleMenuCallback(data, chatId);
+    if (data.startsWith('league_')) return await handleLeagueCallback(data, chatId, redis);
+    if (data.startsWith('event_')) return await handleEventCallback(data, chatId, redis);
+    if (data.startsWith('odds_')) return await handleOddsCallback(data, chatId, redis);
+    if (data.startsWith('news_')) return await handleNewsArticleCallback(data, chatId, redis);
+    if (data.startsWith('sub_')) return handleSubscriptionCallback(data, chatId);
+    if (data.startsWith('pay_')) return await handlePaymentCallback(data, chatId, userId, redis, services);
+    if (data.startsWith('profile_')) return handleProfileCallback(data, chatId);
+    if (data.startsWith('help_')) return handleHelpCallback(data, chatId);
+    return mkSend(chatId, 'Unknown action');
+  } catch (err) {
+    logger.error('Final handleCallback failed', err);
+    return mkSend(chatId, '❌ Error processing callback');
+  }
+}
+
+export default { handleCallback };
+      chat_id: chatId,

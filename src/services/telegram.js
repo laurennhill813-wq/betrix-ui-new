@@ -61,7 +61,7 @@ class TelegramService {
         }
         // Append outgoing event to local file for easier debugging in deployed environments
         try {
-          const entry = { ts: new Date().toISOString(), method: 'sendMessage', chatId, page: i+1, payloadSummary: { textLen: (payload.text||'').length, hasReplyMarkup: !!payload.reply_markup } };
+          const entry = { ts: new Date().toISOString(), method: 'sendMessage', chatId, page: i+1, payloadSummary: { textLen: (payload.text||'').length, hasReplyMarkup: !!payload.reply_markup, fallbackAfterEdit: !!options?.fallbackAfterEdit } };
           await appendFile('./logs/outgoing-events.log', JSON.stringify(entry) + '\n', { encoding: 'utf8' }).catch(()=>{});
           // Also write to stdout so platform log aggregation (Render) captures outgoing events
           try { console.log('[OUTGOING_EVENT] ' + JSON.stringify(entry)); } catch (e) { void e; }
@@ -77,12 +77,12 @@ class TelegramService {
   /**
    * Edit existing message
    */
-  async editMessage(chatId, messageId, text, replyMarkup = null) {
+  async editMessage(chatId, messageId, text, replyMarkup = null, parseMode = 'HTML') {
     const payload = {
       chat_id: chatId,
       message_id: messageId,
       text,
-      parse_mode: "HTML",
+      parse_mode: parseMode || 'HTML',
       disable_web_page_preview: true,
       ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
     };

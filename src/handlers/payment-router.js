@@ -5,6 +5,7 @@
 
 import { Logger } from '../utils/logger.js';
 import * as paypal from '@paypal/checkout-server-sdk';
+import binanceClient from '../lib/binance-client.js';
 
 const logger = new Logger('PaymentRouter');
 void logger;
@@ -346,6 +347,27 @@ export async function createPaymentOrder(redis, userId, tier, paymentMethod, use
         }
       } catch (e) {
         logger.warn('Failed to create PayPal order', e);
+      }
+    }
+
+    // For Binance, create a provider reference and checkout/qr instructions
+    if (paymentMethod === 'BINANCE') {
+      try {
+        const binRes = await binanceClient.createBinanceOrder({ orderId, amount: orderData.totalAmount, currency: 'USDT' });
+        if (binRes && binRes.providerRef) {
+          orderData.providerRef = binRes.providerRef;
+          orderData.metadata = orderData.metadata || {};
+          orderData.metadata.checkoutUrl = binRes.checkoutUrl;
+          orderData.instructions = {
+            method: 'binance_pay',
+            checkoutUrl: binRes.checkoutUrl,
+            qr: binRes.qr,
+            amount: orderData.totalAmount,
+            description: 'Pay using Binance Pay and include merchant reference'
+          };
+        }
+      } catch (e) {
+        logger.warn('Failed to create Binance order', e?.message || e);
       }
     }
 

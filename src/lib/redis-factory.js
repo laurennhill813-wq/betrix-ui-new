@@ -260,12 +260,36 @@ export function getRedis(opts = {}) {
     console.log('[redis-factory] 🔗 Connecting to Redis with provided URL');
   }
 
+  // If REDIS_USERNAME/REDIS_PASSWORD present but redisUrl doesn't include credentials,
+  // construct a URL embedding them so ioredis can authenticate over TLS.
+  try {
+    const url = new URL(redisUrl);
+    if ((!url.username || !url.password) && process.env.REDIS_USERNAME && process.env.REDIS_PASSWORD) {
+      const proto = url.protocol || 'rediss:';
+      const host = url.hostname;
+      const port = url.port || '6379';
+      // Build a safe connection string with credentials
+      const cred = encodeURIComponent(String(process.env.REDIS_USERNAME)) + ':' + encodeURIComponent(String(process.env.REDIS_PASSWORD));
+      const builtUrl = `${proto}//${cred}@${host}:${port}${url.pathname || ''}`;
+      // Use builtUrl when creating the client below
+      try { console.log('[redis-factory] 🔗 Using REDIS_USERNAME/REDIS_PASSWORD to build connection URL'); } catch (e) { /* ignore */ }
+      // shadow the redisUrl variable for downstream client creation
+      // eslint-disable-next-line no-shadow
+      var _redisUrlForClient = builtUrl;
+    }
+  } catch (e) {
+    // ignore URL parsing errors and continue with provided redisUrl
+  }
+
   // Create ioredis instance with proper configuration
   // Track last log time so reconnect spam is throttled
   let _lastReconnectLog = 0;
   const throttleMs = 30 * 1000; // at most one reconnect log every 30s
 
-  _instance = new Redis(redisUrl, {
+  // Prefer built URL with credentials when available
+  const _connectUrl = (typeof _redisUrlForClient !== 'undefined' && _redisUrlForClient) ? _redisUrlForClient : redisUrl;
+
+  _instance = new Redis(_connectUrl, {
     // Connection options
     connectTimeout: 10000,
     // Re-enable offline queue so transient blips are buffered instead of
