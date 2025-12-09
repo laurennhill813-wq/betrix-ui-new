@@ -50,6 +50,7 @@ import v2Handler from "./handlers/telegram-handler-v2-clean.js";
 import completeHandler from "./handlers/handler-complete.js";
 import SportMonksAPI from "./services/sportmonks-api.js";
 import SportsDataAPI from "./services/sportsdata-api.js";
+import * as sportsgameodds from "./services/sportsgameodds.js";
 import { registerDataExposureAPI } from "./app.js";
 import { Pool } from 'pg';
 import { reconcileWithLipana } from './tasks/reconcile-lipana.js';
@@ -467,6 +468,22 @@ const premiumService = new PremiumService(redis, ai);
 const adminDashboard = new AdminDashboard(redis, telegram, analytics);
 
 logger.info("🚀 BETRIX Final Worker - All Services Initialized");
+
+// --- Startup health check: SportGameOdds (SGO) quick probe ---
+try {
+  const probeLeague = (process.env.SGO_PREFETCH_LEAGUES || 'EPL').split(',')[0].trim();
+  (async () => {
+    try {
+      const sample = await sportsgameodds.fetchEvents({ league: probeLeague, redis, forceFetch: false });
+      const count = Array.isArray(sample) ? sample.length : (sample && typeof sample === 'object' ? Object.keys(sample).length : 0);
+      logger.info('SGO healthcheck OK', { provider: 'sportsgameodds', league: probeLeague, items: count });
+    } catch (err) {
+      logger.warn('SGO healthcheck failed', { provider: 'sportsgameodds', league: probeLeague, error: String(err?.message || err) });
+    }
+  })();
+} catch (e) {
+  logger.warn('SGO healthcheck setup failed', e?.message || String(e));
+}
 
 let running = true; // flag used to gracefully stop the main loop on SIGTERM/SIGINT
 
