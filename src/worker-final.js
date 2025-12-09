@@ -502,6 +502,21 @@ try {
   })();
 } catch (e) { logger.warn('SGO leagues bootstrap setup failed', e?.message || String(e)); }
 
+// Periodically refresh the SGO leagues cache so menus stay up-to-date.
+try {
+  const refreshSeconds = Math.max(60, Number(process.env.SGO_LEAGUES_REFRESH_SECONDS || 3600));
+  setInterval(async () => {
+    try {
+      const leagues = await sportsgameodds.fetchLeagues({ redis, forceFetch: true }).catch(() => null);
+      if (leagues && Array.isArray(leagues)) logger.info('SGO leagues refreshed', { count: leagues.length });
+      else logger.info('SGO leagues refresh returned no data');
+    } catch (err) {
+      logger.warn('SGO leagues periodic refresh failed', err?.message || String(err));
+    }
+  }, refreshSeconds * 1000);
+  logger.info('SGO leagues periodic refresh scheduled', { intervalSeconds: Number(process.env.SGO_LEAGUES_REFRESH_SECONDS || 3600) });
+} catch (e) { logger.warn('Failed to schedule SGO leagues periodic refresh', e?.message || String(e)); }
+
 let running = true; // flag used to gracefully stop the main loop on SIGTERM/SIGINT
 
 // Start a minimal HTTP server that accepts Telegram webhook POSTs and a health check.
@@ -528,6 +543,22 @@ try {
         return res.json({ ok: true, lines: tail });
       } catch (err) {
         return res.status(500).json({ ok: false, error: err?.message || String(err) });
+      }
+    });
+
+    // Admin endpoint to view cached SportGameOdds leagues (protected)
+    minimalApp.get('/admin/prefetch/sgo/leagues', async (req, res) => {
+      try {
+        const adminKey = process.env.ADMIN_API_KEY || (CONFIG && CONFIG.ADMIN_API_KEY) || null;
+        const provided = (req.header('X-ADMIN-KEY') || req.header('X-API-Key') || req.query.key || '').toString();
+        if (!adminKey || !provided || provided !== adminKey) return res.status(403).json({ ok: false, error: 'unauthorized' });
+        if (!redis || typeof redis.get !== 'function') return res.status(503).json({ ok: false, error: 'redis unavailable' });
+        const raw = await redis.get('prefetch:sgo:leagues');
+        const parsed = raw ? (function() { try { return JSON.parse(raw); } catch(e){ return raw; } })() : null;
+        const count = Array.isArray(parsed) ? parsed.length : (parsed && typeof parsed === 'object' ? Object.keys(parsed).length : 0);
+        return res.json({ ok: true, count, leagues: parsed || [] });
+      } catch (e) {
+        return res.status(500).json({ ok: false, error: e?.message || String(e) });
       }
     });
 
