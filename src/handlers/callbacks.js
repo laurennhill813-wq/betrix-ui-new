@@ -13,7 +13,7 @@ import {
   mainMenu,
   sportsMenu,
   subscriptionMenu,
-  paymentMethodsMenu,
+  // paymentMethodsMenu, (unused in this module)
   profileMenu,
   helpMenu
 } from './menu-system.js';
@@ -32,6 +32,7 @@ function mkEdit(chatId, text, reply_markup) {
 function mkSend(chatId, text) {
   return { chat_id: chatId, text, parse_mode: 'Markdown' };
 }
+
 
 // --- Menu handler ---
 function handleMenuCallback(data, chatId) {
@@ -119,13 +120,23 @@ async function handleOddsCallback(data, chatId, redis) {
 }
 
 // --- News handlers ---
-async function handleNewsArticleCallback(data, chatId, redis) {
+async function handleNewsArticleCallback(data, chatId, _redis) {
   const id = String(data).replace(/^news_/, '');
   try {
-    const article = await newsService.getById(id, { redis });
+    // news-service exposes cached headlines; try to resolve by numeric index first
+    const headlines = await newsService.getCachedHeadlines({ max: 20 });
+    let article = null;
+    if (/^\d+$/.test(id)) {
+      const idx = Math.max(0, parseInt(id, 10) - 1);
+      article = headlines[idx] || null;
+    }
+    // fallback: try to match by link or title substring
+    if (!article) {
+      article = headlines.find(h => (h.link && h.link.includes(id)) || (h.title && h.title.includes(id))) || null;
+    }
     if (!article) return mkSend(chatId, 'Article not found');
     const text = `📰 *${article.title || 'Article'}*\n\n${article.summary || article.description || article.content || 'Read more at the source.'}`;
-    const keyboard = { inline_keyboard: [[{ text: 'Open in Browser', url: article.url || undefined }], [{ text: '🔙 Back to News', callback_data: 'menu_news' }]] };
+    const keyboard = { inline_keyboard: [[{ text: 'Open in Browser', url: article.link || undefined }], [{ text: '🔙 Back to News', callback_data: 'menu_news' }]] };
     return mkEdit(chatId, text, keyboard);
   } catch (err) {
     logger.warn('handleNewsArticleCallback', err?.message || String(err));
@@ -135,7 +146,7 @@ async function handleNewsArticleCallback(data, chatId, redis) {
 
 // --- Subscription / Payment handlers (minimal safe implementations) ---
 function handleSubscriptionCallback(data, chatId) {
-  const tier = String(data).replace(/^sub_/, '');
+  const tier = String(data).replace(/^sub_/, '').toUpperCase();
   const price = getTierAmount(tier);
   const text = `You selected *${getTierDisplayName(tier)}* - Amount: *KES ${price}*`;
   const keyboard = { inline_keyboard: [[{ text: 'Proceed to Pay', callback_data: `pay_PAYPAL_${tier}` }], [{ text: '🔙 Back', callback_data: 'menu_vvip' }]] };
@@ -160,7 +171,8 @@ async function handlePaymentCallback(data, chatId, _userId, redis, services) {
 
 // --- Profile / Help ---
 function handleProfileCallback(data, chatId) {
-  return mkEdit(chatId, '*Profile*\n\nManage your preferences here.', profileMenu.reply_markup);
+  const text = `*Profile*\n\nManage your preferences here.\n\n*Stats*\nWins: 0  Losses: 0  Streak: 0`;
+  return mkEdit(chatId, text, profileMenu.reply_markup);
 }
 
 function handleHelpCallback(data, chatId) {
@@ -178,16 +190,7 @@ function getTierDisplayName(tier) {
   return names[tier] || tier;
 }
 
-function getMethodName(method) {
-  const names = {
-    TILL: `🏪 Safaricom Till #${process.env.MPESA_TILL || '606215'}`,
-    MPESA: '📱 M-Pesa (STK)',
-    PAYPAL: '💳 PayPal',
-    BINANCE: '₿ Binance Pay',
-    SWIFT: '🏦 Bank Transfer'
-  };
-  return names[method] || method;
-}
+
 
 // --- Main exported router ---
 export async function handleCallback(data, chatId, userId, redis, services = {}) {
@@ -211,4 +214,4 @@ export async function handleCallback(data, chatId, userId, redis, services = {})
 }
 
 export default { handleCallback };
-      chat_id: chatId,
+ 
