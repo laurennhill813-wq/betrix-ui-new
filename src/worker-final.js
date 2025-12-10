@@ -102,7 +102,8 @@ if (redis && typeof redis.on === 'function') {
 (() => {
   const telegramToken = process.env.TELEGRAM_TOKEN || (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.TOKEN) || CONFIG.TELEGRAM_TOKEN || CONFIG.TELEGRAM?.BOT_USERNAME || null;
   const redisUrl = process.env.REDIS_URL || CONFIG.REDIS_URL || null;
-  const azureKey = process.env.AZURE_AI_KEY || process.env.AZURE_KEY || (CONFIG.AZURE && CONFIG.AZURE.KEY) || null;
+  // Accept both legacy names and newer Azure OpenAI naming used in Render
+  const azureKey = process.env.AZURE_AI_KEY || process.env.AZURE_KEY || process.env.AZURE_OPENAI_KEY || process.env.AZURE_OPENAI_KEY || (CONFIG.AZURE && CONFIG.AZURE.KEY) || null;
   const sgoKey = process.env.SPORTSGAMEODDS_API_KEY || process.env.SPORTSGAMEODDS_KEY || null;
 
   const missing = [];
@@ -189,12 +190,13 @@ const gemini = new GeminiService(CONFIG.GEMINI.API_KEY);
 const hfModels = process.env.HUGGINGFACE_MODELS || process.env.HUGGINGFACE_MODEL || null;
 const huggingface = new HuggingFaceService(hfModels, process.env.HUGGINGFACE_TOKEN);
 const localAI = new LocalAIService();
-const azure = new AzureAIService(
-  process.env.AZURE_AI_ENDPOINT || process.env.AZURE_ENDPOINT || (CONFIG.AZURE && CONFIG.AZURE.ENDPOINT),
-  process.env.AZURE_AI_KEY || process.env.AZURE_KEY || (CONFIG.AZURE && CONFIG.AZURE.KEY),
-  process.env.AZURE_AI_DEPLOYMENT || process.env.AZURE_DEPLOYMENT || (CONFIG.AZURE && CONFIG.AZURE.DEPLOYMENT),
-  process.env.AZURE_API_VERSION || (CONFIG.AZURE && CONFIG.AZURE.API_VERSION) || '2023-05-15'
-);
+  // Construct AzureAIService using either legacy env names or the newer AZURE_OPENAI_* names
+  const azure = new AzureAIService(
+    process.env.AZURE_AI_ENDPOINT || process.env.AZURE_ENDPOINT || process.env.AZURE_OPENAI_ENDPOINT || (CONFIG.AZURE && CONFIG.AZURE.ENDPOINT),
+    process.env.AZURE_AI_KEY || process.env.AZURE_KEY || process.env.AZURE_OPENAI_KEY || (CONFIG.AZURE && CONFIG.AZURE.KEY),
+    process.env.AZURE_AI_DEPLOYMENT || process.env.AZURE_DEPLOYMENT || process.env.AZURE_OPENAI_DEPLOYMENT || (CONFIG.AZURE && CONFIG.AZURE.DEPLOYMENT),
+    process.env.AZURE_API_VERSION || process.env.AZURE_OPENAI_API_VERSION || (CONFIG.AZURE && CONFIG.AZURE.API_VERSION) || '2023-05-15'
+  );
 const freeSports = new FreeSportsService(redis);
 const cache = new CacheService(redis);
 const openLiga = new OpenLigaDBService(undefined, cache, { ttlSeconds: 30 });
