@@ -100,8 +100,8 @@ class GeminiService {
   fallbackResponse(message, context = {}) {
     const msg = message.toLowerCase();
 
-    // Check if  fallbackResponse(message, _context = {}) {
-(msg.includes("who are you") || msg.includes("what are you") || msg.includes("your name")) {
+    // Short identity responses
+    if (msg.includes("who are you") || msg.includes("what are you") || msg.includes("your name")) {
       return `👋 I'm BETRIX - your autonomous AI sports analyst. I analyze football, odds, betting strategy, and match insights. Ask me anything about sports! Or use /menu to explore.`;
     }
 
