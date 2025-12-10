@@ -43,11 +43,13 @@ Keep it under 500 words. Professional tone.`;
   /**
    * Get premium match insights
    */
-  async getPremiumInsights(fixtureId, user =   async getPremiumInsights(fixtureId, _user = {}) {
-${fixtureId}`;
+  async getPremiumInsights(fixtureId, user = {}) {
+    try {
+      const key = `premium:insights:${fixtureId}`;
       const cached = await this.redis.get(key);
       if (cached) return JSON.parse(cached);
 
+      // Basic insights scaffold (safe fallback when live analysis isn't available)
       const insights = {
         advanced_metrics: {
           possession_impact: "High",
@@ -60,7 +62,7 @@ ${fixtureId}`;
           estimated_value: "12% edge",
         },
         risk_metrics: {
-          volitility: "Medium",
+          volatility: "Medium",
           injury_risk: "Low",
           weather_impact: "Minor",
         },
