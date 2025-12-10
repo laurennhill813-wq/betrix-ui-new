@@ -2272,10 +2272,17 @@ app.post("/webhook", (req, res) => {
     return res.sendStatus(403);
   }
   
-  handleUpdate(req.body).catch((err) => {
-    console.error("[EXPRESS] Error processing update: - worker.js:2268", err.message);
-  });
-  res.sendStatus(200);
+  (async () => {
+    try {
+      // enqueue update for worker processing to avoid synchronous handling in the HTTP thread
+      await redis.rpush('telegram:updates', JSON.stringify(req.body));
+      console.log('[WEBHOOK] ✅ Enqueued Telegram update (webhook) - worker.js:2270');
+      res.sendStatus(200);
+    } catch (err) {
+      console.error('[WEBHOOK] ❌ Failed to enqueue Telegram update - worker.js:2277', err && err.message ? err.message : err);
+      res.sendStatus(500);
+    }
+  })();
 });
 
 app.post("/webhook/telegram", (req, res) => {
@@ -2291,10 +2298,16 @@ app.post("/webhook/telegram", (req, res) => {
     return res.sendStatus(403);
   }
   
-  handleUpdate(req.body).catch((err) => {
-    console.error("[EXPRESS] Error processing update: - worker.js:2287", err.message);
-  });
-  res.sendStatus(200);
+  (async () => {
+    try {
+      await redis.rpush('telegram:updates', JSON.stringify(req.body));
+      console.log('[WEBHOOK] ✅ Enqueued Telegram update (webhook/telegram) - worker.js:2289');
+      res.sendStatus(200);
+    } catch (err) {
+      console.error('[WEBHOOK] ❌ Failed to enqueue Telegram update - worker.js:2295', err && err.message ? err.message : err);
+      res.sendStatus(500);
+    }
+  })();
 });
 
 console.log("[EXPRESS] ✓ POST /webhook and /webhook/telegram configured - worker.js:2292");
