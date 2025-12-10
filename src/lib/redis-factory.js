@@ -1,94 +1,18 @@
 import Redis from 'ioredis';
-import { EventEmitter } from 'events';
 
 let _instance = null;
-
-// Fuse configuration: if Redis emits many writeable-stream errors in a short
-// window, flip to an in-memory MockRedis to protect request handlers from
-// raising immediate errors during provider flaps.
-let _errorCount = 0;
-let _firstErrorTs = 0;
-let _fuseTriggered = false;
-const ERROR_THRESHOLD = 10; // number of errors
-const ERROR_WINDOW_MS = 60_000; // window in ms
-// Reconnect churn fuse: if Redis is reconnecting too frequently, flip to MockRedis
-let _reconnectCount = 0;
-let _firstReconnectTs = 0;
-const RECONNECT_THRESHOLD = 20; // reconnect events
-const RECONNECT_WINDOW_MS = 60_000; // window in ms
 
 class MockRedis {
   constructor() {
     this.kv = new Map();
     this.zsets = new Map();
-    this.ttlMap = new Map(); // key -> expiry timestamp (ms)
-    // lightweight pub/sub support for single-process dev: not a full Redis replacement
-    this._emitter = new EventEmitter();
-    this._subscribers = new Map(); // channel -> Set
   }
 
-  async get(key) { this._pruneIfExpired(key); return this.kv.has(key) ? this.kv.get(key) : null; }
-  async set(key, value) { this.ttlMap.delete(key); this.kv.set(key, value); return 'OK'; }
-  async del(key) { this.ttlMap.delete(key); this.kv.delete(key); return 1; }
-
-  // Internal helper: remove key if expired
-  _pruneIfExpired(key) {
-    if (!this.ttlMap) return;
-    const exp = this.ttlMap.get(key);
-    if (typeof exp === 'number' && Date.now() > exp) {
-      this.ttlMap.delete(key);
-      this.kv.delete(key);
-      return true;
-    }
-    return false;
-  }
-
-  // Hash helpers to emulate Redis hashes used by the app (hset/hgetall/hget/hdel)
-  async hset(key, ...args) {
-    // Support: hset(key, object) OR hset(key, field, value) OR hset(key, field1, val1, field2, val2...)
-    const table = this.kv.get(key) || new Map();
-    let setCount = 0;
-    if (args.length === 1 && typeof args[0] === 'object') {
-      const obj = args[0];
-      for (const [f, v] of Object.entries(obj)) {
-        table.set(String(f), String(v));
-        setCount++;
-      }
-    } else if (args.length === 2) {
-      table.set(String(args[0]), String(args[1]));
-      setCount = 1;
-    } else if (args.length > 1 && args.length % 2 === 0) {
-      for (let i = 0; i < args.length; i += 2) {
-        table.set(String(args[i]), String(args[i + 1]));
-        setCount++;
-      }
-    }
-    this.kv.set(key, table);
-    return setCount;
-  }
-
-  async hgetall(key) {
-    this._pruneIfExpired(key);
-    const table = this.kv.get(key) || new Map();
-    const out = {};
-    for (const [k, v] of table.entries()) out[k] = v;
-    return out;
-  }
-
-  async hget(key, field) {
-    const table = this.kv.get(key) || new Map();
-    return table.has(String(field)) ? table.get(String(field)) : null;
-  }
-
-  async hdel(key, field) {
-    const table = this.kv.get(key) || new Map();
-    const existed = table.delete(String(field));
-    this.kv.set(key, table);
-    return existed ? 1 : 0;
-  }
+  async get(key) { return this.kv.has(key) ? this.kv.get(key) : null; }
+  async set(key, value) { this.kv.set(key, value); return 'OK'; }
+  async del(key) { this.kv.delete(key); return 1; }
 
   async lpop(key) {
-    this._pruneIfExpired(key);
     const arr = this.kv.get(key) || [];
     const v = arr.shift();
     this.kv.set(key, arr);
@@ -96,7 +20,6 @@ class MockRedis {
   }
 
   async rpush(key, value) {
-    this._pruneIfExpired(key);
     const arr = this.kv.get(key) || [];
     arr.push(value);
     this.kv.set(key, arr);
@@ -104,7 +27,6 @@ class MockRedis {
   }
 
   async lrange(key, start, stop) {
-    this._pruneIfExpired(key);
     const arr = this.kv.get(key) || [];
     return arr.slice(start, stop + 1);
   }
@@ -152,7 +74,6 @@ class MockRedis {
   }
 
   async incr(key) {
-    this._pruneIfExpired(key);
     const cur = Number(this.kv.get(key) || 0) + 1;
     this.kv.set(key, String(cur));
     return cur;
@@ -160,113 +81,10 @@ class MockRedis {
 
   async setex(key, seconds, value) {
     this.kv.set(key, value);
-    try {
-      const ms = Date.now() + Number(seconds) * 1000;
-      this.ttlMap.set(key, ms);
-    } catch (e) { /* ignore */ }
     return 'OK';
   }
 
   async ping() { return 'PONG'; }
-
-  // Provide expiry semantics used by worker (best-effort; no real timer eviction)
-  async expire(key, _seconds) {
-    if (!this.kv.has(key)) return 0;
-    try {
-      const ms = Date.now() + Number(_seconds) * 1000;
-      this.ttlMap.set(key, ms);
-      return 1;
-    } catch (e) { return 0; }
-  }
-
-  async ttl(_key) {
-    const key = _key;
-    this._pruneIfExpired(key);
-    if (!this.kv.has(key)) return -2; // key does not exist
-    const exp = this.ttlMap.get(key);
-    if (!exp) return -1; // no ttl
-    const secs = Math.max(-1, Math.floor((exp - Date.now()) / 1000));
-    return secs;
-  }
-
-  // Pop from (right) source and push to left of destination (non-blocking)
-  async rpoplpush(source, dest) {
-    this._pruneIfExpired(source);
-    this._pruneIfExpired(dest);
-    const src = this.kv.get(source) || [];
-    if (!src.length) return null;
-    const v = src.pop();
-    this.kv.set(source, src);
-    const dst = this.kv.get(dest) || [];
-    dst.unshift(v);
-    this.kv.set(dest, dst);
-    return v;
-  }
-
-  // Blocking variant used in worker; here we implement a non-blocking best-effort
-  // signature: brpoplpush(source, dest, timeoutSeconds)
-  async brpoplpush(source, dest, timeoutSeconds = 0) {
-    // Try immediate rpoplpush; if nothing, wait up to timeout in 100ms intervals
-    const attempt = () => {
-      this._pruneIfExpired(source);
-      this._pruneIfExpired(dest);
-      const src = this.kv.get(source) || [];
-      if (src.length) {
-        const v = src.pop();
-        this.kv.set(source, src);
-        const dst = this.kv.get(dest) || [];
-        dst.unshift(v);
-        this.kv.set(dest, dst);
-        return v;
-      }
-      return null;
-    };
-
-    let elapsed = 0;
-    const interval = 100;
-    const max = Math.max(0, Number(timeoutSeconds) * 1000);
-    let res = attempt();
-    while (res === null && elapsed < max) {
-      // sleep synchronously via Promise
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise((r) => setTimeout(r, interval));
-      elapsed += interval;
-      res = attempt();
-    }
-    return res;
-  }
-
-  // Pub/sub noop: return 0 subscribers
-  async publish(_channel, _message) {
-    // Best-effort pub/sub: notify local subscribers registered via `subscribe` and
-    // emit a 'message' event like node-ioredis would: (channel, message)
-    try {
-      const channel = String(_channel);
-      const message = String(_message);
-      const subs = this._subscribers.get(channel);
-      const count = subs ? subs.size : 0;
-      // Emit a 'message' event for compatibility with listeners using client.on('message', ...)
-      this._emitter.emit('message', channel, message);
-      return count;
-    } catch (e) {
-      return 0;
-    }
-  }
-
-  // Emulate simple subscribe semantics. Returns number of subscriptions for the channel.
-  async subscribe(channel) {
-    const ch = String(channel);
-    const set = this._subscribers.get(ch) || new Set();
-    set.add(true);
-    this._subscribers.set(ch, set);
-    return 1;
-  }
-
-  // Allow attaching event listeners similar to ioredis: client.on('message', cb)
-  on(eventName, cb) {
-    this._emitter.on(eventName, cb);
-  }
-
 }
 
 export function getRedis(opts = {}) {
@@ -276,8 +94,7 @@ export function getRedis(opts = {}) {
   const useMock = process.env.USE_MOCK_REDIS === '1' || !redisUrl;
   
   if (useMock) {
-    console.error('[redis-factory] ⚠️  Using MockRedis (no REDIS_URL or USE_MOCK_REDIS=1).');
-    console.error('[redis-factory] ⚠️  MockRedis is a single-process, development-only fallback and does not provide cross-process pub/sub. Do NOT rely on this in production.');
+    console.log('[redis-factory] ⚠️  Using MockRedis (no REDIS_URL or USE_MOCK_REDIS=1)');
     _instance = new MockRedis();
     return _instance;
   }
@@ -290,110 +107,45 @@ export function getRedis(opts = {}) {
     console.log('[redis-factory] 🔗 Connecting to Redis with provided URL');
   }
 
-  // If REDIS_USERNAME/REDIS_PASSWORD present but redisUrl doesn't include credentials,
-  // construct a URL embedding them so ioredis can authenticate over TLS.
-  try {
-    const url = new URL(redisUrl);
-    if ((!url.username || !url.password) && process.env.REDIS_USERNAME && process.env.REDIS_PASSWORD) {
-      const proto = url.protocol || 'rediss:';
-      const host = url.hostname;
-      const port = url.port || '6379';
-      // Build a safe connection string with credentials
-      const cred = encodeURIComponent(String(process.env.REDIS_USERNAME)) + ':' + encodeURIComponent(String(process.env.REDIS_PASSWORD));
-      const builtUrl = `${proto}//${cred}@${host}:${port}${url.pathname || ''}`;
-      // Use builtUrl when creating the client below
-      try { console.log('[redis-factory] 🔗 Using REDIS_USERNAME/REDIS_PASSWORD to build connection URL'); } catch (e) { /* ignore */ }
-      // shadow the redisUrl variable for downstream client creation
-      // eslint-disable-next-line no-shadow
-      var _redisUrlForClient = builtUrl;
-    }
-  } catch (e) {
-    // ignore URL parsing errors and continue with provided redisUrl
-  }
-
   // Create ioredis instance with proper configuration
-  // Track last log time so reconnect spam is throttled
-  let _lastReconnectLog = 0;
-  const throttleMs = 30 * 1000; // at most one reconnect log every 30s
-
-  // Prefer built URL with credentials when available
-  const _connectUrl = (typeof _redisUrlForClient !== 'undefined' && _redisUrlForClient) ? _redisUrlForClient : redisUrl;
-
-  _instance = new Redis(_connectUrl, {
+  _instance = new Redis(redisUrl, {
     // Connection options
     connectTimeout: 10000,
-    // Re-enable offline queue so transient blips are buffered instead of
-    // surfacing immediate `Stream isn't writeable` errors to request handlers.
-    enableOfflineQueue: true,
+    maxRetriesPerRequest: 3,
     enableReadyCheck: true,
+    enableOfflineQueue: true,
     lazyConnect: false,
-    // Allow ioredis to manage retries per request (null = default behavior)
-    maxRetriesPerRequest: null,
-
+    
     // Merge with provided options
     ...(opts || {}),
-
-    // Improved retry strategy: exponential backoff with cap + jitter
+    
+    // These options cannot be overridden
     retryStrategy: opts.retryStrategy || ((times) => {
-      const base = 100;
-      const exp = Math.min(Math.pow(2, Math.min(times, 10)) * base, 5000);
-      const jitter = Math.floor(Math.random() * 300);
-      const delay = Math.min(exp + jitter, 5000);
-
-      const now = Date.now();
-      if (now - _lastReconnectLog > throttleMs) {
-        if (times === 1) {
-          console.log('[redis-factory] 🔄 Redis connection failed, attempting reconnect...');
-        }
-        console.log(`[redis-factory] 🔄 Retry attempt ${times}, waiting ${delay}ms (throttled logs)`);
-        _lastReconnectLog = now;
+      const delay = Math.min(times * 50, 5000);
+      if (times === 1) {
+        console.log('[redis-factory] 🔄 Redis connection failed, attempting reconnect...');
       }
-
+      if (times % 5 === 0) {
+        console.log(`[redis-factory] 🔄 Retry attempt ${times}, waiting ${delay}ms...`);
+      }
       return delay;
     })
   });
 
   // Connection event handlers
   _instance.on('error', (err) => {
-    const msg = err && err.message ? err.message : String(err);
-    if (msg.includes('NOAUTH')) {
-      console.error('[redis-factory] ❌ NOAUTH: Invalid Redis password/auth');
-    } else if (msg.includes('ECONNREFUSED')) {
-      console.error('[redis-factory] ❌ ECONNREFUSED: Cannot connect to Redis host');
-    } else if (msg.includes('ETIMEDOUT')) {
-      console.error('[redis-factory] ❌ ETIMEDOUT: Redis connection timeout');
+    if (err && err.message) {
+      if (err.message.includes('NOAUTH')) {
+        console.error('[redis-factory] ❌ NOAUTH: Invalid Redis password/auth');
+      } else if (err.message.includes('ECONNREFUSED')) {
+        console.error('[redis-factory] ❌ ECONNREFUSED: Cannot connect to Redis host');
+      } else if (err.message.includes('ETIMEDOUT')) {
+        console.error('[redis-factory] ❌ ETIMEDOUT: Redis connection timeout');
+      } else {
+        console.error(`[redis-factory] ❌ Redis error: ${err.message}`);
+      }
     } else {
-      console.error(`[redis-factory] ❌ Redis error: ${msg}`);
-    }
-
-    // Fuse counting: track writeable-stream-like errors and flip to MockRedis
-    try {
-      const now = Date.now();
-      if (!_firstErrorTs || now - _firstErrorTs > ERROR_WINDOW_MS) {
-        _firstErrorTs = now;
-        _errorCount = 0;
-      }
-      _errorCount++;
-
-      // Only trigger the fuse once to avoid flip-flopping
-      if (!_fuseTriggered && _errorCount >= ERROR_THRESHOLD && /writeable/i.test(msg)) {
-        _fuseTriggered = true;
-        console.error('[redis-factory] 🔥 Redis fuse triggered: switching to MockRedis to protect handlers');
-        try {
-          // gracefully disconnect the old client
-          if (_instance && typeof _instance.disconnect === 'function') {
-            _instance.disconnect();
-          } else if (_instance && typeof _instance.quit === 'function') {
-            _instance.quit();
-          }
-        } catch (e) {
-          // ignore errors from trying to disconnect
-        }
-
-        _instance = new MockRedis();
-      }
-    } catch (countErr) {
-      console.error('[redis-factory] ❌ Error while evaluating Redis fuse:', countErr);
+      console.error('[redis-factory] ❌ Unknown Redis error:', err);
     }
   });
 
@@ -407,29 +159,11 @@ export function getRedis(opts = {}) {
 
   _instance.on('reconnecting', () => {
     console.log('[redis-factory] 🔄 Redis reconnecting...');
-    try {
-      const now = Date.now();
-      if (!_firstReconnectTs || now - _firstReconnectTs > RECONNECT_WINDOW_MS) {
-        _firstReconnectTs = now;
-        _reconnectCount = 0;
-      }
-      _reconnectCount++;
-      if (!_fuseTriggered && _reconnectCount >= RECONNECT_THRESHOLD) {
-        _fuseTriggered = true;
-        console.error('[redis-factory] 🔥 Reconnect churn fuse triggered: switching to MockRedis to protect handlers');
-        try {
-          if (_instance && typeof _instance.disconnect === 'function') _instance.disconnect();
-          else if (_instance && typeof _instance.quit === 'function') _instance.quit();
-        } catch (e) { /* ignore */ }
-        _instance = new MockRedis();
-      }
-    } catch (e) { console.error('[redis-factory] Error evaluating reconnect fuse', e); }
   });
 
   _instance.on('end', () => {
     console.log('[redis-factory] ⚠️  Redis connection ended');
   });
-
 
   return _instance;
 }

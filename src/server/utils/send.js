@@ -10,9 +10,8 @@ try {
     console.info("SEND-ADAPTER: forwarding to telegramSend");
   } else {
     console.error("SEND-ADAPTER: telegramSend missing sendText; providing safe fallback");
-    module.exports = { sendText: async function(_chatId, _text) { console.error("SEND-ADAPTER-FALLBACK", {chatId:_chatId}); return { ok:false, reason:"no-telegram-send" }; } };
+    module.e    module.exports = { sendText: async function(_chatId, _text) { console.error("SEND-ADAPTER-FALLBACK", {chatId:_chatId}); return { ok:false, reason:"no-telegram-send" }; } };
   }
 } catch (e) {
   console.error("SEND-ADAPTER-CRASH", e && (e.stack || e.message || e));
   module.exports = { sendText: async function(_chatId, _text){ return { ok:false, reason:"adapter-crash" }; } };
-}

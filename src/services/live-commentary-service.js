@@ -6,9 +6,9 @@
 import { Logger } from "../utils/logger.js";
 
 const logger = new Logger("Commentary");
-void logger;
 
-class LiveCommentaryService {
+class Lvoid logger;
+iveCommentaryService {
   static EVENTS = [
     "🟡 Yellow card - harsh decision!",
     "⚽ GOAL! GOALLLL! The crowd is going mad!",

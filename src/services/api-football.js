@@ -9,9 +9,9 @@ import { CacheService } from "../utils/cache.js";
 import { CONFIG } from "../config.js";
 
 const logger = new Logger("APIFootball");
-void logger;
 
-class APIFootballService {
+class APIFvoid logger;
+ootballService {
   constructor(redis) {
     this.redis = redis;
     this.cache = new CacheService(redis);

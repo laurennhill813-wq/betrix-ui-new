@@ -105,14 +105,14 @@ class BrandingService {
     mobile: "📱",
     online: "🌐",
     chat: "💬",
-    target: "🎯",
+    goal: "🎯",
     rocket: "🚀",
     approve: "👌",
     
     // Additional (3)
     medal: "🥇",
-    silver: "🥈",
-    bronze: "🥉",
+    silver    target: "🎯",
+e: "🥉",
   };
 
   // Brand Colors (for future web/image support)

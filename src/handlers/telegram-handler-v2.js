@@ -38,9 +38,6 @@ const buildLiveMenuPayload = (games, title = 'Live', _tier = 'FREE', page = 1, p
   return { text: `*${title}* — ${String(_tier || 'FREE')}\n\n${list || '_No live matches currently_'}`, reply_markup: { inline_keyboard: [] } };
 };
 
-import { brand } from './menu-system.js';
-import lipana from '../lib/lipana-client.js';
-
 // Branding utils minimal shim
 const brandingUtils = {
   generateBetrixHeader: (tier) => `*BETRIX* — ${tier || 'FREE'}`,
@@ -125,21 +122,13 @@ async function getLiveMatchesBySport(sport, redis, sportsAggregator) {
       }
     }
 
-    // Try SportGameOdds provider-specific prefetch keys if consolidated key wasn't set
+    // Try provider-specific prefetch keys if the consolidated key wasn't set
     try {
-      // Look for a cached per-sport league grouping and pick first league to read events from
-      const sgoBySportRaw = await redis.get('prefetch:sgo:leagues:by-sport').catch(() => null);
-      const sgoBySport = tryParseJson(sgoBySportRaw) || null;
-      if (sgoBySport && sgoBySport[sport] && Array.isArray(sgoBySport[sport]) && sgoBySport[sport].length > 0) {
-        // pick first league identifier found
-        const lg = sgoBySport[sport][0];
-        const leagueId = lg.leagueID || lg.id || lg.slug || lg.code || null;
-        if (leagueId) {
-          const eventsRaw = await redis.get(`prefetch:sgo:events:${leagueId}`).catch(() => null);
-          const parsed = tryParseJson(eventsRaw) || (eventsRaw ? eventsRaw : null);
-          if (parsed && Array.isArray(parsed.data)) return parsed.data;
-          if (Array.isArray(parsed)) return parsed;
-        }
+      const pm = await redis.get('prefetch:sportsmonks:live').catch(() => null);
+      const parsedPm = tryParseJson(pm);
+      if (parsedPm && Array.isArray(parsedPm.data)) {
+        logger.info(`📦 Got cached soccer matches from prefetch:sportsmonks:live (${parsedPm.count || parsedPm.data.length})`);
+        return parsedPm.data;
       }
     } catch (e) { void e; }
 
@@ -173,100 +162,7 @@ export async function handleMessage(update, redis, services) {
     const message = update.message || update.edited_message;
     if (!message) return null;
     const chatId = message.chat.id;
-    const userId = message.from && message.from.id ? message.from.id : null;
     const text = message.text || '';
-
-    // Continuation handler: if user has a pending payment intent and they send
-    // a phone number in the expected format, resume the STK push flow.
-    try {
-      // Normalize phone helper: accept various Telegram contact formats
-      const normalizePhone = (raw) => {
-        if (!raw) return null;
-        let p = String(raw).replace(/[^0-9]/g, '');
-        // Convert common local formats to international +254
-        if (p.length === 10 && p.startsWith('0')) p = '254' + p.slice(1);
-        if (p.length === 9 && p.startsWith('7')) p = '254' + p;
-        if (p.length === 12 && p.startsWith('254')) return p;
-        // If already has country code like 254
-        if (p.length >= 9) return p;
-        return null;
-      };
-
-      const phoneRe = /^2547\d{8}$/;
-      // Accept phone sent as text OR as a Telegram shared contact
-      let detectedPhone = null;
-      if (message && message.contact && message.contact.phone_number) {
-        detectedPhone = normalizePhone(message.contact.phone_number);
-      }
-      if (!detectedPhone && userId && text) {
-        const maybe = normalizePhone(text);
-        if (maybe && phoneRe.test(maybe)) detectedPhone = maybe;
-      }
-
-      if (userId && detectedPhone && phoneRe.test(detectedPhone)) {
-        const pendingKey = `user:${userId}:pending_payment`;
-        const pendingRaw = await redis.get(pendingKey).catch(() => null);
-        if (pendingRaw) {
-          let pending = null;
-          try { pending = JSON.parse(pendingRaw); } catch (e) { pending = null; }
-          if (pending && pending.action && pending.action === 'signup_payment') {
-            // Save phone to profile
-            try {
-              await redis.hset(`user:${userId}:profile`, 'msisdn', detectedPhone);
-              await redis.hset(`user:${userId}:profile`, 'phone', detectedPhone);
-            } catch (e) { void e; }
-
-            // Resume payment: create order and trigger STK
-            try {
-              const { createCustomPaymentOrder } = await import('./payment-router.js');
-              const amount = Number(pending.amount || 300);
-              const order = await createCustomPaymentOrder(redis, userId, amount, 'MPESA', 'KE', { signup: true }).catch(() => null);
-
-              let providerCheckout = null;
-              try {
-                const callback = process.env.LIPANA_CALLBACK_URL || process.env.MPESA_CALLBACK_URL || null;
-                const resp = await lipana.stkPush({ amount, phone: detectedPhone, tx_ref: order?.orderId || `ORD${userId}${Date.now()}`, reference: order?.orderId || null, callback_url: callback });
-                providerCheckout = resp?.raw?.data?.transactionId || resp?.raw?.data?._id || null;
-
-                // Persist payments row (best-effort)
-                try {
-                  const connStr = process.env.DATABASE_URL || null;
-                  if (connStr && order && order.orderId) {
-                    const { Pool } = await import('pg');
-                    const pool = new Pool({ connectionString: connStr, ssl: { rejectUnauthorized: false } });
-                    const insertSql = `INSERT INTO payments(tx_ref, user_id, amount, status, metadata, created_at)
-                      VALUES($1,$2,$3,$4,$5, now())`;
-                    const metadata = { provider: 'LIPANA', provider_checkout_id: providerCheckout, orderId: order.orderId };
-                    await pool.query(insertSql, [order.orderId, userId, order.totalAmount || amount, 'pending', JSON.stringify(metadata)]);
-                    try { await pool.end(); } catch(e){ void e; }
-                  }
-                } catch (ee) { void ee; }
-
-                // Map provider ref -> orderId for webhook reconciliation
-                try { if (providerCheckout && order && order.orderId) await redis.setex(`payment:by_provider_ref:MPESA:${providerCheckout}`, 900, order.orderId); } catch (e) { void e; }
-
-                // Cleanup pending intent
-                try { await redis.del(pendingKey); } catch (e) { void e; }
-
-                return {
-                  method: 'sendMessage',
-                  chat_id: chatId,
-                  text: `✅ STK push initiated for KES ${amount}. Please check your phone and enter your M-Pesa PIN.`,
-                  parse_mode: 'Markdown'
-                };
-              } catch (e) {
-                // STK failed
-                logger.warn('Failed to initiate STK on continuation', e?.message || String(e));
-                return { method: 'sendMessage', chat_id: chatId, text: '❌ Failed to initiate STK. Please try again or contact support.', parse_mode: 'Markdown' };
-              }
-            } catch (err) {
-              logger.warn('Failed to resume pending payment', err?.message || String(err));
-              return { method: 'sendMessage', chat_id: chatId, text: '❌ Could not resume payment. Please try again.', parse_mode: 'Markdown' };
-            }
-          }
-        }
-      }
-    } catch (e) { void e; }
 
     if (text && text.startsWith('/live')) {
       const games = await getLiveMatchesBySport('soccer', redis, services && services.sportsAggregator);
@@ -1790,7 +1686,7 @@ async function startOnboarding(chatId, userId, redis) {
     return {
       method: 'sendMessage',
       chat_id: chatId,
-      text: brand(`📝 Welcome to BETRIX! Let's set up your account. What is your full name?\n\n_Reply with your full name to continue._`, { suppressFooter: true }),
+      text: '📝 Welcome to BETRIX! Let\'s set up your account. What is your full name?\n\n_Reply with your full name to continue._',
       parse_mode: 'Markdown'
     };
   } catch (e) {
@@ -1816,7 +1712,7 @@ async function handleOnboardingMessage(text, chatId, userId, redis, services) {
       await redis.hset(`user:${userId}:profile`, 'name', name);
       state.step = 'age';
       await redis.setex(`user:${userId}:onboarding`, 1800, JSON.stringify(state));
-      return { method: 'sendMessage', chat_id: chatId, text: brand(`Thanks *${name}*! How old are you?`, { suppressFooter: true }), parse_mode: 'Markdown' };
+      return { method: 'sendMessage', chat_id: chatId, text: `Thanks *${name}*! How old are you?`, parse_mode: 'Markdown' };
     }
 
     if (state.step === 'age') {
@@ -1835,7 +1731,7 @@ async function handleOnboardingMessage(text, chatId, userId, redis, services) {
         [ { text: '🌍 Other', callback_data: 'signup_country_OTHER' } ]
       ];
 
-      return { method: 'sendMessage', chat_id: chatId, text: brand('Great — which country are you in? (choose below)', { suppressFooter: true }), parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } };
+      return { method: 'sendMessage', chat_id: chatId, text: 'Great — which country are you in? (choose below)', parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } };
     }
 
     // default fallback
@@ -1866,7 +1762,7 @@ async function handleSignupCountry(data, chatId, userId, redis, services) {
     }]));
     keyboard.push([{ text: '🔙 Cancel', callback_data: 'menu_main' }]);
 
-    const text = brand(`🌍 Great choice! Now, what's your preferred payment method?\n\n(These are available in your region)`, { suppressFooter: true });
+    const text = `🌍 Great choice! Now, what's your preferred payment method?\n\n(These are available in your region)`;
 
     return { method: 'sendMessage', chat_id: chatId, text, parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } };
   } catch (e) {
@@ -1937,32 +1833,6 @@ async function handleSignupPaymentCallback(data, chatId, userId, redis, services
     const profile = await redis.hgetall(`user:${userId}:profile`) || {};
     const country = profile.country || 'KE';
 
-    // If user selected M-Pesa (STK) but we don't have a phone number on file,
-    // ask for the phone first instead of creating the order immediately.
-    const msisdn = profile.msisdn || profile.phone || profile.mobile || null;
-    if ((method === 'MPESA' || String(method).toLowerCase().includes('mpesa')) && !msisdn) {
-      try {
-        // store a short-lived pending payment intent so the next message (phone) can continue flow
-        const pending = { action: 'signup_payment', method, amount, currency, createdAt: Date.now() };
-        try { await redis.setex(`user:${userId}:pending_payment`, 300, JSON.stringify(pending)); } catch (e) { void e; }
-      } catch (e) { void e; }
-
-      return { 
-        method: 'sendMessage', 
-        chat_id: chatId, 
-        text: '📱 To start M-Pesa STK we need your phone number. Please share your phone using the button below or send it in the format: 2547XXXXXXXX.',
-        parse_mode: 'Markdown',
-        reply_markup: {
-          keyboard: [
-            [{ text: 'Share phone', request_contact: true }],
-            [{ text: 'Cancel' }]
-          ],
-          one_time_keyboard: true,
-          resize_keyboard: true
-        }
-      };
-    }
-
     // Validate payment method is available in country
     const availableMethods = getAvailablePaymentMethods(country);
     const methodAvailable = availableMethods.some(m => m.id === method);
@@ -1991,11 +1861,6 @@ async function handleSignupPaymentCallback(data, chatId, userId, redis, services
     const keyboard = [];
     if (instructions && instructions.checkoutUrl) {
       keyboard.push([{ text: '🔗 Open Payment Link', url: instructions.checkoutUrl }]);
-    }
-    // If a QR image is available (Binance or other providers), expose it as a quick link
-    if (instructions && instructions.qr) {
-      // Show a direct QR button; clients will open the image URL
-      keyboard.splice(0, 0, [{ text: '🔳 View QR', url: instructions.qr }]);
     }
     
     keyboard.push([

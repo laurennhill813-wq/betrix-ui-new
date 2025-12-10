@@ -5,9 +5,6 @@
  * Complete integration of all services and intelligence
  */
 
-/* eslint-disable no-unused-vars, no-empty, no-undef, import/named, import/no-named-as-default-member, import/no-named-as-default */
-
-
 // NOTE: Do NOT disable global TLS verification here. Use per-service TLS config
 // via `SPORTSMONKS_INSECURE=true` if absolutely required for local testing.
 
@@ -15,11 +12,9 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import Redis from "ioredis";
-
 import { getRedis, MockRedis } from "./lib/redis-factory.js";
 import { CONFIG, validateConfig } from "./config.js";
 import { Logger } from "./utils/logger.js";
-import crypto from 'crypto';
 import { TelegramService } from "./services/telegram.js";
 import { UserService } from "./services/user.js";
 // API-Football removed from runtime per operator request — prefer SportMonks and Football-Data
@@ -35,7 +30,7 @@ import RSSAggregator from "./services/rss-aggregator.js";
 import FootballDataService from "./services/footballdata.js";
 import ScoreBatService from "./services/scorebat-enhanced.js";
 import Scrapers from "./services/scrapers.js";
-import { SportsAggregator } from "./services/sports-aggregator.js";
+import SportsAggregator from "./services/sports-aggregator.js";
 import OddsAnalyzer from "./services/odds-analyzer.js";
 import { MultiSportAnalyzer } from "./services/multi-sport-analyzer.js";
 import { startPrefetchScheduler } from "./tasks/prefetch-scheduler.js";
@@ -45,13 +40,13 @@ import { AdvancedHandler } from "./advanced-handler.js";
 import { PremiumService } from "./services/premium.js";
 import { AdminDashboard } from "./admin/dashboard.js";
 import { AnalyticsService } from "./services/analytics.js";
+import { RateLimiter } from "./middleware/rate-limiter.js";
 import { ContextManager } from "./middleware/context-manager.js";
 import v2Handler from "./handlers/telegram-handler-v2-clean.js";
 import completeHandler from "./handlers/handler-complete.js";
 import SportMonksAPI from "./services/sportmonks-api.js";
 import SportsDataAPI from "./services/sportsdata-api.js";
-import * as sportsgameodds from "./services/sportsgameodds.js";
-import { registerDataExposureAPI } from "./app.js";
+import { registerDataExposureAPI } from "./app_clean.js";
 import { Pool } from 'pg';
 import { reconcileWithLipana } from './tasks/reconcile-lipana.js';
 
@@ -64,16 +59,7 @@ import brandingUtils from "./utils/betrix-branding.js";
 import perfUtils from "./utils/performance-optimizer.js";
 
 const logger = new Logger("FinalWorker");
-void logger;
 
-// Ensure express is available for the minimal webhook server
-import express from 'express';
-import fs from 'fs';
-import path from 'path';
-
-// Global flag used to decide whether to start the minimal webhook server.
-// Default: enabled unless explicitly set to 'false'.
-const ENABLE_MINIMAL_WEB = (process.env.START_MINIMAL_WEB_ON_WORKER || 'true').toString().toLowerCase() !== 'false';
 try {
   validateConfig();
   logger.info("✅ Configuration validated (SPORTSMONKS or FOOTBALLDATA keys accepted)");
@@ -144,12 +130,6 @@ setInterval(async () => {
 }, 10 * 1000);
 
 // Initialize all services
-// Log a masked TELEGRAM token indicator to help diagnose Unauthorized errors in platform logs
-try {
-  const t = String(CONFIG.TELEGRAM_TOKEN || '');
-  const masked = t.length > 8 ? `${t.slice(0,4)}...${t.slice(-4)}` : (t ? '****' : '(empty)');
-  try { console.log('[CONFIG_TELEGRAM_MASK] length=' + t.length + ' token=' + masked); } catch(e){}
-} catch (e) { }
 const telegram = new TelegramService(CONFIG.TELEGRAM_TOKEN, CONFIG.TELEGRAM.SAFE_CHUNK);
 const userService = new UserService(redis);
 // Periodic Lipana reconciliation (runs only if Postgres pool is available)
@@ -192,9 +172,8 @@ const rssAggregator = new RSSAggregator(cache, { ttlSeconds: 60 });
 const footballDataService = new FootballDataService();
 const scorebatService = new ScoreBatService(process.env.SCOREBAT_TOKEN || null, cache, { retries: Number(process.env.SCOREBAT_RETRIES || 3), cacheTtlSeconds: Number(process.env.SCOREBAT_CACHE_TTL || 60) });
 const scrapers = new Scrapers(redis);
-// Initialize SportsAggregator with enforced provider priority: prefer SportGameOdds and Football-Data
-// Keep SportMonks disabled by default (non-destructive approach).
-const sportsAggregator = new SportsAggregator(redis, { scorebat: scorebatService, rss: rssAggregator, openLiga, allowedProviders: ['SPORTSGAMEODDS','FOOTBALLDATA'] });
+// Initialize SportsAggregator with enforced provider priority: only SportMonks and Football-Data
+const sportsAggregator = new SportsAggregator(redis, { scorebat: scorebatService, rss: rssAggregator, openLiga, allowedProviders: ['SPORTSMONKS','FOOTBALLDATA'] });
 const oddsAnalyzer = new OddsAnalyzer(redis, sportsAggregator, null);
 const multiSportAnalyzer = new MultiSportAnalyzer(redis, sportsAggregator, null);
 const sportMonksAPI = new SportMonksAPI();
@@ -306,6 +285,7 @@ const ai = {
   }
 };
 const analytics = new AnalyticsService(redis);
+const rateLimiter = new RateLimiter(redis);
 const contextManager = new ContextManager(redis);
 const basicHandlers = new BotHandlers(telegram, userService, apiFootball, ai, redis, freeSports, {
   openLiga,
@@ -315,9 +295,9 @@ const basicHandlers = new BotHandlers(telegram, userService, apiFootball, ai, re
   scrapers,
 });
 
-// StatPal integration removed: system now prefers SportGameOdds and Football-Data
+// StatPal integration removed: system now uses SPORTSMONKS and FOOTBALLDATA only
 let statpalInitSuccess = false;
-logger.info('ℹ️ StatPal integration disabled/removed — preferring SPORTSGAMEODDS and FOOTBALL-DATA');
+logger.info('ℹ️ StatPal integration disabled/removed — using SPORTSMONKS and FOOTBALL-DATA only');
 
 // ===== API BOOTSTRAP: Validate keys and immediately prefetch data =====
 let apiBootstrapSuccess = false;
@@ -339,8 +319,7 @@ try {
 
 // Start prefetch scheduler (runs in-worker). Interval controlled by PREFETCH_INTERVAL_SECONDS (default 60s).
 try {
-  // Pass the SportGameOdds wrapper to the scheduler so the scheduler prefers SGO
-  startPrefetchScheduler({ redis, openLiga, rss: rssAggregator, scorebat: scorebatService, footballData: footballDataService, sportsAggregator: sportsAggregator, sportsgameodds: sportsgameodds, intervalSeconds: Number(process.env.PREFETCH_INTERVAL_SECONDS || 60) });
+  startPrefetchScheduler({ redis, openLiga, rss: rssAggregator, scorebat: scorebatService, footballData: footballDataService, sportsAggregator: sportsAggregator, intervalSeconds: Number(process.env.PREFETCH_INTERVAL_SECONDS || 60) });
   logger.info('Prefetch scheduler started', { intervalSeconds: Number(process.env.PREFETCH_INTERVAL_SECONDS || 60) });
 } catch (e) {
   logger.warn('Prefetch scheduler failed to start', e?.message || String(e));
@@ -357,10 +336,10 @@ try {
 // Subscribe to prefetch events for internal observability and reactive caching
 try {
   const sub = new Redis(CONFIG.REDIS_URL);
-  sub.subscribe('prefetch:updates', 'prefetch:error').then(() => logger.info('Subscribed to prefetch pub/sub channels')).catch((err)=>{ logger.warn('Prefetch subscribe failed', err && (err.message||String(err))); });
+  sub.subscribe('prefetch:updates', 'prefetch:error').then(() => logger.info('Subscribed to prefetch pub/sub channels')).catch(()=>{});
   sub.on('message', async (channel, message) => {
     let payload = message;
-    try { payload = JSON.parse(message); } catch (e) { logger.debug('Prefetch message parse failed (raw payload)', { err: e && (e.message||String(e)), raw: message }); }
+    try { payload = JSON.parse(message); } catch (e) { /* raw */ }
     logger.info('Prefetch event', { channel, payload });
     // Example reactive action: when openligadb updates, optionally warm specific caches
     try {
@@ -471,195 +450,7 @@ const adminDashboard = new AdminDashboard(redis, telegram, analytics);
 
 logger.info("🚀 BETRIX Final Worker - All Services Initialized");
 
-// --- Startup health check: SportGameOdds (SGO) quick probe ---
-try {
-  (async () => {
-    try {
-      // Prefer discovering a valid league via fetchLeagues() instead of assuming code names
-      const discovered = await sportsgameodds.fetchLeagues({ redis, forceFetch: false }).catch(() => null);
-      let probeLeague = null;
-      if (Array.isArray(discovered) && discovered.length) {
-        // pick the first league with an explicit id/leagueID/code we can use
-        const pick = discovered.find(l => l.leagueID || l.id || l.code) || discovered[0];
-        probeLeague = pick.leagueID || pick.id || pick.code || null;
-      }
-
-      // if no league discovered, fall back to env-provided probe (but avoid 'EPL' default)
-      if (!probeLeague) {
-        const envProbe = (process.env.SGO_PREFETCH_LEAGUES || '').split(',').map(s => s.trim()).find(Boolean) || null;
-        probeLeague = envProbe;
-      }
-
-      if (!probeLeague) {
-        logger.info('SGO healthcheck skipped (no probe league available)');
-        return;
-      }
-
-      const sample = await sportsgameodds.fetchEvents({ league: probeLeague, redis, forceFetch: false });
-      const count = Array.isArray(sample) ? sample.length : (sample && typeof sample === 'object' ? Object.keys(sample).length : 0);
-      logger.info('SGO healthcheck OK', { provider: 'sportsgameodds', league: probeLeague, items: count });
-    } catch (err) {
-      // Surface raw message for diagnosis; common SGO responses will include subscription guidance
-      logger.warn('SGO healthcheck failed', { provider: 'sportsgameodds', error: String(err?.message || err) });
-    }
-  })();
-} catch (e) {
-  logger.warn('SGO healthcheck setup failed', e?.message || String(e));
-}
-
-// --- Bootstrap SportGameOdds leagues into cache for dynamic menus ---
-try {
-  (async () => {
-    try {
-      const leagues = await sportsgameodds.fetchLeagues({ redis, forceFetch: true }).catch(() => null);
-      if (leagues && Array.isArray(leagues) && leagues.length) {
-        // ensure key exists (fetchLeagues already caches) and log count
-        logger.info('SGO leagues bootstrap complete', { count: leagues.length });
-      } else {
-        logger.info('SGO leagues bootstrap: no leagues returned');
-      }
-    } catch (err) {
-      logger.warn('SGO leagues bootstrap failed', err?.message || String(err));
-    }
-  })();
-} catch (e) { logger.warn('SGO leagues bootstrap setup failed', e?.message || String(e)); }
-
-// Periodically refresh the SGO leagues cache so menus stay up-to-date.
-try {
-  const refreshSeconds = Math.max(60, Number(process.env.SGO_LEAGUES_REFRESH_SECONDS || 3600));
-  setInterval(async () => {
-    try {
-      const leagues = await sportsgameodds.fetchLeagues({ redis, forceFetch: true }).catch(() => null);
-      if (leagues && Array.isArray(leagues)) logger.info('SGO leagues refreshed', { count: leagues.length });
-      else logger.info('SGO leagues refresh returned no data');
-    } catch (err) {
-      logger.warn('SGO leagues periodic refresh failed', err?.message || String(err));
-    }
-  }, refreshSeconds * 1000);
-  logger.info('SGO leagues periodic refresh scheduled', { intervalSeconds: Number(process.env.SGO_LEAGUES_REFRESH_SECONDS || 3600) });
-} catch (e) { logger.warn('Failed to schedule SGO leagues periodic refresh', e?.message || String(e)); }
-
 let running = true; // flag used to gracefully stop the main loop on SIGTERM/SIGINT
-
-// Start a minimal HTTP server that accepts Telegram webhook POSTs and a health check.
-// This makes the deployment robust if a platform accidentally runs the worker as the
-// web process: the worker will still accept webhooks and enqueue them for processing.
-try {
-  if (ENABLE_MINIMAL_WEB) {
-    const httpPort = process.env.PORT || 5000;
-    const minimalApp = express();
-    minimalApp.use(express.json({ limit: '1mb' }));
-
-    minimalApp.get('/admin/health', (req, res) => {
-      res.json({ status: 'ok', role: 'worker', worker: true });
-    });
-
-    // Admin endpoint to expose outgoing events log written by the Telegram service
-    minimalApp.get('/admin/outgoing-events', (req, res) => {
-      try {
-        const n = Math.min(500, Number(req.query.n || 200));
-        const p = path.join(process.cwd(), 'logs', 'outgoing-events.log');
-        if (!fs.existsSync(p)) return res.json({ ok: true, lines: [] });
-        const txt = fs.readFileSync(p, 'utf8').split(/\r?\n/).filter(Boolean);
-        const tail = txt.slice(-n).map(l => { try { return JSON.parse(l); } catch { return l; } });
-        return res.json({ ok: true, lines: tail });
-      } catch (err) {
-        return res.status(500).json({ ok: false, error: err?.message || String(err) });
-      }
-    });
-
-    // Admin endpoint to view cached SportGameOdds leagues (protected)
-    minimalApp.get('/admin/prefetch/sgo/leagues', async (req, res) => {
-      try {
-        const adminKey = process.env.ADMIN_API_KEY || (CONFIG && CONFIG.ADMIN_API_KEY) || null;
-        const provided = (req.header('X-ADMIN-KEY') || req.header('X-API-Key') || req.query.key || '').toString();
-        if (!adminKey || !provided || provided !== adminKey) return res.status(403).json({ ok: false, error: 'unauthorized' });
-        if (!redis || typeof redis.get !== 'function') return res.status(503).json({ ok: false, error: 'redis unavailable' });
-        const raw = await redis.get('prefetch:sgo:leagues');
-        const parsed = raw ? (function() { try { return JSON.parse(raw); } catch(e){ return raw; } })() : null;
-        const count = Array.isArray(parsed) ? parsed.length : (parsed && typeof parsed === 'object' ? Object.keys(parsed).length : 0);
-        return res.json({ ok: true, count, leagues: parsed || [] });
-      } catch (e) {
-        return res.status(500).json({ ok: false, error: e?.message || String(e) });
-      }
-    });
-
-    // Admin endpoint to view consolidated prefetch overview (protected)
-    minimalApp.get('/admin/prefetch/overview', async (req, res) => {
-      try {
-        const adminKey = process.env.ADMIN_API_KEY || (CONFIG && CONFIG.ADMIN_API_KEY) || null;
-        const provided = (req.header('X-ADMIN-KEY') || req.header('X-API-Key') || req.query.key || '').toString();
-        if (!adminKey || !provided || provided !== adminKey) return res.status(403).json({ ok: false, error: 'unauthorized' });
-        if (!redis || typeof redis.get !== 'function') return res.status(503).json({ ok: false, error: 'redis unavailable' });
-
-        const upcoming = await redis.get('betrix:prefetch:upcoming:by-sport').catch(()=>null);
-        const live = await redis.get('betrix:prefetch:live:by-sport').catch(()=>null);
-        const sgoIndex = await redis.get('prefetch:sgo:leagues:index').catch(()=>null);
-        const bySport = await redis.get('prefetch:sgo:leagues:by-sport').catch(()=>null);
-
-        const parsed = (v) => { try { return v ? JSON.parse(v) : null; } catch { return v; } };
-        return res.json({ ok: true, upcoming: parsed(upcoming), live: parsed(live), sgoIndex: parsed(sgoIndex), sgoBySport: parsed(bySport) });
-      } catch (e) {
-        return res.status(500).json({ ok: false, error: e?.message || String(e) });
-      }
-    });
-
-    minimalApp.post('/webhook/telegram', async (req, res) => {
-      try {
-        const body = req.body;
-        // Enqueue the update for the worker main loop to process
-        if (redis && typeof redis.lpush === 'function') {
-          let accepted = true;
-          const updateId = (body && (body.update_id || (body.message && body.message.update_id))) || null;
-          if (updateId || updateId === 0) {
-            const dedupKey = `telegram:update:${updateId}`;
-            try {
-              const setRes = await redis.set(dedupKey, '1', 'EX', 24 * 3600, 'NX');
-              if (setRes === null) accepted = false;
-            } catch (e) {
-              try {
-                if (typeof redis.setnx === 'function') {
-                  const ok = await redis.setnx(dedupKey, '1');
-                  if (ok === 1 || ok === 'OK') {
-                    if (typeof redis.expire === 'function') await redis.expire(dedupKey, 24 * 3600);
-                    accepted = true;
-                  } else accepted = false;
-                } else if (typeof redis.get === 'function' && typeof redis.setex === 'function') {
-                  const cur = await redis.get(dedupKey);
-                  if (!cur) { await redis.setex(dedupKey, 24 * 3600, '1'); accepted = true; } else accepted = false;
-                }
-              } catch (e2) {
-                console.warn('[TELEGRAM][WORKER-SERVER] Redis dedupe fallback failed', e2?.message || e2);
-              }
-            }
-          }
-
-          if (!accepted) {
-            console.log('[TELEGRAM][WORKER-SERVER] Duplicate update ignored', updateId);
-            return res.sendStatus(200);
-          }
-
-          await redis.lpush('telegram:updates', JSON.stringify(body));
-          try { await redis.ltrim('telegram:updates', 0, 10000); } catch (e){ console.debug('[TELEGRAM][WORKER-SERVER] ltrim failed (non-fatal)', e && (e.message||String(e))); }
-          console.log('[TELEGRAM][WORKER-SERVER] Update enqueued');
-          return res.sendStatus(200);
-        } else {
-          console.warn('[TELEGRAM][WORKER-SERVER] Redis not available, dropping update');
-          return res.sendStatus(503);
-        }
-      } catch (err) {
-        console.error('[TELEGRAM][WORKER-SERVER] enqueue failed', err?.message || err);
-        return res.sendStatus(500);
-      }
-    });
-
-    minimalApp.listen(httpPort, '0.0.0.0', () => logger.info(`Minimal webhook server listening on ${httpPort}`));
-  } else {
-    logger.info('Minimal webhook server disabled by START_MINIMAL_WEB_ON_WORKER=false');
-  }
-} catch (e) {
-  logger.warn('Failed to start minimal webhook server', e?.message || String(e));
-}
 
 async function main() {
   logger.info("🌟 BETRIX Worker started - waiting for Telegram updates");
@@ -667,7 +458,6 @@ async function main() {
   // On startup, move any items left in processing back to the main queue so they are retried
   try {
     let moved = 0;
-    /* eslint-disable no-constant-condition */
     while (true) {
       const item = await redis.rpoplpush("telegram:processing", "telegram:updates");
       if (!item) break;
@@ -675,7 +465,6 @@ async function main() {
       // avoid busy looping
       if (moved % 100 === 0) await sleep(10);
     }
-    /* eslint-enable no-constant-condition */
     if (moved > 0) logger.info(`Requeued ${moved} items from telegram:processing to telegram:updates`);
   } catch (err) {
     logger.warn("Failed to requeue processing list on startup", err?.message || String(err));
@@ -796,36 +585,6 @@ async function handleUpdate(update) {
 
       try {
         const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI };
-
-        // Short per-chat dedupe: if the same callback payload was handled recently,
-        // skip reprocessing to avoid duplicate edits caused by rapid double-taps or
-        // duplicate Telegram deliveries. This is NOT a rate-limit — it only
-        // suppresses identical callbacks for a small TTL (default 2s).
-        let _skipDuplicateCallback = false;
-        try {
-          const dedupeSeconds = Number(process.env.CALLBACK_DEDUPE_SECONDS || 2);
-          const sigSrc = JSON.stringify({ data: callbackQuery.data || null, msgId: callbackQuery.message?.message_id || null });
-          const sig = crypto.createHash('sha1').update(sigSrc).digest('hex');
-          const dedupeKey = `callback:last:${chatId}`;
-          try {
-            const prev = await redis.get(dedupeKey);
-            if (prev && prev === sig) {
-              try { await telegram.answerCallback(callbackId, 'Already up to date', false); } catch (e) { /* ignore */ }
-              _skipDuplicateCallback = true;
-            }
-          } catch (e) { /* ignore redis read errors, proceed to handle */ }
-
-          try { await redis.setex(dedupeKey, dedupeSeconds, sig); } catch (e) { /* ignore */ }
-        } catch (e) {
-          // best-effort dedupe; never block callback processing
-          logger.debug('Callback dedupe check failed', e && e.message ? e.message : e);
-        }
-
-        if (_skipDuplicateCallback) {
-          // Skip processing this update (duplicate callback); exit the callback handler early.
-          return;
-        }
-
         const res = await completeHandler.handleCallbackQuery(callbackQuery, redis, services);
         if (!res) return;
 
@@ -843,27 +602,10 @@ async function handleUpdate(update) {
               const messageId = action.message_id || callbackQuery.message?.message_id;
               const text = action.text || '';
               const reply_markup = action.reply_markup || null;
-              const parseMode = (action.parse_mode || action.parseMode || 'HTML');
-              // Attempt to edit existing message; if Telegram reports "not modified",
-              // fall back to sending a new message so the user sees a visible response.
-              try {
-                const editRes = await telegram.editMessage(chatId, messageId, text, reply_markup, parseMode);
-                logger.info('Dispatched editMessageText', { chatId, messageId, parseMode, editRes });
-
-                // editRes may be an object like { ok: false, reason: 'not_modified' }
-                if (editRes && (editRes.reason === 'not_modified' || editRes.ok === false)) {
-                  try {
-                    await telegram.sendMessage(chatId, text, { reply_markup, parse_mode: parseMode, fallbackAfterEdit: true });
-                    logger.info('Fallback sendMessage after no-op editMessage', { chatId, messageId });
-                  } catch (sendErr) {
-                    logger.warn('Fallback sendMessage after editMessage no-op failed', sendErr && sendErr.message ? sendErr.message : sendErr);
-                  }
-                }
-              } catch (e) {
-                // If editMessage throws (unexpected), attempt sendMessage as a recovery
-                logger.warn('editMessage threw an error, attempting sendMessage fallback', e && e.message ? e.message : e);
-                try { await telegram.sendMessage(chatId, text, { reply_markup, parse_mode: parseMode, fallbackAfterEdit: true }); } catch (sendErr) { logger.error('Fallback sendMessage failed after editMessage error', sendErr && sendErr.message ? sendErr.message : sendErr); }
-              }
+              // Pass parse_mode through to editMessage options so handlers
+              // that specify HTML vs Markdown are respected.
+              await telegram.editMessage(chatId, messageId, text, reply_markup, { parse_mode: action.parse_mode || 'Markdown' });
+              logger.info('Dispatched editMessageText', { chatId, messageId });
               continue;
             }
 
@@ -971,10 +713,8 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
           const result = await completeHandler.handleStart(chatId, sharedServices);
           await telegram.sendMessage(chatId, result.text, { reply_markup: result.reply_markup, parse_mode: result.parse_mode || 'Markdown' });
         } catch (e) {
-          logger.warn('/start handler error', e?.message, { stack: e?.stack });
-          // include a short error snippet in the fallback message for debugging
-          const msg = `❌ Error loading menu: ${String(e?.message || 'unknown').slice(0,200)}`;
-          await telegram.sendMessage(chatId, msg).catch(()=>{});
+          logger.warn('/start handler error', e?.message);
+          await telegram.sendMessage(chatId, '❌ Error loading menu');
         }
       },
       "/menu": async () => {
@@ -982,9 +722,8 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
           const result = await completeHandler.handleMenu(chatId, sharedServices);
           await telegram.sendMessage(chatId, result.text, { reply_markup: result.reply_markup, parse_mode: result.parse_mode || 'Markdown' });
         } catch (e) {
-          logger.warn('/menu handler error', e?.message, { stack: e?.stack });
-          const msg = `❌ Error loading menu: ${String(e?.message || 'unknown').slice(0,200)}`;
-          await telegram.sendMessage(chatId, msg).catch(()=>{});
+          logger.warn('/menu handler error', e?.message);
+          await telegram.sendMessage(chatId, '❌ Error loading menu');
         }
       },
       "/live": async () => {
@@ -1010,6 +749,15 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
         }
       },
       "/about": () => basicHandlers.about(chatId),
+      "/live": async () => {
+        // route /live to the complete handler (same as above)
+        try {
+          const result = await completeHandler.handleLive(chatId, null, sharedServices);
+          await telegram.sendMessage(chatId, result.text, { reply_markup: result.reply_markup, parse_mode: result.parse_mode || 'Markdown' });
+        } catch (e) {
+          logger.warn('/live handler (duplicate) error', e?.message);
+        }
+      },
       "/news": () => basicHandlers.news(chatId),
       "/highlights": () => basicHandlers.highlights(chatId),
       "/standings": async () => {
@@ -1124,7 +872,6 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
   }
 }
 
-/* eslint-disable no-unused-vars */
 async function handleCallback(chatId, userId, data) {
   const [action, ...params] = data.split(":");
   try {
@@ -1142,7 +889,6 @@ async function handleCallback(chatId, userId, data) {
     logger.error(`Callback ${data} failed`, err);
   }
 }
-/* eslint-enable no-unused-vars */
 
 async function handleSignupFlow(chatId, userId, text, state) {
   try {
@@ -1209,27 +955,6 @@ process.on("uncaughtException", (err) => {
   logger.error("Uncaught exception", err);
   process.exit(1);
 });
-
-// Start the HTTP admin/debug server inside the worker process as a fallback
-// This ensures admin endpoints (e.g. /admin/routes, /admin/redis-ping, /webhook/*)
-// are available even if Render or another platform invokes the worker entrypoint
-// as the service start command. Set START_HTTP_IN_WORKER=false to disable.
-if (process.env.START_HTTP_IN_WORKER !== 'false' && !ENABLE_MINIMAL_WEB) {
-  try {
-    const { default: app } = await import('./app.js');
-    try {
-      const httpPort = Number(process.env.PORT || 5000);
-      const server = app.listen(httpPort, () => logger.info(`⚓ HTTP admin server started inside worker on port ${httpPort}`));
-      server.on('error', (e) => logger.warn('HTTP admin server error', e?.message || String(e)));
-    } catch (e) {
-      logger.warn('Failed to start HTTP server inside worker', e?.message || String(e));
-    }
-  } catch (e) {
-    logger.warn('Could not import app to start HTTP server inside worker', e?.message || String(e));
-  }
-} else {
-  logger.info('Not starting full HTTP admin server in worker (START_HTTP_IN_WORKER=false or minimal webhook enabled)');
-}
 
 main().catch(err => {
   logger.error("Fatal", err);

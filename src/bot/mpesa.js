@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 // Minimal Safaricom Daraja (M-Pesa) client for STK push using till/shortcode.
 // Configuration is supplied via environment variables at runtime only.
 

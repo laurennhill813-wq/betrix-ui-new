@@ -66,9 +66,7 @@ export class SportsAggregator {
       : null;
 
     // ONLY initialize SportMonks and Football-Data
-    // Respect runtime PROVIDERS flags so SportMonks can be disabled without removing code.
-    const sportmonksEnabled = CONFIG.PROVIDERS && CONFIG.PROVIDERS.SPORTSMONKS && CONFIG.PROVIDERS.SPORTSMONKS.enabled !== false;
-    this.sportmonks = (this._isAllowedSync('SPORTSMONKS') && CONFIG.SPORTSMONKS && CONFIG.SPORTSMONKS.KEY && sportmonksEnabled) ? new SportMonksService(redis) : null;
+    this.sportmonks = (this._isAllowedSync('SPORTSMONKS') && CONFIG.SPORTSMONKS && CONFIG.SPORTSMONKS.KEY) ? new SportMonksService(redis) : null;
     this.providerHealth = new ProviderHealth(redis);
   }
 

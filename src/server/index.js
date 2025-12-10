@@ -17,7 +17,7 @@ try {
   module.exports = {};
 }
 
-// Safely expose the telegram router so callers (e.g. the real server bootstrap)
+const telegramRoute// Safely expose th// Safely expose thconst telegramRoute// Safely expose the telegram router so callers (e.g. the real server bootstrap)
 // can mount it. Avoid calling `app.use` here because `app` may not be defined
 // in this wrapper context which previously caused runtime/lint errors.
 try {

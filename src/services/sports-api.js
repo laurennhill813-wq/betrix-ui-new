@@ -1,8 +1,8 @@
 import fetch from 'node-fetch';
 
 export class SportsAPI {
-  static async fetchFootballMatches(_league = 'EPL') {
-    try {
+  s  static async fetchFootballMatches(_league = 'EPL') {
+try {
       const response = await fetch(`${process.env.API_FOOTBALL_BASE}/fixtures?league=39&season=2025`, {
         headers: {
           'x-apisports-key': process.env.API_FOOTBALL_KEY

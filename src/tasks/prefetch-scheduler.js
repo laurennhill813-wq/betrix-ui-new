@@ -124,10 +124,6 @@ export function startPrefetchScheduler({ redis, openLiga, rss, scorebat, footbal
       }
 
       // 5) SportMonks & Football-Data live/fixtures - main providers, prefetch every 60s
-      // Note: If SportGameOdds (sgo) is available we prefer it as the authoritative
-      // prefetch source for consolidated `betrix:prefetch:*` keys to avoid mixing
-      // providers. sportsAggregator will still fetch provider-specific lists but
-      // will skip writing consolidated keys when sgo is present.
       if (sportsAggregator) {
         try {
           if (!await isAllowedToRun('sportsmonks')) { /* skip due to backoff */ }
@@ -136,24 +132,18 @@ export function startPrefetchScheduler({ redis, openLiga, rss, scorebat, footbal
             const live = await sportsAggregator.getAllLiveMatches().catch(async (err) => { await recordFailure('sportsmonks'); throw err; });
             if (live && live.length > 0) {
               const cappedLive = Array.isArray(live) ? live.slice(0, Math.min(MAX_PREFETCH_STORE, live.length)) : [];
-              // Store SportMonks results under a legacy prefix so runtime prefers SGO
-              await safeSet('prefetch:legacy:sportsmonks:live', { fetchedAt: ts, count: live.length, data: cappedLive }, 30);
-              // Only write the consolidated betrix key if SportGameOdds isn't present
-              if (!sportsgameodds) {
-                const bySport = { sports: { soccer: { fetchedAt: ts, count: live.length, samples: cappedLive } } };
-                await safeSet('betrix:prefetch:live:by-sport', bySport, 30);
-              }
+              await safeSet('prefetch:sportsmonks:live', { fetchedAt: ts, count: live.length, data: cappedLive }, 30);
+              // Also write a consolidated key expected by Telegram handler: betrix:prefetch:live:by-sport
+              const bySport = { sports: { soccer: { fetchedAt: ts, count: live.length, samples: cappedLive } } };
+              await safeSet('betrix:prefetch:live:by-sport', bySport, 30);
               await recordSuccess('sportsmonks');
             }
             const fixtures = await sportsAggregator.getFixtures().catch(async (_err) => { await recordFailure('sportsmonks-fixtures'); return []; });
             if (fixtures && fixtures.length > 0) {
               const cappedFixtures = Array.isArray(fixtures) ? fixtures.slice(0, Math.min(MAX_PREFETCH_STORE, fixtures.length)) : [];
-              // Store SportMonks fixtures under a legacy prefix so runtime prefers SGO
-              await safeSet('prefetch:legacy:sportsmonks:fixtures', { fetchedAt: ts, count: fixtures.length, data: cappedFixtures }, 60);
-              // Only publish consolidated upcoming fixtures if SportGameOdds isn't present
-              if (!sportsgameodds) {
-                await safeSet('betrix:prefetch:upcoming:by-sport', { sports: { soccer: { fetchedAt: ts, count: fixtures.length, samples: cappedFixtures } } }, 60);
-              }
+              await safeSet('prefetch:sportsmonks:fixtures', { fetchedAt: ts, count: fixtures.length, data: cappedFixtures }, 60);
+              // Also publish an easy-to-read consolidated upcoming fixtures key
+              await safeSet('betrix:prefetch:upcoming:by-sport', { sports: { soccer: { fetchedAt: ts, count: fixtures.length, samples: cappedFixtures } } }, 60);
               await recordSuccess('sportsmonks-fixtures');
             }
             await redis.publish('prefetch:updates', JSON.stringify({ type: 'sportsmonks', ts, live: live ? live.length : 0, fixtures: fixtures ? fixtures.length : 0 }));
@@ -169,49 +159,14 @@ export function startPrefetchScheduler({ redis, openLiga, rss, scorebat, footbal
         try {
           if (!await isAllowedToRun('sportsgameodds')) { /* skip due to backoff */ }
           else {
-            const cfg = process.env.SGO_PREFETCH_LEAGUES || null;
-            let leagues = [];
-            // If explicit env provided, use that list. Otherwise discover leagues from provider.
-            if (cfg) {
-              leagues = cfg.split(',').map(s => s.trim()).filter(Boolean).slice(0, 10);
-            } else {
-              try {
-                const allLeagues = await sportsgameodds.fetchLeagues({ redis, forceFetch: false }).catch(() => []);
-                const arr = Array.isArray(allLeagues) ? allLeagues : [];
-                // Group by best-effort sport key and pick up to 3 leagues per sport to cover multiple sports
-                const bySport = {};
-                for (const lg of arr) {
-                  if (!lg) continue;
-                  const sportKey = String(lg.sport || lg.sportID || lg.sportName || (lg.sport && (lg.sport.id || lg.sport.code)) || 'unknown');
-                  if (!bySport[sportKey]) bySport[sportKey] = [];
-                  bySport[sportKey].push(lg);
-                }
-                // Pick up to 3 leagues per sport in deterministic order
-                for (const [k, list] of Object.entries(bySport)) {
-                  for (const item of list.slice(0, 3)) {
-                    const ident = item.leagueID || item.id || item.slug || item.code;
-                    if (ident) leagues.push(String(ident));
-                    if (leagues.length >= 10) break;
-                  }
-                  if (leagues.length >= 10) break;
-                }
-              } catch (e) { leagues = []; }
-            }
-
-            // Aggregate across leagues so we can publish consolidated betrix prefetch keys
-            const aggregatedEvents = [];
-            let totalEventsCount = 0;
+            const cfg = process.env.SGO_PREFETCH_LEAGUES || 'EPL,NBA,NFL';
+            const leagues = cfg.split(',').map(s=>s.trim()).filter(Boolean).slice(0,10);
             for (const league of leagues) {
               try {
                 const events = await sportsgameodds.fetchAllEvents({ league, redis, forceFetch: true }).catch(async (err) => { await recordFailure(`sgo-events:${league}`); throw err; });
                 if (events) {
                   const capped = Array.isArray(events) ? events.slice(0, Math.min(MAX_PREFETCH_STORE, events.length)) : events;
                   await safeSet(`prefetch:sgo:events:${league}`, { fetchedAt: ts, count: Array.isArray(events)?events.length:0, data: capped }, 60);
-                  // add to aggregated list used for consolidated quick-lookup keys
-                  if (Array.isArray(capped) && capped.length) {
-                    aggregatedEvents.push(...capped.slice(0, Math.min(MAX_PREFETCH_STORE, capped.length)));
-                    totalEventsCount += capped.length;
-                  }
                   // For the first few events, fetch odds to warm odds caches
                   const sampleIds = (Array.isArray(capped) ? capped.slice(0,5).map(ev => ev.id || ev.eventId || ev._id).filter(Boolean) : []).slice(0,5);
                   if (sampleIds.length) {
@@ -227,31 +182,6 @@ export function startPrefetchScheduler({ redis, openLiga, rss, scorebat, footbal
                 await recordFailure('sportsgameodds');
               }
             }
-            // After fetching league samples, publish a consolidated key usable by Telegram handlers
-            try {
-              if (aggregatedEvents.length) {
-                const cappedAgg = aggregatedEvents.slice(0, Math.min(MAX_PREFETCH_STORE, aggregatedEvents.length));
-                // Build a sports grouped object by attempting to infer sport from event objects
-                const grouped = {};
-                for (const ev of cappedAgg) {
-                  // best-effort sport key extraction from event
-                  const sportKey = String(ev.sport || ev.sportID || ev.sportName || ev.sportType || 'unknown');
-                  if (!grouped[sportKey]) grouped[sportKey] = [];
-                  grouped[sportKey].push(ev);
-                }
-                const bySportObj = { sports: {} };
-                for (const [s, arr] of Object.entries(grouped)) {
-                  bySportObj.sports[s] = { fetchedAt: ts, count: arr.length, samples: arr.slice(0, Math.min(MAX_PREFETCH_STORE, arr.length)) };
-                }
-                await safeSet('betrix:prefetch:upcoming:by-sport', bySportObj, 60);
-                // For live quick-look use small sample per sport
-                const liveBySport = { sports: {} };
-                for (const [s, obj] of Object.entries(bySportObj.sports)) {
-                  liveBySport.sports[s] = { fetchedAt: ts, count: obj.count, samples: (obj.samples || []).slice(0,5) };
-                }
-                await safeSet('betrix:prefetch:live:by-sport', liveBySport, 30);
-              }
-            } catch (e) { void e; }
             await redis.publish('prefetch:updates', JSON.stringify({ type: 'sportsgameodds', ts }));
           }
         } catch (e) {

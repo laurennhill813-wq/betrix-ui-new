@@ -59,7 +59,7 @@ module.exports = function dedupe(ttlSeconds = 60) {
       res.status(429).json({ ok: false, error: 'Duplicate request', code: 'DUPLICATE_REQUEST' });
       return;
     } catch (err) {
-      safeLog('dedupe middleware error:', err && err.message ? err.message : err);
+e : err);
       return next();
     }
   };

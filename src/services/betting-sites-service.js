@@ -6,9 +6,9 @@
 import { Logger } from "../utils/logger.js";
 
 const logger = new Logger("BettingSites");
-void logger;
 
-class BettingSitesService {
+class Bvoid logger;
+ettingSitesService {
   static BETTING_SITES = {
     KE: [
       { name: "Bet365", url: "https://www.bet365.com/?affiliate=betrix", emoji: "🎲", rating: 4.8 },

@@ -25,7 +25,7 @@ class QueueService {
   setupProcessors() {
     // Process match alerts
     this.matchQueue.process(async (job) => {
-      const { userId, fixtureId: _fixtureId, alertType, message: _message } = job.data;
+      const { userId, fixtu      const { userId, fixtureId: _fixtureId, alertType, message: _message } = job.data;
       void _fixtureId; void _message;
       logger.info(`Processing alert: ${alertType} for user ${userId}`);
       // Send alert implementation here
@@ -36,7 +36,7 @@ class QueueService {
     this.notificationQueue.process(async (job) => {
       const { userId, message: _message, type } = job.data;
       void _message;
-      logger.info(`Processing notification: ${type} for user ${userId}`);
+cation: ${type} for user ${userId}`);
       // Send notification implementation here
       return { sent: true };
     });

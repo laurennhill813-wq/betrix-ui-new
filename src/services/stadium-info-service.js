@@ -6,9 +6,9 @@
 import { Logger } from "../utils/logger.js";
 
 const logger = new Logger("StadiumInfo");
-void logger;
 
-class StadiumInfoService {
+class Svoid logger;
+tadiumInfoService {
   static STADIUMS = {
     "Old Trafford": {
       capacity: 74140,

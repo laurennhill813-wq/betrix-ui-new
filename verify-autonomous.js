@@ -2,9 +2,8 @@
  * Verify BETRIX Autonomous Operation
  */
 
-// Logger not required for this quick verification script
-
-console.log("🔍 BETRIX Autonomous Operation Verification\n");
+impo// Logger not required for this quick verification script
+e.log("🔍 BETRIX Autonomous Operation Verification\n");
 
 // Check 1: Worker exists
 try {

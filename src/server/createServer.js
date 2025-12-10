@@ -1,6 +1,6 @@
 ﻿const path = require('path');
 
-// top-level shared symbols used by health/webhook guards and graceful shutdown
+le// top-level shared symbols used by health/webhook guards and graceful shutdown
 let app;
 let server;
 let queue;
@@ -288,11 +288,7 @@ try {
           return res.status(403).send('forbidden');
         }
         try { console.log(JSON.stringify({ event: 'webhook.received', ts: new Date().toISOString(), size: JSON.stringify(req.body || {}).length })); } catch(e){ void e; }
-        try {
-          if (globalThis.queue && typeof globalThis.queue.enqueue === 'function') {
-            globalThis.queue.enqueue('telegram:update', req.body).catch(()=>{});
-            console.log(JSON.stringify({ event: 'webhook.enqueued', ts: new Date().toISOString() }));
-          } else {
+         } else {
             console.debug('No queue available; webhook received (debug).');
           }
         } catch (e) { console.error('enqueue error', e); }

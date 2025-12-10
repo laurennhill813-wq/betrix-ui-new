@@ -1,76 +1,132 @@
-// TelegramService with defensive sanitization and fallback for editMessageText
-// This file replaces/updates the existing service to sanitize message text
-// before sending to Telegram and to attempt a safe fallback if Telegram
-// responds with an entities parsing error.
+// Telegram API service (ESM)
+// Combines sanitization (escape/whitelist) with safe edit/send behaviour
 
-const HttpClient = require('./http-client');
-const { sanitizeTelegramHtml, escapeAngleBrackets } = require('../utils/telegram-sanitize');
+import { Logger } from "../utils/logger.js";
+import { HttpClient } from "./http-client.js";
+import { chunkText } from "../utils/formatters.js";
+import * as sanitize from "../utils/telegram-sanitize.js";
+
+const logger = new Logger("Telegram");
 
 class TelegramService {
-  constructor(token, httpClient) {
-    this.token = token;
-    // Accept an injected httpClient for easier testing; otherwise use the default service client.
-    this.httpClient = httpClient || new HttpClient(token);
+  constructor(botToken, safeChunkSize = 3000) {
+    this.botToken = botToken;
+    this.safeChunkSize = safeChunkSize;
+    this.baseUrl = `https://api.telegram.org/bot${botToken}`;
   }
 
-  // params is an object expected to include properties accepted by your http client,
-  // such as: chatId, messageId, text, parse_mode, reply_markup, etc.
-  // We preserve the existing call shape by sanitizing payload.text before sending.
-  async editMessage(params = {}) {
-    const payload = { ...params };
+  // sendMessage with chunking and sanitization
+  async sendMessage(chatId, text, options = {}) {
+    const chunks = chunkText(String(text || ''), this.safeChunkSize);
 
-    if (payload.text) {
-      if (payload.parse_mode && String(payload.parse_mode).toLowerCase() === 'html') {
-        payload.text = sanitizeTelegramHtml(payload.text);
+    // Choose parse mode: prefer explicit parse_mode, otherwise default to Markdown
+    const parseMode = options && options.parse_mode ? options.parse_mode : 'Markdown';
+
+    for (let i = 0; i < chunks.length; i++) {
+      const suffix = chunks.length > 1 ? `\n\nPage ${i + 1}/${chunks.length}` : '';
+      let bodyText = chunks[i] + suffix;
+
+      // Sanitize based on parse mode
+      if (String(parseMode).toLowerCase() === 'html') {
+        bodyText = sanitize.sanitizeTelegramHtml(bodyText);
       } else {
-        // If not using HTML parse mode, still escape angle brackets to avoid accidental tag parsing
-        payload.text = escapeAngleBrackets(payload.text);
+        bodyText = sanitize.escapeAngleBrackets(bodyText);
+      }
+
+      const payload = {
+        chat_id: chatId,
+        text: bodyText,
+        parse_mode: parseMode,
+        disable_web_page_preview: true,
+        ...options,
+      };
+
+      try {
+        await HttpClient.fetch(`${this.baseUrl}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }, `sendMessage to ${chatId}`);
+      } catch (err) {
+        logger.error('sendMessage failed', err);
+        throw err;
       }
     }
+  }
 
-    // Log outgoing payload for diagnostics (consider reducing log level in production)
+  // editMessage with sanitization and safe fallback to sendMessage
+  async editMessage(chatId, messageId, text, replyMarkup = null, options = {}) {
+    // Determine parse mode: prefer explicit options.parse_mode, then replyMarkup.parse_mode, otherwise Markdown
+    let parse = 'Markdown';
+    if (options && options.parse_mode) parse = options.parse_mode;
+    else if (replyMarkup && typeof replyMarkup === 'object' && replyMarkup.parse_mode) parse = replyMarkup.parse_mode;
+
+    // Sanitize text according to chosen parse mode
+    let safeText = String(text || '');
+    if (String(parse).toLowerCase() === 'html') safeText = sanitize.sanitizeTelegramHtml(safeText);
+    else safeText = sanitize.escapeAngleBrackets(safeText);
+
+    const payload = {
+      chat_id: chatId,
+      message_id: messageId,
+      text: safeText,
+      parse_mode: parse,
+      disable_web_page_preview: true,
+      ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+    };
+
     try {
-      // The project's existing http client may expect a method name and payload.
-      // If your http client has a different signature, adjust this call accordingly.
-      return await this.httpClient.fetch('editMessageText', payload);
+      return await HttpClient.fetch(`${this.baseUrl}/editMessageText`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }, `editMessage ${messageId}`);
     } catch (err) {
-      const desc = (err && (err.description || err.message || err.toString())) || '';
-      // Detect Telegram entity parsing errors and attempt a safe retry
+      const desc = (err && (err.description || err.message || String(err))) || '';
       if (/can't parse entities|Unsupported start tag|Bad Request: can't parse entities/i.test(desc)) {
-        const fallbackPayload = { ...payload };
-        // Remove parse_mode and fully escape content
-        delete fallbackPayload.parse_mode;
-        fallbackPayload.text = escapeAngleBrackets(payload.text || '');
-
+        // Try a safe fallback: remove parse_mode and send as plain text with angle brackets escaped
+        const sendOpts = { reply_markup: replyMarkup };
+        if (options && options.parse_mode) sendOpts.parse_mode = options.parse_mode;
         try {
-          console.warn('Telegram editMessageText failed due to entity parsing; retrying with escaped text.');
-          return await this.httpClient.fetch('editMessageText', fallbackPayload);
-        } catch (err2) {
-          // Attach payloads for easier debugging and rethrow
-          err2.originalPayload = payload;
-          err2.fallbackPayload = fallbackPayload;
-          console.error('editMessageText retry failed', err2);
-          throw err2;
+          await this.sendMessage(chatId, safeText, sendOpts);
+          return { ok: true, fallback: 'sent_new' };
+        } catch (e2) {
+          logger.warn('Fallback sendMessage after editMessage failure also failed', e2 && e2.message ? e2.message : e2);
+          return { ok: false, reason: 'edit_and_send_failed' };
         }
       }
-
-      // Not an entity parsing error, rethrow
       throw err;
     }
   }
 
-  // Optional: expose sendMessage similarly (left unchanged, but sanitation can be added if desired)
-  async sendMessage(params = {}) {
-    const payload = { ...params };
-    if (payload.text) {
-      if (payload.parse_mode && String(payload.parse_mode).toLowerCase() === 'html') {
-        payload.text = sanitizeTelegramHtml(payload.text);
-      } else {
-        payload.text = escapeAngleBrackets(payload.text);
-      }
-    }
-    return await this.httpClient.fetch('sendMessage', payload);
+  // Answer callback query (inline button response)
+  async answerCallback(callbackQueryId, text = '', showAlert = false) {
+    return HttpClient.fetch(`${this.baseUrl}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ callback_query_id: callbackQueryId, text, show_alert: showAlert }),
+    }, `answerCallback ${callbackQueryId}`);
+  }
+
+  // Webhook helpers
+  async setWebhook(url, allowedUpdates = ['message', 'callback_query'], secretToken = null) {
+    const body = { url, allowed_updates: allowedUpdates };
+    if (secretToken) body.secret_token = secretToken;
+    return HttpClient.fetch(`${this.baseUrl}/setWebhook`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }, 'setWebhook');
+  }
+
+  async deleteWebhook() {
+    return HttpClient.fetch(`${this.baseUrl}/deleteWebhook`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }, 'deleteWebhook');
+  }
+
+  async getWebhookInfo() {
+    return HttpClient.fetch(`${this.baseUrl}/getWebhookInfo`, { method: 'POST' }, 'getWebhookInfo');
   }
 }
 
-module.exports = TelegramService;
+export { TelegramService };
+export default TelegramService;

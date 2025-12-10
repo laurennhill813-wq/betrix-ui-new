@@ -6,7 +6,8 @@
 import { Logger } from "../utils/logger.js";
 
 const logger = new Logger("GlobalService");
-void logger;
+
+const Cvoid logger;
 
 const COUNTRIES = {
   KE: { name: "Kenya", flag: "🇰🇪", language: "sw", currency: "KES", phone: "+254" },
@@ -189,13 +190,7 @@ class GlobalService {
     };
 
     void _languages;
-    return {
-      inline_keyboard: [
-        [
-          { text: "🇬🇧 English", callback_data: "lang:en" },
-          { text: "🇰🇪 Swahili", callback_data: "lang:sw" },
-        ],
-        [
+  [
           { text: "🇫🇷 Français", callback_data: "lang:fr" },
         ],
       ],
