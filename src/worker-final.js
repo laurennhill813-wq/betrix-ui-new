@@ -47,6 +47,7 @@ import completeHandler from "./handlers/handler-complete.js";
 import SportMonksAPI from "./services/sportmonks-api.js";
 import SportsDataAPI from "./services/sportsdata-api.js";
 import { registerDataExposureAPI } from "./app_clean.js";
+import app from "./app_clean.js";
 import { Pool } from 'pg';
 import { reconcileWithLipana } from './tasks/reconcile-lipana.js';
 
@@ -363,6 +364,14 @@ try {
   logger.info('✅ Data Exposure API registered - access at /api/data/*');
 } catch (e) {
   logger.warn('Failed to register Data Exposure API', e?.message || String(e));
+}
+
+// Start minimal HTTP server so Render detects an open port and webhooks can be received.
+try {
+  const PORT = Number(process.env.PORT || process.env.RENDER_PORT || 5000);
+  app.listen(PORT, () => logger.info(`HTTP server listening on port ${PORT}`));
+} catch (e) {
+  logger.warn('Failed to start HTTP server for webhooks', e?.message || String(e));
 }
 
 // Subscribe to prefetch events for internal observability and reactive caching
