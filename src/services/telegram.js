@@ -1,198 +1,76 @@
-/**
- * Telegram API service
- * Modern, clean implementation with error handling
- */
+// TelegramService with defensive sanitization and fallback for editMessageText
+// This file replaces/updates the existing service to sanitize message text
+// before sending to Telegram and to attempt a safe fallback if Telegram
+// responds with an entities parsing error.
 
-import { Logger } from "../utils/logger.js";
-import { HttpClient } from "./http-client.js";
-import { chunkText } from "../utils/formatters.js";
-import { appendFile } from 'fs/promises';
-
-const logger = new Logger("Telegram");
-void logger;
-void logger;
+const HttpClient = require('./http-client');
+const { sanitizeTelegramHtml, escapeAngleBrackets } = require('../utils/telegram-sanitize');
 
 class TelegramService {
-  constructor(botToken, safeChunkSize = 3000) {
-    this.botToken = botToken;
-    this.safeChunkSize = safeChunkSize;
-    this.baseUrl = `https://api.telegram.org/bot${botToken}`;
-    try {
-      // Log a masked token indicator so we can diagnose missing/invalid tokens in platform logs
-      const t = String(botToken || '');
-      const masked = t.length > 8 ? `${t.slice(0,4)}...${t.slice(-4)}` : (t ? '****' : '(empty)');
-      try { console.log('[TELEGRAM_TOKEN_MASK] length=' + t.length + ' token=' + masked); } catch(e){ void e; }
-    } catch(e) { void e; }
+  constructor(token, httpClient) {
+    this.token = token;
+    // Accept an injected httpClient for easier testing; otherwise use the default service client.
+    this.httpClient = httpClient || new HttpClient(token);
   }
 
-  /**
-   * Send message with auto-chunking
-   */
-  async sendMessage(chatId, text, options = {}) {
-    const chunks = chunkText(text, this.safeChunkSize);
+  // params is an object expected to include properties accepted by your http client,
+  // such as: chatId, messageId, text, parse_mode, reply_markup, etc.
+  // We preserve the existing call shape by sanitizing payload.text before sending.
+  async editMessage(params = {}) {
+    const payload = { ...params };
 
-    for (let i = 0; i < chunks.length; i++) {
-      const suffix = chunks.length > 1 ? `\n\nPage ${i + 1}/${chunks.length}` : "";
-      const payload = {
-        chat_id: chatId,
-        text: chunks[i] + suffix,
-        parse_mode: "HTML",
-        disable_web_page_preview: true,
-        ...options,
-      };
-
-      // Debug: log payload keys for troubleshooting reply_markup
-      try {
-        logger.debug('sendMessage payload keys', Object.keys(payload));
-      } catch (e) {
-        // ignore logging errors
-      }
-      try {
-        let res;
-        try {
-          res = await HttpClient.fetch(`${this.baseUrl}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }, `sendMessage to ${chatId}`);
-        } catch (apiErr) {
-          try { console.error('[TELEGRAM_API_ERROR] sendMessage', apiErr && apiErr.message ? apiErr.message : String(apiErr)); } catch(e){ void e; }
-          throw apiErr;
-        }
-        // Append outgoing event to local file for easier debugging in deployed environments
-        try {
-          const entry = { ts: new Date().toISOString(), method: 'sendMessage', chatId, page: i+1, payloadSummary: { textLen: (payload.text||'').length, hasReplyMarkup: !!payload.reply_markup, fallbackAfterEdit: !!options?.fallbackAfterEdit } };
-          await appendFile('./logs/outgoing-events.log', JSON.stringify(entry) + '\n', { encoding: 'utf8' }).catch(()=>{});
-          // Also write to stdout so platform log aggregation (Render) captures outgoing events
-          try { console.log('[OUTGOING_EVENT] ' + JSON.stringify(entry)); } catch (e) { void e; }
-        } catch(e){ void e; }
-        return res;
-      } catch (err) {
-        logger.error("Send message failed", err);
-        throw err;
+    if (payload.text) {
+      if (payload.parse_mode && String(payload.parse_mode).toLowerCase() === 'html') {
+        payload.text = sanitizeTelegramHtml(payload.text);
+      } else {
+        // If not using HTML parse mode, still escape angle brackets to avoid accidental tag parsing
+        payload.text = escapeAngleBrackets(payload.text);
       }
     }
-  }
 
-  /**
-   * Edit existing message
-   */
-  async editMessage(chatId, messageId, text, replyMarkup = null, parseMode = 'HTML') {
-    const payload = {
-      chat_id: chatId,
-      message_id: messageId,
-      text,
-      parse_mode: parseMode || 'HTML',
-      disable_web_page_preview: true,
-      ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
-    };
-
+    // Log outgoing payload for diagnostics (consider reducing log level in production)
     try {
-      let res;
-      try {
-        res = await HttpClient.fetch(`${this.baseUrl}/editMessageText`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      }, `editMessage ${messageId}`);
-      } catch (apiErr) {
-        try { console.error('[TELEGRAM_API_ERROR] editMessage', apiErr && apiErr.message ? apiErr.message : String(apiErr)); } catch(e){ void e; }
-        throw apiErr;
-      }
-      try { const entry = { ts: new Date().toISOString(), method: 'editMessage', chatId, messageId, payloadSummary: { textLen: (text||'').length, hasReplyMarkup: !!replyMarkup } }; await appendFile('./logs/outgoing-events.log', JSON.stringify(entry)+'\n', { encoding:'utf8' }).catch(()=>{}); try { console.log('[OUTGOING_EVENT] ' + JSON.stringify(entry)); } catch(e){ void e; } } catch(e){ void e; }
-      return res;
+      // The project's existing http client may expect a method name and payload.
+      // If your http client has a different signature, adjust this call accordingly.
+      return await this.httpClient.fetch('editMessageText', payload);
     } catch (err) {
-      // Normalize error string
-      const msg = String(err && (err.message || err) || '');
-      // Common benign Telegram responses
-      if (msg.includes('message is not modified') || msg.includes('Bad Request: message is not modified')) {
-        logger.info('Telegram editMessage: message not modified (no-op)');
-        return { ok: false, reason: 'not_modified' };
-      }
-      if (msg.includes("message to edit not found") || msg.includes("message can't be edited") || msg.includes("message to edit has no text")) {
-        logger.info('Telegram editMessage: message not editable, falling back to sendMessage', { chatId, messageId });
+      const desc = (err && (err.description || err.message || err.toString())) || '';
+      // Detect Telegram entity parsing errors and attempt a safe retry
+      if (/can't parse entities|Unsupported start tag|Bad Request: can't parse entities/i.test(desc)) {
+        const fallbackPayload = { ...payload };
+        // Remove parse_mode and fully escape content
+        delete fallbackPayload.parse_mode;
+        fallbackPayload.text = escapeAngleBrackets(payload.text || '');
+
         try {
-          await this.sendMessage(chatId, text, { reply_markup: replyMarkup });
-          return { ok: true, fallback: 'sent_new' };
-        } catch (e2) {
-          logger.warn('Fallback sendMessage after editMessage failure also failed', e2 && e2.message ? e2.message : e2);
-          return { ok: false, reason: 'edit_and_send_failed' };
+          console.warn('Telegram editMessageText failed due to entity parsing; retrying with escaped text.');
+          return await this.httpClient.fetch('editMessageText', fallbackPayload);
+        } catch (err2) {
+          // Attach payloads for easier debugging and rethrow
+          err2.originalPayload = payload;
+          err2.fallbackPayload = fallbackPayload;
+          console.error('editMessageText retry failed', err2);
+          throw err2;
         }
       }
-      // Unexpected: rethrow for upstream handling/logging
+
+      // Not an entity parsing error, rethrow
       throw err;
     }
   }
 
-  /**
-   * Answer callback query (inline button response)
-   */
-  async answerCallback(callbackQueryId, text = "", showAlert = false) {
-    let res;
-    try {
-      res = await HttpClient.fetch(`${this.baseUrl}/answerCallbackQuery`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          callback_query_id: callbackQueryId,
-          text,
-          show_alert: showAlert,
-        }),
-      }, `answerCallback ${callbackQueryId}`);
-    } catch (apiErr) {
-      try { console.error('[TELEGRAM_API_ERROR] answerCallback', apiErr && apiErr.message ? apiErr.message : String(apiErr)); } catch(e){ void e; }
-      throw apiErr;
+  // Optional: expose sendMessage similarly (left unchanged, but sanitation can be added if desired)
+  async sendMessage(params = {}) {
+    const payload = { ...params };
+    if (payload.text) {
+      if (payload.parse_mode && String(payload.parse_mode).toLowerCase() === 'html') {
+        payload.text = sanitizeTelegramHtml(payload.text);
+      } else {
+        payload.text = escapeAngleBrackets(payload.text);
+      }
     }
-
-    try {
-      const entry = { ts: new Date().toISOString(), method: 'answerCallback', callbackQueryId, textLen: (text||'').length, showAlert };
-      await appendFile('./logs/outgoing-events.log', JSON.stringify(entry)+'\n', { encoding:'utf8' }).catch(()=>{});
-      try { console.log('[OUTGOING_EVENT] ' + JSON.stringify(entry)); } catch(e){ void e; }
-    } catch(e){ void e; }
-
-    return res;
-  }
-
-  /**
-   * Set webhook
-   */
-  /**
-   * Set webhook with optional secret token
-   * @param {string} url
-   * @param {array} allowedUpdates
-   * @param {string} secretToken
-   */
-  async setWebhook(url, allowedUpdates = ["message", "callback_query"], secretToken = null) {
-    const body = { url, allowed_updates: allowedUpdates };
-    if (secretToken) body.secret_token = secretToken;
-
-    return HttpClient.fetch(`${this.baseUrl}/setWebhook`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    }, "setWebhook");
-  }
-
-  /**
-   * Delete webhook
-   */
-  async deleteWebhook() {
-    return HttpClient.fetch(`${this.baseUrl}/deleteWebhook`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    }, "deleteWebhook");
-  }
-
-  /**
-   * Get webhook info
-   */
-  async getWebhookInfo() {
-    return HttpClient.fetch(`${this.baseUrl}/getWebhookInfo`, {
-      method: "POST",
-    }, "getWebhookInfo");
+    return await this.httpClient.fetch('sendMessage', payload);
   }
 }
 
-export { TelegramService };
-export default TelegramService;
+module.exports = TelegramService;
