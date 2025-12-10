@@ -4,7 +4,6 @@
  */
 
 import { Logger } from "../utils/logger.js";
-import
 const logger = new Logger("Predictor");
 
 class PredictionEngine {
@@ -48,11 +47,12 @@ class PredictionEngine {
    * Calculate team form score (0-100)
    */
   async calculateFormScore(team1, _team2) {
-ction, use actual match history
+    try {
+      // In production, use actual match history
       const key = `form:${team1}`;
       const form = await this.redis.get(key);
 
-      if (form) return parseInt(form);
+      if (form) return parseInt(form, 10);
 
       // Default form score
       return 70;
