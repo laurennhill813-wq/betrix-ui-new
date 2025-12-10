@@ -25,8 +25,4 @@ function escapeAngleBrackets(text) {
   if (typeof text !== 'string' || text.length === 0) return text;
   return text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
-
-module.exports = {
-  sanitizeTelegramHtml,
-  escapeAngleBrackets,
-};
+export { sanitizeTelegramHtml, escapeAngleBrackets };
