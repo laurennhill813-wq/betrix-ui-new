@@ -198,6 +198,14 @@ const localAI = new LocalAIService();
     process.env.AZURE_AI_DEPLOYMENT || process.env.AZURE_DEPLOYMENT || process.env.AZURE_OPENAI_DEPLOYMENT || (CONFIG.AZURE && CONFIG.AZURE.DEPLOYMENT),
     process.env.AZURE_API_VERSION || process.env.AZURE_OPENAI_API_VERSION || (CONFIG.AZURE && CONFIG.AZURE.API_VERSION) || '2023-05-15'
   );
+  // Log Azure configuration presence (do not log secrets)
+  try {
+    if (azure && azure.enabled) {
+      logger.info('✅ Azure AI configured', { endpoint: azure.endpoint || null, deployment: azure.deployment || null, apiVersion: azure.apiVersion || azure.apiVersion });
+    } else {
+      logger.info('ℹ️ Azure AI not configured (no endpoint/key/deployment)');
+    }
+  } catch (e) { /* ignore */ }
 const freeSports = new FreeSportsService(redis);
 const cache = new CacheService(redis);
 const openLiga = new OpenLigaDBService(undefined, cache, { ttlSeconds: 30 });
@@ -379,6 +387,37 @@ try {
 } catch (e) {
   logger.warn('Failed to start HTTP server for webhooks', e?.message || String(e));
 }
+
+// Attempt to register Telegram webhook automatically when webhook URL and token are provided.
+// This makes deploy logs show webhook registration success/failure.
+try {
+  const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || null;
+  const TELEGRAM_WEBHOOK_URL = process.env.TELEGRAM_WEBHOOK_URL || process.env.TELEGRAM_WEBHOOK || null;
+  const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET || null;
+
+  if (TELEGRAM_TOKEN && TELEGRAM_WEBHOOK_URL) {
+    (async () => {
+      try {
+        const setUrl = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/setWebhook`;
+        const body = { url: TELEGRAM_WEBHOOK_URL };
+        if (TELEGRAM_WEBHOOK_SECRET) body.secret_token = TELEGRAM_WEBHOOK_SECRET;
+        // prefer JSON to avoid form encoding complexity
+        const resp = await fetch(setUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), timeout: 10000 });
+        const json = await resp.json().catch(() => null);
+        if (json && json.ok) {
+          logger.info('✅ Telegram webhook set successfully', { url: TELEGRAM_WEBHOOK_URL });
+          console.log('Telegram webhook set successfully');
+        } else {
+          logger.warn('⚠️ Telegram setWebhook returned non-ok', { result: json });
+        }
+      } catch (err) {
+        logger.warn('⚠️ Telegram setWebhook failed', err?.message || String(err));
+      }
+    })();
+  } else {
+    logger.info('ℹ️ Telegram webhook auto-registration skipped (TELEGRAM_TOKEN or TELEGRAM_WEBHOOK_URL missing)');
+  }
+} catch (e) { logger.warn('Telegram webhook registration error', e?.message || String(e)); }
 
 // Subscribe to prefetch events for internal observability and reactive caching
 try {
