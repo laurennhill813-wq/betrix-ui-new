@@ -97,6 +97,36 @@ if (redis && typeof redis.on === 'function') {
   try { redis.on('error', (err) => logger.error('Redis error', err)); } catch(e){}
 }
 
+// ===== STARTUP ENV & SERVICE VALIDATION =====
+// Ensure critical environment variables are present in the Render environment
+(() => {
+  const telegramToken = process.env.TELEGRAM_TOKEN || (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.TOKEN) || CONFIG.TELEGRAM_TOKEN || CONFIG.TELEGRAM?.BOT_USERNAME || null;
+  const redisUrl = process.env.REDIS_URL || CONFIG.REDIS_URL || null;
+  const azureKey = process.env.AZURE_AI_KEY || process.env.AZURE_KEY || (CONFIG.AZURE && CONFIG.AZURE.KEY) || null;
+  const sgoKey = process.env.SPORTSGAMEODDS_API_KEY || process.env.SPORTSGAMEODDS_KEY || null;
+
+  const missing = [];
+  if (!telegramToken) missing.push('TELEGRAM_TOKEN');
+  if (!redisUrl) missing.push('REDIS_URL');
+  if (!azureKey) missing.push('AZURE_AI_KEY or AZURE_KEY');
+  if (!sgoKey) missing.push('SPORTSGAMEODDS_API_KEY');
+
+  // If Redis URL is set but we fell back to MockRedis, that's a connectivity/auth issue
+  const isMock = redis && redis.constructor && redis.constructor.name === 'MockRedis';
+  if (redisUrl && isMock) {
+    logger.error('REDIS_URL provided but failed to connect/authenticate to Redis; MockRedis in use');
+    process.exit(1);
+  }
+
+  if (missing.length > 0) {
+    logger.error('Missing required startup environment variables: ' + missing.join(', '));
+    // Exit early so Render shows a failed deploy and you can fix env vars
+    process.exit(1);
+  }
+
+  logger.info('Startup env check: required env vars present (TELEGRAM, AZURE, SPORTSGAMEODDS, REDIS)');
+})();
+
 // Initialize Postgres pool (optional) — fall back gracefully if DATABASE_URL not set or connection fails
 let pgPool;
 try {
