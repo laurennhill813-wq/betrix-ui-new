@@ -369,7 +369,13 @@ try {
 // Start minimal HTTP server so Render detects an open port and webhooks can be received.
 try {
   const PORT = Number(process.env.PORT || process.env.RENDER_PORT || 5000);
-  app.listen(PORT, () => logger.info(`HTTP server listening on port ${PORT}`));
+  const HOST = process.env.HOST || '0.0.0.0';
+  app.listen(PORT, HOST, () => {
+    const msg = `HTTP server listening on ${HOST}:${PORT}`;
+    // Ensure a plain console log exists for Render's port scanner and for easier debugging
+    console.log(msg);
+    logger.info(msg);
+  });
 } catch (e) {
   logger.warn('Failed to start HTTP server for webhooks', e?.message || String(e));
 }
