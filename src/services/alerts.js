@@ -16,7 +16,7 @@ class AlertsService {
   /**
    * Subscribe user to match alerts
    */
-  async subscribeT  async subscribeToMatch(userId, fixtureId, _matchInfo) {
+  async subscribeToMatch(userId, fixtureId, _matchInfo) {
     try {
       const key = `alerts:${userId}:matches`;
       await this.redis.sadd(key, fixtureId);
@@ -48,7 +48,8 @@ class AlertsService {
    * Broadcast match event to subscribers
    */
   async broadcastMatchEvent(fixtureId, _event) {
-(`alerts:*:matches`);
+    try {
+      const keys = await this.redis.keys('alerts:*:matches');
       const subscribers = [];
 
       for (const key of keys) {
