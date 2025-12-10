@@ -43,9 +43,8 @@ Keep it under 500 words. Professional tone.`;
   /**
    * Get premium match insights
    */
-  async getPremiumInsights(fixtureId, _user = {}) {
-    try {
-      const key = `premium:insights:${fixtureId}`;
+  async getPremiumInsights(fixtureId, user =   async getPremiumInsights(fixtureId, _user = {}) {
+${fixtureId}`;
       const cached = await this.redis.get(key);
       if (cached) return JSON.parse(cached);
 

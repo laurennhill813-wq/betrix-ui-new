@@ -10,14 +10,14 @@
 import { CONFIG } from './src/config.js';
 // Logger not required for this quick check script
 
-console.log('\n🔐 API KEYS CHECK (SPORTSGAMEODDS + FOOTBALL-DATA)\n');
+console.log('\n🔐 API KEYS CHECK (SPORTMONKS + FOOTBALL-DATA)\n');
 console.log('='.repeat(60));
 
 const status = {
-  sportsgameodds: {
-    configured: Boolean(CONFIG.SPORTSGAMEODDS && CONFIG.SPORTSGAMEODDS.KEY),
-    endpoint: CONFIG.SPORTSGAMEODDS?.BASE || 'https://api.sportsgameodds.com/v2',
-    envs: ['SPORTSGAMEODDS_API_KEY']
+  sportmonks: {
+    configured: Boolean(CONFIG.SPORTSMONKS && CONFIG.SPORTSMONKS.KEY),
+    endpoint: CONFIG.SPORTSMONKS?.BASE || 'https://api.sportmonks.com/v3',
+    envs: ['SPORTSMONKS_API_KEY', 'SPORTSMONKS_API']
   },
   footballdata: {
     configured: Boolean(CONFIG.FOOTBALLDATA && CONFIG.FOOTBALLDATA.KEY),
@@ -27,7 +27,7 @@ const status = {
 };
 
 console.log('Provider Status:');
-console.log(`  SportGameOdds: ${status.sportsgameodds.configured ? '✅ CONFIGURED' : '❌ NOT CONFIGURED'}`);
+console.log(`  SportMonks:    ${status.sportmonks.configured ? '✅ CONFIGURED' : '❌ NOT CONFIGURED'}`);
 console.log(`  Football-Data: ${status.footballdata.configured ? '✅ CONFIGURED' : '❌ NOT CONFIGURED'}`);
 
 console.log('\nEndpoints:');
@@ -35,8 +35,8 @@ console.log(`  SportMonks:    ${status.sportmonks.endpoint}`);
 console.log(`  Football-Data: ${status.footballdata.endpoint}`);
 
 console.log('\nEnvironment Variables to Set:');
-console.log('  SportGameOdds:');
-status.sportsgameodds.envs.forEach(env => console.log(`    - ${env}`));
+console.log('  SportMonks:');
+status.sportmonks.envs.forEach(env => console.log(`    - ${env}`));
 console.log('  Football-Data:');
 status.footballdata.envs.forEach(env => console.log(`    - ${env}`));
 

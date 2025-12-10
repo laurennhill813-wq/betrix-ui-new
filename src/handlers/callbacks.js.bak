@@ -1,6 +1,5 @@
 /**
  * Overwrite: a minimal, clean callbacks handler.
- */
 /**
  * BETRIX Callback Handlers - Consolidated Single File
  *
@@ -91,7 +90,7 @@ async function handleEventCallback(data, chatId, redis) {
     const home = ev.home?.name || ev.home_team || ev.home || 'Home';
     const away = ev.away?.name || ev.away_team || ev.away || 'Away';
     const text = `*${home}* vs *${away}*`;
-    const keyboard = { inline_keyboard: [[{ text: '📊 View Odds', callback_data: `odds_${league}_${eventId}` }], [{ text: '�� Back', callback_data: `league_${league}` }]] };
+    const keyboard = { inline_keyboard: [[{ text: '📊 View Odds', callback_data: `odds_${league}_${eventId}` }], [{ text: '🔙 Back', callback_data: `league_${league}` }]] };
     return mkEdit(chatId, text, keyboard);
   } catch (err) {
     logger.warn('handleEventCallback error', err?.message || String(err));
@@ -212,3 +211,4 @@ export async function handleCallback(data, chatId, userId, redis, services = {})
 }
 
 export default { handleCallback };
+      chat_id: chatId,

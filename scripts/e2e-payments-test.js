@@ -4,8 +4,6 @@
  * Tests the payment flow: tier selection -> payment method selection -> payment order
  */
 
-/* eslint-disable no-unused-vars */
-
 // Minimal in-memory Redis mock for local testing
 class MockRedis {
   constructor() {
@@ -38,7 +36,7 @@ class MockRedis {
   async ttl(key) { return -1; }
 }
 
-import { handleCallbackQuery } from '../src/handlers/telegram-handler-v2.js';
+import v2Handler from '../src/handlers/telegram-handler-v2.js';
 
 const redis = new MockRedis();
 
@@ -51,7 +49,7 @@ async function runPaymentTest() {
 
   // Test 1: Tier selection (sub_vvip)
   console.log('--- Test 1: Selecting VVIP tier (sub_vvip) ---');
-  const tierResponse = await handleCallbackQuery(
+  const tierResponse = await v2Handler.handleCallbackQuery(
     {
       id: 'cb_001',
       from: { id: userId },
@@ -74,7 +72,7 @@ async function runPaymentTest() {
   // Test 2: Payment method selection (pay_mpesa_vvip)
   console.log('\n--- Test 2: Selecting M-Pesa payment (pay_mpesa_vvip) ---');
   try {
-    const paymentResponse = await handleCallbackQuery(
+    const paymentResponse = await v2Handler.handleCallbackQuery(
       {
         id: 'cb_002',
         from: { id: userId },
@@ -88,7 +86,7 @@ async function runPaymentTest() {
     if (paymentResponse && paymentResponse.text) {
       console.log(`✓ Payment order created successfully`);
       console.log(`  Response text preview: ${paymentResponse.text.substring(0, 80)}...`);
-    } else if (paymentResponse && paymentResponse.method === 'answerCallbackQuery') {
+    } else if (paymentResponse && paymentResponse.method === 'answerCallbackQuery' && paymentResponse.text) {
       console.log(`⚠️  Alert: ${paymentResponse.text}`);
     } else {
       console.log('❌ Unexpected response:', paymentResponse);
@@ -100,7 +98,7 @@ async function runPaymentTest() {
   // Test 3: Payment method selection with invalid method (should fail gracefully)
   console.log('\n--- Test 3: Selecting invalid payment (pay_invalid_vvip) ---');
   try {
-    const invalidResponse = await handleCallbackQuery(
+    const invalidResponse = await v2Handler.handleCallbackQuery(
       {
         id: 'cb_003',
         from: { id: userId },
@@ -123,7 +121,7 @@ async function runPaymentTest() {
   // Test 4: Different tier (sub_pro)
   console.log('\n--- Test 4: Selecting PRO tier (sub_pro) ---');
   try {
-    const proResponse = await handleCallbackQuery(
+    const proResponse = await v2Handler.handleCallbackQuery(
       {
         id: 'cb_004',
         from: { id: userId },

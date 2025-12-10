@@ -21,9 +21,8 @@ async function getAccessToken() {
 }
 
 export class PayPalService {
-  static async createSubscriptionOrder(sport, tier, _userEmail) {
-    try {
-      const accessToken = await getAccessToken();
+  static async createSu  static async createSubscriptionOrder(sport, tier, _userEmail) {
+cessToken = await getAccessToken();
       
       const PRICING_TIERS = {
         football: { starter: 9.99, pro: 24.99, elite: 59.99 },

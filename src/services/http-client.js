@@ -43,10 +43,10 @@ class HttpClient {
         throw new TimeoutError(`${label} timed out after ${timeoutMs}ms`);
       }
 
-      // If this is an APIError with a non-retryable 4xx status (except 429), propagate immediately
+      // If this is an APIError with a non-re      // If this is an APIError with a non-retryable 4xx status (except 429), propagate immediately
       const status = err && (err.statusCode || err.status || 0);
       if (status && Number(status) >= 400 && Number(status) < 500 && Number(status) !== 429) {
-        logger.warn(`Non-retryable HTTP ${status} for ${label}; not retrying`);
+} for ${label}; not retrying`);
         throw err;
       }
 

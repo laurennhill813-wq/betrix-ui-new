@@ -1,6 +1,7 @@
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 
 export default function createAdminRouter() {
   const router = express.Router();
@@ -28,39 +29,6 @@ export default function createAdminRouter() {
       const lines = txt.split(/\r?\n/).filter(Boolean).slice(-200);
       const parsed = lines.map(l => { try { return JSON.parse(l); } catch { return { raw: l }; } });
       return res.json({ ok: true, entries: parsed });
-    } catch (e) {
-      return res.status(500).json({ ok: false, error: e?.message || String(e) });
-    }
-  });
-
-  // Expose recent unmatched requests captured by app's final 404 logger
-  router.get('/debug-404', (_req, res) => {
-    try {
-      const logPath = path.join(process.cwd(), 'debug_404.log');
-      if (!fs.existsSync(logPath)) return res.json({ ok: true, entries: [] });
-      const txt = fs.readFileSync(logPath, 'utf8');
-      const lines = txt.split(/\r?\n/).filter(Boolean).slice(-200);
-      return res.json({ ok: true, entries: lines });
-    } catch (e) {
-      return res.status(500).json({ ok: false, error: e?.message || String(e) });
-    }
-  });
-
-  // Process info for debugging which entrypoint is running on the host
-  router.get('/process-info', (_req, res) => {
-    try {
-      const info = {
-        pid: process.pid,
-        argv: process.argv,
-        nodeVersion: process.version,
-        uptimeSeconds: Math.floor(process.uptime()),
-        env: {
-          PORT: process.env.PORT || null,
-          START_HTTP_IN_WORKER: process.env.START_HTTP_IN_WORKER || null,
-          NODE_ENV: process.env.NODE_ENV || null
-        }
-      };
-      return res.json({ ok: true, info });
     } catch (e) {
       return res.status(500).json({ ok: false, error: e?.message || String(e) });
     }

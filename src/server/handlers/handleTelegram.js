@@ -1,8 +1,8 @@
 const axios = require("axios");
 // Injected by hotfix: use TELEGRAM_BOT_TOKEN from env
 const token = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN || process.env.TELEGRAM_TOKEN;
-const apiMethod = 'sendMessage';
-module.exports = async function handleTelegram(payload, cfg = {}) {
+conconst apiMethod = 'sendMessage';
+exports = async function handleTelegram(payload, cfg = {}) {
   try {
     const BOT_TOKEN = cfg.BOT_TOKEN || process.env.BOT_TOKEN;
     const OPENAI_API_KEY = cfg.OPENAI_API_KEY || process.env.OPENAI_API_KEY;

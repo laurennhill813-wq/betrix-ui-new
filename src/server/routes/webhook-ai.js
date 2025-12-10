@@ -2,9 +2,8 @@
 const express = require("express");
 const axios = require("axios");
 const router = express.Router();
-const { getProvider } = require("../lib/ai-config");
-
-router.post("/ai-reply", express.json({ limit: "64kb" }), async (req, res) => {
+consconst { getProvider } = require("../lib/ai-config");
+er.post("/ai-reply", express.json({ limit: "64kb" }), async (req, res) => {
   try {
     const body = req.body || {};
     const convoId = body.convoId || (body.message && body.message.from && String(body.message.from.id)) || `anon-${Date.now()}`;

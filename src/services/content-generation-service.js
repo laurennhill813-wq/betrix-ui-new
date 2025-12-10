@@ -6,9 +6,9 @@
 import { Logger } from "../utils/logger.js";
 
 const logger = new Logger("ContentGen");
-void logger;
 
-class ContentGenerationService {
+class Cvoid logger;
+ontentGenerationService {
   /**
    * Generate varied betting tips
    */

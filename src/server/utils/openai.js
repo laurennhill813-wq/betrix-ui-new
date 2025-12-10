@@ -118,11 +118,11 @@ async function ask(prompt, opts = {}) {
   // Prefer RapidAPI if key present
   if (process.env.RAPID_API_KEY) {
     try {
-      const t0 = Date.now(); void t0;
+      const t0 = Date.now();
       const text = await callRapidLlama(prompt);
       telemetry.rapidSuccess += 1;
-      return { ok: true, text };
-    } catch (err) {
+      r      const t0 = Date.now(); void t0;
+} catch (err) {
       telemetry.rapidErrors += 1;
       telemetry.lastError = String(err && (err.message || err.status || err));
       // one retry after small backoff

@@ -1,576 +1,256 @@
+// Minimal, clean canonical `src/app.js`
 import express from 'express';
 import bodyParser from 'body-parser';
-import crypto from 'crypto';
-import { Pool } from 'pg';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import healthAzureAIHandler from './routes/health-azure-ai.js';
-import healthAzureAIEnvHandler from './routes/health-azure-ai-env.js';
-import lipana from './lib/lipana-client.js';
-import { getRedis } from './lib/redis-factory.js';
-import { verifyAndActivatePayment } from './handlers/payment-router.js';
-import * as newsService from './services/news-service.js';
-import * as sportsgameodds from './services/sportsgameodds.js';
+import { Pool } from 'pg';
+import { createClient } from 'redis';
 
-// Keep PGSSLMODE defaulted to 'require' on platforms like Render
-process.env.PGSSLMODE = process.env.PGSSLMODE || 'require';
+import createAdminRouter from './routes/admin.js';
+import createWebhooksRouter from './routes/webhooks.js';
 
 const app = express();
-app.use(express.json({ limit: '1mb' }));
+const PORT = Number(process.env.PORT || 5000);
 
-// DB pool: best-effort TLS settings for managed Postgres (fine-tune in prod)
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+// Top-level request logger to ensure every incoming request is recorded for debugging
+app.use((req, res, next) => {
+  try { safeLog('[TOP-REQ]', req.method, req.originalUrl); } catch (e) { /* ignore */ }
+  return next();
+});
+// Also append a small persistent record for each request to help debugging where stdout may not show
+app.use((req, res, next) => {
+  try {
+    const rec = `${new Date().toISOString()} ${req.method} ${req.originalUrl}\n`;
+    try { fs.appendFileSync(path.join(process.cwd(), 'debug_requests.log'), rec, { encoding: 'utf8' }); } catch (e) { safeLog('debug log write failed:', e?.message || String(e)); }
+  } catch (e) { /* ignore */ }
+  return next();
+});
 
-// Capture raw body bytes for HMAC verification
+function safeLog(...args) { try { console.log(...args); } catch (e) { /* ignore */ } }
+ 
+// Global safety handlers to avoid process exit on uncaught errors during runtime
+process.on('uncaughtException', (err) => {
+  try { safeLog('UncaughtException:', err && err.stack ? err.stack : String(err)); } catch (_) { /* ignore */ }
+});
+process.on('unhandledRejection', (reason) => {
+  try { safeLog('UnhandledRejection:', reason && reason.stack ? reason.stack : String(reason)); } catch (_) { /* ignore */ }
+});
 app.use(bodyParser.json({ limit: '5mb', verify: (req, _res, buf) => { req.rawBody = buf; } }));
 
-function safeLog(...args) { try { console.log(...args); } catch (e) { console.warn('safeLog error', String(e)); } }
-
-app.get('/health', (_req, res) => res.status(200).json({ ok: true }));
-
-// Lightweight DB and Redis health probes
-app.get('/health/db', async (_req, res) => {
+// Explicit admin endpoints registered early to guarantee availability
+app.get('/admin/health', (_req, res) => res.json({ ok: true, commit: process.env.RENDER_GIT_COMMIT || process.env.COMMIT_SHA || null }));
+app.get('/admin/routes', (_req, res) => {
   try {
-    const r = await pool.query('SELECT 1 AS ok');
-    if (r && r.rows && r.rows[0] && r.rows[0].ok === 1) return res.json({ ok: true });
-    return res.status(500).json({ ok: false, error: 'unexpected db response' });
-  } catch (e) {
-    return res.status(500).json({ ok: false, error: e?.message || String(e) });
-  }
-});
-
-app.get('/health/redis', async (_req, res) => {
-  try {
-    const redis = getRedis();
-    if (!redis) return res.status(500).json({ ok: false, error: 'redis client missing' });
-    const pong = await redis.ping();
-    return res.json({ ok: true, pong });
-  } catch (e) {
-    return res.status(500).json({ ok: false, error: e?.message || String(e) });
-  }
-});
-
-app.get('/admin/queue', (_req, res) => {
-  return res.json({ ok: true, commit: process.env.RENDER_GIT_COMMIT || process.env.COMMIT_SHA || null });
-});
-
-// Admin: return last N fallback webhook entries from fallback files
-app.get('/admin/webhook-fallback', (req, res) => {
-  try {
-    const n = Math.min(100, Number(req.query.n || 50));
-    const repoPath = path.join(process.cwd(), 'webhooks.log');
-    const tmpPath = path.join(os.tmpdir(), 'webhooks.log');
-    const result = {};
-
-    for (const item of [{ p: repoPath, label: 'repo' }, { p: tmpPath, label: 'tmp' }]) {
+    const routes = [];
+    const stack = (app._router && app._router.stack) || [];
+    stack.forEach((layer) => {
       try {
-        if (!fs.existsSync(item.p)) { result[item.label] = null; continue; }
-        const txt = fs.readFileSync(item.p, 'utf8');
-        const lines = txt.split(/\r?\n/).filter(Boolean);
-        const tail = lines.slice(-n).map(l => {
-          try { return JSON.parse(l); } catch { return l; }
-        });
-        result[item.label] = tail;
-      } catch (e) {
-        result[item.label] = { error: e?.message || String(e) };
-      }
-    }
-
-    return res.json({ ok: true, files: result });
-  } catch (err) {
-    return res.status(500).json({ ok: false, error: err?.message || String(err) });
-  }
-});
-
-// Admin: return last N outgoing Telegram events (written by the app to ./logs/outgoing-events.log)
-app.get('/admin/outgoing-events', (req, res) => {
-  try {
-    const n = Math.min(500, Number(req.query.n || 200));
-    const p = path.join(process.cwd(), 'logs', 'outgoing-events.log');
-    if (!fs.existsSync(p)) return res.json({ ok: true, lines: [] });
-    const txt = fs.readFileSync(p, 'utf8').split(/\r?\n/).filter(Boolean);
-    const tail = txt.slice(-n).map(l => {
-      try { return JSON.parse(l); } catch { return l; }
+        if (layer.route) routes.push({ path: layer.route.path, methods: Object.keys(layer.route.methods) });
+      } catch (e) { /* ignore */ }
     });
-    return res.json({ ok: true, lines: tail });
-  } catch (err) {
-    return res.status(500).json({ ok: false, error: err?.message || String(err) });
-  }
+    return res.json({ ok: true, routes });
+  } catch (e) { return res.status(500).json({ ok: false, error: e?.message || String(e) }); }
+});
+app.get('/admin/redis-ping', async (_req, res) => {
+  try {
+    const client = app.locals && app.locals.redis;
+    if (!client) return res.status(500).json({ status: 'no redis client' });
+    const pong = await client.ping();
+    return res.json({ status: 'ok', pong });
+  } catch (err) { return res.status(500).json({ status: 'error', message: err?.message || String(err) }); }
 });
 
-// Admin: report presence of critical env vars (non-sensitive names only)
-app.get('/admin/envs', (req, res) => {
-  if (!_adminAuth(req)) return res.status(403).json({ ok: false, reason: 'Forbidden' });
-  try {
-    const keys = ['PAYPAL_CLIENT_ID','PAYPAL_CLIENT_SECRET','BINANCE_API_KEY','BINANCE_API_SECRET','REDIS_URL','TELEGRAM_TOKEN','SPORTSGAMEODDS_API_KEY'];
-    const result = {};
-    for (const k of keys) result[k] = !!process.env[k];
-    return res.json({ ok: true, envs: result });
-  } catch (e) {
-    return res.status(500).json({ ok: false, error: e?.message || String(e) });
-  }
-});
-
-// Admin: verify worker connectivity basics (Redis ping and presence of outgoing queue)
-app.get('/admin/verify-worker', async (req, res) => {
-  if (!_adminAuth(req)) return res.status(403).json({ ok: false, reason: 'Forbidden' });
-  try {
-    const redis = getRedis();
-    if (!redis) return res.status(500).json({ ok: false, error: 'redis client missing' });
-    const pong = await redis.ping();
-    // Check outgoing telegram queue length (best-effort)
-    let qlen = null;
-    try { qlen = await redis.llen('outgoing:telegram'); } catch (e) { qlen = 'unknown'; }
-    return res.json({ ok: true, redis: { pong, outgoingTelegramQueueLength: qlen }, telegramTokenPresent: !!process.env.TELEGRAM_TOKEN });
-  } catch (e) {
-    return res.status(500).json({ ok: false, error: e?.message || String(e) });
-  }
-});
-
-// Admin: quick SportsGameOdds diagnostic (fetch sample odds)
-app.get('/admin/sportsgameodds', async (req, res) => {
-  if (!_adminAuth(req)) return res.status(403).json({ ok: false, reason: 'Forbidden' });
-  try {
-    const league = String(req.query.league || 'nba');
-    const eventId = req.query.eventId || null;
-    const redis = getRedis();
-    const data = await sportsgameodds.fetchOdds({ league, eventId, redis, forceFetch: !!req.query.force });
-    return res.json({ ok: true, league, eventId, sample: data });
-  } catch (e) {
-    return res.status(500).json({ ok: false, error: e?.message || String(e) });
-  }
-});
-
-// Admin: Lipana connectivity probe and test STK push (protected)
-function _adminAuth(req) {
-  const secret = process.env.HEALTH_SECRET || process.env.ADMIN_SECRET || process.env.LIPANA_ADMIN_SECRET || null;
-  if (!secret) return false; // disabled unless secret set
-  const h = req.headers['x-health-secret'] || req.headers['x-admin-secret'] || req.headers['x-lipana-admin'] || '';
-  return String(h) === String(secret);
-}
-
-app.get('/admin/lipana/ping', async (req, res) => {
-  if (!_adminAuth(req)) return res.status(403).json({ ok: false, reason: 'Forbidden' });
-  try {
-    const result = await lipana.ping();
-    return res.json({ ok: true, lipana: result });
-  } catch (e) {
-    return res.status(500).json({ ok: false, error: e?.message || String(e) });
-  }
-});
-
-// Admin: return last N persisted Lipana STK request/response entries (masked)
-app.get('/admin/lipana-stk-logs', (req, res) => {
-  if (!_adminAuth(req)) return res.status(403).json({ ok: false, reason: 'Forbidden' });
-  try {
-    const n = Math.min(500, Number(req.query.n || 100));
-    const p = path.join(process.cwd(), 'logs', 'lipana-stk.log');
-    if (!fs.existsSync(p)) return res.json({ ok: true, lines: [] });
-    const txt = fs.readFileSync(p, 'utf8').split(/\r?\n/).filter(Boolean);
-    const tail = txt.slice(-n).map(l => { try { return JSON.parse(l); } catch { return l; } });
-    return res.json({ ok: true, lines: tail });
-  } catch (err) {
-    return res.status(500).json({ ok: false, error: err?.message || String(err) });
-  }
-});
-
-app.post('/admin/lipana/test-stk', async (req, res) => {
-  if (!_adminAuth(req)) return res.status(403).json({ ok: false, reason: 'Forbidden' });
-  const { phone, amount } = req.body || {};
-  if (!phone) return res.status(400).json({ ok: false, error: 'phone required' });
-  const amt = Number(amount || process.env.LIPANA_TEST_AMOUNT || 100);
-  try {
-    const callback = process.env.LIPANA_CALLBACK_URL || process.env.MPESA_CALLBACK_URL || null;
-    const resp = await lipana.stkPush({ amount: amt, phone, tx_ref: `test_${Date.now()}`, reference: `test_${Date.now()}`, callback_url: callback });
-    return res.json({ ok: true, result: resp });
-  } catch (e) {
-    return res.status(500).json({ ok: false, error: e?.message || String(e) });
-  }
-});
-
-// Admin: helper to create providerRef -> order mapping and immediately activate the order
-// This is a temporary endpoint for debugging and should be removed after manual verification.
-app.post('/admin/simulate/lipana-reconcile', async (req, res) => {
-  if (!_adminAuth(req)) return res.status(403).json({ ok: false, reason: 'Forbidden' });
-  const { providerRef, provider = 'MPESA', orderId: providedOrderId, amount = 150, userId = 'admin' } = req.body || {};
-  if (!providerRef) return res.status(400).json({ ok: false, error: 'providerRef required' });
-
-  try {
-    const redis = getRedis();
-
-    // Ensure we have an orderId; if none provided, create a lightweight test order in Redis
-    const orderId = providedOrderId || `SIMORD-${Date.now()}`;
-    try {
-      const existing = await redis.get(`payment:order:${orderId}`);
-      if (!existing) {
-        const orderData = {
-          orderId,
-          userId,
-          tier: 'SIGNUP',
-          paymentMethod: 'MPESA',
-          baseAmount: Number(amount),
-          fee: 0,
-          totalAmount: Number(amount),
-          currency: 'KES',
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-          metadata: { simulated: true }
-        };
-        await redis.setex(`payment:order:${orderId}`, 900, JSON.stringify(orderData));
-      }
-    } catch (e) { /* best-effort */ }
-
-    // Create mapping so webhook/reconcile logic can find the order
-    try {
-      await redis.setex(`payment:by_provider_ref:${provider}:${providerRef}`, 900, orderId);
-    } catch (e) { /* best-effort */ }
-
-    // Call verifyAndActivatePayment to simulate activation
-    try {
-      const result = await verifyAndActivatePayment(getRedis(), orderId, providerRef);
-      return res.json({ ok: true, activated: true, orderId, result });
-    } catch (e) {
-      return res.status(500).json({ ok: false, error: e?.message || String(e) });
-    }
-  } catch (err) {
-    return res.status(500).json({ ok: false, error: err?.message || String(err) });
-  }
-});
-
-// Admin: manual payment confirm (provider, providerRef or orderId) - useful for Binance manual flows
-app.post('/admin/payments/confirm', async (req, res) => {
-  if (!_adminAuth(req)) return res.status(403).json({ ok: false, reason: 'Forbidden' });
-  const { provider, providerRef, orderId, transactionId } = req.body || {};
-  if (!provider && !orderId) return res.status(400).json({ ok: false, error: 'provider or orderId required' });
-
-  try {
-    const redis = getRedis();
-    let oid = orderId || null;
-    if (!oid && provider && providerRef) {
-      oid = await redis.get(`payment:by_provider_ref:${provider.toUpperCase()}:${providerRef}`);
-    }
-    if (!oid) return res.status(404).json({ ok: false, error: 'Order not found for given provider/providerRef' });
-
-    const tx = transactionId || providerRef || `MANUAL-${Date.now()}`;
-    try {
-      const result = await verifyAndActivatePayment(redis, oid, tx);
-      return res.json({ ok: true, activated: true, orderId: oid, result });
-    } catch (e) {
-      return res.status(500).json({ ok: false, error: e?.message || String(e) });
-    }
-  } catch (err) {
-    return res.status(500).json({ ok: false, error: err?.message || String(err) });
-  }
-});
-
-// Azure AI health probe: safe, optional header protection using `HEALTH_SECRET`.
-// Wire the lightweight probe handler so it's available in production deployments.
-app.get('/health/azure-ai', (req, res) => {
-  if (process.env.HEALTH_SECRET && req.headers['x-health-secret'] !== process.env.HEALTH_SECRET) {
-    return res.status(403).json({ ok: false, reason: 'Forbidden' });
-  }
-  return healthAzureAIHandler(req, res);
-});
-
-// Diagnostic: report presence of Azure/OpenAI env vars (non-sensitive)
-app.get('/health/azure-ai/env', (req, res) => {
-  // Guard the diagnostic route: requires `HEALTH_DEBUG_SECRET` to be set on the host
-  // and the client must provide the same value in the `X-Debug-Secret` header.
-  const secret = process.env.HEALTH_DEBUG_SECRET;
-  if (!secret) {
-    return res.status(403).json({ ok: false, reason: 'Diagnostic endpoint disabled' });
-  }
-  if (req.headers['x-debug-secret'] !== secret) {
-    return res.status(403).json({ ok: false, reason: 'Forbidden' });
-  }
-  return healthAzureAIEnvHandler(req, res);
-});
-
-// Webhook endpoint for Lipana / M-Pesa
-async function webhookMpesaHandler(req, res) {
-  const secret = process.env.LIPANA_WEBHOOK_SECRET || process.env.MPESA_WEBHOOK_SECRET || process.env.LIPANA_SECRET;
-  const incoming = req.headers['x-lipana-signature'] || req.headers['x-signature'] || req.headers['signature'] || '';
-  try {
-    const raw = req.rawBody || Buffer.from(JSON.stringify(req.body || {}), 'utf8');
-    let computedHex = null;
-    let computedB64 = null;
-    if (secret) {
-      const h = crypto.createHmac('sha256', String(secret)).update(raw).digest();
-      computedHex = h.toString('hex');
-      computedB64 = h.toString('base64');
-    }
-
-    safeLog('[webhook/mpesa] incoming=', incoming, 'computedHexPrefix=', computedHex ? computedHex.slice(0,16) : null);
-
-    // If secret is configured, enforce signature match
-    if (secret) {
-      const incomingClean = String(incoming || '').trim();
-      const match = incomingClean === computedHex || incomingClean === computedB64;
-      if (!match) {
-        safeLog('[webhook/mpesa] Signature mismatch - rejecting webhook');
-        return res.status(403).json({ ok: false, reason: 'Invalid signature' });
-      }
-    }
-
-    // Best-effort persistence: try DB, else write fallback files
-    try {
-      await pool.query(`CREATE TABLE IF NOT EXISTS webhooks (id SERIAL PRIMARY KEY, created_at timestamptz DEFAULT now(), raw_payload jsonb, headers jsonb, incoming_signature text, computed_hex text, computed_b64 text)`);
-      await pool.query('INSERT INTO webhooks(raw_payload, headers, incoming_signature, computed_hex, computed_b64) VALUES($1,$2,$3,$4,$5)', [req.body || {}, req.headers || {}, incoming, computedHex, computedB64]);
-    } catch (e) {
-      try {
-        const rec = { ts: new Date().toISOString(), headers: req.headers || {}, body: req.body || {}, incoming_signature: incoming, computedHex, computedB64 };
-        const logPath = path.join(process.cwd(), 'webhooks.log');
-        const tmpPath = path.join(os.tmpdir(), 'webhooks.log');
-        fs.appendFileSync(logPath, JSON.stringify(rec) + '\n', { encoding: 'utf8' });
-        fs.appendFileSync(tmpPath, JSON.stringify(rec) + '\n', { encoding: 'utf8' });
-        safeLog('DB insert failed; appended webhook to', logPath, 'and', tmpPath);
-      } catch (fsErr) {
-        safeLog('DB insert failed and fallback file write failed:', fsErr?.message || String(fsErr));
-      }
-      safeLog('DB insert failed (webhook):', e?.message || String(e));
-    }
-
-    // Attempt immediate reconciliation using Redis mapping so webhooks activate without worker
-    try {
-      const payload = req.body || {};
-      // possible fields from Lipana: transactionId, reference, providerRef, id, data.id
-      const providerRef = payload.transaction_id || payload.transactionId || payload.reference || payload.providerRef || (payload.data && payload.data.id) || null;
-      const phone = payload.phone || payload.msisdn || (payload.data && payload.data.phone) || null;
-      const tx = providerRef || (`MPESA_${Date.now()}`);
-
-      try {
-        const redis = getRedis();
-        let orderId = null;
-        if (providerRef) {
-          // try common keys
-          orderId = await redis.get(`payment:by_provider_ref:MPESA:${providerRef}`) || await redis.get(`payment:by_provider_ref:MPESA:${providerRef}`);
-        }
-        if (!orderId && phone) {
-          const p = String(phone).replace(/\s|\+|-/g, '');
-          orderId = await redis.get(`payment:by_phone:${p}`);
-        }
-
-        if (orderId) {
-          try {
-            // Call verifyAndActivatePayment to mark order completed
-            const result = await verifyAndActivatePayment(redis, orderId, tx);
-            safeLog('[webhook/mpesa] Activated order via webhook', { providerRef, orderId, tx, result });
-          } catch (actErr) {
-            safeLog('[webhook/mpesa] Activation attempt failed', actErr?.message || String(actErr));
-          }
-        } else {
-          safeLog('[webhook/mpesa] No mapping found in Redis for webhook - mapping miss', { providerRef, phone });
-        }
-      } catch (redisErr) {
-        safeLog('[webhook/mpesa] Redis lookup failed', redisErr?.message || String(redisErr));
-      }
-    } catch (reconErr) {
-      safeLog('[webhook/mpesa] Reconciliation attempt error', reconErr?.message || String(reconErr));
-    }
-
-    // Return 200 so upstream won't retry while we debug
-    return res.status(200).send('OK');
-  } catch (err) {
-    safeLog('Webhook handler error:', err?.message || String(err));
-    return res.status(200).send('OK');
-  }
-}
-
-// Register both singular and plural routes to match Lipana's callbacks
-app.post('/webhook/mpesa', webhookMpesaHandler);
-app.post('/webhooks/mpesa', webhookMpesaHandler);
-
-// Webhook endpoint for Binance (Binance Pay or other notifications)
-async function webhookBinanceHandler(req, res) {
-  try {
-    const payload = req.body || {};
-    safeLog('[webhook/binance] payload:', payload);
-
-    // Persist to DB / fallback files
-    try {
-      await pool.query(`CREATE TABLE IF NOT EXISTS webhooks (id SERIAL PRIMARY KEY, created_at timestamptz DEFAULT now(), raw_payload jsonb, headers jsonb)`);
-      await pool.query('INSERT INTO webhooks(raw_payload, headers) VALUES($1,$2)', [payload, req.headers || {}]);
-    } catch (e) {
-      try {
-        const rec = { ts: new Date().toISOString(), headers: req.headers || {}, body: payload };
-        const logPath = path.join(process.cwd(), 'webhooks.log');
-        fs.appendFileSync(logPath, JSON.stringify(rec) + '\n');
-      } catch (fsErr) {
-        safeLog('[webhook/binance] fallback write failed', fsErr?.message || String(fsErr));
-      }
-    }
-
-    // Attempt reconciliation: look for provider-specific order id fields
-    try {
-      const redis = getRedis();
-      const possibleRef = payload.merchantTradeNo || payload.merchantOrderId || payload.orderId || payload.transactionId || payload.data?.merchantOrderId || payload.data?.orderId || null;
-      const phone = payload.payerPhone || payload.payer || payload.data?.payerPhone || null;
-      const providerRef = possibleRef;
-      let orderId = null;
-      if (providerRef) {
-        orderId = await redis.get(`payment:by_provider_ref:BINANCE:${providerRef}`);
-      }
-      if (!orderId && phone) {
-        const p = String(phone).replace(/\+|\s|-/g, '');
-        orderId = await redis.get(`payment:by_phone:${p}`);
-      }
-
-      if (orderId) {
-        const tx = providerRef || (`BINANCE_${Date.now()}`);
-        try {
-          const result = await verifyAndActivatePayment(redis, orderId, tx);
-          safeLog('[webhook/binance] Activated order', { orderId, tx, result });
-        } catch (e) {
-          safeLog('[webhook/binance] Activation failed', e?.message || e);
-        }
-      } else {
-        safeLog('[webhook/binance] No mapping found for webhook', { providerRef, phone });
-      }
-    } catch (e) {
-      safeLog('[webhook/binance] Redis reconciliation error', e?.message || e);
-    }
-
-    return res.status(200).send('OK');
-  } catch (err) {
-    safeLog('[webhook/binance] handler error', err?.message || String(err));
-    return res.status(200).send('OK');
-  }
-}
-
-app.post('/webhook/binance', webhookBinanceHandler);
-app.post('/webhooks/binance', webhookBinanceHandler);
-
-// Mount the richer server-side Telegram command router if present.
-// Allow both `TELEGRAM_BOT_TOKEN` and `TELEGRAM_TOKEN` env var names for compatibility.
-process.env.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_TOKEN || process.env.TELEGRAM_TOKEN;
-(async () => {
-  // We intentionally avoid silently swallowing import errors here so that
-  // runtime import failures surface in Render logs and can be debugged.
-  try {
-    let mod;
-    try {
-      mod = await import('./server/commands/index.js');
-    } catch (impErr) {
-      // Log full stack/message so Render's logs include the root cause
-      try { safeLog('COMMAND_ROUTER_IMPORT_ERR', impErr && (impErr.stack || impErr.message || String(impErr))); } catch (e) { console.error('Failed logging import error', e); }
-      mod = null;
-    }
-
-    const commandRouter = (mod && (mod.default || mod)) || null;
-    if (typeof commandRouter === 'function') {
-      try {
-        commandRouter(app);
-        safeLog('MOUNTED: server/commands/index.js -> /webhook/telegram');
-      } catch (e) {
-        try { safeLog('MOUNT_CMD_ROUTER_ERR', e && (e.stack || e.message || String(e))); } catch (le) { console.error('Failed logging mount error', le); }
+function buildPgPoolConfig() {
+  const cfg = { connectionString: process.env.DATABASE_URL };
+  const mode = String(process.env.PGSSLMODE || '').toLowerCase();
+  if (process.env.DATABASE_URL && mode && mode !== 'disable') {
+    if (mode === 'verify-ca' || mode === 'verify-full') {
+      cfg.ssl = { rejectUnauthorized: true };
+      if (process.env.PGSSLROOTCERT) {
+        try { cfg.ssl.ca = fs.readFileSync(process.env.PGSSLROOTCERT, 'utf8'); } catch (e) { safeLog('Could not read PGSSLROOTCERT:', e?.message || String(e)); }
       }
     } else {
-      // If import returned null or module doesn't export a function, provide
-      // a clearer log message to aid debugging rather than silently leaving
-      // the webhook unmounted.
-      safeLog('COMMAND_ROUTER_NOT_FOUND; leaving webhook unmounted - import returned null or exported value is not a function');
+      cfg.ssl = { rejectUnauthorized: false };
     }
-  } catch (e) {
-    // Defensive catch: should not normally happen because inner import errors
-    // are handled explicitly, but we log here just in case.
-    try { safeLog('COMMAND_ROUTER_TOPLEVEL_ERR', e && (e.stack || e.message || String(e))); } catch (le) { console.error('Failed logging to safeLog', le); }
   }
-})();
+  return cfg;
+}
 
-// Allow workers to register data-exposure endpoints without failing
-// The worker imports `registerDataExposureAPI` from this module; provide
-// a safe implementation that dynamically loads the handler if available.
-export function registerDataExposureAPI(sportsAggregator) {
+let pool = null;
+try {
+  pool = new Pool(buildPgPoolConfig());
+  // Prevent pool errors from crashing the process
+  pool.on && pool.on('error', (err) => safeLog('Postgres pool error:', err?.message || String(err)));
+  // do NOT assume the pool is healthy until we test it in initServices()
+  app.locals.pool = pool;
+} catch (e) {
+  safeLog('Failed to create Postgres pool:', e?.message || String(e));
+  pool = null;
+  app.locals.pool = null;
+}
+
+// Optional Redis client (supports ACL username + password and TLS 'rediss://')
+let redisClient = null;
+const redisUrl = process.env.REDIS_URL || process.env.REDIS_URI || '';
+const redisUsername = process.env.REDIS_USERNAME || process.env.REDIS_USER || undefined;
+const redisPassword = process.env.REDIS_PASSWORD || process.env.REDIS_PWD || undefined;
+if (redisUrl) {
+  try {
+    // Create client; actual connect attempts are performed in initServices()
+    redisClient = createClient({ url: redisUrl, username: redisUsername || undefined, password: redisPassword || undefined, socket: { tls: String(redisUrl).startsWith('rediss://') } });
+    redisClient.on('error', (err) => safeLog('Redis error:', err?.message || String(err)));
+  } catch (e) { safeLog('Failed to create Redis client:', e?.message || String(e)); redisClient = null; }
+} else { safeLog('REDIS_URL not set; skipping Redis client initialization'); }
+app.locals.redis = redisClient;
+
+// Helper to attempt async operation with retries
+async function withRetries(fn, { attempts = 3, delayMs = 500 } = {}) {
+  let lastErr = null;
+  for (let i = 1; i <= attempts; i++) {
+    try { return await fn(i); } catch (e) { lastErr = e; safeLog(`attempt ${i} failed:`, e?.message || String(e)); if (i < attempts) await new Promise(r => setTimeout(r, delayMs * i)); }
+  }
+  throw lastErr;
+}
+
+// Init services (DB + Redis) with retries. This will not throw to top-level; callers can await it.
+async function initServices({ pgAttempts = 4, redisAttempts = 3, timeoutMs = 20000 } = {}) {
+  safeLog('initServices: starting');
+  const start = Date.now();
+  // Test Postgres connectivity
+  if (app.locals.pool) {
+    try {
+      await withRetries(async () => {
+        const client = await app.locals.pool.connect();
+        try { await client.query('SELECT 1'); } finally { client.release(); }
+      }, { attempts: pgAttempts, delayMs: 600 });
+      safeLog('Postgres connected and verified');
+    } catch (e) {
+      safeLog('Postgres verification failed:', e?.message || String(e));
+      // leave pool in app.locals to allow runtime queries to fallback and not crash
+    }
+  }
+
+  // Test Redis connectivity if a client was created
+  if (app.locals.redis) {
+    try {
+      await withRetries(async () => {
+        if (!app.locals.redis.isOpen) await app.locals.redis.connect();
+        const p = await app.locals.redis.ping();
+        safeLog('Redis ping OK:', p);
+      }, { attempts: redisAttempts, delayMs: 800 });
+    } catch (e) {
+      safeLog('Redis verification failed:', e?.message || String(e));
+      try { if (app.locals.redis && app.locals.redis.disconnect) await app.locals.redis.disconnect(); } catch (_) { /* ignore */ }
+      app.locals.redis = null;
+    }
+  }
+
+  safeLog('initServices: finished after', Date.now() - start, 'ms');
+}
+
+// Mount routers
+app.use('/admin', createAdminRouter());
+app.use('/webhook', createWebhooksRouter());
+
+// Request-time debug middleware: logs incoming requests and route matching summary
+app.use((req, res, next) => {
+  try {
+    safeLog('[REQ]', req.method, req.originalUrl);
+    const stack = (app._router && app._router.stack) || [];
+    const summary = [];
+    stack.forEach((layer) => {
+      try {
+        if (layer.route) {
+          summary.push({ type: 'route', path: layer.route.path, methods: Object.keys(layer.route.methods) });
+        } else if (layer.name === 'router' && layer.handle && layer.handle.stack) {
+          // attempt to show mount regexp and child routes
+          const mount = layer.regexp && layer.regexp.source ? layer.regexp.source : '<mount>'; 
+          const children = [];
+          layer.handle.stack.forEach((l) => { if (l.route) children.push({ path: l.route.path, methods: Object.keys(l.route.methods) }); });
+          summary.push({ type: 'router', mount, children });
+        }
+      } catch (e) { /* ignore per-layer */ }
+    });
+    safeLog('[ROUTES-SUMMARY]', JSON.stringify(summary));
+  } catch (e) { safeLog('Request-time debug middleware error:', String(e)); }
+  return next();
+});
+
+// Explicit redis-ping endpoint
+app.get('/admin/redis-ping', async (_req, res) => {
+  try {
+    const client = app.locals && app.locals.redis;
+    if (!client) return res.status(500).json({ status: 'no redis client' });
+    const pong = await client.ping();
+    return res.json({ status: 'ok', pong });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err?.message || String(err) });
+  }
+});
+
+// App-level diagnostic: list registered routes (reliable regardless of router mounting variations)
+app.get('/admin/routes', (_req, res) => {
+  try {
+    const routes = [];
+    const stack = (app._router && app._router.stack) || [];
+    stack.forEach((layer) => {
+      try {
+        if (layer.route) {
+          routes.push({ path: layer.route.path, methods: Object.keys(layer.route.methods) });
+        } else if (layer.name === 'router' && layer.handle && layer.handle.stack) {
+          // Try to extract mount path from the regexp
+          const mountPath = layer.regexp && layer.regexp.source ? layer.regexp.source : '';
+          layer.handle.stack.forEach((l) => {
+            if (l.route) routes.push({ path: (mountPath || '') + l.route.path, methods: Object.keys(l.route.methods) });
+          });
+        }
+      } catch (e) { /* ignore per-layer */ }
+    });
+    return res.json({ ok: true, routes });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e?.message || String(e) });
+  }
+});
+
+export function registerDataExposureAPI(_sportsAggregator) { try { safeLog('DATA_EXPOSURE: registerDataExposureAPI called (no-op in migration)'); } catch (e) { safeLog('DATA_EXPOSURE registration failed:', String(e)); } }
+
+// Final 404 logger: capture and persist any unmatched requests for debugging
+app.use((req, res) => {
+  try {
+    const rec = `${new Date().toISOString()} 404 ${req.method} ${req.originalUrl} headers=${JSON.stringify(req.headers || {})}\n`;
+    try { fs.appendFileSync(path.join(process.cwd(), 'debug_404.log'), rec, { encoding: 'utf8' }); } catch (e) { safeLog('debug_404 write failed:', e?.message || String(e)); }
+  } catch (e) { /* ignore */ }
+  return res.status(404).send('Not Found');
+});
+
+export default app;
+
+// Start server when invoked directly. Place listen at the end after all middleware/routes registered
+if (process.argv[1] && String(process.argv[1]).endsWith('src/app.js')) {
   (async () => {
     try {
-      const mod = await import('./handlers/data-exposure-handler.js').catch(() => null);
-      const DataExposureHandler = mod && (mod.default || mod.DataExposureHandler);
-      if (DataExposureHandler) {
-        try {
-          new DataExposureHandler(app, sportsAggregator);
-          safeLog('DATA_EXPOSURE: registered');
-        } catch (err) {
-          safeLog('DATA_EXPOSURE registration failed:', String(err));
-        }
-      } else {
-        safeLog('DATA_EXPOSURE: handler module not found; skipping registration');
-      }
+      // wait for initServices but don't block forever
+      const initPromise = initServices();
+      const timeoutMs = Number(process.env.SERVICE_INIT_TIMEOUT_MS || 10000);
+      await Promise.race([
+        initPromise,
+        new Promise((_, rej) => setTimeout(() => rej(new Error('init timeout')), timeoutMs))
+      ]).catch((e) => {
+        safeLog('Service init did not complete before timeout or failed:', e?.message || String(e));
+      });
+
+      const server = app.listen(PORT, () => safeLog(`Server running on port ${PORT}`));
+      server.on('error', (err) => safeLog('Server error:', err?.message || String(err)));
     } catch (e) {
-      safeLog('DATA_EXPOSURE registration failed:', String(e));
+      safeLog('Failed to start server (init path):', e?.message || String(e));
+      try {
+        // fallback: attempt to start server anyway
+        const server = app.listen(PORT, () => safeLog(`Server running on port ${PORT} (fallback start)`));
+        server.on('error', (err) => safeLog('Server error:', err?.message || String(err)));
+      } catch (err) { safeLog('Fallback start failed:', err?.message || String(err)); }
     }
   })();
 }
 
-// Single PORT binding and listen
-const PORT = process.env.PORT || 5000;
-const SHOULD_LISTEN = !(process.env.WORKER_ONLY === 'true' || process.env.BACKGROUND_WORKER === 'true' || process.env.NODE_ENV === 'test');
 
-// News API endpoints
-app.get('/api/news', async (req, res) => {
-  try {
-    const max = Math.min(50, Number(req.query.max || 10));
-    const headlines = await newsService.getCachedHeadlines({ max });
-    return res.json({ ok: true, headlines });
-  } catch (e) {
-    return res.status(500).json({ ok: false, error: e?.message || String(e) });
-  }
-});
-
-// Backwards-compatible `/news` route used by internal callbacks/services
-app.get('/news', async (req, res) => {
-  try {
-    const max = Math.min(50, Number(req.query.max || 10));
-    const headlines = await newsService.getCachedHeadlines({ max });
-    return res.json(headlines);
-  } catch (e) {
-    return res.status(500).json({ ok: false, error: e?.message || String(e) });
-  }
-});
-
-// Return Betrix-branded HTML for an article. Accept either `link` query or news id path.
-app.get('/api/news/:id/html', async (req, res) => {
-  try {
-    const id = req.params.id;
-    if (!id) return res.status(400).send('id required');
-    let link = null;
-    try {
-      const r = await pool.query('SELECT link FROM news WHERE id = $1 LIMIT 1', [id]);
-      if (r && r.rows && r.rows[0]) link = r.rows[0].link;
-    } catch (e) { /* ignore */ }
-    if (!link) return res.status(404).send('Article not found');
-    const html = await newsService.fetchArticleHtmlByLink(link);
-    res.set('Content-Type', 'text/html; charset=utf-8');
-    return res.send(html);
-  } catch (e) {
-    return res.status(500).send('Failed to fetch article');
-  }
-});
-
-app.get('/api/news/html', async (req, res) => {
-  try {
-    const link = req.query.link;
-    if (!link) return res.status(400).send('link required');
-    const html = await newsService.fetchArticleHtmlByLink(link);
-    res.set('Content-Type', 'text/html; charset=utf-8');
-    return res.send(html);
-  } catch (e) {
-    return res.status(500).send('Failed to fetch article');
-  }
-});
-
-if (SHOULD_LISTEN) {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    // start auxiliary realtime WS server (runs on PORT+1 by default)
-    try {
-      import('./services/realtime.js').then(mod => mod.startRealtimeServer()).catch(err => console.warn('Realtime import failed', err?.message || err));
-    } catch (e) {
-      console.warn('Could not start realtime server:', e?.message || e);
-    }
-  });
-} else {
-  console.log('Skipping HTTP listen (worker/background mode)');
-}
-
-export default app;

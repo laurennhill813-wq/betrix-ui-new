@@ -6,9 +6,9 @@
 import { Logger } from "../utils/logger.js";
 
 const logger = new Logger("MemeService");
-void logger;
 
-class MemeService {
+class Mvoid logger;
+emeService {
   /**
    * Generate text-based betting meme
    */

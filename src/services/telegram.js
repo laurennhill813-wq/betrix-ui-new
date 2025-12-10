@@ -6,23 +6,14 @@
 import { Logger } from "../utils/logger.js";
 import { HttpClient } from "./http-client.js";
 import { chunkText } from "../utils/formatters.js";
-import { appendFile } from 'fs/promises';
 
 const logger = new Logger("Telegram");
-void logger;
-void logger;
 
 class TelegramService {
   constructor(botToken, safeChunkSize = 3000) {
     this.botToken = botToken;
     this.safeChunkSize = safeChunkSize;
     this.baseUrl = `https://api.telegram.org/bot${botToken}`;
-    try {
-      // Log a masked token indicator so we can diagnose missing/invalid tokens in platform logs
-      const t = String(botToken || '');
-      const masked = t.length > 8 ? `${t.slice(0,4)}...${t.slice(-4)}` : (t ? '****' : '(empty)');
-      try { console.log('[TELEGRAM_TOKEN_MASK] length=' + t.length + ' token=' + masked); } catch(e){ void e; }
-    } catch(e) { void e; }
   }
 
   /**
@@ -31,12 +22,16 @@ class TelegramService {
   async sendMessage(chatId, text, options = {}) {
     const chunks = chunkText(text, this.safeChunkSize);
 
+    // Respect caller-provided parse_mode; default to Markdown to avoid
+    // accidental HTML parsing of placeholders like <fixture-id>.
+    const defaultParse = options && options.parse_mode ? options.parse_mode : 'Markdown';
+
     for (let i = 0; i < chunks.length; i++) {
       const suffix = chunks.length > 1 ? `\n\nPage ${i + 1}/${chunks.length}` : "";
       const payload = {
         chat_id: chatId,
         text: chunks[i] + suffix,
-        parse_mode: "HTML",
+        parse_mode: defaultParse,
         disable_web_page_preview: true,
         ...options,
       };
@@ -48,25 +43,11 @@ class TelegramService {
         // ignore logging errors
       }
       try {
-        let res;
-        try {
-          res = await HttpClient.fetch(`${this.baseUrl}/sendMessage`, {
+        await HttpClient.fetch(`${this.baseUrl}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         }, `sendMessage to ${chatId}`);
-        } catch (apiErr) {
-          try { console.error('[TELEGRAM_API_ERROR] sendMessage', apiErr && apiErr.message ? apiErr.message : String(apiErr)); } catch(e){ void e; }
-          throw apiErr;
-        }
-        // Append outgoing event to local file for easier debugging in deployed environments
-        try {
-          const entry = { ts: new Date().toISOString(), method: 'sendMessage', chatId, page: i+1, payloadSummary: { textLen: (payload.text||'').length, hasReplyMarkup: !!payload.reply_markup, fallbackAfterEdit: !!options?.fallbackAfterEdit } };
-          await appendFile('./logs/outgoing-events.log', JSON.stringify(entry) + '\n', { encoding: 'utf8' }).catch(()=>{});
-          // Also write to stdout so platform log aggregation (Render) captures outgoing events
-          try { console.log('[OUTGOING_EVENT] ' + JSON.stringify(entry)); } catch (e) { void e; }
-        } catch(e){ void e; }
-        return res;
       } catch (err) {
         logger.error("Send message failed", err);
         throw err;
@@ -77,30 +58,28 @@ class TelegramService {
   /**
    * Edit existing message
    */
-  async editMessage(chatId, messageId, text, replyMarkup = null, parseMode = 'HTML') {
+  async editMessage(chatId, messageId, text, replyMarkup = null, options = {}) {
+    // Determine parse mode: prefer explicit options.parse_mode, then
+    // replyMarkup.parse_mode (legacy), otherwise default to Markdown.
+    let parse = 'Markdown';
+    if (options && options.parse_mode) parse = options.parse_mode;
+    else if (replyMarkup && typeof replyMarkup === 'object' && replyMarkup.parse_mode) parse = replyMarkup.parse_mode;
+
     const payload = {
       chat_id: chatId,
       message_id: messageId,
       text,
-      parse_mode: parseMode || 'HTML',
+      parse_mode: parse,
       disable_web_page_preview: true,
       ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
     };
 
     try {
-      let res;
-      try {
-        res = await HttpClient.fetch(`${this.baseUrl}/editMessageText`, {
+      return await HttpClient.fetch(`${this.baseUrl}/editMessageText`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       }, `editMessage ${messageId}`);
-      } catch (apiErr) {
-        try { console.error('[TELEGRAM_API_ERROR] editMessage', apiErr && apiErr.message ? apiErr.message : String(apiErr)); } catch(e){ void e; }
-        throw apiErr;
-      }
-      try { const entry = { ts: new Date().toISOString(), method: 'editMessage', chatId, messageId, payloadSummary: { textLen: (text||'').length, hasReplyMarkup: !!replyMarkup } }; await appendFile('./logs/outgoing-events.log', JSON.stringify(entry)+'\n', { encoding:'utf8' }).catch(()=>{}); try { console.log('[OUTGOING_EVENT] ' + JSON.stringify(entry)); } catch(e){ void e; } } catch(e){ void e; }
-      return res;
     } catch (err) {
       // Normalize error string
       const msg = String(err && (err.message || err) || '');
@@ -112,7 +91,11 @@ class TelegramService {
       if (msg.includes("message to edit not found") || msg.includes("message can't be edited") || msg.includes("message to edit has no text")) {
         logger.info('Telegram editMessage: message not editable, falling back to sendMessage', { chatId, messageId });
         try {
-          await this.sendMessage(chatId, text, { reply_markup: replyMarkup });
+          // Preserve parse_mode when falling back to sendMessage
+          const sendOpts = { reply_markup: replyMarkup };
+          if (options && options.parse_mode) sendOpts.parse_mode = options.parse_mode;
+          else if (replyMarkup && replyMarkup.parse_mode) sendOpts.parse_mode = replyMarkup.parse_mode;
+          await this.sendMessage(chatId, text, sendOpts);
           return { ok: true, fallback: 'sent_new' };
         } catch (e2) {
           logger.warn('Fallback sendMessage after editMessage failure also failed', e2 && e2.message ? e2.message : e2);
@@ -128,29 +111,15 @@ class TelegramService {
    * Answer callback query (inline button response)
    */
   async answerCallback(callbackQueryId, text = "", showAlert = false) {
-    let res;
-    try {
-      res = await HttpClient.fetch(`${this.baseUrl}/answerCallbackQuery`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          callback_query_id: callbackQueryId,
-          text,
-          show_alert: showAlert,
-        }),
-      }, `answerCallback ${callbackQueryId}`);
-    } catch (apiErr) {
-      try { console.error('[TELEGRAM_API_ERROR] answerCallback', apiErr && apiErr.message ? apiErr.message : String(apiErr)); } catch(e){ void e; }
-      throw apiErr;
-    }
-
-    try {
-      const entry = { ts: new Date().toISOString(), method: 'answerCallback', callbackQueryId, textLen: (text||'').length, showAlert };
-      await appendFile('./logs/outgoing-events.log', JSON.stringify(entry)+'\n', { encoding:'utf8' }).catch(()=>{});
-      try { console.log('[OUTGOING_EVENT] ' + JSON.stringify(entry)); } catch(e){ void e; }
-    } catch(e){ void e; }
-
-    return res;
+    return HttpClient.fetch(`${this.baseUrl}/answerCallbackQuery`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        callback_query_id: callbackQueryId,
+        text,
+        show_alert: showAlert,
+      }),
+    }, `answerCallback ${callbackQueryId}`);
   }
 
   /**

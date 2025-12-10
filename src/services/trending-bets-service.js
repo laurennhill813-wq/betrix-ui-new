@@ -6,9 +6,9 @@
 import { Logger } from "../utils/logger.js";
 
 const logger = new Logger("TrendingBets");
-void logger;
 
-class TrendingBetsService {
+class Tvoid logger;
+rendingBetsService {
   static TRENDING = [
     {
       name: "Correct Score",

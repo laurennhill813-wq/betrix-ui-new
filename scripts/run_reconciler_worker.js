@@ -101,8 +101,6 @@ async function runOnce(){
 (async function main(){
   appendLog(new Date().toISOString() + ' - Reconciler worker starting (interval ' + intervalMs + 'ms)');
   // run immediately then every interval
-
-  // eslint-disable-next-line no-constant-condition
   while(true){
     try{
       await runOnce();

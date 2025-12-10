@@ -242,14 +242,11 @@ class UIBuilder {
     let text = `${EMOJIS.premium} <b>Feature Access</b>\n\n`;
     text += `Your Tier: ${tier === "vvip" ? "💎 VVIP" : tier === "member" ? "👤 Member" : "🎁 Free"}\n\n`;
 
-    for (const feature of Object.values(features)) {
+    for (const [key, feature] of Object.entries(features)) {
       const tierLevels = { free: 0, member: 1, vvip: 2 };
       const hasAccess = tierLevels[tier] >= tierLevels[feature.tier];
-      const icon = hasAccess ? EMOJIS.available : EMOJIS.locked;
-      text += `${icon} ${feature.name}\n`;
-    }
-
-    if (tier === "free") {
+      const icon = hasAccess ? EMOJIS.available : EMOJI    for (const feature of Object.values(features)) {
+  if (tier === "free") {
       text += `\n💡 Upgrade to Member or VVIP to unlock more features`;
     }
 

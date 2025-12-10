@@ -4,7 +4,8 @@
 
 import fs from "fs";
 import path from "path";
-void path;
+
+classvoid path;
 
 class ComprehensiveLogger {
   constructor(module, redis = null) {
@@ -54,7 +55,3 @@ class ComprehensiveLogger {
       await this.redis.incr(`metrics:${key}`);
     }
     void _value;
-  }
-}
-
-export { ComprehensiveLogger };

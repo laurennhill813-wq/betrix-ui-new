@@ -1,5 +1,5 @@
 
-const express = require('express');
+/st express = require('express');
 const router = express.Router();
 const { handleTelegram } = require('../handlers/telegram');
 module.exports = (cfg) => {
