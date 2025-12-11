@@ -206,6 +206,8 @@ const localAI = new LocalAIService();
       logger.info('ℹ️ Azure AI not configured (no endpoint/key/deployment)');
     }
   } catch (e) { /* ignore */ }
+  // Allow forcing Azure first via env var for testing: set FORCE_AZURE=1 or FORCE_AZURE_PROVIDER=1
+  const FORCE_AZURE = (String(process.env.FORCE_AZURE || process.env.FORCE_AZURE_PROVIDER || process.env.PREFER_AZURE || '').toLowerCase() === '1' || String(process.env.FORCE_AZURE || process.env.FORCE_AZURE_PROVIDER || process.env.PREFER_AZURE || '').toLowerCase() === 'true');
 const freeSports = new FreeSportsService(redis);
 const cache = new CacheService(redis);
 const openLiga = new OpenLigaDBService(undefined, cache, { ttlSeconds: 30 });
@@ -246,6 +248,19 @@ const ai = {
     }
 
     // Try Gemini first
+    // Optionally prefer Azure first when FORCE_AZURE is set
+    if (FORCE_AZURE && azure && azure.isHealthy()) {
+      try {
+        await redis.set("ai:active", "azure");
+        await redis.expire("ai:active", 30);
+        const out = await azure.chat(message, context);
+        logger.info("AI response", { provider: "azure", model: azure.lastUsed || null, length: String(out || "").length });
+        return out;
+      } catch (err) {
+        logger.warn("Azure.chat failed (forced) — falling back", err?.message || String(err));
+      }
+    }
+
     if (gemini && gemini.enabled) {
       try {
         await redis.set("ai:active", "gemini");

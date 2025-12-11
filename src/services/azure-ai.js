@@ -8,7 +8,7 @@ export class AzureAIService {
   // endpoint: base URL, apiKey: Azure OpenAI key, deployment: model deployment name
   // apiVersion: Azure OpenAI API version string
   // options: { logger?, timeoutMs? }
-  constructor(endpoint, apiKey, deployment, apiVersion = '2023-05-15', options = {}) {
+  constructor(endpoint, apiKey, deployment, apiVersion = '2024-08-01-preview', options = {}) {
     this.endpoint = endpoint ? String(endpoint).replace(/\/$/, '') : null;
     this.apiKey = apiKey || null;
     this.deployment = deployment || null;
@@ -34,8 +34,9 @@ export class AzureAIService {
         { role: 'system', content: context.system || 'You are a helpful assistant.' },
         { role: 'user', content: String(message) }
       ],
-      max_tokens: 512,
-      temperature: 0.6,
+      // increase allowance for longer replies
+      max_tokens: typeof context.max_tokens === 'number' ? context.max_tokens : 2048,
+      temperature: typeof context.temperature === 'number' ? context.temperature : 0.6,
     };
 
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -43,6 +44,17 @@ export class AzureAIService {
     if (controller) {
       timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
     }
+
+    // Log request metadata (do NOT log api key)
+    try {
+      this.logger.info && this.logger.info('AzureAIService.request', {
+        endpoint: this.endpoint,
+        deployment: this.deployment,
+        apiVersion: this.apiVersion,
+        timeoutMs: this.timeoutMs,
+        messagePreview: String(message).slice(0, 300),
+      });
+    } catch (e) { /* ignore logging errors */ }
 
     let resp;
     let text = '';
@@ -59,6 +71,11 @@ export class AzureAIService {
       });
 
       text = await resp.text();
+      // Log response status and preview (safe-guard length)
+      try {
+        const preview = String(text || '').slice(0, 2000);
+        this.logger.info && this.logger.info('AzureAIService.response', { status: resp.status, preview });
+      } catch (e) { /* ignore logging errors */ }
     } catch (err) {
       if (timeoutId) clearTimeout(timeoutId);
       const isAbort = err && (err.name === 'AbortError' || err.type === 'aborted');
@@ -75,7 +92,7 @@ export class AzureAIService {
 
     if (!resp.ok) {
       const errMsg = json?.error?.message || json?.error || text || `${resp.status} ${resp.statusText}`;
-      try { this.logger.error('AzureAI non-OK response', { status: resp.status, body: errMsg }); } catch (e) { void e; }
+      try { this.logger.error && this.logger.error('AzureAI non-OK response', { status: resp.status, bodyPreview: String(errMsg).slice(0, 1000) }); } catch (e) { void e; }
       const e = new Error(`AzureAI error: ${errMsg}`);
       e.status = resp.status;
       throw e;
@@ -85,8 +102,23 @@ export class AzureAIService {
     let out = null;
     try {
       if (json?.choices && Array.isArray(json.choices) && json.choices[0]) {
-        // chat completions: choices[0].message.content
-        out = json.choices[0].message?.content || json.choices[0].text || null;
+        const choice = json.choices[0];
+        // Preferred shape: choices[0].message.content (string)
+        if (choice.message && typeof choice.message.content === 'string') {
+          out = choice.message.content;
+        } else if (choice.message && choice.message.content && typeof choice.message.content === 'object') {
+          // Some variants may return an object with 'parts' (array) or 'text'
+          if (Array.isArray(choice.message.content.parts)) out = choice.message.content.parts.join('');
+          else if (typeof choice.message.content.text === 'string') out = choice.message.content.text;
+        } else if (typeof choice.text === 'string') {
+          out = choice.text;
+        }
+      }
+      // also handle older/completion-like response shapes
+      if (out == null && json?.data && Array.isArray(json.data) && json.data[0]) {
+        // guard for alternative API shapes
+        const d = json.data[0];
+        if (d && (d.content || d.text)) out = d.content || d.text;
       }
     } catch (e) { void e; }
 
@@ -96,7 +128,7 @@ export class AzureAIService {
       // fallback: return a stringified JSON result to aid debugging
       return json ? JSON.stringify(json) : text || '';
     }
-    return String(out);
+    return String(out).trim();
   }
 }
 
