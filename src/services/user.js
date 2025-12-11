@@ -17,9 +17,25 @@ class UserService {
    * Get user by ID
    */
   async getUser(userId) {
+    const key = `user:${userId}`;
     try {
-      const data = await this.redis.get(`user:${userId}`);
-      return data ? JSON.parse(data) : null;
+      const type = await this.redis.type(key);
+      if (!type || type === "none") return null;
+
+      if (type === "string") {
+        const data = await this.redis.get(key);
+        return data ? JSON.parse(data) : null;
+      }
+
+      if (type === "hash") {
+        const obj = await this.redis.hgetall(key);
+        // hgetall returns an object with all string values — return as-is
+        return Object.keys(obj).length ? obj : null;
+      }
+
+      // For other types (list/set/zset) try to return null but log for diagnostics
+      logger.warn("Get user: unexpected redis key type", { key, type });
+      return null;
     } catch (err) {
       logger.error("Get user failed", err);
       return null;
@@ -30,10 +46,33 @@ class UserService {
    * Save/update user
    */
   async saveUser(userId, data) {
+    const key = `user:${userId}`;
     try {
-      const current = (await this.getUser(userId)) || {};
+      // Read existing value in a type-safe way so we can merge fields if it's a hash
+      let current = {};
+      try {
+        const type = await this.redis.type(key);
+        if (type === "string") {
+          const raw = await this.redis.get(key);
+          current = raw ? JSON.parse(raw) : {};
+        } else if (type === "hash") {
+          current = (await this.redis.hgetall(key)) || {};
+        }
+      } catch (e) {
+        // ignore and continue with empty current
+        logger.warn("saveUser: failed to read existing key type", { key, err: e && e.message });
+      }
+
       const updated = { ...current, ...data, updatedAt: new Date().toISOString() };
-      await this.redis.set(`user:${userId}`, JSON.stringify(updated));
+
+      // Ensure the key is a plain string before writing
+      try {
+        await this.redis.del(key);
+      } catch (e) {
+        logger.warn("saveUser: failed to delete existing key before set", { key, err: e && e.message });
+      }
+
+      await this.redis.set(key, JSON.stringify(updated));
       return updated;
     } catch (err) {
       logger.error("Save user failed", err);

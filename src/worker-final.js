@@ -61,6 +61,8 @@ import perfUtils from "./utils/performance-optimizer.js";
 
 const logger = new Logger("FinalWorker");
 
+import persona from './ai/persona.js';
+
 try {
   validateConfig();
   logger.info("✅ Configuration validated (SPORTSMONKS or FOOTBALLDATA keys accepted)");
@@ -656,6 +658,8 @@ async function handleUpdate(update) {
           favoriteLeagues: fullUser.favoriteLeagues || fullUser.leagues || null,
           preferredLanguage: fullUser.preferredLanguage || fullUser.language || 'en',
           recentMessages: recentTexts,
+          // Ensure Azure (and other providers that honor system messages) receive the BETRIX persona
+          system: persona.getSystemPrompt({ includeContext: { id: userId, role: fullUser.role || null, name: fullUser.name || null } }),
         };
 
         const response = await ai.chat(text, compactContext);

@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import persona from '../ai/persona.js';
 
 /**
  * Lightweight Azure OpenAI wrapper.
@@ -30,10 +31,19 @@ export class AzureAIService {
 
     const body = {
       // minimal chat payload expected by Azure OpenAI chat-completions
-      messages: [
-        { role: 'system', content: context.system || 'You are a helpful assistant.' },
-        { role: 'user', content: String(message) }
-      ],
+      // ensure a BETRIX persona is supplied when none is provided by caller
+      messages: (function(){
+        const have = context && context.system;
+        const includeCtx = (context && (context.id || context.name || context.role)) ? { id: context.id, name: context.name, role: context.role } : undefined;
+        const defaultSystem = have ? context.system : persona.getSystemPrompt({ includeContext: includeCtx });
+        // include few-shot examples if requested by context.few_shot === true
+        const msgs = [{ role: 'system', content: defaultSystem }];
+        if (context && context.few_shot && Array.isArray(persona.FEW_SHOT_EXAMPLES)) {
+          for (const ex of persona.FEW_SHOT_EXAMPLES) msgs.push(ex);
+        }
+        msgs.push({ role: 'user', content: String(message) });
+        return msgs;
+      })(),
       // increase allowance for longer replies
       max_tokens: typeof context.max_tokens === 'number' ? context.max_tokens : 2048,
       temperature: typeof context.temperature === 'number' ? context.temperature : 0.6,
