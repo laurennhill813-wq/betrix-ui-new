@@ -46,12 +46,14 @@
     "redis": "^4.7.1",
     "telegraf": "^4.16.3",
     "twilio": "^5.10.6",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "prom-client": "^14.0.0",
+    "ajv": "^8.12.0"
   },
   "devDependencies": {
-    "ajv": "^8.12.0",
-    "prom-client": "^14.0.0"
+    
   },
+  "optionalDependencies": {},
   "keywords": [
     "telegram",
     "bot",
