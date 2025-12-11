@@ -25,6 +25,11 @@ async function migrate() {
     cursor = res[0];
     const keys = res[1] || [];
     for (const k of keys) {
+      // Skip any backup keys we previously created to avoid nested backups
+      if (String(k).includes(':backup:hash')) {
+        // uncomment for verbose: console.log('Skipping backup key', k);
+        continue;
+      }
       try {
         const type = await redis.type(k);
         if (type === 'hash') {

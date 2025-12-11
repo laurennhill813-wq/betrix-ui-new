@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import { Pool } from 'pg';
 import DataExposureHandler from './handlers/data-exposure-handler.js';
 import { getRedis, MockRedis } from './lib/redis-factory.js';
+import { register } from './utils/metrics.js';
 
 process.env.PGSSLMODE = process.env.PGSSLMODE || 'require';
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = process.env.NODE_TLS_REJECT_UNAUTHORIZED || '0';
@@ -25,6 +26,19 @@ function safeLog(...args) { try { console.log(...args); } catch (e) {} }
 
 // Minimal endpoints (worker only needs registerDataExposureAPI export)
 app.get('/health', (_req, res) => res.status(200).json({ ok: true }));
+
+// Prometheus metrics endpoint (exposes prom-client registry)
+app.get('/metrics', async (req, res) => {
+  try {
+    const contentType = (register && register.contentType) ? register.contentType : 'text/plain; version=0.0.4';
+    res.set('Content-Type', contentType);
+    const body = await register.metrics();
+    return res.status(200).send(body);
+  } catch (err) {
+    console.error('Failed to render /metrics', err && err.message ? err.message : err);
+    return res.status(500).send('failed to render metrics');
+  }
+});
 
 app.post('/webhook/mpesa', (_req, res) => {
   // worker doesn't handle web traffic; keep a stub to avoid undefined routes
