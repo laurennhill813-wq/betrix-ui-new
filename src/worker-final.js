@@ -235,27 +235,27 @@ const ai = createAIWrapper({ azure, gemini, huggingface, localAI, claude, redis,
 
 // keep analyzeSport stub if needed
 ai.analyzeSport = async function(sport, matchData, question) {
-    if (gemini && gemini.enabled) {
-      try {
-        if (typeof gemini.analyzeSport === 'function') return await gemini.analyzeSport(sport, matchData, question);
-      } catch (err) {
-        logger.warn('Gemini.analyzeSport failed, falling back', err?.message || String(err));
-      }
+  if (gemini && gemini.enabled) {
+    try {
+      if (typeof gemini.analyzeSport === 'function') return await gemini.analyzeSport(sport, matchData, question);
+    } catch (err) {
+      logger.warn('Gemini.analyzeSport failed, falling back', err?.message || String(err));
     }
-
-    if (huggingface && huggingface.isHealthy()) {
-      try {
-        return await huggingface.analyzeSport(sport, matchData, question);
-      } catch (err) {
-        logger.warn('HuggingFace.analyzeSport failed, falling back', err?.message || String(err));
-      }
-    }
-
-    return localAI.analyzeSport(sport, matchData, question);
-  },
-  isHealthy() {
-    return (gemini && gemini.enabled) || (huggingface && huggingface.isHealthy()) || localAI.isHealthy();
   }
+
+  if (huggingface && huggingface.isHealthy()) {
+    try {
+      return await huggingface.analyzeSport(sport, matchData, question);
+    } catch (err) {
+      logger.warn('HuggingFace.analyzeSport failed, falling back', err?.message || String(err));
+    }
+  }
+
+  return localAI.analyzeSport(sport, matchData, question);
+};
+
+ai.isHealthy = function() {
+  return (gemini && gemini.enabled) || (huggingface && huggingface.isHealthy()) || (localAI && typeof localAI.isHealthy === 'function' ? localAI.isHealthy() : true);
 };
 const analytics = new AnalyticsService(redis);
 const rateLimiter = new RateLimiter(redis);
