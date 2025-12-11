@@ -228,98 +228,13 @@ const sportsDataAPI = new SportsDataAPI();
 const claude = new ClaudeService(CONFIG.CLAUDE.API_KEY, CONFIG.CLAUDE.MODEL, CONFIG.CLAUDE.TIMEOUT_MS);
 
 // Composite AI wrapper: try Gemini per-request, fall back to LocalAI on errors.
-const ai = {
-  name: "composite-ai",
-  async chat(message, context) {
-    // Prefer Claude when enabled
-    if (CONFIG.CLAUDE && CONFIG.CLAUDE.ENABLED && claude && claude.enabled) {
-      try {
-        await redis.set("ai:active", "claude");
-        await redis.expire("ai:active", 30);
-        const out = await claude.chat(message, context);
-        const len = String(out || "").length;
-        if (len === 0) {
-          logger.warn("Claude returned empty response, falling back to next provider");
-        } else {
-          logger.info("AI response", { provider: "claude", model: CONFIG.CLAUDE.MODEL, length: len });
-          return out;
-        }
-      } catch (err) {
-        logger.warn("Claude.chat failed, falling back", err?.message || String(err));
-      }
-    }
+// create AI wrapper that uses Azure + RAG as the brain
+import { createAIWrapper } from './ai/wrapper.js';
 
-    // Try Gemini first
-    // Optionally prefer Azure first when FORCE_AZURE is set
-    if (FORCE_AZURE && azure && azure.isHealthy()) {
-      try {
-        await redis.set("ai:active", "azure");
-        await redis.expire("ai:active", 30);
-        const out = await azure.chat(message, context);
-        logger.info("AI response", { provider: "azure", model: azure.lastUsed || null, length: String(out || "").length });
-        return out;
-      } catch (err) {
-        logger.warn("Azure.chat failed (forced) — falling back", err?.message || String(err));
-      }
-    }
+const ai = createAIWrapper({ azure, gemini, huggingface, localAI, claude, redis, logger });
 
-    if (gemini && gemini.enabled) {
-      try {
-        await redis.set("ai:active", "gemini");
-        await redis.expire("ai:active", 30);
-        const out = await gemini.chat(message, context);
-        const len = String(out || "").length;
-        if (len === 0) {
-          logger.warn("Gemini returned empty response, falling back to next provider");
-        } else {
-          logger.info("AI response", { provider: "gemini", length: len });
-          return out;
-        }
-      } catch (err) {
-        logger.warn("Gemini.chat failed for message, falling back", err?.message || String(err));
-      }
-    }
-
-    // Try Azure if configured
-    if (azure && azure.isHealthy()) {
-      try {
-        await redis.set("ai:active", "azure");
-        await redis.expire("ai:active", 30);
-        const out = await azure.chat(message, context);
-        logger.info("AI response", { provider: "azure", model: azure.lastUsed || null, length: String(out || "").length });
-        return out;
-      } catch (err) {
-        logger.warn("Azure.chat failed, falling back to next provider", err?.message || String(err));
-      }
-    }
-
-    // Try HuggingFace if configured
-    if (huggingface && huggingface.isHealthy()) {
-      try {
-        await redis.set("ai:active", "huggingface");
-        await redis.expire("ai:active", 30);
-        const out = await huggingface.chat(message, context);
-        logger.info("AI response", { provider: "huggingface", model: huggingface.lastUsed || null, length: String(out || "").length });
-        return out;
-      } catch (err) {
-        logger.warn("HuggingFace.chat failed, falling back to LocalAI", err?.message || String(err));
-      }
-    }
-
-    // Fallback to LocalAI
-    try {
-      await redis.set("ai:active", "local");
-      await redis.expire("ai:active", 30);
-      const out = await localAI.chat(message, context);
-      logger.info("AI response", { provider: "local", length: String(out || "").length });
-      return out;
-    } catch (err) {
-      logger.error("LocalAI fallback also failed", { err: err?.message || String(err) });
-      if (gemini && typeof gemini.fallbackResponse === 'function') return gemini.fallbackResponse(message, context);
-      return "I'm having trouble right now. Try again later.";
-    }
-  },
-  async analyzeSport(sport, matchData, question) {
+// keep analyzeSport stub if needed
+ai.analyzeSport = async function(sport, matchData, question) {
     if (gemini && gemini.enabled) {
       try {
         if (typeof gemini.analyzeSport === 'function') return await gemini.analyzeSport(sport, matchData, question);

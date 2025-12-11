@@ -140,5 +140,43 @@ export class AzureAIService {
     }
     return String(out).trim();
   }
+
+  // embeddings: take an array of input strings and return embeddings array
+  async embeddings(inputs = []) {
+    if (!this.enabled) throw new Error('AzureAIService not configured for embeddings');
+    const url = `${this.endpoint}/openai/deployments/${encodeURIComponent(this.deployment)}/embeddings?api-version=${encodeURIComponent(this.apiVersion)}`;
+    const body = { input: Array.isArray(inputs) ? inputs : [String(inputs)] };
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    let timeoutId = null;
+    if (controller) timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+    let respText = '';
+    try {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'api-key': this.apiKey },
+        body: JSON.stringify(body),
+        signal: controller ? controller.signal : undefined,
+      });
+      respText = await resp.text();
+      if (!resp.ok) {
+        let json = null;
+        try { json = JSON.parse(respText); } catch (e) { }
+        const errMsg = json?.error?.message || respText || `${resp.status} ${resp.statusText}`;
+        const e = new Error(`Azure embeddings error: ${errMsg}`);
+        e.status = resp.status;
+        throw e;
+      }
+      const json = JSON.parse(respText || '{}');
+      if (json?.data && Array.isArray(json.data)) {
+        return json.data.map(d => d.embedding || null);
+      }
+      return null;
+    } catch (err) {
+      if (timeoutId) clearTimeout(timeoutId);
+      throw err;
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+  }
 }
 
