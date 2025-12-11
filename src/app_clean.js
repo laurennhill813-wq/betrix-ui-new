@@ -63,8 +63,24 @@ app.post('/webhook', async (req, res) => {
 });
 
 app.post('/webhook/telegram', async (req, res) => {
-  // same behaviour as /webhook
-  return app.handle(req, res);
+  // same behaviour as /webhook — explicitly enqueue to avoid recursive app.handle calls
+  try {
+    const secret = req.headers['x-telegram-bot-api-secret-token'];
+    if (TELEGRAM_WEBHOOK_SECRET && secret && secret !== TELEGRAM_WEBHOOK_SECRET) {
+      console.warn('Telegram webhook: invalid secret token (telegram endpoint)');
+      return res.sendStatus(403);
+    }
+    if (!webhookRedis) {
+      console.warn('Telegram webhook: no Redis available to enqueue update (telegram endpoint)');
+      return res.sendStatus(503);
+    }
+    await webhookRedis.lpush('telegram:updates', JSON.stringify(req.body));
+    console.log('[WEBHOOK] Enqueued Telegram update (telegram endpoint)');
+    return res.sendStatus(200);
+  } catch (err) {
+    console.error('Telegram webhook error (telegram endpoint)', err?.message || String(err));
+    return res.sendStatus(500);
+  }
 });
 
 export function registerDataExposureAPI(sportsAggregator) {
