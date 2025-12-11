@@ -22,10 +22,14 @@ async function start() {
   // Prefetch subscriber
   try {
     const sub = getRedis();
-    await sub.subscribe('prefetch:updates');
-    sub.on('message', (_ch, message) => {
-      logger.info('prefetch event (core-runner):', message);
-    });
+    if (typeof sub.subscribe !== 'function') {
+      logger.warn('Prefetch subscriber skipped: redis client has no subscribe()');
+    } else {
+      await sub.subscribe('prefetch:updates');
+      sub.on('message', (_ch, message) => {
+        logger.info('prefetch event (core-runner):', message);
+      });
+    }
   } catch (e) { logger.warn('Prefetch subscriber failed', e && e.message ? e.message : e); }
 
   // Start HTTP server

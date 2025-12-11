@@ -84,6 +84,22 @@ class MockRedis {
     return 'OK';
   }
 
+  async rpoplpush(source, dest) {
+    const src = this.kv.get(source) || [];
+    const v = src.pop();
+    this.kv.set(source, src);
+    if (v === undefined) return null;
+    const dst = this.kv.get(dest) || [];
+    dst.unshift(v);
+    this.kv.set(dest, dst);
+    return v;
+  }
+
+  // Blocking variant used by the worker; for MockRedis we perform a non-blocking immediate attempt.
+  async brpoplpush(source, dest, timeoutSeconds = 0) {
+    return await this.rpoplpush(source, dest);
+  }
+
   async ping() { return 'PONG'; }
 }
 

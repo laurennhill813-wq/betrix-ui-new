@@ -109,6 +109,8 @@ if (redis && typeof redis.on === 'function') {
   const azureKey = process.env.AZURE_AI_KEY || process.env.AZURE_KEY || process.env.AZURE_OPENAI_KEY || process.env.AZURE_OPENAI_KEY || (CONFIG.AZURE && CONFIG.AZURE.KEY) || null;
   const sgoKey = process.env.SPORTSGAMEODDS_API_KEY || process.env.SPORTSGAMEODDS_KEY || null;
 
+  // Allow a local developer override to run the worker without all external secrets.
+  // Set `ALLOW_LOCAL_RUN=1` in your environment to skip strict startup checks.
   const missing = [];
   if (!telegramToken) missing.push('TELEGRAM_TOKEN');
   if (!redisUrl) missing.push('REDIS_URL');
@@ -119,13 +121,21 @@ if (redis && typeof redis.on === 'function') {
   const isMock = redis && redis.constructor && redis.constructor.name === 'MockRedis';
   if (redisUrl && isMock) {
     logger.error('REDIS_URL provided but failed to connect/authenticate to Redis; MockRedis in use');
-    process.exit(1);
+    if (String(process.env.ALLOW_LOCAL_RUN) === '1') {
+      logger.warn('ALLOW_LOCAL_RUN=1 detected — continuing with MockRedis for local development');
+    } else {
+      process.exit(1);
+    }
   }
 
   if (missing.length > 0) {
-    logger.error('Missing required startup environment variables: ' + missing.join(', '));
-    // Exit early so Render shows a failed deploy and you can fix env vars
-    process.exit(1);
+    if (String(process.env.ALLOW_LOCAL_RUN) === '1') {
+      logger.warn('ALLOW_LOCAL_RUN=1 detected — skipping missing env var checks (missing: ' + missing.join(', ') + ')');
+    } else {
+      logger.error('Missing required startup environment variables: ' + missing.join(', '));
+      // Exit early so Render shows a failed deploy and you can fix env vars
+      process.exit(1);
+    }
   }
 
   logger.info('Startup env check: required env vars present (TELEGRAM, AZURE, SPORTSGAMEODDS, REDIS)');
@@ -527,6 +537,33 @@ async function handleUpdate(update) {
       const { chat, from, text } = update.message;
       const userId = from.id;
       const chatId = chat.id;
+
+      // Admin-guard: intercept takeover/hacked claims to avoid social-engineering the bot
+      try {
+        const takeoverRegex = /\b(hack|hacked|i have control|i hacked|i own you|i have access|i control you|someone hacked|i broke you)\b/i;
+        if (text && takeoverRegex.test(String(text))) {
+          logger.warn('Admin-claim detected in user message', { userId, chatId, text: String(text).slice(0,200) });
+          // record claim for manual review
+          try {
+            await redis.lpush('admin:claims', JSON.stringify({ userId, chatId, text: String(text), ts: Date.now() }));
+          } catch (e) { logger.warn('Failed to record admin claim', e && e.message ? e.message : e); }
+
+          // Notify user with a safe, non-committal message
+          await telegram.sendMessage(chatId, "I can't confirm takeover or control claims. If you are an administrator, please authenticate via the admin interface. This claim has been logged for review.");
+
+          // Notify configured admin(s)
+          try {
+            const adminId = process.env.ADMIN_TELEGRAM_ID || (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.ADMIN_ID) || null;
+            if (adminId) {
+              const adminMsg = `⚠️ *Takeover claim logged*\n\nUser: ${userId}\nChat: ${chatId}\nTime: ${new Date().toISOString()}\nMessage: ${String(text).slice(0,400)}`;
+              await telegram.sendMessage(adminId, adminMsg, { parse_mode: 'Markdown' }).catch(()=>{});
+            }
+          } catch (e) { logger.warn('Failed to notify admin of claim', e && e.message ? e.message : e); }
+
+          // Do not process further
+          return;
+        }
+      } catch (e) { logger.warn('Admin-guard check failed', e && e.message ? e.message : e); }
 
       // Check suspension
       if (await adminDashboard.isUserSuspended(userId)) {

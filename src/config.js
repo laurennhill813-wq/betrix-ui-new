@@ -196,6 +196,11 @@ const CONFIG = {
  * Validate required configuration
  */
 function validateConfig() {
+  // Allow local developers to bypass strict checks by setting ALLOW_LOCAL_RUN=1
+  if (String(process.env.ALLOW_LOCAL_RUN) === '1') {
+    return;
+  }
+
   const required = ["REDIS_URL", "TELEGRAM_TOKEN"];
   const missing = required.filter(k => !process.env[k]);
   

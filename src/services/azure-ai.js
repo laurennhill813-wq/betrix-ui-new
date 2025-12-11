@@ -15,6 +15,8 @@ export class AzureAIService {
     this.apiKey = apiKey || null;
     this.deployment = deployment || null;
     this.apiVersion = apiVersion || '2023-05-15';
+    // embeddingsDeployment can be provided via options or env var; default to an embeddings-capable model
+    this.embeddingsDeployment = options.embeddingsDeployment || process.env.AZURE_EMBEDDINGS_DEPLOYMENT || 'text-embedding-3-large';
     this.enabled = Boolean(this.endpoint && this.apiKey && this.deployment);
     this.lastUsed = null;
     this.logger = options.logger || console;
@@ -163,7 +165,9 @@ export class AzureAIService {
   // embeddings: take an array of input strings and return embeddings array
   async embeddings(inputs = []) {
     if (!this.enabled) throw new Error('AzureAIService not configured for embeddings');
-    const url = `${this.endpoint}/openai/deployments/${encodeURIComponent(this.deployment)}/embeddings?api-version=${encodeURIComponent(this.apiVersion)}`;
+    // Use configured embeddings deployment (separate from chat deployment)
+    const embDeploy = this.embeddingsDeployment || this.deployment;
+    const url = `${this.endpoint}/openai/deployments/${encodeURIComponent(embDeploy)}/embeddings?api-version=${encodeURIComponent(this.apiVersion)}`;
     const body = { input: Array.isArray(inputs) ? inputs : [String(inputs)] };
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     let timeoutId = null;
