@@ -1,5 +1,7 @@
 import persona from './persona.js';
 import createRag from './rag.js';
+import structured from './structured.js';
+import metrics from '../utils/metrics.js';
 
 export function createAIWrapper({ azure, gemini, huggingface, localAI, claude, redis, logger }) {
   const rag = createRag({ redis, azure, logger });
@@ -28,10 +30,46 @@ export function createAIWrapper({ azure, gemini, huggingface, localAI, claude, r
       if (azure && azure.isHealthy()) {
         try {
           if (!context.few_shot) context.few_shot = true;
+          // If caller expects structured JSON, request a JSON-only output and validate
+          if (context.expect === 'json:recommendation') {
+            // first attempt
+            let out = await azure.chat(augmented + '\n\nPlease respond with ONLY a single valid JSON object matching the recommendation schema.', context);
+            try {
+              const parsed = JSON.parse(out.trim());
+              const v = structured.validateRecommendation(parsed);
+              if (v.valid) {
+                metrics && metrics.incRequest && metrics.incRequest('azure');
+                return parsed;
+              } else {
+                logger && logger.warn && logger.warn('AI returned invalid recommendation JSON (attempt1):', v.reason || v.errors);
+              }
+            } catch (e) {
+              logger && logger.warn && logger.warn('AI returned non-JSON on first attempt', e && e.message);
+            }
+            // retry once with stronger instruction
+            let out2 = await azure.chat(augmented + '\n\nReturn ONLY a JSON object (no explanation). The object must match the schema: {type,match_id,market,selection,odds,confidence,stake_recommendation,rationale}.', context);
+            try {
+              const parsed2 = JSON.parse(out2.trim());
+              const v2 = structured.validateRecommendation(parsed2);
+              if (v2.valid) {
+                metrics && metrics.incRequest && metrics.incRequest('azure');
+                return parsed2;
+              } else {
+                logger && logger.warn && logger.warn('AI returned invalid recommendation JSON (attempt2):', v2.reason || v2.errors);
+              }
+            } catch (e) {
+              logger && logger.warn && logger.warn('AI returned non-JSON on second attempt', e && e.message);
+            }
+            // fallback to plain text if JSON not produced
+            metrics && metrics.incError && metrics.incError('azure');
+            return "";
+          }
           const out = await azure.chat(augmented, context);
+          metrics && metrics.incRequest && metrics.incRequest('azure');
           return out;
         } catch (err) {
           logger && logger.warn && logger.warn('Azure.chat failed in wrapper — falling back', err && err.message);
+          metrics && metrics.incError && metrics.incError('azure');
         }
       }
 

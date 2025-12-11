@@ -4,15 +4,32 @@ export const RECOMMENDATION_SCHEMA_KEYS = [
   'type', 'match_id', 'market', 'selection', 'odds', 'confidence', 'stake_recommendation', 'rationale'
 ];
 
+import Ajv from 'ajv';
+
+const ajv = new Ajv();
+
+export const RECOMMENDATION_SCHEMA = {
+  type: 'object',
+  properties: {
+    type: { type: 'string' },
+    match_id: { type: 'string' },
+    market: { type: 'string' },
+    selection: { type: 'string' },
+    odds: { type: 'number', minimum: 1.01 },
+    confidence: { type: 'number', minimum: 0, maximum: 1 },
+    stake_recommendation: { type: 'string', enum: ['small','medium','large'] },
+    rationale: { type: 'string' }
+  },
+  required: ['type','match_id','market','selection','odds','confidence','stake_recommendation'],
+  additionalProperties: false
+};
+
+const validate = ajv.compile(RECOMMENDATION_SCHEMA);
+
 export function validateRecommendation(obj) {
-  if (!obj || typeof obj !== 'object') return { valid: false, reason: 'not an object' };
-  for (const k of ['type','match_id','market','selection']) {
-    if (!obj[k] || typeof obj[k] !== 'string') return { valid: false, reason: `missing or invalid ${k}` };
-  }
-  if (typeof obj.odds !== 'number' || obj.odds <= 1) return { valid: false, reason: 'invalid odds' };
-  if (typeof obj.confidence !== 'number' || obj.confidence < 0 || obj.confidence > 1) return { valid: false, reason: 'invalid confidence' };
-  if (!['small','medium','large'].includes(String(obj.stake_recommendation))) return { valid: false, reason: 'invalid stake_recommendation' };
-  return { valid: true };
+  const ok = validate(obj);
+  if (ok) return { valid: true };
+  return { valid: false, reason: ajv.errorsText(validate.errors), errors: validate.errors };
 }
 
-export default { validateRecommendation };
+export default { validateRecommendation, RECOMMENDATION_SCHEMA };

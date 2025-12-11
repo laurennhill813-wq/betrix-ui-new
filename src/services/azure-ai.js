@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import persona from '../ai/persona.js';
+import metrics from '../utils/metrics.js';
 
 /**
  * Lightweight Azure OpenAI wrapper.
@@ -68,6 +69,7 @@ export class AzureAIService {
 
     let resp;
     let text = '';
+    const start = Date.now();
     try {
       resp = await fetch(url, {
         method: 'POST',
@@ -81,16 +83,19 @@ export class AzureAIService {
       });
 
       text = await resp.text();
-      // Log response status and preview (safe-guard length)
+      const elapsed = Date.now() - start;
       try {
         const preview = String(text || '').slice(0, 2000);
         this.logger.info && this.logger.info('AzureAIService.response', { status: resp.status, preview });
+        metrics && metrics.incRequest && metrics.incRequest('azure');
+        metrics && metrics.observeLatency && metrics.observeLatency('azure', elapsed);
       } catch (e) { /* ignore logging errors */ }
     } catch (err) {
       if (timeoutId) clearTimeout(timeoutId);
       const isAbort = err && (err.name === 'AbortError' || err.type === 'aborted');
       const msg = isAbort ? `AzureAI request aborted after ${this.timeoutMs}ms` : `AzureAI fetch error: ${err && err.message ? err.message : String(err)}`;
       try { this.logger.error(msg, { url, deployment: this.deployment, error: err }); } catch (e) { void e; }
+      metrics && metrics.incError && metrics.incError('azure');
       const e = new Error(msg);
       e.cause = err;
       throw e;
@@ -136,8 +141,22 @@ export class AzureAIService {
 
     if (out == null) {
       // fallback: return a stringified JSON result to aid debugging
+      // if usage token counts are present, record them
+      try {
+        if (json?.usage) {
+          if (typeof json.usage.completion_tokens === 'number') metrics && metrics.addTokens && metrics.addTokens('azure','completion', json.usage.completion_tokens);
+          if (typeof json.usage.prompt_tokens === 'number') metrics && metrics.addTokens && metrics.addTokens('azure','prompt', json.usage.prompt_tokens);
+        }
+      } catch (e) { /* ignore */ }
       return json ? JSON.stringify(json) : text || '';
     }
+    // record usage tokens when available
+    try {
+      if (json?.usage) {
+        if (typeof json.usage.completion_tokens === 'number') metrics && metrics.addTokens && metrics.addTokens('azure','completion', json.usage.completion_tokens);
+        if (typeof json.usage.prompt_tokens === 'number') metrics && metrics.addTokens && metrics.addTokens('azure','prompt', json.usage.prompt_tokens);
+      }
+    } catch (e) { /* ignore */ }
     return String(out).trim();
   }
 
