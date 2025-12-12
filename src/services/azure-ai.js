@@ -21,6 +21,12 @@ export class AzureAIService {
     this.lastUsed = null;
     this.logger = options.logger || console;
     this.timeoutMs = typeof options.timeoutMs === 'number' ? options.timeoutMs : 60_000;
+    // warn early if embeddings deployment matches chat deployment (commonly misconfigured)
+    try {
+      if (this.embeddingsDeployment && this.deployment && this.embeddingsDeployment === this.deployment) {
+        this.logger && this.logger.warn && this.logger.warn('[AzureAIService] embeddingsDeployment equals chat deployment — ensure you created a separate embeddings deployment or set AZURE_EMBEDDINGS_DEPLOYMENT');
+      }
+    } catch (e) { /* ignore logger errors */ }
   }
 
   isHealthy() {
@@ -167,6 +173,18 @@ export class AzureAIService {
     if (!this.enabled) throw new Error('AzureAIService not configured for embeddings');
     // Use configured embeddings deployment (separate from chat deployment)
     const embDeploy = this.embeddingsDeployment || this.deployment;
+    // support fallback to Cohere embeddings when Azure deployment is not available
+    const cohereKey = process.env.COHERE_API_KEY || null;
+    // Log which embeddings deployment we're attempting to use (helps diagnose "deployment does not exist")
+    try {
+      this.logger && this.logger.info && this.logger.info('AzureAIService.embeddings.request', {
+        endpoint: this.endpoint,
+        embeddingsDeployment: embDeploy,
+        apiVersion: this.apiVersion,
+        inputsPreview: Array.isArray(inputs) ? (inputs.slice(0,3)) : [String(inputs).slice(0,200)],
+        timeoutMs: this.timeoutMs,
+      });
+    } catch (e) { /* ignore logging errors */ }
     const url = `${this.endpoint}/openai/deployments/${encodeURIComponent(embDeploy)}/embeddings?api-version=${encodeURIComponent(this.apiVersion)}`;
     const body = { input: Array.isArray(inputs) ? inputs : [String(inputs)] };
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -185,8 +203,60 @@ export class AzureAIService {
         let json = null;
         try { json = JSON.parse(respText); } catch (e) { }
         const errMsg = json?.error?.message || respText || `${resp.status} ${resp.statusText}`;
-        const e = new Error(`Azure embeddings error: ${errMsg}`);
+        // If the error mentions a missing deployment, add actionable guidance
+        let guidance = '';
+        if (typeof errMsg === 'string' && /deployment for this resource does not exist/i.test(errMsg)) {
+          guidance = ' — check AZURE_EMBEDDINGS_DEPLOYMENT env var or create an embeddings deployment in your Azure OpenAI resource (names are case-sensitive).';
+        }
+        const e = new Error(`Azure embeddings error: ${errMsg}${guidance}`);
         e.status = resp.status;
+        // If Azure embeddings deployment missing and Cohere key is available, attempt Cohere fallback
+        if (cohereKey && /deployment for this resource does not exist/i.test(String(errMsg))) {
+          try {
+            this.logger && this.logger.info && this.logger.info('AzureAIService.embeddings: attempting Cohere fallback');
+            const ch = await (async function callCohere(inputs, key, logger){
+              const tryEndpoints = [
+                'https://api.cohere.ai/v1/embed',
+                'https://api.cohere.ai/v1/embeddings',
+                'https://api.cohere.ai/v1/embed/english'
+              ];
+              const model = process.env.COHERE_EMBEDDINGS_MODEL || 'embed-english-light-v2.0';
+              let lastErr = null;
+              for (const cohereUrl of tryEndpoints) {
+                try {
+                  const resp = await fetch(cohereUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                    body: JSON.stringify({ model, input: inputs }),
+                  });
+                  const txt = await resp.text();
+                  let j = null; try { j = txt ? JSON.parse(txt) : null; } catch (e) { j = null; }
+                  if (!resp.ok) {
+                    const msg = j?.message || txt || `${resp.status} ${resp.statusText}`;
+                    lastErr = new Error(`Cohere embeddings error (${cohereUrl}): ${msg}`);
+                    lastErr.status = resp.status;
+                    continue; // try next URL
+                  }
+                  // Common response shapes: { embeddings: [...] } or { data: [{embedding: [...]}, ...] }
+                  if (j && Array.isArray(j.embeddings)) return j.embeddings.map(item => Array.isArray(item) ? item : (item.embedding || item));
+                  if (j && Array.isArray(j.data)) return j.data.map(d => d.embedding || (d.embeddings ? d.embeddings[0] : null));
+                  // fallback: if API returned a single embedding object
+                  if (j && j.embedding && Array.isArray(j.embedding)) return [j.embedding];
+                  // if nothing matched, continue to next endpoint
+                  lastErr = new Error(`Cohere embeddings: unexpected response shape from ${cohereUrl}`);
+                } catch (e) {
+                  lastErr = e;
+                }
+              }
+              if (lastErr) throw lastErr;
+              return null;
+            })(Array.isArray(inputs) ? inputs : [String(inputs)], cohereKey, this.logger);
+            if (Array.isArray(ch)) return ch;
+          } catch (coErr) {
+            // if Cohere also fails, surface original Azure error below
+            try { this.logger && this.logger.warn && this.logger.warn('Cohere fallback failed', coErr && coErr.message ? coErr.message : coErr); } catch (e) { }
+          }
+        }
         throw e;
       }
       const json = JSON.parse(respText || '{}');

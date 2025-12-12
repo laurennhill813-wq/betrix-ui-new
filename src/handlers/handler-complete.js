@@ -13,6 +13,23 @@ import SportMonksService from '../services/sportmonks-service.js';
 
 const logger = new Logger('HandlerComplete');
 
+function safeName(val, fallback = 'TBA') {
+  try {
+    if (val == null) return fallback;
+    if (typeof val === 'string' || typeof val === 'number') return String(val);
+    if (typeof val === 'object') {
+      if (val.name) return String(val.name);
+      if (val.fullName) return String(val.fullName);
+      if (val.teamName) return String(val.teamName);
+      // last resort: stringify
+      return JSON.stringify(val);
+    }
+    return String(val);
+  } catch (e) {
+    return fallback;
+  }
+}
+
 /**
  * Fetch live matches from SportMonks
  */
@@ -302,12 +319,14 @@ export async function handleCallbackQuery(cq, redis, services) {
         };
       }
 
-      // Group by competition
+      // Group by competition (use readable competition name)
       const groups = {};
       fixtures.forEach(f => {
-        const comp = f.competition || f.competition?.name || 'Other';
-        groups[comp] = groups[comp] || [];
-        groups[comp].push(f);
+        const compObj = f.competition || f.league || null;
+        const comp = (compObj && (typeof compObj === 'object')) ? (compObj.name || compObj.fullName || String(compObj)) : (compObj || 'Other');
+        const compName = comp || 'Other';
+        groups[compName] = groups[compName] || [];
+        groups[compName].push(f);
       });
 
       // Format date range for display
@@ -322,15 +341,20 @@ export async function handleCallbackQuery(cq, redis, services) {
       Object.keys(groups).slice(0, 10).forEach(comp => {
         text += `🏆 *${comp}*\n`;
         groups[comp].slice(0, 8).forEach(f => {
-          const kickoff = f.kickoff ? new Date(f.kickoff).toLocaleTimeString() : 'TBA';
-          text += `• ${f.home} vs ${f.away} — ${kickoff}\n`;
-          keyboard.push([{ text: `${f.home} vs ${f.away}`, callback_data: `fixture:${f.id}` }]);
+          const home = safeName(f.home || f.homeTeam || (f.raw && f.raw.homeTeam) || (f.teams && f.teams.home) || f.homeName, 'Home');
+          const away = safeName(f.away || f.awayTeam || (f.raw && f.raw.awayTeam) || (f.teams && f.teams.away) || f.awayName, 'Away');
+          let kickoff = 'TBA';
+          try {
+            if (f.kickoff) kickoff = new Date(f.kickoff).toLocaleTimeString();
+            else if (f.time) kickoff = String(f.time);
+            else if (f.utcDate) kickoff = new Date(f.utcDate).toLocaleTimeString();
+          } catch (e) { kickoff = 'TBA'; }
+
+          text += `• ${home} vs ${away} — ${kickoff}\n`;
+          keyboard.push([{ text: `${home} vs ${away}`, callback_data: `fixture:${f.id}` }]);
         });
         text += `\n`;
       });
-      keyboard.push([{ text: '🔙 Back', callback_data: 'menu_main' }]);
-
-      return {
         method: 'editMessageText',
         chat_id: chatId,
         message_id: messageId,
@@ -347,7 +371,11 @@ export async function handleCallbackQuery(cq, redis, services) {
       if (!fixture) {
         return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Fixture not found', show_alert: false };
       }
-      const text = `*Fixture: ${fixture.home} vs ${fixture.away}*\nKickoff: ${fixture.kickoff || 'TBA'}\nCompetition: ${fixture.competition || 'N/A'}\nVenue: ${fixture.venue || 'TBA'}\nStatus: ${fixture.status || 'SCHEDULED'}\nProvider: ${fixture.provider || 'Football-Data.org'}`;
+      const home = safeName(fixture.home || fixture.homeTeam || fixture.homeName, 'Home');
+      const away = safeName(fixture.away || fixture.awayTeam || fixture.awayName, 'Away');
+      const kickoff = (fixture.kickoff || fixture.time || fixture.utcDate) ? (fixture.kickoff ? new Date(fixture.kickoff).toLocaleString() : String(fixture.time || fixture.utcDate)) : 'TBA';
+      const comp = (fixture.competition && (fixture.competition.name || fixture.competition)) ? (fixture.competition.name || fixture.competition) : (fixture.league || 'N/A');
+      const text = `*Fixture: ${home} vs ${away}*\nKickoff: ${kickoff}\nCompetition: ${comp}\nVenue: ${fixture.venue || 'TBA'}\nStatus: ${fixture.status || 'SCHEDULED'}\nProvider: ${fixture.provider || 'Football-Data.org'}`;
       return {
         method: 'editMessageText',
         chat_id: chatId,

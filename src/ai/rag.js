@@ -9,7 +9,13 @@ export function createRag({ redis, azure, logger }) {
   if (!azure) throw new Error('azure required for RAG');
 
   async function indexDocument(id, text, metadata = {}) {
-    const vecs = await azure.embeddings([text]);
+    let vecs;
+    try {
+      vecs = await azure.embeddings([text]);
+    } catch (e) {
+      logger && logger.warn && logger.warn('RAG indexDocument: embeddings failed', e && e.message ? e.message : e);
+      throw e;
+    }
     const v = Array.isArray(vecs) && vecs[0] ? vecs[0] : null;
     if (!v) throw new Error('embedding failed');
     const key = `vec:${id}`;
@@ -19,7 +25,13 @@ export function createRag({ redis, azure, logger }) {
 
   async function retrieveRelevant(namespaceOrUserId, query, { topK = 3 } = {}) {
     // compute query embedding
-    const vecs = await azure.embeddings([query]);
+    let vecs;
+    try {
+      vecs = await azure.embeddings([query]);
+    } catch (e) {
+      logger && logger.warn && logger.warn('RAG retrieveRelevant: embeddings failed, skipping RAG retrieval', e && e.message ? e.message : e);
+      return [];
+    }
     const q = Array.isArray(vecs) && vecs[0] ? vecs[0] : null;
     if (!q) return [];
     const matched = [];
