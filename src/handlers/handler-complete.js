@@ -319,11 +319,27 @@ export async function handleCallbackQuery(cq, redis, services) {
         };
       }
 
-      // Group by competition (use readable competition name)
+      // Group by competition (use readable competition name).
+      // Attempt to resolve numeric/ID-only competition values to a human name
+      // using available fixture fields (competition.name, competition_name, leagueName, etc.).
       const groups = {};
       fixtures.forEach(f => {
         const compObj = f.competition || f.league || null;
-        const compName = safeName(compObj, 'Other');
+
+        // Prefer an explicit name field when available
+        const possibleName = (compObj && typeof compObj === 'object')
+          ? (compObj.name || compObj.title || compObj.fullName || compObj.competition_name)
+          : (f.competition_name || f.leagueName || f.competitionName || f.competitionTitle || compObj);
+
+        let compName = safeName(possibleName || compObj || 'Other', 'Other');
+
+        // If compName is just a numeric id (e.g. '8'), try using competition object stringification
+        if (/^\d+$/.test(String(compName).trim())) {
+          // fallback to readable labels from the fixture if present
+          const alt = f.competition && f.competition.name ? String(f.competition.name) : (f.leagueName || f.competition_name || f.competitionTitle || null);
+          if (alt) compName = alt;
+        }
+
         groups[compName] = groups[compName] || [];
         groups[compName].push(f);
       });
@@ -347,9 +363,24 @@ export async function handleCallbackQuery(cq, redis, services) {
           if (!away || away === 'undefined') away = 'TBA';
           let kickoff = 'TBA';
           try {
-            if (f.kickoff) kickoff = new Date(f.kickoff).toLocaleTimeString();
+            // Normalize various common kickoff/date fields and handle unix seconds vs ms
+            const tsCandidates = [f.kickoff, f.utcDate, f.kickoff_at, f.utc_date, f.date, f.time, f.starting_at, f.starting_at_timestamp, f.timestamp, f.ts];
+            let d = null;
+            for (const c of tsCandidates) {
+              if (!c) continue;
+              // If it's a number, it may be seconds; convert to ms when needed
+              if (typeof c === 'number') {
+                d = new Date(c < 1e12 ? c * 1000 : c);
+              } else if (typeof c === 'string') {
+                // numeric strings
+                if (/^\d{10}$/.test(c)) d = new Date(Number(c) * 1000);
+                else if (/^\d{13}$/.test(c)) d = new Date(Number(c));
+                else d = new Date(c);
+              }
+              if (d && !isNaN(d.getTime())) break;
+            }
+            if (d && !isNaN(d.getTime())) kickoff = d.toLocaleString();
             else if (f.time) kickoff = String(f.time);
-            else if (f.utcDate) kickoff = new Date(f.utcDate).toLocaleTimeString();
           } catch (e) { kickoff = 'TBA'; }
 
           text += `• ${home} vs ${away} — ${kickoff}\n`;
