@@ -3,6 +3,8 @@
  * Formats live matches, fixtures, and odds for clean Telegram message display
  */
 
+import safeName from './safe-name.js';
+
 export class MatchFormatter {
   /**
    * Format a single live match for Telegram display
@@ -30,14 +32,14 @@ export class MatchFormatter {
                        status === 'SCHEDULED' ? match.time : 
                        match.time;
 
-    // League display
-    const league = match.league ? `  📍 ${match.league}` : '';
+    // League display (use safeName to avoid object interpolation)
+    const league = (match.league || match.competition) ? `  📍 ${safeName(match.league || match.competition, '')}` : '';
 
     // Venue display
     const venue = match.venue && match.venue !== 'TBA' ? `  🏟️ ${match.venue}` : '';
 
-        const home = match.home || match.homeTeam || (match.raw && match.raw.home_team) || match.homeName || 'Home';
-        const away = match.away || match.awayTeam || (match.raw && match.raw.away_team) || match.awayName || 'Away';
+        const home = safeName(match.home || match.homeTeam || (match.raw && match.raw.home_team) || match.homeName, 'Home');
+        const away = safeName(match.away || match.awayTeam || (match.raw && match.raw.away_team) || match.awayName, 'Away');
 
         return `${statusEmoji} ${home} ${score} ${away}\n` +
           `   ${timeDisplay}${league}${venue}`;
@@ -106,11 +108,11 @@ export class MatchFormatter {
   static formatFixture(fixture) {
     if (!fixture) return '';
 
-    const dateStr = fixture.time || 'TBA';
+    const dateStr = fixture.time || 'TBD';
     const venue = fixture.venue ? `\n🏟️ ${fixture.venue}` : '';
-    const league = fixture.league ? `\n📍 ${fixture.league}` : '';
-    const home = fixture.home || fixture.homeTeam || (fixture.raw && fixture.raw.home_team) || 'Home';
-    const away = fixture.away || fixture.awayTeam || (fixture.raw && fixture.raw.away_team) || 'Away';
+    const league = (fixture.league || fixture.competition) ? `\n📍 ${safeName(fixture.league || fixture.competition, '')}` : '';
+    const home = safeName(fixture.home || fixture.homeTeam || (fixture.raw && fixture.raw.home_team), 'Home');
+    const away = safeName(fixture.away || fixture.awayTeam || (fixture.raw && fixture.raw.away_team), 'Away');
 
     return `⚽ ${home} vs ${away}\n⏰ ${dateStr}${venue}${league}`;
   }

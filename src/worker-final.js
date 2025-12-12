@@ -676,7 +676,7 @@ async function handleUpdate(update) {
       }
 
       try {
-        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI };
+        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI, ai };
         const res = await completeHandler.handleCallbackQuery(callbackQuery, redis, services);
         if (!res) return;
 
@@ -798,7 +798,7 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
     const start = Date.now();
 
     // Basic commands - routed through complete handler for full menu system
-    const sharedServices = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI, redis };
+    const sharedServices = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI, redis, ai };
     const basicCommands = {
       "/start": async () => {
         try {
@@ -853,7 +853,7 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
       "/news": () => basicHandlers.news(chatId),
       "/highlights": () => basicHandlers.highlights(chatId),
       "/standings": async () => {
-        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI };
+        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI, ai };
         const text = '/standings ' + (args && args.length ? args.join(' ') : '');
         const msg = await v2Handler.handleCommand(text, chatId, userId, redis, services);
         if (msg && msg.chat_id) {
@@ -863,7 +863,7 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
       "/league": () => basicHandlers.league(chatId, args.join(" ")),
       "/predict": () => basicHandlers.predict(chatId, args.join(" ")),
       "/odds": async () => {
-        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI };
+        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI, ai };
         const text = '/odds ' + (args && args.length ? args.join(' ') : '');
         const msg = await v2Handler.handleCommand(text, chatId, userId, redis, services);
         if (msg && msg.chat_id) {
@@ -872,7 +872,7 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
       },
       "/tips": () => basicHandlers.tips(chatId),
       "/pricing": async () => {
-        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI };
+        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI, ai };
         const msg = await v2Handler.handleCommand('/pricing', chatId, userId, redis, services);
         if (msg && msg.chat_id) {
           await telegram.sendMessage(chatId, msg.text || '', { reply_markup: msg.reply_markup, parse_mode: msg.parse_mode || 'Markdown' });
@@ -884,7 +884,7 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
       "/refer": () => basicHandlers.refer(chatId, userId),
       "/leaderboard": () => basicHandlers.leaderboard(chatId),
       "/signup": async () => {
-        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI };
+        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI, ai };
         const msg = await v2Handler.handleCommand('/signup', chatId, userId, redis, services);
         if (msg && msg.chat_id) {
           await telegram.sendMessage(chatId, msg.text || '', { reply_markup: msg.reply_markup, parse_mode: msg.parse_mode || 'Markdown' });

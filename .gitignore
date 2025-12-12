@@ -91,3 +91,4 @@ docker-compose.yml
 # package-lock.json.history/
 
 .history/
+\n.bun-bin/

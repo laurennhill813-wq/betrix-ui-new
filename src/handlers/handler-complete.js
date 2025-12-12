@@ -441,26 +441,66 @@ export async function handleCallbackQuery(cq, redis, services) {
         const away = safeName(fixture.away || fixture.awayTeam || fixture.awayName, 'Away');
         const leagueId = (fixture.competition && fixture.competition.id) || fixture.league || fixture.competition || null;
 
-        // If an OddsAnalyzer is available in services, use it to analyze the match
-        if (services && services.oddsAnalyzer && typeof services.oddsAnalyzer.analyzeMatch === 'function') {
-          const analysis = await services.oddsAnalyzer.analyzeMatch(home, away, leagueId);
-          const text = (typeof services.oddsAnalyzer.formatForTelegram === 'function')
-            ? services.oddsAnalyzer.formatForTelegram(analysis)
-            : (`🔍 Analysis for ${home} vs ${away}\n${JSON.stringify(analysis).slice(0,1500)}`);
+        // Prefer AI-based analysis if available
+        try {
+          const matchData = Object.assign({}, fixture, { home, away, leagueId });
 
-          // Edit the current message to show the analysis and include a back button
-          return {
-            method: 'editMessageText',
-            chat_id: chatId,
-            message_id: messageId,
-            text,
-            reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] },
-            parse_mode: 'Markdown'
-          };
+          if (services && services.ai && typeof services.ai.analyzeSport === 'function' && (typeof services.ai.isHealthy !== 'function' || services.ai.isHealthy())) {
+            let aiResult = null;
+            try {
+              aiResult = await services.ai.analyzeSport('football', matchData, 'Provide a short Telegram-friendly analysis, prediction and key stats.');
+            } catch (errAi) {
+              logger.warn('AI analyzeSport failed, falling back to odds analyzer', errAi?.message || errAi);
+              aiResult = null;
+            }
+
+            if (aiResult) {
+              let text = '';
+              if (typeof aiResult === 'string') text = aiResult;
+              else if (aiResult && typeof aiResult === 'object') {
+                if (typeof aiResult.text === 'string') text = aiResult.text;
+                else text = JSON.stringify(aiResult, null, 2);
+              } else {
+                text = String(aiResult);
+              }
+
+              // Truncate to avoid Telegram limits, keep Markdown-friendly fallback
+              if (text.length > 4000) text = text.slice(0, 4000) + '\n\n...';
+
+              return {
+                method: 'editMessageText',
+                chat_id: chatId,
+                message_id: messageId,
+                text,
+                reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] },
+                parse_mode: 'Markdown'
+              };
+            }
+          }
+
+          // If AI not available or returned nothing, fall back to OddsAnalyzer if present
+          if (services && services.oddsAnalyzer && typeof services.oddsAnalyzer.analyzeMatch === 'function') {
+            const analysis = await services.oddsAnalyzer.analyzeMatch(home, away, leagueId);
+            const text = (typeof services.oddsAnalyzer.formatForTelegram === 'function')
+              ? services.oddsAnalyzer.formatForTelegram(analysis)
+              : (`🔍 Analysis for ${home} vs ${away}\n${JSON.stringify(analysis).slice(0,1500)}`);
+
+            return {
+              method: 'editMessageText',
+              chat_id: chatId,
+              message_id: messageId,
+              text,
+              reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] },
+              parse_mode: 'Markdown'
+            };
+          }
+
+          // Fallback: no analysis service available
+          return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Analysis service not available', show_alert: false };
+        } catch (errAnalysis) {
+          logger.warn('analyseFixture handler failed', errAnalysis?.message || errAnalysis);
+          return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Analysis failed', show_alert: false };
         }
-
-        // Fallback: no oddsAnalyzer available
-        return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Analysis service not available', show_alert: false };
       } catch (e) {
         logger.warn('analyseFixture handler failed', e?.message || e);
         return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Analysis failed', show_alert: false };
