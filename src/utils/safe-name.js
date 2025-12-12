@@ -13,15 +13,15 @@ export function safeName(val, fallback = '') {
   }
   if (typeof val === 'object') {
     // Common provider field names
-    return (val.name && String(val.name)) ||
-           (val.shortName && String(val.shortName)) ||
-           (val.teamName && String(val.teamName)) ||
-           (val.home && String(val.home)) ||
-           (val.away && String(val.away)) ||
-           (val.title && String(val.title)) ||
-           (val.fullName && String(val.fullName)) ||
-           (val.tla && String(val.tla)) ||
-           fallback || '';
+    const candidates = [val.name, val.shortName, val.teamName, val.home, val.away, val.title, val.fullName, val.tla, val.displayName, val.competition_name];
+    for (const c of candidates) {
+      if (c === undefined || c === null) continue;
+      const s = String(c).trim();
+      if (!s) continue;
+      if (s.toLowerCase() === 'undefined' || s.toLowerCase() === 'null') continue;
+      return s;
+    }
+    return fallback || '';
   }
 
   return String(val);

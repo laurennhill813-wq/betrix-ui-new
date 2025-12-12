@@ -67,9 +67,9 @@ export function buildMatchCard(match, index = 1, includeOdds = true) {
            match.raw.visitor_team || match.away || 'Away';
   }
   
-  const score = match.score || `${match.homeScore || '-'}-${match.awayScore || '-'}`;
-  const status = match.status || 'SCHEDULED';
-  const time = match.time || match.minute || 'TBD';
+  const score = match.score || `${(match.homeScore !== undefined && match.homeScore !== null) ? match.homeScore : '-'}-${(match.awayScore !== undefined && match.awayScore !== null) ? match.awayScore : '-'}`;
+  const status = match.status || match.match_status || 'SCHEDULED';
+  const time = normalizeDateTime(match) || match.time || match.minute || 'TBD';
 
   let card = `${index}️⃣ *${home}* vs *${away}*\n`;
   
@@ -131,6 +131,37 @@ export function buildMatchStats(match) {
   return stats;
 }
 
+// Small helper: try multiple common fields for a date/time and return a human string or null
+function normalizeDateTime(item) {
+  try {
+    if (!item) return null;
+    const candidates = [item.kickoff, item.kickoff_at, item.utcDate, item.utc_date, item.date, item.time, item.starting_at, item.timestamp, item.ts, item.start];
+    for (const c of candidates) {
+      if (!c && c !== 0) continue;
+      // numbers: seconds or ms
+      if (typeof c === 'number') {
+        const d = new Date(c < 1e12 ? c * 1000 : c);
+        if (!isNaN(d.getTime())) return d.toLocaleString();
+      }
+      if (typeof c === 'string') {
+        if (/^\d{10}$/.test(c)) {
+          const d = new Date(Number(c) * 1000);
+          if (!isNaN(d.getTime())) return d.toLocaleString();
+        }
+        if (/^\d{13}$/.test(c)) {
+          const d = new Date(Number(c));
+          if (!isNaN(d.getTime())) return d.toLocaleString();
+        }
+        const d = new Date(c);
+        if (!isNaN(d.getTime())) return d.toLocaleString();
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+  return null;
+}
+
 /**
  * Build interactive action buttons for a match
  */
@@ -189,14 +220,16 @@ export function buildFixturesDisplay(fixtures, league = 'League', view = 'upcomi
   let display = buildSectionDivider(`${league} - ${view.toUpperCase()}`);
 
   fixtures.slice(0, 15).forEach((f, i) => {
-    const status = f.status === 'LIVE' || f.status === 'live' ? '🔴' : '📅';
-    const time = f.time || f.date || 'TBD';
-    const home = safeName(f.home || f.homeTeam, 'Home');
-    const away = safeName(f.away || f.awayTeam, 'Away');
-    const score = f.score || (f.homeScore !== undefined ? `${f.homeScore}-${f.awayScore}` : '─');
+    const status = (f.status === 'LIVE' || f.status === 'live' || f.status === 'IN_PLAY') ? '🔴' : '📅';
+    const dt = normalizeDateTime(f) || f.time || f.date || 'TBD';
+    let home = safeName(f.home || f.homeTeam || f.home_name || (f.raw && f.raw.home && f.raw.home.name), 'Home');
+    let away = safeName(f.away || f.awayTeam || f.away_name || (f.raw && f.raw.away && f.raw.away.name), 'Away');
+    if (!home) home = 'TBA';
+    if (!away) away = 'TBA';
+    const score = f.score || (f.homeScore !== undefined && f.homeScore !== null ? `${f.homeScore}-${f.awayScore}` : '─');
 
     display += `${i + 1}. ${status} \`${score}\` *${home}* vs *${away}*\n`;
-    if (f.time) display += `   ⏱ ${time}\n`;
+    if (dt) display += `   ⏱ ${dt}\n`;
     display += '\n';
   });
 
@@ -297,16 +330,22 @@ export function buildUpcomingFixtures(fixtures = [], league = '', daysBefore = 7
   });
 
   sorted.slice(0, 10).forEach((f, i) => {
-    let home = safeName(f.home || f.homeTeam, 'Home');
-    let away = safeName(f.away || f.awayTeam, 'Away');
-    // Defensive fallbacks in case safeName returned an empty string
+    let home = safeName(f.home || f.homeTeam || f.home_name || (f.raw && f.raw.home && f.raw.home.name), 'Home');
+    let away = safeName(f.away || f.awayTeam || f.away_name || (f.raw && f.raw.away && f.raw.away.name), 'Away');
     if (!home) home = 'TBA';
     if (!away) away = 'TBA';
 
-    const dateStr = f.date ? new Date(f.date).toLocaleDateString() : 'TBA';
-    const timeStr = f.time ? new Date(f.time).toLocaleTimeString() : 'TBA';
+    const dt = normalizeDateTime(f);
+    let dateStr = 'TBA';
+    let timeStr = '';
+    if (dt) {
+      // split date/time by locale
+      const parts = dt.split(',');
+      dateStr = parts[0] || dt;
+      timeStr = parts[1] ? parts.slice(1).join(',').trim() : '';
+    }
 
-    display += `• ${home} vs ${away} — ${dateStr} ${timeStr}\n`;
+    display += `• ${home} vs ${away} — ${dateStr}${timeStr ? ' ' + timeStr : ''}\n`;
   });
 
   return display;
@@ -383,11 +422,24 @@ export function buildLiveMatchTicker(matches = []) {
   let ticker = `🔴 *LIVE NOW*\n\n`;
 
   matches.slice(0, 8).forEach((m) => {
-    const score = m.homeScore !== undefined ? `${m.homeScore}-${m.awayScore}` : '─';
-    const time = m.time || '...';
-    const home = safeName(m.home || m.homeTeam, 'Home');
-    const away = safeName(m.away || m.awayTeam, 'Away');
-    ticker += `⚽ \`${score}\` *${home}* vs *${away}* (${time})\n`;
+    const score = (m.homeScore !== undefined && m.homeScore !== null) ? `${m.homeScore}-${m.awayScore}` : '─';
+    const time = normalizeDateTime(m) || m.time || '...';
+    let home = safeName(m.home || m.homeTeam || m.home_name || (m.raw && m.raw.home && m.raw.home.name), 'Home');
+    let away = safeName(m.away || m.awayTeam || m.away_name || (m.raw && m.raw.away && m.raw.away.name), 'Away');
+    if (!home) home = 'TBA';
+    if (!away) away = 'TBA';
+
+    // Stadium/venue if present - avoid numeric-only IDs
+    let venue = null;
+    if (m.venue || m.stadium || m.venue_name) venue = safeName(m.venue || m.stadium || m.venue_name, '');
+    if (!venue && (m.venue_id || m.stadium_id)) {
+      const id = m.venue_id || m.stadium_id;
+      if (typeof id === 'number' && id > 0) venue = `Stadium #${id}`;
+    }
+
+    ticker += `⚽ \`${score}\` *${home}* vs *${away}* \n   ⏱ ${time}`;
+    if (venue) ticker += `\n   🏟 ${venue}`;
+    ticker += `\n`;
   });
 
   if (matches.length > 8) {
