@@ -28,6 +28,13 @@ const CONFIG = {
     BASE: process.env.SPORTSDATA_BASE || 'https://api.sportsdata.io',
   },
 
+  // SportGameOdds (preferred odds + fixtures provider)
+  SPORTSGAMEODDS: {
+    KEY: process.env.SPORTSGAMEODDS_API_KEY,
+    BASE: process.env.SPORTSGAMEODDS_BASE || 'https://api.sportsgameodds.com/v1',
+    CACHE_TTL: Number(process.env.SPORTSGAMEODDS_CACHE_TTL || 600),
+  },
+
   // Football-Data.org
   FOOTBALLDATA: {
     KEY: process.env.FOOTBALL_DATA_API || process.env.FOOTBALLDATA_API_KEY,

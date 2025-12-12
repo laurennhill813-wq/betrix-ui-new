@@ -20,6 +20,17 @@ yarn-error.log*
 .env.local
 .env.*.local
 
+# Ignore variations used in local testing/exports
+.env.local*
+
+# Ignore local helper scripts that may contain keys or tokens
+scripts/run-embeds-session-alt.ps1
+scripts/run-embeds-session.ps1
+scripts/run-test-index-session.ps1
+scripts/run-worker-bg-direct.ps1
+scripts/run-worker-session.ps1
+scripts/test-azure-embeddings-explicit.mjs
+
 # ===================================================================
 # Cache, temp, and logs
 # ===================================================================

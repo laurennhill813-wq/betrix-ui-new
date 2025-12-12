@@ -1,0 +1,8 @@
+{
+  "location": "Global",
+  "sku": { "name": "GlobalStandard", "capacity": 1 },
+  "properties": {
+    "model": { "format": "OpenAI", "name": "text-embedding-3-large", "version": "2025-10-03" },
+    "versionUpgradeOption": "OnceNewDefaultVersionAvailable"
+  }
+}

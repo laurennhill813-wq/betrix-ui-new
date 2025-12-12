@@ -48,62 +48,84 @@ export default class SportMonksService {
   }
 
   async _fetch(endpoint, query = {}) {
-    const attempts = 3;
-    
-    for (let attempt = 1; attempt <= attempts; attempt++) {
-      try {
-        // Try each base URL variant on first attempt of each cycle
-        const baseUrlIndex = attempt === 1 ? 0 : (attempt === 2 ? 1 : 0);
-        const currentBase = this.baseUrls[baseUrlIndex % this.baseUrls.length];
-        
-        const url = this._buildUrlWithBase(currentBase, endpoint, query);
-        const safeUrlForLog = url.replace(/(api_token=[^&]+)/gi, 'api_token=REDACTED');
-        
-        if (attempt === 1) {
-          logger.info(`[SportMonksService] Requesting (attempt ${attempt}): ${safeUrlForLog}`);
-        }
-        
-        // Use axios for better TLS control per-service
-        const insecure = (process.env.SPORTSMONKS_INSECURE === 'true');
-        const agent = new https.Agent({ 
-          rejectUnauthorized: !insecure,
-          keepAlive: true,
-          maxSockets: 50
-        });
-        
-        const resp = await axios.get(url, { 
-          timeout: 15000, 
-          httpsAgent: agent, 
-          headers: { Accept: 'application/json' }
-        });
-        
-        const data = resp && resp.data ? resp.data : null;
-        // axios throws for non-2xx; still guard
-        if (!data) {
-          const safeUrl = url.replace(/(api_token|api_token=[^&]+)/gi, 'api_token=REDACTED');
-          throw new Error(`Empty response from SportMonks (url: ${safeUrl})`);
-        }
-        return data && (data.data || data) ? (data.data || data) : data;
-      } catch (e) {
+    // Support multiple auth strategies. By default use query param `api_token` (legacy)
+    // Fallback strategies: Authorization header Bearer, alternate query names ('token','access_token')
+    const strategies = this._smStrategy
+      ? [this._smStrategy]
+      : ['query_api_token', 'header_bearer', 'query_token', 'query_access_token'];
+
+    for (const strat of strategies) {
+      for (let attempt = 1; attempt <= 2; attempt++) {
         try {
-          // Redact token for logs
-          // Intentionally avoid accessing/logging the request URL here to prevent leaking tokens in logs
-          const status = e && e.response && e.response.status ? e.response.status : 'N/A';
-          const dataSnippet = e && e.response && e.response.data ? (typeof e.response.data === 'string' ? e.response.data.substring(0,200) : JSON.stringify(e.response.data).substring(0,200)) : null;
-          logger.warn(`[SportMonksService] attempt ${attempt}/${attempts} failed | endpoint:${endpoint} | status:${status} | error:${e?.message || String(e)}`);
-          if (dataSnippet) logger.info(`[SportMonksService] response body: ${dataSnippet}`);
-        } catch (logErr) {
-          logger.error('Error logging SportMonks fetch failure:', logErr.message);
+          const baseIndex = (attempt === 1) ? 0 : 1;
+          const currentBase = this.baseUrls[baseIndex % this.baseUrls.length];
+
+          // Build url & headers according to strategy
+          let url;
+          let headers = { Accept: 'application/json' };
+          if (strat === 'query_api_token') {
+            url = this._buildUrlWithBase(currentBase, endpoint, query);
+          } else if (strat === 'query_token') {
+            const q = Object.assign({}, query, { token: this.key });
+            url = this._buildUrlWithBase(currentBase, endpoint, q);
+          } else if (strat === 'query_access_token') {
+            const q = Object.assign({}, query, { access_token: this.key });
+            url = this._buildUrlWithBase(currentBase, endpoint, q);
+          } else if (strat === 'header_bearer') {
+            // build URL without token param
+            url = this._buildUrlWithBase(currentBase, endpoint, Object.assign({}, query));
+            headers.Authorization = `Bearer ${this.key}`;
+          } else {
+            // default fallback to query_api_token
+            url = this._buildUrlWithBase(currentBase, endpoint, query);
+          }
+
+          const safeUrlForLog = String(url).replace(/(api_token=[^&]+)/gi, 'api_token=REDACTED').replace(/(token=[^&]+)/gi, 'token=REDACTED').replace(/(access_token=[^&]+)/gi, 'access_token=REDACTED');
+          logger.info(`[SportMonksService] Requesting (strategy:${strat}) ${safeUrlForLog}`);
+
+          const insecure = (process.env.SPORTSMONKS_INSECURE === 'true');
+          const agent = new https.Agent({ rejectUnauthorized: !insecure, keepAlive: true, maxSockets: 50 });
+          const resp = await axios.get(url, { timeout: 15000, httpsAgent: agent, headers });
+          const data = resp && resp.data ? resp.data : null;
+          if (!data) throw new Error('Empty response from SportMonks');
+
+          // remember successful strategy for subsequent calls
+          this._smStrategy = strat;
+          // persist strategy to redis for diagnostics if available
+          try {
+            if (this.redis && typeof this.redis.set === 'function') {
+              const key = `betrix:provider:strategy:sportsmonks`;
+              await this.redis.set(key, String(strat));
+              await this.redis.expire(key, Number(process.env.PROVIDER_STRATEGY_TTL || 3600));
+            }
+          } catch (err) {
+            logger.debug('Failed to persist SportMonks strategy to redis', err?.message || String(err));
+          }
+          return data && (data.data || data) ? (data.data || data) : data;
+        } catch (e) {
+          try {
+            const status = e && e.response && e.response.status ? e.response.status : 'N/A';
+            logger.warn(`[SportMonksService] strategy ${strat} attempt ${attempt} failed | endpoint:${endpoint} | status:${status} | error:${e?.message || String(e)}`);
+            if (e && e.response && e.response.data) {
+              const snippet = typeof e.response.data === 'string' ? e.response.data.substring(0,200) : JSON.stringify(e.response.data).substring(0,200);
+              logger.info(`[SportMonksService] response body: ${snippet}`);
+            }
+          } catch (logErr) { logger.error('Error logging SportMonks fetch failure:', logErr.message); }
+
+          // If this strategy caused an auth failure, try the next strategy immediately
+          if (attempt < 2) {
+            const waitMs = 300 * Math.pow(2, attempt - 1);
+            await new Promise(r => setTimeout(r, waitMs));
+            continue;
+          }
+          // try next strategy in outer loop
         }
-        if (attempt < attempts) {
-          // exponential backoff
-          const waitMs = 300 * Math.pow(2, attempt - 1);
-          await new Promise(r => setTimeout(r, waitMs));
-          continue;
-        }
-        return null;
       }
     }
+
+    // all strategies exhausted
+    logger.warn(`[SportMonksService] All auth strategies exhausted for endpoint ${endpoint}`);
+    return null;
   }
 
   async getLivescores(leagueId = null) {

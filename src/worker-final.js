@@ -9,7 +9,15 @@
 // via `SPORTSMONKS_INSECURE=true` if absolutely required for local testing.
 
 import dotenv from "dotenv";
-dotenv.config();
+import fs from 'fs';
+// Prefer loading .env.local when present (Render uses .env.local for secrets in this workspace)
+const envLocalPath = '.env.local';
+if (fs.existsSync(envLocalPath)) {
+  dotenv.config({ path: envLocalPath });
+  console.log('[env] loaded .env.local');
+} else {
+  dotenv.config();
+}
 
 import Redis from "ioredis";
 import { getRedis, MockRedis } from "./lib/redis-factory.js";
@@ -62,6 +70,7 @@ import perfUtils from "./utils/performance-optimizer.js";
 const logger = new Logger("FinalWorker");
 
 import persona from './ai/persona.js';
+import createRag from './ai/rag.js';
 
 try {
   validateConfig();
@@ -210,6 +219,15 @@ const localAI = new LocalAIService();
     process.env.AZURE_AI_DEPLOYMENT || process.env.AZURE_DEPLOYMENT || process.env.AZURE_OPENAI_DEPLOYMENT || (CONFIG.AZURE && CONFIG.AZURE.DEPLOYMENT),
     process.env.AZURE_API_VERSION || process.env.AZURE_OPENAI_API_VERSION || (CONFIG.AZURE && CONFIG.AZURE.API_VERSION) || '2023-05-15'
   );
+  // Create RAG helper instance (non-fatal if embeddings not configured)
+  let rag = null;
+  try {
+    rag = createRag({ redis, azure, logger });
+    logger.info('RAG helper created (indexing available)');
+  } catch (e) {
+    logger.warn('RAG helper not available:', e && e.message ? e.message : e);
+    rag = null;
+  }
   // Log Azure configuration presence (do not log secrets)
   try {
     if (azure && azure.enabled) {
@@ -573,6 +591,23 @@ async function handleUpdate(update) {
       // Track engagement
       await analytics.trackEngagement(userId, "message");
       await contextManager.recordMessage(userId, text, "user");
+
+      // Optional: auto-index incoming user messages into RAG (non-blocking)
+      try {
+        const enableIndex = String(process.env.ENABLE_AUTO_INDEXING || '0') === '1';
+        if (enableIndex && rag && typeof rag.indexDocument === 'function' && text && String(text).trim().length > 0) {
+          // fire-and-forget indexing so it doesn't block user response
+          (async () => {
+            try {
+              const id = `telegram-manual-${userId}-${Date.now()}`;
+              await rag.indexDocument(id, String(text), { userId, chatId, source: 'telegram' });
+              logger.info('Auto-indexed message into RAG', { id });
+            } catch (ie) {
+              logger.warn('Auto-indexing failed', ie && ie.message ? ie.message : ie);
+            }
+          })();
+        }
+      } catch (e) { logger.warn('Auto-index decision failed', e && e.message ? e.message : e); }
 
       // Rate limit check
       const tier = (await userService.getUser(userId))?.role === "vvip" ? "premium" : "default";

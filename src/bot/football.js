@@ -47,6 +47,22 @@ function formatTime(ts) {
   } catch (e) { return String(ts); }
 }
 
+function safeName(val, fallback = 'TBA') {
+  try {
+    if (val == null) return fallback;
+    if (typeof val === 'string' || typeof val === 'number') return String(val);
+    if (typeof val === 'object') {
+      if (val.name) return String(val.name);
+      if (val.fullName) return String(val.fullName);
+      if (val.teamName) return String(val.teamName);
+      return JSON.stringify(val);
+    }
+    return String(val);
+  } catch (e) {
+    return fallback;
+  }
+}
+
 export async function getLiveMatches() {
   // Prefer live data from injected SportsAggregator if available
   try {
@@ -89,22 +105,42 @@ export async function getUpcomingFixtures({ page = 1, perPage = 10 } = {}) {
 
 export function formatMatchShort(m) {
   // Best-effort formatting using common fields
-  const home = m.home?.name || m.home_team || m.home_team_name || m.team_home || (m.teams && m.teams.home && m.teams.home.name) || m.homeName || 'Home';
-  const away = m.away?.name || m.away_team || m.away_team_name || m.team_away || (m.teams && m.teams.away && m.teams.away.name) || m.awayName || 'Away';
-  const comp = m.competition?.name || m.league || m.competition || m.tournament || '';
-  const score = (m.score && (m.score.fullTime || m.score.current)) || `${m.home_score ?? ''}${m.home_score != null ? ' - ' + (m.away_score ?? '') : ''}`;
+  const home = safeName(m.home?.name || m.home || m.home_team || m.home_team_name || m.team_home || (m.teams && m.teams.home && m.teams.home.name) || m.homeName, 'Home');
+  const away = safeName(m.away?.name || m.away || m.away_team || m.away_team_name || m.team_away || (m.teams && m.teams.away && m.teams.away.name) || m.awayName, 'Away');
+  const comp = safeName((m.competition && (m.competition.name || m.competition)) || m.league || m.tournament || '', '');
+  // Build readable score if available
+  let score = '';
+  if (m.score && typeof m.score === 'object') {
+    if (m.score.fullTime && (m.score.fullTime.home != null || m.score.fullTime.away != null)) {
+      score = `${m.score.fullTime.home ?? '-'} - ${m.score.fullTime.away ?? '-'}`;
+    } else if (m.score.current && (m.score.current.home != null || m.score.current.away != null)) {
+      score = `${m.score.current.home ?? '-'} - ${m.score.current.away ?? '-'}`;
+    }
+  }
+  if (!score && (m.home_score != null || m.away_score != null)) {
+    score = `${m.home_score ?? '-'} - ${m.away_score ?? '-'}`;
+  }
   const time = m.minute || m.status || m.time || m.time_status || (m.kickoff ? formatTime(m.kickoff) : 'TBD');
   const scoreStr = score && String(score) !== 'undefined' && String(score) !== '' ? ` • Score: ${score}` : '';
   return `${home} vs ${away}${scoreStr} • ${time}${comp ? ' • ' + comp : ''}`;
 }
 
 export function formatMatchDetail(m) {
-  const home = m.home?.name || m.home_team || 'Home';
-  const away = m.away?.name || m.away_team || 'Away';
-  const comp = m.competition?.name || m.league || '';
+  const home = safeName(m.home?.name || m.home || m.home_team || m.home_team_name, 'Home');
+  const away = safeName(m.away?.name || m.away || m.away_team || m.away_team_name, 'Away');
+  const comp = safeName((m.competition && (m.competition.name || m.competition)) || m.league || '', '');
   const kickoff = m.kickoff || m.date || m.datetime || m.match_time || '';
   const time = kickoff ? formatTime(kickoff) : (m.minute || m.status || 'TBD');
-  const score = (m.score && (m.score.fullTime || m.score.current)) || `${m.home_score ?? '-'} - ${m.away_score ?? '-'}`;
+  // Build readable score
+  let score = '';
+  if (m.score && typeof m.score === 'object') {
+    if (m.score.fullTime && (m.score.fullTime.home != null || m.score.fullTime.away != null)) {
+      score = `${m.score.fullTime.home ?? '-'} - ${m.score.fullTime.away ?? '-'}`;
+    } else if (m.score.current && (m.score.current.home != null || m.score.current.away != null)) {
+      score = `${m.score.current.home ?? '-'} - ${m.score.current.away ?? '-'}`;
+    }
+  }
+  if (!score) score = `${m.home_score ?? '-'} - ${m.away_score ?? '-'}`;
   const venue = m.venue || m.location || '';
   const refs = m.referee || '';
   const lines = [];

@@ -1,0 +1,110 @@
+import Redis from 'ioredis';
+import { isports } from './isports.js';
+import { sportmonks } from './sportmonks.js';
+import { sgo } from './sportsgameodds-client.js';
+
+const redis = new Redis(process.env.REDIS_URL);
+
+// TTLs
+const TTL_ODDS = Number(process.env.TTL_ODDS || 600); // 10 minutes
+const TTL_LIVE = Number(process.env.TTL_LIVE || 60); // 1 minute
+
+// Helper: safely fetch a value from provider and cache a JSON string
+async function safeFetchAndCache(label, fnFetch, redisKey, ttl = TTL_ODDS) {
+  try {
+    const res = await fnFetch();
+    // if provider returns structured { ok, status, body } (SGO), handle it
+    if (res && typeof res === 'object' && 'ok' in res && 'body' in res) {
+      if (res.ok) {
+        await redis.set(redisKey, JSON.stringify(res.body), 'EX', ttl);
+        return true;
+      }
+      await redis.set(`prefetch:failures:${redisKey}`, JSON.stringify({ ts: Date.now(), status: res.status, body: res.body }), 'EX', 3600);
+      console.warn(label, 'failed status', res.status);
+      return false;
+    }
+
+    // otherwise assume JSON object
+    await redis.set(redisKey, JSON.stringify(res), 'EX', ttl);
+    return true;
+  } catch (e) {
+    console.warn(label, 'failed', e.message || e);
+    try { await redis.set(`prefetch:failures:${redisKey}`, JSON.stringify({ ts: Date.now(), error: String(e) }), 'EX', 3600); } catch (_) {}
+    return false;
+  }
+}
+
+export async function prefetchAllSportsData() {
+  console.log('🔄 Prefetching sports data from all providers...');
+
+  await Promise.all([
+    prefetchFootball(),
+    prefetchBasketball(),
+    prefetchBaseball(),
+    prefetchHockey(),
+  ]).catch(e => console.warn('prefetchAllSportsData: some fetches failed', e.message || e));
+
+  console.log('✅ Prefetch complete.');
+}
+
+async function prefetchFootball() {
+  console.log('⚽ Prefetching football...');
+  try {
+    await safeFetchAndCache('Football livescores (iSports)', () => isports('/sport/football/livescores'), 'football:livescores:isports', TTL_LIVE);
+  } catch (e) { console.warn('isports football livescores failed', e.message || e); }
+
+  try {
+    // optimized SportMonks fixture selection
+    const params = '&select=id,starting_at,localteam_id,visitorteam_id' + '&include=localTeam:name;visitorTeam:name';
+    await safeFetchAndCache('Football fixtures (SportMonks)', () => sportmonks('/football/fixtures', params), 'football:fixtures:sportmonks', TTL_ODDS);
+  } catch (e) { console.warn('sportmonks football fixtures failed', e.message || e); }
+
+  try {
+    await safeFetchAndCache('Football odds (SGO)', () => sgo('/odds/football'), 'football:odds:sgo', TTL_ODDS);
+  } catch (e) { console.warn('sgo football odds failed', e.message || e); }
+}
+
+async function prefetchBasketball() {
+  console.log('🏀 Prefetching basketball...');
+  try {
+    const isLive = await isports('/sport/basketball/livescores');
+    await redis.set('basketball:livescores:isports', JSON.stringify(isLive), 'EX', TTL_LIVE);
+  } catch (e) { console.warn('isports basketball livescores failed', e.message || e); }
+
+  try {
+    const params = '&select=id,starting_at,home_team_id,away_team_id' + '&include=homeTeam:name;awayTeam:name';
+    await safeFetchAndCache('Basketball fixtures (SportMonks)', () => sportmonks('/basketball/fixtures', params), 'basketball:fixtures:sportmonks', TTL_ODDS);
+  } catch (e) { console.warn('sportmonks basketball fixtures failed', e.message || e); }
+
+  try {
+    await safeFetchAndCache('Basketball odds (SGO)', () => sgo('/odds/nba'), 'basketball:odds:sgo', TTL_ODDS);
+  } catch (e) { console.warn('sgo nba odds failed', e.message || e); }
+}
+
+async function prefetchBaseball() {
+  console.log('⚾ Prefetching baseball...');
+  try {
+    const isLive = await isports('/sport/baseball/livescores');
+    await redis.set('baseball:livescores:isports', JSON.stringify(isLive), 'EX', TTL_LIVE);
+  } catch (e) { console.warn('isports baseball livescores failed', e.message || e); }
+
+  try {
+    await safeFetchAndCache('Baseball odds (SGO)', () => sgo('/odds/mlb'), 'baseball:odds:sgo', TTL_ODDS);
+  } catch (e) { console.warn('sgo mlb odds failed', e.message || e); }
+}
+
+async function prefetchHockey() {
+  console.log('🏒 Prefetching hockey...');
+  try {
+    const isLive = await isports('/sport/hockey/livescores');
+    await redis.set('hockey:livescores:isports', JSON.stringify(isLive), 'EX', TTL_LIVE);
+  } catch (e) { console.warn('isports hockey livescores failed', e.message || e); }
+
+  try {
+    await safeFetchAndCache('Hockey odds (SGO)', () => sgo('/odds/nhl'), 'hockey:odds:sgo', TTL_ODDS);
+  } catch (e) { console.warn('sgo nhl odds failed', e.message || e); }
+}
+
+export default {
+  prefetchAllSportsData,
+};

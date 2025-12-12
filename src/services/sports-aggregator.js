@@ -18,6 +18,8 @@ import { getLiveMatchesFromGoal } from './goal-scraper.js';
 import { getLiveMatchesFromFlashscore, getLiveMatchesByLeagueFromFlashscore } from './flashscore-scraper.js';
 import { ProviderHealth } from '../utils/provider-health.js';
 import SportMonksService from './sportmonks-service.js';
+import ISportsService from './isports-service.js';
+import SportGameOddsService from './sportsgameodds.js';
 import { RawDataCache } from './raw-data-cache.js';
 
 // Silence unused-import warnings for dev lint pass
@@ -65,8 +67,12 @@ export class SportsAggregator {
       ? extras.allowedProviders.map(p => String(p).toUpperCase())
       : null;
 
-    // ONLY initialize SportMonks and Football-Data
+    // Initialize SportGameOdds if configured (preferred), otherwise SportMonks
+    this.sportsgameodds = (this._isAllowedSync('SPORTSGAMEODDS') && CONFIG.SPORTSGAMEODDS && CONFIG.SPORTSGAMEODDS.KEY) ? new SportGameOddsService(redis) : null;
+    // ONLY initialize SportMonks and Football-Data as legacy fallbacks
     this.sportmonks = (this._isAllowedSync('SPORTSMONKS') && CONFIG.SPORTSMONKS && CONFIG.SPORTSMONKS.KEY) ? new SportMonksService(redis) : null;
+    // ISports (API-Football) wrapper - used as an additional fallback for fixtures/live
+    this.isports = (this._isAllowedSync('API_SPORTS') && CONFIG.API_FOOTBALL && CONFIG.API_FOOTBALL.KEY) ? new ISportsService(redis) : null;
     this.providerHealth = new ProviderHealth(redis);
   }
 
@@ -131,7 +137,22 @@ export class SportsAggregator {
       let leagues = [];
       void leagues;
 
-      // Try SportMonks first for leagues
+      // Try SportGameOdds first for leagues (if configured), then SportMonks
+      if (this.sportsgameodds) {
+        try {
+          logger.debug('📡 Fetching leagues via SportGameOdds');
+          const sgoLeagues = typeof this.sportsgameodds.getLeagues === 'function' ? await this.sportsgameodds.getLeagues() : [];
+          if (sgoLeagues && sgoLeagues.length > 0) {
+            this._setCached(cacheKey, sgoLeagues);
+            await this._recordProviderHealth('sportsgameodds', true, `Found ${sgoLeagues.length} leagues`);
+            return sgoLeagues;
+          }
+        } catch (e) {
+          logger.warn('SportGameOdds league fetch failed', e?.message || String(e));
+          try { await this._recordProviderHealth('sportsgameodds', false, e?.message || String(e)); } catch(_) { void _; }
+        }
+      }
+
       if (this.sportmonks) {
         try {
           logger.debug('📡 Fetching leagues via SportMonks');
@@ -228,6 +249,25 @@ export class SportsAggregator {
         } catch (e) {
           logger.warn('SportMonks fallback failed', e?.message || String(e));
           try { await this._recordProviderHealth('sportsmonks', false, e?.message || String(e)); } catch(_) { void _; }
+        }
+      }
+
+      // Next fallback: try ISports (API-Football) for live matches
+      if (this.isports) {
+        try {
+          logger.debug(`📡 Fallback: Fetching live matches from ISports for league ${leagueId}`);
+          const isoLive = await this.isports.getLivescores(leagueId);
+          if (isoLive && isoLive.length > 0) {
+            logger.info(`✅ ISports: Found ${isoLive.length} live matches`);
+            await this.dataCache.storeLiveMatches('isports', isoLive);
+            const formatted = this._formatMatches(isoLive, 'isports') || [];
+            this._setCached(cacheKey, formatted);
+            await this._recordProviderHealth('isports', true, `Found ${formatted.length} live matches`);
+            return formatted;
+          }
+        } catch (e) {
+          logger.warn('ISports live fetch failed', e?.message || String(e));
+          try { await this._recordProviderHealth('isports', false, e?.message || String(e)); } catch(_) { void _; }
         }
       }
 
@@ -421,6 +461,25 @@ export class SportsAggregator {
       }
 
       // ONLY fetch from SportMonks and Football-Data
+      // Prefer SportGameOdds for upcoming fixtures if configured
+      if (this.sportsgameodds) {
+        try {
+          logger.debug('📡 Fetching upcoming matches from SportGameOdds');
+          const sgoFixtures = await this.sportsgameodds.getUpcomingFixtures(leagueId);
+          if (sgoFixtures && sgoFixtures.length > 0) {
+            logger.info(`✅ SportGameOdds: Found ${sgoFixtures.length} upcoming matches`);
+            await this.dataCache.storeFixtures('sportsgameodds', leagueId, sgoFixtures);
+            const formatted = this._formatMatches(sgoFixtures, 'sportsgameodds') || [];
+            this._setCached(cacheKey, formatted);
+            await this._recordProviderHealth('sportsgameodds', true, `Found ${formatted.length} upcoming matches`);
+            return formatted;
+          }
+        } catch (e) {
+          logger.warn('SportGameOdds upcoming fetch failed', e?.message || String(e));
+          try { await this._recordProviderHealth('sportsgameodds', false, e?.message || String(e)); } catch(_) { void _; }
+        }
+      }
+
       // Try SportMonks first (preferred for upcoming fixtures)
       if (CONFIG.SPORTSMONKS && CONFIG.SPORTSMONKS.KEY) {
         try {
@@ -460,6 +519,25 @@ export class SportsAggregator {
         } catch (e) {
           logger.warn('Football-Data upcoming fetch failed', e?.message || String(e));
           try { await this._recordProviderHealth('footballdata', false, e?.message || String(e)); } catch(_) { void _; }
+        }
+      }
+
+      // Next fallback: try API-Football / ISports wrapper if configured
+      if (this.isports) {
+        try {
+          logger.debug('📡 Fallback: Fetching upcoming matches from ISports (API-Football)');
+          const iso = await this.isports.getFixtures(leagueId);
+          if (iso && iso.length > 0) {
+            logger.info(`✅ ISports: Found ${iso.length} upcoming matches`);
+            await this.dataCache.storeFixtures('isports', leagueId, iso);
+            const formatted = this._formatMatches(iso, 'isports') || [];
+            this._setCached(cacheKey, formatted);
+            await this._recordProviderHealth('isports', true, `Found ${formatted.length} upcoming matches`);
+            return formatted;
+          }
+        } catch (e) {
+          logger.warn('ISports upcoming fetch failed', e?.message || String(e));
+          try { await this._recordProviderHealth('isports', false, e?.message || String(e)); } catch(_) { void _; }
         }
       }
 
@@ -1212,7 +1290,9 @@ export class SportsAggregator {
   }
 
   _formatMatches(matches, source) {
-    return matches.map(m => {
+    // First map using existing provider-specific logic, then enforce
+    // a normalized shape that downstream formatters expect.
+    const mapped = matches.map(m => {
       // already normalized from OpenLiga
       if (source === 'openligadb') return m;
 
@@ -1248,7 +1328,7 @@ export class SportsAggregator {
         };
       }
 
-      if (source === 'football-data') {
+      if (source === 'football-data' || source === 'footballdata') {
         // Football-Data provides consistent structure but ensure we handle all field variations
         let homeName = safe(m.homeTeam && (m.homeTeam.name || m.homeTeam.fullName || m.homeTeam.shortName), 'Home');
         let awayName = safe(m.awayTeam && (m.awayTeam.name || m.awayTeam.fullName || m.awayTeam.shortName), 'Away');
@@ -1523,6 +1603,26 @@ export class SportsAggregator {
         provider: source || 'unknown',
         raw: m
       };
+    });
+
+    // Normalize output: ensure string team names and provide both
+    // flattened (`home`, `away`) and nested (`teams`, `fixture`) shapes.
+    return mapped.map(o => {
+      const home = String(o.home || (o.teams && o.teams.home && o.teams.home.name) || 'Home');
+      const away = String(o.away || (o.teams && o.teams.away && o.teams.away.name) || 'Away');
+
+      return Object.assign({}, o, {
+        home,
+        away,
+        teams: {
+          home: { name: home },
+          away: { name: away }
+        },
+        fixture: Object.assign({}, (o.fixture || {}), {
+          date: o.time || o.utcDate || o.date || null,
+          venue: { name: o.venue || null }
+        })
+      });
     });
   }
 

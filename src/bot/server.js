@@ -8,6 +8,10 @@ import { initiateStkPush, handleMpesaCallback } from './payments.js';
 import football, { setAggregator } from './football.js';
 import { getRedis } from '../../src/lib/redis-factory.js';
 import { SportsAggregator } from '../../src/services/sports-aggregator.js';
+import { handleFootballOdds } from './handlers/odds-football.js';
+import { handleBasketballOdds } from './handlers/odds-basketball.js';
+import { handleDebugEvent } from './handlers/debug-event.js';
+import { handlePrefetchStatus } from './handlers/prefetch-status.js';
 
 // Initialize a SportsAggregator instance (shared Redis)
 const redisClient = getRedis();
@@ -134,17 +138,7 @@ bot.action('pay:method:mpesa', async (ctx) => {
     await ctx.reply('Failed to initiate payment. Please try again later.');
   }
 });
-  }
-  const lines = [ `⚽ BETRIX • Upcoming Fixtures (showing ${items.length} of ${total})` ];
-  const kb = [];
-  for (const m of items) {
-    lines.push('• ' + football.formatMatchShort(m));
-    const id = m.id ?? m.match_id ?? m.fixture?.id ?? m.home?.id + ':' + m.away?.id;
-    kb.push([Markup.button.callback('Details', `match:${id}:football`)]);
-  }
-  kb.push([Markup.button.callback('🔙 Back', 'sport:football')]);
-  await ctx.editMessageText(lines.join('\n'), { reply_markup: Markup.inlineKeyboard(kb).reply_markup });
-});
+
 
 // Match details handler (best-effort id lookup)
 bot.action(/match:(.+):football/, async (ctx) => {
@@ -375,6 +369,61 @@ bot.command('payments', async (ctx) => {
   } catch (err) {
     console.error('Failed to list payments', err);
     await ctx.reply('Failed to fetch payments: ' + String(err.message || err));
+  }
+});
+
+// --- Wire odds commands to the new aggregator-backed handlers ---
+bot.command('nfl', async (ctx) => {
+  try {
+    await handleFootballOdds(ctx);
+  } catch (err) {
+    console.error('Error in /nfl command', err);
+    await ctx.reply('Sorry, could not fetch NFL odds right now.');
+  }
+});
+
+bot.command('nba', async (ctx) => {
+  try {
+    await handleBasketballOdds(ctx);
+  } catch (err) {
+    console.error('Error in /nba command', err);
+    await ctx.reply('Sorry, could not fetch NBA odds right now.');
+  }
+});
+
+bot.command('odds', async (ctx) => {
+  try {
+    const parts = (ctx.message && ctx.message.text) ? ctx.message.text.split(' ').filter(Boolean) : [];
+    if (parts.length > 1) {
+      const arg = parts[1].toLowerCase();
+      if (arg.startsWith('nba')) return await handleBasketballOdds(ctx);
+      if (arg.startsWith('nfl') || arg.startsWith('football') || arg.startsWith('soccer')) return await handleFootballOdds(ctx);
+    }
+    // Default to football odds snapshot
+    await handleFootballOdds(ctx);
+  } catch (err) {
+    console.error('Error in /odds command', err);
+    await ctx.reply('Sorry, could not fetch odds right now.');
+  }
+});
+
+// Admin debug command to inspect an event across providers
+bot.command('debug_event', async (ctx) => {
+  try {
+    await handleDebugEvent(ctx);
+  } catch (err) {
+    console.error('Error in /debug_event command', err);
+    await ctx.reply('Debug command failed.');
+  }
+});
+
+// Admin command: show prefetch/provider status and cached key counts
+bot.command('prefetch_status', async (ctx) => {
+  try {
+    await handlePrefetchStatus(ctx);
+  } catch (err) {
+    console.error('Error in /prefetch_status command', err);
+    await ctx.reply('Failed to fetch prefetch status.');
   }
 });
 
