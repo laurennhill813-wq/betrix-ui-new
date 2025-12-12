@@ -545,10 +545,10 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
           }
           if (text.length > 4000) text = text.slice(0, 4000) + '\n\n...';
 
+          // Send analysis as a new message to avoid overwriting the menu message
           actions.push({
-            method: 'editMessageText',
+            method: 'sendMessage',
             chat_id: chatId,
-            message_id: messageId,
             text,
             reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] },
             parse_mode: 'Markdown'
@@ -565,7 +565,8 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
               ? services.oddsAnalyzer.formatForTelegram(analysis)
               : (`🔍 Analysis for ${home} vs ${away}\n${JSON.stringify(analysis).slice(0,1500)}`);
 
-            actions.push({ method: 'editMessageText', chat_id: chatId, message_id: messageId, text, reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] }, parse_mode: 'Markdown' });
+            // Send fallback odds analysis as a new message to chat
+            actions.push({ method: 'sendMessage', chat_id: chatId, text, reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] }, parse_mode: 'Markdown' });
             return actions;
           } catch (errOdds) {
             logger.warn('OddsAnalyzer failed', errOdds?.message || String(errOdds));
