@@ -323,8 +323,7 @@ export async function handleCallbackQuery(cq, redis, services) {
       const groups = {};
       fixtures.forEach(f => {
         const compObj = f.competition || f.league || null;
-        const comp = (compObj && (typeof compObj === 'object')) ? (compObj.name || compObj.fullName || String(compObj)) : (compObj || 'Other');
-        const compName = comp || 'Other';
+        const compName = safeName(compObj, 'Other');
         groups[compName] = groups[compName] || [];
         groups[compName].push(f);
       });
@@ -355,6 +354,8 @@ export async function handleCallbackQuery(cq, redis, services) {
         });
         text += `\n`;
       });
+
+      return {
         method: 'editMessageText',
         chat_id: chatId,
         message_id: messageId,
