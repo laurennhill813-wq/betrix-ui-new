@@ -1,6 +1,8 @@
 // In this dev/test environment there's a TLS hostname mismatch for SportMonks.
 // Disable strict TLS checks here so the script can verify live data (dev-only).
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+if (String(process.env.ALLOW_INSECURE_TLS || '').toLowerCase() === '1' || String(process.env.ALLOW_INSECURE_TLS || '').toLowerCase() === 'true') {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
 
 import Redis from 'ioredis';
 import { SportsAggregator } from '../src/services/sports-aggregator.js';

@@ -1,7 +1,10 @@
 /**
  * Test SportMonks integration with axios
  */
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+ // Allow disabling TLS checks in non-production test runs by setting ALLOW_INSECURE_TLS=1
+ if (String(process.env.ALLOW_INSECURE_TLS || '').toLowerCase() === '1' || String(process.env.ALLOW_INSECURE_TLS || '').toLowerCase() === 'true') {
+   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+ }
 
 import { SportsAggregator } from '../src/services/sports-aggregator.js';
 

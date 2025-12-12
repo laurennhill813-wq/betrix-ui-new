@@ -1,8 +1,11 @@
 /**
  * Direct test of relay invocation
  */
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-process.env.SPORTSMONKS_RELAY_URL = 'http://127.0.0.1:3001';
+// Allow disabling TLS checks in non-production test runs by setting ALLOW_INSECURE_TLS=1
+if (String(process.env.ALLOW_INSECURE_TLS || '').toLowerCase() === '1' || String(process.env.ALLOW_INSECURE_TLS || '').toLowerCase() === 'true') {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+process.env.SPORTSMONKS_RELAY_URL = process.env.SPORTSMONKS_RELAY_URL || 'http://127.0.0.1:3001';
 
 import fetch from 'node-fetch';
 
