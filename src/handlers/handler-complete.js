@@ -38,6 +38,33 @@ function isRateLimitError(err) {
   return m.includes('429') || m.includes('quota') || m.includes('too many requests') || m.includes('rate limit');
 }
 
+// Extract text from various AI provider response shapes
+function extractTextFromAi(aiRes) {
+  if (!aiRes && aiRes !== 0) return '';
+  try {
+    if (typeof aiRes === 'string') return aiRes;
+    if (typeof aiRes === 'object') {
+      if (typeof aiRes.text === 'string') return aiRes.text;
+      if (aiRes.choices && Array.isArray(aiRes.choices) && aiRes.choices.length) {
+        // OpenAI-style
+        const first = aiRes.choices[0];
+        if (first.message && first.message.content) return first.message.content;
+        if (typeof first.text === 'string') return first.text;
+      }
+      if (aiRes.data && Array.isArray(aiRes.data) && aiRes.data.length) {
+        const d = aiRes.data[0];
+        if (d && d.text) return d.text;
+      }
+      if (typeof aiRes.content === 'string') return aiRes.content;
+      // Fallback to JSON stringify
+      return JSON.stringify(aiRes);
+    }
+    return String(aiRes);
+  } catch (e) {
+    return String(aiRes);
+  }
+}
+
 // Try AI analysis with simple retry/backoff on rate-limit errors
 async function tryAiAnalyze(services, matchData, prompt, maxAttempts = 3) {
   if (!services || !services.ai || typeof services.ai.analyzeSport !== 'function') return null;
@@ -532,24 +559,28 @@ Respond primarily with a single JSON object only, parseable by a machine, with t
 Include only valid JSON in the response if possible. After the JSON, you may include a 2-3 line plain-text human summary separated by a newline. Use the match data to inform probabilities and rationale. Do not hallucinate exact market odds; if no market odds available, state that odds are not provided. Keep the JSON compact. Now analyze this match and return the JSON and a short text summary. MATCH_DATA: ` + JSON.stringify(matchData);
 
         // Try AI-first with retry/backoff on rate-limit errors
-        let aiResult = await tryAiAnalyze(services, matchData, detailedPrompt, 3);
+        const aiResult = await tryAiAnalyze(services, matchData, detailedPrompt, 3);
 
-        if (aiResult) {
-          let text = '';
-          if (typeof aiResult === 'string') text = aiResult;
-          else if (aiResult && typeof aiResult === 'object') {
-            if (typeof aiResult.text === 'string') text = aiResult.text;
-            else text = JSON.stringify(aiResult, null, 2);
-          } else {
-            text = String(aiResult);
-          }
-          if (text.length > 4000) text = text.slice(0, 4000) + '\n\n...';
+        // Log raw AI response shape for debugging in production
+        try {
+          const rawType = (aiResult === null || aiResult === undefined) ? String(aiResult) : typeof aiResult;
+          const rawLen = (aiResult && typeof aiResult === 'string') ? aiResult.length : (aiResult ? JSON.stringify(aiResult).length : 0);
+          logger.info(`analyseFixture: aiResult raw type=${rawType} length=${rawLen}`);
+        } catch (e) { void e; }
+
+        const text = extractTextFromAi(aiResult);
+        // Log a short preview to help diagnose unexpected responses
+        try { logger.info(`analyseFixture: aiResult preview: ${String(text || '').slice(0, 300).replace(/\n/g, ' ')}`); } catch (e) { void e; }
+
+        if (text && text.length) {
+          let out = text;
+          if (out.length > 4000) out = out.slice(0, 4000) + '\n\n...';
 
           // Send analysis as a new message to avoid overwriting the menu message
           actions.push({
             method: 'sendMessage',
             chat_id: chatId,
-            text,
+            text: out,
             reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] },
             parse_mode: 'Markdown'
           });
@@ -592,52 +623,6 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
 
         // Build pages of up to 25 fixtures per message to avoid Telegram limits
         const pageSize = 25;
-        if (aiResult) {
-          let raw = '';
-          if (typeof aiResult === 'string') raw = aiResult.trim();
-          else if (aiResult && typeof aiResult === 'object') {
-            // Some providers return { text } or similar
-            raw = (aiResult.text && typeof aiResult.text === 'string') ? aiResult.text.trim() : JSON.stringify(aiResult);
-          } else raw = String(aiResult);
-
-          // Try to find the first JSON object in the response
-          let parsed = null;
-          try { parsed = JSON.parse(raw); } catch (e) {
-            const start = raw.indexOf('{');
-            const end = raw.lastIndexOf('}');
-            if (start !== -1 && end !== -1 && end > start) {
-              const sub = raw.slice(start, end + 1);
-              try { parsed = JSON.parse(sub); } catch (e2) { parsed = null; }
-            }
-          }
-
-          if (parsed && parsed.predictions && Array.isArray(parsed.predictions)) {
-            let out = `*Analysis — ${home} vs ${away}*\n`;
-            if (parsed.summary) out += `\n${parsed.summary}\n\n`;
-            parsed.predictions.forEach((p) => {
-              const market = p.market || p.type || 'Market';
-              const selection = p.selection || p.pick || 'N/A';
-              const prob = (typeof p.probability === 'number') ? `${Math.round(p.probability * 100)}%` : (p.probability || 'N/A');
-              const conf = p.confidence || 'medium';
-              const stake = (p.suggested_stake_pct !== undefined) ? `${p.suggested_stake_pct}% stake` : (p.suggested_stake || '');
-              const rationale = p.rationale ? ` — ${p.rationale}` : '';
-              out += `• ${market}: *${selection}* (${prob}, ${conf}) ${stake}${rationale}\n`;
-            });
-            if (parsed.notes) out += `\n_notes_: ${parsed.notes}`;
-            // Responsible gambling disclaimer
-            out += `\n\n_Disclaimer: Suggestions are informational only. Gamble responsibly._`;
-            if (out.length > 4000) out = out.slice(0, 4000) + '\n\n...';
-
-            actions.push({ method: 'editMessageText', chat_id: chatId, message_id: messageId, text: out, reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] }, parse_mode: 'Markdown' });
-            return actions;
-          }
-
-          let text = raw;
-          if (text.length > 3400) text = text.slice(0, 3400) + '\n\n...';
-          text += `\n\n_Disclaimer: Suggestions are informational only. Gamble responsibly._`;
-          actions.push({ method: 'editMessageText', chat_id: chatId, message_id: messageId, text, reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] }, parse_mode: 'Markdown' });
-          return actions;
-        }
 
         // Return actions array so the caller will send multiple messages sequentially
         return actions;
