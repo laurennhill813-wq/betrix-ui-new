@@ -547,7 +547,21 @@ export async function handleCallbackQuery(cq, redis, services) {
             text += `• ${home} vs ${away} — ${kickoff}\n`;
           });
 
-          actions.push({ method: 'sendMessage', chat_id: chatId, text, parse_mode: 'Markdown' });
+          // Build inline keyboard so each match on the page can be selected for analysis
+          const inline_keyboard = [];
+          slice.forEach(f => {
+            const home = safeName(f.home || f.homeTeam || f.homeName, 'TBA');
+            const away = safeName(f.away || f.awayTeam || f.awayName, 'TBA');
+            const shortHome = (home && home.length > 20) ? home.slice(0, 17) + '...' : home;
+            const shortAway = (away && away.length > 20) ? away.slice(0, 17) + '...' : away;
+            const btnText = `🔎 ${shortHome} v ${shortAway}`;
+            inline_keyboard.push([{ text: btnText, callback_data: `analyseFixture:${f.id}` }]);
+          });
+
+          // Add a back button at the end of the keyboard for convenience
+          inline_keyboard.push([{ text: '🔙 Back', callback_data: 'menu_fixtures' }]);
+
+          actions.push({ method: 'sendMessage', chat_id: chatId, text, reply_markup: { inline_keyboard }, parse_mode: 'Markdown' });
         }
 
         // Return actions array so the caller will send multiple messages sequentially
