@@ -623,6 +623,8 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
               out += `• ${market}: *${selection}* (${prob}, ${conf}) ${stake}${rationale}\n`;
             });
             if (parsed.notes) out += `\n_notes_: ${parsed.notes}`;
+            // Responsible gambling disclaimer
+            out += `\n\n_Disclaimer: Suggestions are informational only. Gamble responsibly._`;
             if (out.length > 4000) out = out.slice(0, 4000) + '\n\n...';
 
             actions.push({ method: 'editMessageText', chat_id: chatId, message_id: messageId, text: out, reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] }, parse_mode: 'Markdown' });
@@ -630,7 +632,8 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
           }
 
           let text = raw;
-          if (text.length > 3500) text = text.slice(0, 3500) + '\n\n...';
+          if (text.length > 3400) text = text.slice(0, 3400) + '\n\n...';
+          text += `\n\n_Disclaimer: Suggestions are informational only. Gamble responsibly._`;
           actions.push({ method: 'editMessageText', chat_id: chatId, message_id: messageId, text, reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] }, parse_mode: 'Markdown' });
           return actions;
         }

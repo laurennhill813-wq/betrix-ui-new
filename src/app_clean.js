@@ -12,7 +12,10 @@ import { getRedis, MockRedis } from './lib/redis-factory.js';
 import { register } from './utils/metrics.js';
 
 process.env.PGSSLMODE = process.env.PGSSLMODE || 'require';
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = process.env.NODE_TLS_REJECT_UNAUTHORIZED || '0';
+// Do NOT disable TLS globally. Allow an explicit opt-in for local development only.
+if (String(process.env.ALLOW_INSECURE_TLS || '').toLowerCase() === '1') {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = process.env.NODE_TLS_REJECT_UNAUTHORIZED || '0';
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
