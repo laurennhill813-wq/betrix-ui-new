@@ -110,6 +110,21 @@ export default class SportMonksService {
               const snippet = typeof e.response.data === 'string' ? e.response.data.substring(0,200) : JSON.stringify(e.response.data).substring(0,200);
               logger.info(`[SportMonksService] response body: ${snippet}`);
             }
+            // Special-case TLS certificate problems — log an actionable message and temporarily backoff prefetch attempts
+            const msg = String(e?.message || '').toLowerCase();
+            if (msg.includes('certificate has expired') || (e && e.code === 'CERT_HAS_EXPIRED')) {
+              logger.error('[SportMonksService] TLS certificate appears expired or invalid for SportMonks endpoint.');
+              logger.error('[SportMonksService] Recommended actions: (1) verify SPORTSMONKS_BASE env, (2) contact SportMonks support, or (3) set SPORTSMONKS_INSECURE=true for short-term testing only.');
+              try {
+                if (this.redis && typeof this.redis.set === 'function') {
+                  const now = Math.floor(Date.now() / 1000);
+                  const pauseSec = Number(process.env.SPORTSMONKS_TLS_PAUSE_SECONDS || 300);
+                  const next = now + pauseSec;
+                  await this.redis.set('prefetch:next:sportsmonks', String(next), 'EX', Math.min(3600, pauseSec + 60)).catch(()=>{});
+                  logger.info(`[SportMonksService] Temporarily pausing sportmonks prefetch for ${pauseSec}s (prefetch:next:sportsmonks=${next})`);
+                }
+              } catch(_) { void _; }
+            }
           } catch (logErr) { logger.error('Error logging SportMonks fetch failure:', logErr.message); }
 
           // If this strategy caused an auth failure, try the next strategy immediately
