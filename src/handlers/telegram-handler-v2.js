@@ -1222,11 +1222,14 @@ async function handleAnalyzeMatch(data, chatId, userId, redis, services) {
       logger.warn('Odds fetch failed:', e?.message || e);
     }
 
-    // Format analysis text
-    let analysisText = `*⚽ Match Analysis: ${match.home} vs ${match.away}*\n\n`;
+    // Format analysis text (use safeNameOf to avoid object interpolation)
+    const homeLabel = safeNameOf(match.home || match.raw?.homeTeam || match.homeTeam, 'Home');
+    const awayLabel = safeNameOf(match.away || match.raw?.awayTeam || match.awayTeam, 'Away');
+
+    let analysisText = `*⚽ Match Analysis: ${homeLabel} vs ${awayLabel}*\n\n`;
     analysisText += `📍 Status: ${match.status}\n`;
     analysisText += `📊 Score: ${match.homeScore ?? '-'}-${match.awayScore ?? '-'}\n`;
-    analysisText += `🏆 Competition: ${match.competition || (match.raw && match.raw.competition && match.raw.competition.name) || 'Unknown'}\n`;
+    analysisText += `🏆 Competition: ${safeNameOf(match.competition || (match.raw && match.raw.competition), 'Unknown')}\n`;
     analysisText += `⏰ Kickoff: ${match.time || match.kickoff || 'TBA'}\n`;
     analysisText += `🏟️ Venue: ${match.venue || 'TBA'}\n\n`;
 
@@ -1236,22 +1239,22 @@ async function handleAnalyzeMatch(data, chatId, userId, redis, services) {
     }
 
     if (recentFormHome && recentFormHome.length > 0) {
-      analysisText += `*Recent Form (${match.home}):*\n`;
+      analysisText += `*Recent Form (${homeLabel}):*\n`;
       analysisText += recentFormHome.slice(0, 5).map(m => `${m.starting_at || m.date || m.date_time || m.utcDate || 'N/A'}: ${m.result || (m.score ? JSON.stringify(m.score) : 'N/A')}`).join('\n') + '\n\n';
     }
 
     if (recentFormAway && recentFormAway.length > 0) {
-      analysisText += `*Recent Form (${match.away}):*\n`;
+      analysisText += `*Recent Form (${awayLabel}):*\n`;
       analysisText += recentFormAway.slice(0, 5).map(m => `${m.starting_at || m.date || m.date_time || m.utcDate || 'N/A'}: ${m.result || (m.score ? JSON.stringify(m.score) : 'N/A')}`).join('\n') + '\n\n';
     }
 
     if (standings && standings.length > 0) {
-      const homeStanding = standings.find(t => t.team && (t.team.name === match.home || t.team.id === match.homeId || t.team.id === match.raw?.homeTeam?.id));
-      const awayStanding = standings.find(t => t.team && (t.team.name === match.away || t.team.id === match.awayId || t.team.id === match.raw?.awayTeam?.id));
+      const homeStanding = standings.find(t => t.team && (t.team.name === homeLabel || t.team.id === match.homeId || t.team.id === match.raw?.homeTeam?.id));
+      const awayStanding = standings.find(t => t.team && (t.team.name === awayLabel || t.team.id === match.awayId || t.team.id === match.raw?.awayTeam?.id));
       if (homeStanding || awayStanding) {
         analysisText += `*League Standings:*\n`;
-        if (homeStanding) analysisText += `${match.home}: #${homeStanding.position || 'N/A'} (${homeStanding.points || 0} pts)\n`;
-        if (awayStanding) analysisText += `${match.away}: #${awayStanding.position || 'N/A'} (${awayStanding.points || 0} pts)\n`;
+        if (homeStanding) analysisText += `${homeLabel}: #${homeStanding.position || 'N/A'} (${homeStanding.points || 0} pts)\n`;
+        if (awayStanding) analysisText += `${awayLabel}: #${awayStanding.position || 'N/A'} (${awayStanding.points || 0} pts)\n`;
         analysisText += '\n';
       }
     }

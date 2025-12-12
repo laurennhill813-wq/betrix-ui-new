@@ -8,6 +8,7 @@
  */
 
 import { Logger } from '../utils/logger.js';
+import safeName from '../utils/safe-name.js';
 
 const logger = new Logger('MenuSystem');
 void logger;
@@ -234,7 +235,9 @@ I'll notify you when a match starts. Meanwhile, want a quick prediction demo? Ty
     const status = game.status || 'LIVE';
     const minute = game.minute ? ` • ${game.minute}'` : '';
     const fid = game.id ? ` (ID: ${game.id})` : '';
-    text += `${i + 1}. *${game.home}* vs *${game.away}*${fid} — ${status}${minute}\n`;
+    const home = safeName(game.home || game.homeTeam || (game.raw && game.raw.home_team), 'Home');
+    const away = safeName(game.away || game.awayTeam || (game.raw && game.raw.away_team), 'Away');
+    text += `${i + 1}. *${home}* vs *${away}*${fid} — ${status}${minute}\n`;
     if (game.score) text += `   Score: ${game.score.home} - ${game.score.away}\n`;
     text += `   Tip: ${game.tip || 'No tip yet — run /analyze for a short preview'}\n\n`;
   }
