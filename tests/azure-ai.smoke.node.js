@@ -10,6 +10,9 @@ function loadAzureAIServiceWithFetch(mockFetch) {
   let src = fs.readFileSync(srcPath, 'utf8');
   // Replace any node-fetch import with a global mocked fetch (handle CRLF and LF)
   src = src.replace(/import\s+fetch\s+from\s+['"]node-fetch['"];?/g, 'const fetch = global.__mocked_fetch__');
+  // Mock persona and metrics imports used by the service so vm.runInContext doesn't choke on ESM imports
+  src = src.replace(/import\s+persona\s+from\s+['"].*?persona\.js['"];?/g, 'const persona = global.__mocked_persona__');
+  src = src.replace(/import\s+metrics\s+from\s+['"].*?metrics\.js['"];?/g, 'const metrics = global.__mocked_metrics__');
   // Convert ESM exports to CommonJS-compatible form for vm execution
   src = src.replace(/export\s+class\s+([A-Za-z0-9_]+)/g, 'class $1');
   src = src.replace(/export\s+default\s+/g, '');
@@ -19,6 +22,17 @@ function loadAzureAIServiceWithFetch(mockFetch) {
   const sandbox = { global: {}, console, setTimeout, clearTimeout, AbortController, Buffer, process };
   sandbox.global = sandbox;
   sandbox.__mocked_fetch__ = mockFetch;
+  // Provide simple mocks for persona and metrics so the AzureAIService can call them
+  sandbox.__mocked_persona__ = {
+    getSystemPrompt: (opts) => 'You are BETRIX AI assistant.',
+    FEW_SHOT_EXAMPLES: []
+  };
+  sandbox.__mocked_metrics__ = {
+    incRequest: () => {},
+    observeLatency: () => {},
+    incError: () => {},
+    addTokens: () => {}
+  };
   sandbox.exports = {};
   sandbox.module = { exports: sandbox.exports };
 
