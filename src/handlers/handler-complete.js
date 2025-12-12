@@ -573,7 +573,28 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
         try { logger.info(`analyseFixture: aiResult preview: ${String(text || '').slice(0, 300).replace(/\n/g, ' ')}`); } catch (e) { void e; }
 
         if (text && text.length) {
+          // If the AI returned JSON, parse and format a friendly Telegram message
           let out = text;
+          try {
+            const parsed = JSON.parse(text);
+            if (parsed && parsed.predictions && Array.isArray(parsed.predictions)) {
+              let buffer = `*Analysis — ${home} vs ${away}*\n`;
+              if (parsed.summary) buffer += `\n${parsed.summary}\n\n`;
+              parsed.predictions.forEach((p) => {
+                const market = p.market || p.type || 'Market';
+                const selection = p.selection || p.pick || 'N/A';
+                const prob = (typeof p.probability === 'number') ? `${Math.round(p.probability * 100)}%` : (p.probability || 'N/A');
+                const conf = p.confidence || 'medium';
+                const stake = (p.suggested_stake_pct !== undefined) ? `${p.suggested_stake_pct}% stake` : (p.suggested_stake || '');
+                const rationale = p.rationale ? ` — ${p.rationale}` : '';
+                buffer += `• ${market}: *${selection}* (${prob}, ${conf}) ${stake}${rationale}\n`;
+              });
+              if (parsed.notes) buffer += `\n_notes_: ${parsed.notes}`;
+              buffer += `\n\n_Disclaimer: Suggestions are informational only. Gamble responsibly._`;
+              out = buffer;
+            }
+          } catch (e) { /* not JSON, keep raw text */ }
+
           if (out.length > 4000) out = out.slice(0, 4000) + '\n\n...';
 
           // Send analysis as a new message to avoid overwriting the menu message
