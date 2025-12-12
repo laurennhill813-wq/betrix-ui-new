@@ -323,26 +323,47 @@ export async function handleCallbackQuery(cq, redis, services) {
       // Attempt to resolve numeric/ID-only competition values to a human name
       // using available fixture fields (competition.name, competition_name, leagueName, etc.).
       const groups = {};
-      fixtures.forEach(f => {
+
+      // Try to fetch a leagues index once to map numeric ids to names
+      let leaguesIndex = null;
+      try {
+        if (services && services.sportsAggregator && typeof services.sportsAggregator.getLeagues === 'function') {
+          const rawLeagues = await services.sportsAggregator.getLeagues().catch(() => null);
+          if (Array.isArray(rawLeagues)) {
+            leaguesIndex = {};
+            rawLeagues.forEach(l => {
+              if (!l) return;
+              const id = l.id || l.league_id || l.leagueId || null;
+              const name = (l.name || l.title || l.fullName || l.competition_name || l.leagueName || l.displayName || l.long_name);
+              if (id != null) leaguesIndex[String(id)] = name || String(id);
+            });
+          }
+        }
+      } catch (e) { /* ignore */ }
+
+      for (const f of fixtures) {
         const compObj = f.competition || f.league || null;
 
-        // Prefer an explicit name field when available
         const possibleName = (compObj && typeof compObj === 'object')
           ? (compObj.name || compObj.title || compObj.fullName || compObj.competition_name)
           : (f.competition_name || f.leagueName || f.competitionName || f.competitionTitle || compObj);
 
         let compName = safeName(possibleName || compObj || 'Other', 'Other');
 
-        // If compName is just a numeric id (e.g. '8'), try using competition object stringification
+        // If compName is just a numeric id (e.g. '8'), try to resolve via leaguesIndex or fixture labels
         if (/^\d+$/.test(String(compName).trim())) {
-          // fallback to readable labels from the fixture if present
-          const alt = f.competition && f.competition.name ? String(f.competition.name) : (f.leagueName || f.competition_name || f.competitionTitle || null);
-          if (alt) compName = alt;
+          const compId = String((compObj && (compObj.id || compObj)) || compName);
+          if (leaguesIndex && leaguesIndex[compId]) {
+            compName = leaguesIndex[compId];
+          } else {
+            const alt = f.competition && f.competition.name ? String(f.competition.name) : (f.leagueName || f.competition_name || f.competitionTitle || null);
+            if (alt) compName = alt;
+          }
         }
 
         groups[compName] = groups[compName] || [];
         groups[compName].push(f);
-      });
+      }
 
       // Format date range for display
       const now = new Date();
