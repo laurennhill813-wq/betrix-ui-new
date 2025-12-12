@@ -286,7 +286,9 @@ export function buildUpcomingFixtures(fixtures = [], league = '', daysBefore = 7
     return `📭 No upcoming fixtures in the next ${daysBefore} days.`;
   }
 
-  let display = `📅 *Upcoming Fixtures - ${league}*\n\n`;
+  // Ensure league header is a safe string (could be object from cache)
+  const leagueLabel = safeName(league, 'All Leagues');
+  let display = `📅 *Upcoming Fixtures - ${leagueLabel}*\n\n`;
 
   const sorted = fixtures.sort((a, b) => {
     const timeA = new Date(a.date || a.time || 0).getTime();
@@ -295,13 +297,16 @@ export function buildUpcomingFixtures(fixtures = [], league = '', daysBefore = 7
   });
 
   sorted.slice(0, 10).forEach((f, i) => {
-    const home = safeName(f.home || f.homeTeam, 'Home');
-    const away = safeName(f.away || f.awayTeam, 'Away');
-    const dateStr = f.date ? new Date(f.date).toLocaleDateString() : 'TBD';
-    const timeStr = f.time ? new Date(f.time).toLocaleTimeString() : 'TBD';
+    let home = safeName(f.home || f.homeTeam, 'Home');
+    let away = safeName(f.away || f.awayTeam, 'Away');
+    // Defensive fallbacks in case safeName returned an empty string
+    if (!home) home = 'TBA';
+    if (!away) away = 'TBA';
 
-    display += `${i + 1}. *${home}* vs *${away}*\n`;
-    display += `   📅 ${dateStr} ⏰ ${timeStr}\n\n`;
+    const dateStr = f.date ? new Date(f.date).toLocaleDateString() : 'TBA';
+    const timeStr = f.time ? new Date(f.time).toLocaleTimeString() : 'TBA';
+
+    display += `• ${home} vs ${away} — ${dateStr} ${timeStr}\n`;
   });
 
   return display;

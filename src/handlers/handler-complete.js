@@ -340,8 +340,11 @@ export async function handleCallbackQuery(cq, redis, services) {
       Object.keys(groups).slice(0, 10).forEach(comp => {
         text += `🏆 *${comp}*\n`;
         groups[comp].slice(0, 8).forEach(f => {
-          const home = safeName(f.home || f.homeTeam || (f.raw && f.raw.homeTeam) || (f.teams && f.teams.home) || f.homeName, 'Home');
-          const away = safeName(f.away || f.awayTeam || (f.raw && f.raw.awayTeam) || (f.teams && f.teams.away) || f.awayName, 'Away');
+          let home = safeName(f.home || f.homeTeam || (f.raw && f.raw.homeTeam) || (f.teams && f.teams.home) || f.homeName, 'Home');
+          let away = safeName(f.away || f.awayTeam || (f.raw && f.raw.awayTeam) || (f.teams && f.teams.away) || f.awayName, 'Away');
+          // Defensive normalization: avoid literal 'undefined' or empty strings
+          if (!home || home === 'undefined') home = 'TBA';
+          if (!away || away === 'undefined') away = 'TBA';
           let kickoff = 'TBA';
           try {
             if (f.kickoff) kickoff = new Date(f.kickoff).toLocaleTimeString();
@@ -375,7 +378,7 @@ export async function handleCallbackQuery(cq, redis, services) {
       const home = safeName(fixture.home || fixture.homeTeam || fixture.homeName, 'Home');
       const away = safeName(fixture.away || fixture.awayTeam || fixture.awayName, 'Away');
       const kickoff = (fixture.kickoff || fixture.time || fixture.utcDate) ? (fixture.kickoff ? new Date(fixture.kickoff).toLocaleString() : String(fixture.time || fixture.utcDate)) : 'TBA';
-      const comp = (fixture.competition && (fixture.competition.name || fixture.competition)) ? (fixture.competition.name || fixture.competition) : (fixture.league || 'N/A');
+      const comp = safeName(fixture.competition || fixture.league, 'N/A');
       const text = `*Fixture: ${home} vs ${away}*\nKickoff: ${kickoff}\nCompetition: ${comp}\nVenue: ${fixture.venue || 'TBA'}\nStatus: ${fixture.status || 'SCHEDULED'}\nProvider: ${fixture.provider || 'Football-Data.org'}`;
       return {
         method: 'editMessageText',
