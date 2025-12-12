@@ -80,6 +80,8 @@ export function createAIWrapper({ azure, gemini, huggingface, localAI, claude, r
           const out = await azure.chat(augmented, context);
           metrics && metrics.incRequest && metrics.incRequest('azure');
           logger && logger.info && logger.info('AI provider used (force)', { provider: 'azure' });
+          // Also log via console to ensure provider choice surfaces in environments
+          try { console.info('AI provider used (force)', JSON.stringify({ provider: 'azure' })); } catch (e) { /* ignore */ }
           return out;
         } catch (err) {
           logger && logger.warn && logger.warn('Azure.chat forced failed — falling through', err && err.message, { code: err && err.code });
@@ -134,6 +136,7 @@ export function createAIWrapper({ azure, gemini, huggingface, localAI, claude, r
           const out = await azure.chat(augmented, context);
           metrics && metrics.incRequest && metrics.incRequest('azure');
           logger && logger.info && logger.info('AI provider used', { provider: 'azure' });
+          try { console.info('AI provider used', JSON.stringify({ provider: 'azure' })); } catch (e) { /* ignore */ }
           return out;
         } catch (err) {
           logger && logger.warn && logger.warn('Azure.chat failed in wrapper — falling back', err && err.message);
@@ -149,15 +152,35 @@ export function createAIWrapper({ azure, gemini, huggingface, localAI, claude, r
       // If FORCE_AZURE is set, prefer Azure and avoid using Gemini to prevent Gemini quota errors
       const skipGeminiBecauseForced = FORCE_AZURE;
       if (claude && claude.enabled && !isBlocked('claude')) {
-        try { return await claude.chat(message, context); } catch(e) { logger && logger.warn && logger.warn('Claude failed', e && e.message); if (isRateLimitError(e)) blockProvider('claude', 60); }
+        try {
+          const out = await claude.chat(message, context);
+          try { console.info('AI provider used', JSON.stringify({ provider: 'claude' })); } catch (e) {}
+          logger && logger.info && logger.info('AI provider used', { provider: 'claude' });
+          return out;
+        } catch(e) { logger && logger.warn && logger.warn('Claude failed', e && e.message); if (isRateLimitError(e)) blockProvider('claude', 60); }
       }
       if (!skipGeminiBecauseForced && gemini && gemini.enabled && !isBlocked('gemini')) {
-        try { const out = await gemini.chat(message, context); logger && logger.info && logger.info('AI provider used', { provider: 'gemini' }); return out; } catch(e) { logger && logger.warn && logger.warn('Gemini failed', e && e.message); if (isRateLimitError(e)) { const ttl = parseRetrySeconds(e) || 90; blockProvider('gemini', ttl); logger && logger.info && logger.info('Blocking gemini due to rate-limit', { ttl }); } }
+        try {
+          const out = await gemini.chat(message, context);
+          logger && logger.info && logger.info('AI provider used', { provider: 'gemini' });
+          try { console.info('AI provider used', JSON.stringify({ provider: 'gemini' })); } catch(e) {}
+          return out;
+        } catch(e) { logger && logger.warn && logger.warn('Gemini failed', e && e.message); if (isRateLimitError(e)) { const ttl = parseRetrySeconds(e) || 90; blockProvider('gemini', ttl); logger && logger.info && logger.info('Blocking gemini due to rate-limit', { ttl }); } }
       }
       if (huggingface && huggingface.isHealthy() && !isBlocked('huggingface')) {
-        try { return await huggingface.chat(message, context); } catch(e) { logger && logger.warn && logger.warn('HuggingFace failed', e && e.message); if (isRateLimitError(e)) blockProvider('huggingface', 60); }
+        try {
+          const out = await huggingface.chat(message, context);
+          try { console.info('AI provider used', JSON.stringify({ provider: 'huggingface' })); } catch(e) {}
+          logger && logger.info && logger.info('AI provider used', { provider: 'huggingface' });
+          return out;
+        } catch(e) { logger && logger.warn && logger.warn('HuggingFace failed', e && e.message); if (isRateLimitError(e)) blockProvider('huggingface', 60); }
       }
-      try { return await localAI.chat(message, context); } catch(e) { logger && logger.warn && logger.warn('LocalAI failed', e && e.message); }
+      try {
+        const out = await localAI.chat(message, context);
+        try { console.info('AI provider used', JSON.stringify({ provider: 'localAI' })); } catch(e) {}
+        logger && logger.info && logger.info('AI provider used', { provider: 'localAI' });
+        return out;
+      } catch(e) { logger && logger.warn && logger.warn('LocalAI failed', e && e.message); }
 
       return "I'm having trouble right now. Try again later.";
     }
