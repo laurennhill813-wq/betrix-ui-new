@@ -261,6 +261,55 @@ import { createAIWrapper } from './ai/wrapper.js';
 
 const ai = createAIWrapper({ azure, gemini, huggingface, localAI, claude, redis, logger });
 
+// Startup probe: check remote AI providers (Azure, HuggingFace) and disable them
+// automatically if they return 401/unauthorized so the worker can fall back
+// to other providers (e.g., LocalAI) and remain functional.
+async function probeAIProviders() {
+  try {
+    if (azure && typeof azure.embeddings === 'function' && azure.enabled) {
+      try {
+        await azure.embeddings(['ping']);
+      } catch (e) {
+        const msg = String(e?.message || '').toLowerCase();
+        if ((e && e.status === 401) || msg.includes('invalid subscription key') || msg.includes('access denied')) {
+          logger.error('Azure returned 401/unauthorized during startup probe — disabling Azure provider until credentials are fixed.');
+          azure.enabled = false;
+        } else {
+          logger.warn('Azure embeddings probe failed (non-auth):', e?.message || String(e));
+        }
+      }
+    }
+  } catch (err) { logger.warn('Azure probe error', err?.message || String(err)); }
+
+  try {
+    if (huggingface && huggingface.enabled) {
+      try {
+        await huggingface.chat('ping');
+      } catch (e) {
+        const msg = String(e?.message || '').toLowerCase();
+        if (msg.includes('401') || msg.includes('unauthorized') || msg.includes('not found')) {
+          logger.error('HuggingFace returned 401/unauthorized during startup probe — disabling HuggingFace provider until credentials or model names are fixed.');
+          huggingface.enabled = false;
+        } else {
+          logger.warn('HuggingFace probe failed (non-auth):', e?.message || String(e));
+        }
+      }
+    }
+  } catch (err) { logger.warn('HuggingFace probe error', err?.message || String(err)); }
+
+  // Log final provider availability
+  try {
+    logger.info('AI providers availability after probe', {
+      azure: azure && typeof azure.enabled !== 'undefined' ? azure.enabled : false,
+      huggingface: huggingface && typeof huggingface.enabled !== 'undefined' ? huggingface.enabled : false,
+      gemini: gemini && typeof gemini.enabled !== 'undefined' ? gemini.enabled : false,
+      localAI: localAI && typeof localAI.isHealthy === 'function' ? localAI.isHealthy() : true,
+    });
+  } catch (e) { /**/ }
+}
+
+(async () => { await probeAIProviders(); })();
+
 // keep analyzeSport stub if needed
 ai.analyzeSport = async function(sport, matchData, question) {
   if (gemini && gemini.enabled) {
