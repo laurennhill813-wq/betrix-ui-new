@@ -30,6 +30,44 @@ function safeName(val, fallback = 'TBA') {
   }
 }
 
+// small utility sleep
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function isRateLimitError(err) {
+  const m = String(err && (err.message || err.error || err)).toLowerCase();
+  return m.includes('429') || m.includes('quota') || m.includes('too many requests') || m.includes('rate limit');
+}
+
+// Try AI analysis with simple retry/backoff on rate-limit errors
+async function tryAiAnalyze(services, matchData, prompt, maxAttempts = 3) {
+  if (!services || !services.ai || typeof services.ai.analyzeSport !== 'function') return null;
+  let attempt = 0;
+  let lastErr = null;
+  while (attempt < maxAttempts) {
+    attempt += 1;
+    try {
+      const res = await services.ai.analyzeSport('football', matchData, prompt);
+      return res;
+    } catch (err) {
+      lastErr = err;
+      // if rate limit, wait and retry with exponential backoff
+      if (isRateLimitError(err) && attempt < maxAttempts) {
+        const wait = 1000 * Math.pow(2, attempt - 1);
+        logger.warn(`AI rate limit detected, retrying in ${wait}ms (attempt ${attempt}/${maxAttempts})`);
+        // polite jitter
+        await sleep(wait + Math.floor(Math.random() * 250));
+        continue;
+      }
+      // non-retryable error -> break
+      logger.warn('AI analysis failed (non-rate-limit)', String(err));
+      break;
+    }
+  }
+  // final fallback: log last error and return null
+  logger.warn('AI analysis ultimately failed', lastErr ? (lastErr.message || String(lastErr)) : 'no error');
+  return null;
+}
+
 /**
  * Fetch live matches from SportMonks
  */
@@ -450,81 +488,96 @@ export async function handleCallbackQuery(cq, redis, services) {
 
     if (data.startsWith('analyseFixture:')) {
       const fixtureId = data.split(':')[1];
-      // For now reuse fixture details and provide placeholder analysis
+      // Acknowledge callback quickly, then perform analysis and edit message
+      const actions = [{ method: 'answerCallbackQuery', callback_query_id: cq.id, text: '🔎 Analyzing fixture...', show_alert: false }];
       try {
-        const fixtures = (services && services.sportsAggregator) ? await services.sportsAggregator.getFixtures() : [];
-        const fixture = fixtures.find(f => String(f.id) === String(fixtureId));
+        const fixtures = (services && services.sportsAggregator) ? await services.sportsAggregator.getFixtures().catch(() => []) : [];
+        let fixture = fixtures.find(f => String(f.id) === String(fixtureId));
+        // If not found in fixtures, try live matches (support analysing live games)
+        if (!fixture && services && services.sportsAggregator && typeof services.sportsAggregator.getAllLiveMatches === 'function') {
+          try {
+            const live = await services.sportsAggregator.getAllLiveMatches();
+            fixture = (live || []).find(m => String(m.id) === String(fixtureId));
+          } catch (e) { void e; }
+        }
         if (!fixture) {
-          return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Fixture not found for analysis', show_alert: false };
+          actions.push({ method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Fixture not found for analysis', show_alert: false });
+          return actions;
         }
 
         const home = safeName(fixture.home || fixture.homeTeam || fixture.homeName, 'Home');
         const away = safeName(fixture.away || fixture.awayTeam || fixture.awayName, 'Away');
         const leagueId = (fixture.competition && fixture.competition.id) || fixture.league || fixture.competition || null;
 
-        // Prefer AI-based analysis if available
-        try {
-          const matchData = Object.assign({}, fixture, { home, away, leagueId });
+        const matchData = Object.assign({}, fixture, { home, away, leagueId });
 
-          if (services && services.ai && typeof services.ai.analyzeSport === 'function' && (typeof services.ai.isHealthy !== 'function' || services.ai.isHealthy())) {
-            let aiResult = null;
-            try {
-              aiResult = await services.ai.analyzeSport('football', matchData, 'Provide a short Telegram-friendly analysis, prediction and key stats.');
-            } catch (errAi) {
-              logger.warn('AI analyzeSport failed, falling back to odds analyzer', errAi?.message || errAi);
-              aiResult = null;
-            }
+        // Craft a rich prompt requesting structured JSON output for betting recommendations
+        const detailedPrompt = `You are a professional football betting analyst. Given the match object (JSON) that follows, produce a short Telegram-friendly summary and a list of specific recommended bets.
+Respond primarily with a single JSON object only, parseable by a machine, with this shape:
+{
+  "summary": "short human-friendly summary",
+  "predictions": [
+    {
+      "market": "Match Winner|Both Teams To Score|Over/Under|Correct Score|Both Teams/Over etc.",
+      "selection": "Home|Away|Draw|Yes|No|Over|Under",
+      "probability": 0.0-1.0,
+      "confidence": "low|medium|high",
+      "suggested_stake_pct": 0-100,
+      "rationale": "one or two sentence rationale"
+    }
+  ],
+  "notes": "optional additional notes"
+}
 
-            if (aiResult) {
-              let text = '';
-              if (typeof aiResult === 'string') text = aiResult;
-              else if (aiResult && typeof aiResult === 'object') {
-                if (typeof aiResult.text === 'string') text = aiResult.text;
-                else text = JSON.stringify(aiResult, null, 2);
-              } else {
-                text = String(aiResult);
-              }
+Include only valid JSON in the response if possible. After the JSON, you may include a 2-3 line plain-text human summary separated by a newline. Use the match data to inform probabilities and rationale. Do not hallucinate exact market odds; if no market odds available, state that odds are not provided. Keep the JSON compact. Now analyze this match and return the JSON and a short text summary. MATCH_DATA: ` + JSON.stringify(matchData);
 
-              // Truncate to avoid Telegram limits, keep Markdown-friendly fallback
-              if (text.length > 4000) text = text.slice(0, 4000) + '\n\n...';
+        // Try AI-first with retry/backoff on rate-limit errors
+        let aiResult = await tryAiAnalyze(services, matchData, detailedPrompt, 3);
 
-              return {
-                method: 'editMessageText',
-                chat_id: chatId,
-                message_id: messageId,
-                text,
-                reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] },
-                parse_mode: 'Markdown'
-              };
-            }
+        if (aiResult) {
+          let text = '';
+          if (typeof aiResult === 'string') text = aiResult;
+          else if (aiResult && typeof aiResult === 'object') {
+            if (typeof aiResult.text === 'string') text = aiResult.text;
+            else text = JSON.stringify(aiResult, null, 2);
+          } else {
+            text = String(aiResult);
           }
+          if (text.length > 4000) text = text.slice(0, 4000) + '\n\n...';
 
-          // If AI not available or returned nothing, fall back to OddsAnalyzer if present
-          if (services && services.oddsAnalyzer && typeof services.oddsAnalyzer.analyzeMatch === 'function') {
+          actions.push({
+            method: 'editMessageText',
+            chat_id: chatId,
+            message_id: messageId,
+            text,
+            reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] },
+            parse_mode: 'Markdown'
+          });
+
+          return actions;
+        }
+
+        // If AI not available or failed, fall back to OddsAnalyzer
+        if (services && services.oddsAnalyzer && typeof services.oddsAnalyzer.analyzeMatch === 'function') {
+          try {
             const analysis = await services.oddsAnalyzer.analyzeMatch(home, away, leagueId);
             const text = (typeof services.oddsAnalyzer.formatForTelegram === 'function')
               ? services.oddsAnalyzer.formatForTelegram(analysis)
               : (`🔍 Analysis for ${home} vs ${away}\n${JSON.stringify(analysis).slice(0,1500)}`);
 
-            return {
-              method: 'editMessageText',
-              chat_id: chatId,
-              message_id: messageId,
-              text,
-              reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] },
-              parse_mode: 'Markdown'
-            };
+            actions.push({ method: 'editMessageText', chat_id: chatId, message_id: messageId, text, reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] }, parse_mode: 'Markdown' });
+            return actions;
+          } catch (errOdds) {
+            logger.warn('OddsAnalyzer failed', errOdds?.message || String(errOdds));
           }
-
-          // Fallback: no analysis service available
-          return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Analysis service not available', show_alert: false };
-        } catch (errAnalysis) {
-          logger.warn('analyseFixture handler failed', errAnalysis?.message || errAnalysis);
-          return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Analysis failed', show_alert: false };
         }
+
+        // Nothing available
+        actions.push({ method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Analysis service not available', show_alert: false });
+        return actions;
       } catch (e) {
         logger.warn('analyseFixture handler failed', e?.message || e);
-        return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Analysis failed', show_alert: false };
+        return [{ method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Analysis failed', show_alert: false }];
       }
     }
 
@@ -538,51 +591,48 @@ export async function handleCallbackQuery(cq, redis, services) {
 
         // Build pages of up to 25 fixtures per message to avoid Telegram limits
         const pageSize = 25;
-        const actions = [];
-        for (let p = 0; p < Math.ceil(fixtures.length / pageSize); p++) {
-          const slice = fixtures.slice(p * pageSize, (p + 1) * pageSize);
-          let text = `📅 *Upcoming Fixtures (page ${p + 1} of ${Math.ceil(fixtures.length / pageSize)})*\n\n`;
-          slice.forEach(f => {
-            const home = safeName(f.home || f.homeTeam || f.homeName, 'TBA');
-            const away = safeName(f.away || f.awayTeam || f.awayName, 'TBA');
+        if (aiResult) {
+          let raw = '';
+          if (typeof aiResult === 'string') raw = aiResult.trim();
+          else if (aiResult && typeof aiResult === 'object') {
+            // Some providers return { text } or similar
+            raw = (aiResult.text && typeof aiResult.text === 'string') ? aiResult.text.trim() : JSON.stringify(aiResult);
+          } else raw = String(aiResult);
 
-            // derive kickoff similar to menu formatting
-            let kickoff = 'TBA';
-            try {
-              const tsCandidates = [f.kickoff, f.utcDate, f.kickoff_at, f.utc_date, f.date, f.time, f.starting_at, f.starting_at_timestamp, f.timestamp, f.ts];
-              let d = null;
-              for (const c of tsCandidates) {
-                if (!c) continue;
-                if (typeof c === 'number') d = new Date(c < 1e12 ? c * 1000 : c);
-                else if (typeof c === 'string') {
-                  if (/^\d{10}$/.test(c)) d = new Date(Number(c) * 1000);
-                  else if (/^\d{13}$/.test(c)) d = new Date(Number(c));
-                  else d = new Date(c);
-                }
-                if (d && !isNaN(d.getTime())) break;
-              }
-              if (d && !isNaN(d.getTime())) kickoff = d.toLocaleString();
-              else if (f.time) kickoff = String(f.time);
-            } catch (e) { kickoff = 'TBA'; }
+          // Try to find the first JSON object in the response
+          let parsed = null;
+          try { parsed = JSON.parse(raw); } catch (e) {
+            const start = raw.indexOf('{');
+            const end = raw.lastIndexOf('}');
+            if (start !== -1 && end !== -1 && end > start) {
+              const sub = raw.slice(start, end + 1);
+              try { parsed = JSON.parse(sub); } catch (e2) { parsed = null; }
+            }
+          }
 
-            text += `• ${home} vs ${away} — ${kickoff}\n`;
-          });
+          if (parsed && parsed.predictions && Array.isArray(parsed.predictions)) {
+            let out = `*Analysis — ${home} vs ${away}*\n`;
+            if (parsed.summary) out += `\n${parsed.summary}\n\n`;
+            parsed.predictions.forEach((p) => {
+              const market = p.market || p.type || 'Market';
+              const selection = p.selection || p.pick || 'N/A';
+              const prob = (typeof p.probability === 'number') ? `${Math.round(p.probability * 100)}%` : (p.probability || 'N/A');
+              const conf = p.confidence || 'medium';
+              const stake = (p.suggested_stake_pct !== undefined) ? `${p.suggested_stake_pct}% stake` : (p.suggested_stake || '');
+              const rationale = p.rationale ? ` — ${p.rationale}` : '';
+              out += `• ${market}: *${selection}* (${prob}, ${conf}) ${stake}${rationale}\n`;
+            });
+            if (parsed.notes) out += `\n_notes_: ${parsed.notes}`;
+            if (out.length > 4000) out = out.slice(0, 4000) + '\n\n...';
 
-          // Build inline keyboard so each match on the page can be selected for analysis
-          const inline_keyboard = [];
-          slice.forEach(f => {
-            const home = safeName(f.home || f.homeTeam || f.homeName, 'TBA');
-            const away = safeName(f.away || f.awayTeam || f.awayName, 'TBA');
-            const shortHome = (home && home.length > 20) ? home.slice(0, 17) + '...' : home;
-            const shortAway = (away && away.length > 20) ? away.slice(0, 17) + '...' : away;
-            const btnText = `🔎 ${shortHome} v ${shortAway}`;
-            inline_keyboard.push([{ text: btnText, callback_data: `analyseFixture:${f.id}` }]);
-          });
+            actions.push({ method: 'editMessageText', chat_id: chatId, message_id: messageId, text: out, reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] }, parse_mode: 'Markdown' });
+            return actions;
+          }
 
-          // Add a back button at the end of the keyboard for convenience
-          inline_keyboard.push([{ text: '🔙 Back', callback_data: 'menu_fixtures' }]);
-
-          actions.push({ method: 'sendMessage', chat_id: chatId, text, reply_markup: { inline_keyboard }, parse_mode: 'Markdown' });
+          let text = raw;
+          if (text.length > 3500) text = text.slice(0, 3500) + '\n\n...';
+          actions.push({ method: 'editMessageText', chat_id: chatId, message_id: messageId, text, reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] }, parse_mode: 'Markdown' });
+          return actions;
         }
 
         // Return actions array so the caller will send multiple messages sequentially
