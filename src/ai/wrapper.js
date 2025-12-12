@@ -6,11 +6,26 @@ import metrics from '../utils/metrics.js';
 export function createAIWrapper({ azure, gemini, huggingface, localAI, claude, redis, logger }) {
   const rag = createRag({ redis, azure, logger });
 
-  // Provider blocking disabled: no in-memory blocklist and blockProvider is a no-op.
-  // This intentionally avoids short-term blocking/fallback behavior so the AI
-  // wrapper will attempt all configured providers without being blocked.
-  function isBlocked(_name) { return false; }
-  function blockProvider(_name, _ttlSeconds = 0) { /* no-op intentionally */ }
+  // Temporary in-memory provider blocklist to avoid repeatedly calling rate-limited providers
+  const blockedProviders = new Map(); // name -> unblockTimestamp(ms)
+
+  function isBlocked(name) {
+    if (!name) return false;
+    const ts = blockedProviders.get(name);
+    if (!ts) return false;
+    return Date.now() < ts;
+  }
+
+  function blockProvider(name, ttlSeconds = 30) {
+    try {
+      const unblockAt = Date.now() + (ttlSeconds * 1000);
+      blockedProviders.set(name, unblockAt);
+      if (redis && redis.set) {
+        // set a short-lived key so other workers can notice (best-effort)
+        try { redis.set(`ai:block:${name}`, '1', 'EX', Math.max(5, Math.floor(ttlSeconds))); } catch(e) {}
+      }
+    } catch (e) {}
+  }
 
   function isRateLimitError(err) {
     if (!err) return false;
