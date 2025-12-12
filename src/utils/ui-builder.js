@@ -238,20 +238,22 @@ class UIBuilder {
       trends: { name: "Seasonal Trends", tier: "vvip" },
       alerts: { name: "Live Alerts", tier: "vvip" },
     };
-
     let text = `${EMOJIS.premium} <b>Feature Access</b>\n\n`;
     text += `Your Tier: ${tier === "vvip" ? "💎 VVIP" : tier === "member" ? "👤 Member" : "🎁 Free"}\n\n`;
 
+    const tierLevels = { free: 0, member: 1, vvip: 2 };
     for (const [key, feature] of Object.entries(features)) {
-      const tierLevels = { free: 0, member: 1, vvip: 2 };
       const hasAccess = tierLevels[tier] >= tierLevels[feature.tier];
-      const icon = hasAccess ? EMOJIS.available : EMOJI    for (const feature of Object.values(features)) {
-  if (tier === "free") {
+      const icon = hasAccess ? EMOJIS.available : EMOJIS.unavailable;
+      const descriptor = feature.tier === 'free' ? 'Free' : feature.tier === 'member' ? 'Member' : 'VVIP';
+      text += `${icon} ${feature.name} — ${descriptor}\n`;
+    }
+
+    if (tier === "free") {
       text += `\n💡 Upgrade to Member or VVIP to unlock more features`;
     }
 
     return text;
-  }
 
   /**
    * Build payment methods menu

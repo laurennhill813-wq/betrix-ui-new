@@ -1290,7 +1290,9 @@ export class SportsAggregator {
   }
 
   _formatMatches(matches, source) {
-    return matches.map(m => {
+    // First map using existing provider-specific logic, then enforce
+    // a normalized shape that downstream formatters expect.
+    const mapped = matches.map(m => {
       // already normalized from OpenLiga
       if (source === 'openligadb') return m;
 
@@ -1601,6 +1603,26 @@ export class SportsAggregator {
         provider: source || 'unknown',
         raw: m
       };
+    });
+
+    // Normalize output: ensure string team names and provide both
+    // flattened (`home`, `away`) and nested (`teams`, `fixture`) shapes.
+    return mapped.map(o => {
+      const home = String(o.home || (o.teams && o.teams.home && o.teams.home.name) || 'Home');
+      const away = String(o.away || (o.teams && o.teams.away && o.teams.away.name) || 'Away');
+
+      return Object.assign({}, o, {
+        home,
+        away,
+        teams: {
+          home: { name: home },
+          away: { name: away }
+        },
+        fixture: Object.assign({}, (o.fixture || {}), {
+          date: o.time || o.utcDate || o.date || null,
+          venue: { name: o.venue || null }
+        })
+      });
     });
   }
 
