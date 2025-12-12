@@ -389,6 +389,12 @@ export async function handleCallbackQuery(cq, redis, services) {
         text += `\n`;
       });
 
+      // Add a 'Show All' button to allow users to receive all fixtures (paginated)
+      keyboard.push([
+        { text: `📋 Show All (${fixtures.length})`, callback_data: 'fixtures_all' },
+        { text: '🔙 Back', callback_data: 'menu_main' }
+      ]);
+
       return {
         method: 'editMessageText',
         chat_id: chatId,
@@ -424,12 +430,92 @@ export async function handleCallbackQuery(cq, redis, services) {
     if (data.startsWith('analyseFixture:')) {
       const fixtureId = data.split(':')[1];
       // For now reuse fixture details and provide placeholder analysis
-      return {
-        method: 'answerCallbackQuery',
-        callback_query_id: cq.id,
-        text: `🔍 Analyse fixture ${fixtureId} — detailed analysis coming soon.`,
-        show_alert: false
-      };
+      try {
+        const fixtures = (services && services.sportsAggregator) ? await services.sportsAggregator.getFixtures() : [];
+        const fixture = fixtures.find(f => String(f.id) === String(fixtureId));
+        if (!fixture) {
+          return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Fixture not found for analysis', show_alert: false };
+        }
+
+        const home = safeName(fixture.home || fixture.homeTeam || fixture.homeName, 'Home');
+        const away = safeName(fixture.away || fixture.awayTeam || fixture.awayName, 'Away');
+        const leagueId = (fixture.competition && fixture.competition.id) || fixture.league || fixture.competition || null;
+
+        // If an OddsAnalyzer is available in services, use it to analyze the match
+        if (services && services.oddsAnalyzer && typeof services.oddsAnalyzer.analyzeMatch === 'function') {
+          const analysis = await services.oddsAnalyzer.analyzeMatch(home, away, leagueId);
+          const text = (typeof services.oddsAnalyzer.formatForTelegram === 'function')
+            ? services.oddsAnalyzer.formatForTelegram(analysis)
+            : (`🔍 Analysis for ${home} vs ${away}\n${JSON.stringify(analysis).slice(0,1500)}`);
+
+          // Edit the current message to show the analysis and include a back button
+          return {
+            method: 'editMessageText',
+            chat_id: chatId,
+            message_id: messageId,
+            text,
+            reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] },
+            parse_mode: 'Markdown'
+          };
+        }
+
+        // Fallback: no oddsAnalyzer available
+        return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Analysis service not available', show_alert: false };
+      } catch (e) {
+        logger.warn('analyseFixture handler failed', e?.message || e);
+        return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Analysis failed', show_alert: false };
+      }
+    }
+
+    // Send all fixtures in paginated messages (callback triggered by 'Show All')
+    if (data === 'fixtures_all') {
+      try {
+        const fixtures = (services && services.sportsAggregator) ? await services.sportsAggregator.getFixtures() : [];
+        if (!fixtures || fixtures.length === 0) {
+          return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: 'No fixtures available', show_alert: false };
+        }
+
+        // Build pages of up to 25 fixtures per message to avoid Telegram limits
+        const pageSize = 25;
+        const actions = [];
+        for (let p = 0; p < Math.ceil(fixtures.length / pageSize); p++) {
+          const slice = fixtures.slice(p * pageSize, (p + 1) * pageSize);
+          let text = `📅 *Upcoming Fixtures (page ${p + 1} of ${Math.ceil(fixtures.length / pageSize)})*\n\n`;
+          slice.forEach(f => {
+            const home = safeName(f.home || f.homeTeam || f.homeName, 'TBA');
+            const away = safeName(f.away || f.awayTeam || f.awayName, 'TBA');
+
+            // derive kickoff similar to menu formatting
+            let kickoff = 'TBA';
+            try {
+              const tsCandidates = [f.kickoff, f.utcDate, f.kickoff_at, f.utc_date, f.date, f.time, f.starting_at, f.starting_at_timestamp, f.timestamp, f.ts];
+              let d = null;
+              for (const c of tsCandidates) {
+                if (!c) continue;
+                if (typeof c === 'number') d = new Date(c < 1e12 ? c * 1000 : c);
+                else if (typeof c === 'string') {
+                  if (/^\d{10}$/.test(c)) d = new Date(Number(c) * 1000);
+                  else if (/^\d{13}$/.test(c)) d = new Date(Number(c));
+                  else d = new Date(c);
+                }
+                if (d && !isNaN(d.getTime())) break;
+              }
+              if (d && !isNaN(d.getTime())) kickoff = d.toLocaleString();
+              else if (f.time) kickoff = String(f.time);
+            } catch (e) { kickoff = 'TBA'; }
+
+            text += `• ${home} vs ${away} — ${kickoff}\n`;
+          });
+
+          actions.push({ method: 'sendMessage', chat_id: chatId, text, parse_mode: 'Markdown' });
+        }
+
+        // Return actions array so the caller will send multiple messages sequentially
+        return actions;
+      } catch (e) {
+        logger.warn('fixtures_all handler failed', e?.message || e);
+        return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: 'Failed to send all fixtures', show_alert: false };
+      }
     }
 
     if (data.startsWith('news:')) {
