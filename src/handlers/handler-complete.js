@@ -642,10 +642,34 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
           return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: 'No fixtures available', show_alert: false };
         }
 
+        // Prepare an actions array to return multiple sendMessage actions
+        const actions = [];
         // Build pages of up to 25 fixtures per message to avoid Telegram limits
         const pageSize = 25;
+        for (let i = 0; i < fixtures.length; i += pageSize) {
+          const page = fixtures.slice(i, i + pageSize);
+          let text = `📋 *All Upcoming Fixtures* (page ${Math.floor(i / pageSize) + 1}/${Math.ceil(fixtures.length / pageSize)})\n\n`;
+          for (const f of page) {
+            const home = safeName(f.home || f.homeTeam || f.homeName || (f.raw && f.raw.homeTeam), 'Home');
+            const away = safeName(f.away || f.awayTeam || f.awayName || (f.raw && f.raw.awayTeam), 'Away');
+            let kickoff = 'TBA';
+            try {
+              const d = f.kickoff || f.utcDate || f.date || f.time || f.starting_at;
+              if (d) kickoff = (typeof d === 'number') ? new Date(d < 1e12 ? d * 1000 : d).toLocaleString() : new Date(d).toLocaleString();
+            } catch (e) { /* ignore */ }
+            text += `• ${home} vs ${away} — ${kickoff}\n`;
+          }
 
-        // Return actions array so the caller will send multiple messages sequentially
+          // Push a sendMessage action per page
+          actions.push({
+            method: 'sendMessage',
+            chat_id: chatId,
+            text,
+            reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] },
+            parse_mode: 'Markdown'
+          });
+        }
+
         return actions;
       } catch (e) {
         logger.warn('fixtures_all handler failed', e?.message || e);
