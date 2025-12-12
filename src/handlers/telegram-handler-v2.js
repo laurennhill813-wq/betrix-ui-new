@@ -33,6 +33,13 @@ const teamNameOf = (v) => {
   return String(v);
 };
 
+const safeNameOf = (v, fallback = '') => {
+  if (v === undefined || v === null) return fallback || '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'object') return v.name || v.title || v.shortName || v.competition || String(v) || fallback;
+  return String(v);
+};
+
 const buildLiveMenuPayload = (games, title = 'Live', _tier = 'FREE', page = 1, perPage = 6) => {
   const list = (games || []).slice((page - 1) * perPage, page * perPage).map((g, i) => `${i + 1}. ${teamNameOf(g.home)} vs ${teamNameOf(g.away)}`).join('\n');
   return { text: `*${title}* — ${String(_tier || 'FREE')}\n\n${list || '_No live matches currently_'}`, reply_markup: { inline_keyboard: [] } };
@@ -50,7 +57,7 @@ const brandingUtils = {
 
 // Minimal formatters used by handlers
 const formatUpgradePrompt = (feature) => `Upgrade to access ${feature}`;
-const formatOdds = (matches) => (matches || []).map((m, i) => `${i+1}. ${m.home} vs ${m.away} — ${m.homeOdds||'-'}`).join('\n');
+const formatOdds = (matches) => (matches || []).map((m, i) => `${i+1}. ${teamNameOf(m.home)} vs ${teamNameOf(m.away)} — ${m.homeOdds||'-'}`).join('\n');
 const formatStandings = (_league, rows) => {
   const body = (rows || []).map((r, i) => `${i+1}. ${r.name} ${r.points||0}`).join('\n');
   return `${_league || ''}\n${body}`.trim();
@@ -62,7 +69,7 @@ const formatNaturalResponse = (s) => (s && typeof s === 'string') ? s : JSON.str
 // Minimal placeholders for classes assumed to exist elsewhere in the codebase.
 class intelligentMenus { constructor(){} buildContextualMainMenu(){ return null; } buildMatchDetailMenu(){ return null; } }
 class fixturesManager { constructor(){} getLeagueFixtures(){ return []; } }
-const premiumUI = { buildMatchCard: (m) => `${m.home} vs ${m.away}` , buildSubscriptionComparison: () => 'Subscription comparison' };
+const premiumUI = { buildMatchCard: (m) => `${teamNameOf(m.home)} vs ${teamNameOf(m.away)}` , buildSubscriptionComparison: () => 'Subscription comparison' };
 
 // Small utility placeholders
 const safeGetUserData = async (redis, key) => {
@@ -849,7 +856,7 @@ async function handleLiveMenuCallback(chatId, userId, redis, services) {
       
       const score = (typeof m.homeScore === 'number' && typeof m.awayScore === 'number') ? `${m.homeScore}-${m.awayScore}` : '─';
       const status = (String(m.status || '').toUpperCase() === 'LIVE') ? `🔴 ${m.time || 'LIVE'}` : `⏱ ${m.time || m.status || 'TBD'}`;
-      const league = m.league || m.competition || '';
+      const league = safeNameOf(m.league || m.competition || (m.raw && m.raw.competition), '');
       return `${i + 1}. *${home}* vs *${away}*\n   ${score} ${status} ${league ? `[${league}]` : ''}`;
     }).join('\n\n');
 
@@ -1091,7 +1098,7 @@ async function handleMatchCallback(data, chatId, userId, redis, services) {
     const awayOdds = m.awayOdds || m.odds?.away || '-';
     const drawOdds = m.drawOdds || m.odds?.draw || '-';
 
-    let text = `🏟️ *Match Details*\n\n*${m.home}* vs *${m.away}*\n`;
+    let text = `🏟️ *Match Details*\n\n*${safeNameOf(m.home, 'Home')}* vs *${safeNameOf(m.away, 'Away')}*\n`;
     text += `• Score: ${score}\n• Time: ${time}\n`;
     text += `• Odds: Home ${homeOdds} • Draw ${drawOdds} • Away ${awayOdds}\n`;
     // prefer liveStats where available
@@ -1293,9 +1300,9 @@ async function handleFavoriteView(data, chatId, userId, redis, services) {
     if (services && services.sportsAggregator && typeof services.sportsAggregator.getLiveMatches === 'function') {
       try {
         const allLive = await services.sportsAggregator.getLiveMatches();
-        const matches = (allLive || []).filter(m => (m.home && m.home.toLowerCase().includes(team.toLowerCase())) || (m.away && m.away.toLowerCase().includes(team.toLowerCase()))).slice(0, 6);
+        const matches = (allLive || []).filter(m => (teamNameOf(m.home).toLowerCase().includes(team.toLowerCase())) || (teamNameOf(m.away).toLowerCase().includes(team.toLowerCase()))).slice(0, 6);
         if (matches.length > 0) {
-          const list = matches.map(m => `• ${m.home} vs ${m.away} — ${m.time || m.status || 'LIVE'}`).join('\n');
+          const list = matches.map(m => `• ${teamNameOf(m.home)} vs ${teamNameOf(m.away)} — ${m.time || m.status || 'LIVE'}`).join('\n');
           return {
             method: 'sendMessage',
             chat_id: chatId,
@@ -1421,7 +1428,7 @@ async function handleLeagueOddsCallback(data, chatId, userId, redis, services) {
       const h = m.homeOdds || m.odds?.home || '─';
       const d = m.drawOdds || m.odds?.draw || '─';
       const a = m.awayOdds || m.odds?.away || '─';
-      return `${i+1}. ${m.home} vs ${m.away}\n   🏠 ${h} • 🤝 ${d} • ✈️ ${a}`;
+      return `${i+1}. ${teamNameOf(m.home)} vs ${teamNameOf(m.away)}\n   🏠 ${h} • 🤝 ${d} • ✈️ ${a}`;
     }).join('\n\n');
 
     return {

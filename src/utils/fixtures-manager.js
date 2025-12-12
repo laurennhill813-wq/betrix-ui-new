@@ -4,6 +4,7 @@
  */
 
 import { Logger } from '../utils/logger.js';
+import safeName from './safe-name.js';
 
 const logger = new Logger('FixturesManager');
 
@@ -124,12 +125,12 @@ export class FixturesManager {
    * Format match for display with all relevant info
    */
   formatMatch(match, includeStats = true) {
-    const home = match.home || match.homeTeam || 'Home';
-    const away = match.away || match.awayTeam || 'Away';
+    const home = safeName(match.home || match.homeTeam || (match.raw && match.raw.home_team) || (match.raw && match.raw.homeTeam), 'Home');
+    const away = safeName(match.away || match.awayTeam || (match.raw && match.raw.away_team) || (match.raw && match.raw.awayTeam), 'Away');
     const score = match.score || (match.homeScore !== undefined ? `${match.homeScore}-${match.awayScore}` : '─');
     const status = match.status || 'SCHEDULED';
     const time = match.time || match.minute || 'TBD';
-    const league = match.league || match.competition || '';
+    const league = safeName(match.league || match.competition || (match.raw && match.raw.competition), '');
 
     let formatted = `*${home}* vs *${away}*\n`;
 
@@ -194,7 +195,9 @@ export class FixturesManager {
 
     matches.slice(0, maxButtons).forEach((match, idx) => {
       const score = match.homeScore !== undefined ? `${match.homeScore}-${match.awayScore}` : '─';
-      const label = `${match.home.substring(0, 8)} ${score} ${match.away.substring(0, 8)}`;
+      const home = safeName(match.home || match.homeTeam, 'Home');
+      const away = safeName(match.away || match.awayTeam, 'Away');
+      const label = `${home.substring(0, 8)} ${score} ${away.substring(0, 8)}`;
       buttons.push({
         text: label,
         callback_data: `match_${leagueId}_${idx}`
@@ -220,7 +223,7 @@ export class FixturesManager {
       // Group by league
       const byLeague = {};
       todayMatches.forEach(m => {
-        const league = m.league || 'Other';
+        const league = safeName(m.league || (m.competition || (m.raw && m.raw.competition)), 'Other');
         if (!byLeague[league]) byLeague[league] = [];
         byLeague[league].push(m);
       });
@@ -231,7 +234,7 @@ export class FixturesManager {
         matches.slice(0, 3).forEach(m => {
           const time = new Date(m.date || m.time || 0).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
           const status = m.status === 'LIVE' ? '🔴' : '📅';
-          summary += `${status} ${time} - *${m.home}* vs *${m.away}*\n`;
+          summary += `${status} ${time} - *${safeName(m.home, 'Home')}* vs *${safeName(m.away, 'Away')}*\n`;
         });
         if (matches.length > 3) {
           summary += `... and ${matches.length - 3} more\n`;
@@ -296,8 +299,11 @@ export class FixturesManager {
    * Format comparison between upcoming teams
    */
   formatMatchPreview(match) {
+    const home = safeName(match.home || match.homeTeam || (match.raw && match.raw.home_team), 'Home');
+    const away = safeName(match.away || match.awayTeam || (match.raw && match.raw.away_team), 'Away');
+
     let preview = `🔮 *Match Preview*\n\n`;
-    preview += `*${match.home}* vs *${match.away}*\n\n`;
+    preview += `*${home}* vs *${away}*\n\n`;
 
     if (match.date) {
       preview += `📅 ${new Date(match.date).toLocaleDateString()}\n`;
@@ -305,7 +311,7 @@ export class FixturesManager {
     }
 
     if (match.league) {
-      preview += `🏆 ${match.league}\n`;
+      preview += `🏆 ${safeName(match.league, '')}\n`;
     }
 
     if (match.venue) {
@@ -315,15 +321,15 @@ export class FixturesManager {
     // Recent form
     if (match.homeForm || match.awayForm) {
       preview += `\n📊 *Recent Form:*\n`;
-      preview += `${match.home}: ${match.homeForm || 'N/A'}\n`;
-      preview += `${match.away}: ${match.awayForm || 'N/A'}\n`;
+      preview += `${home}: ${match.homeForm || 'N/A'}\n`;
+      preview += `${away}: ${match.awayForm || 'N/A'}\n`;
     }
 
     // Head to head
     if (match.headToHead) {
       preview += `\n⚖️ *Head to Head:*\n`;
-      preview += `${match.home} wins: ${match.headToHead.homeWins || 0}\n`;
-      preview += `${match.away} wins: ${match.headToHead.awayWins || 0}\n`;
+      preview += `${home} wins: ${match.headToHead.homeWins || 0}\n`;
+      preview += `${away} wins: ${match.headToHead.awayWins || 0}\n`;
       preview += `Draws: ${match.headToHead.draws || 0}\n`;
     }
 

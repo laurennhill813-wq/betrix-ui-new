@@ -5,6 +5,7 @@
 
 import { Logger } from '../utils/logger.js';
 import { compareOdds, formatOddsComparison } from './odds-normalizer.js';
+import safeName from './safe-name.js';
 
 const logger = new Logger('MatchDetailsUX');
 // imported utilities may be referenced by other modules; silence unused warnings here
@@ -52,7 +53,7 @@ export function canRefreshMatch(userId, matchId) {
  * Format match details with odds comparison button
  */
 export function formatMatchDetailsWithOdds(match, oddsData = null) {
-  let text = `⚽ *${match.home}* vs *${match.away}*\n\n`;
+  let text = `⚽ *${safeName(match.home, 'Home')}* vs *${safeName(match.away, 'Away')}*\n\n`;
   
   if (match.score) {
     text += `📊 *Score:* ${match.score.home || '-'} - ${match.score.away || '-'}\n`;
@@ -68,8 +69,8 @@ export function formatMatchDetailsWithOdds(match, oddsData = null) {
   
   if (match.possession) {
     text += `\n⚙️ *Possession:*\n`;
-    text += `${match.home}: ${match.possession.home || 'N/A'}%\n`;
-    text += `${match.away}: ${match.possession.away || 'N/A'}%\n`;
+    text += `${safeName(match.home, 'Home')}: ${match.possession.home || 'N/A'}%\n`;
+    text += `${safeName(match.away, 'Away')}: ${match.possession.away || 'N/A'}%\n`;
   }
   
   if (match.stats) {
@@ -211,7 +212,7 @@ export function generateMatchUpdateNotification(oldMatch, newMatch) {
     updates.push('📊 Match updated - no major changes');
   }
   
-  let text = `🔄 *${newMatch.home}* vs *${newMatch.away}* - Live Update\n\n`;
+  let text = `🔄 *${safeName(newMatch.home, 'Home')}* vs *${safeName(newMatch.away, 'Away')}* - Live Update\n\n`;
   updates.forEach(u => text += `${u}\n`);
   
   return text;

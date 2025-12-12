@@ -36,8 +36,11 @@ export class MatchFormatter {
     // Venue display
     const venue = match.venue && match.venue !== 'TBA' ? `  🏟️ ${match.venue}` : '';
 
-    return `${statusEmoji} ${match.home} ${score} ${match.away}\n` +
-           `   ${timeDisplay}${league}${venue}`;
+        const home = match.home || match.homeTeam || (match.raw && match.raw.home_team) || match.homeName || 'Home';
+        const away = match.away || match.awayTeam || (match.raw && match.raw.away_team) || match.awayName || 'Away';
+
+        return `${statusEmoji} ${home} ${score} ${away}\n` +
+          `   ${timeDisplay}${league}${venue}`;
   }
 
   /**
@@ -106,8 +109,10 @@ export class MatchFormatter {
     const dateStr = fixture.time || 'TBA';
     const venue = fixture.venue ? `\n🏟️ ${fixture.venue}` : '';
     const league = fixture.league ? `\n📍 ${fixture.league}` : '';
+    const home = fixture.home || fixture.homeTeam || (fixture.raw && fixture.raw.home_team) || 'Home';
+    const away = fixture.away || fixture.awayTeam || (fixture.raw && fixture.raw.away_team) || 'Away';
 
-    return `⚽ ${fixture.home} vs ${fixture.away}\n⏰ ${dateStr}${venue}${league}`;
+    return `⚽ ${home} vs ${away}\n⏰ ${dateStr}${venue}${league}`;
   }
 
   /**

@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import safeName from '../utils/safe-name.js';
 
 const ROOT = process.cwd();
 const MATCHES_FILE = path.join(ROOT, 'FOOTBALL_DATA_MATCHES.json');
@@ -47,21 +48,7 @@ function formatTime(ts) {
   } catch (e) { return String(ts); }
 }
 
-function safeName(val, fallback = 'TBA') {
-  try {
-    if (val == null) return fallback;
-    if (typeof val === 'string' || typeof val === 'number') return String(val);
-    if (typeof val === 'object') {
-      if (val.name) return String(val.name);
-      if (val.fullName) return String(val.fullName);
-      if (val.teamName) return String(val.teamName);
-      return JSON.stringify(val);
-    }
-    return String(val);
-  } catch (e) {
-    return fallback;
-  }
-}
+// Use shared safeName helper from utils to coerce provider objects to readable strings
 
 export async function getLiveMatches() {
   // Prefer live data from injected SportsAggregator if available

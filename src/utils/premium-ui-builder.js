@@ -4,6 +4,7 @@
  */
 
 import { Logger } from '../utils/logger.js';
+import safeName from './safe-name.js';
 
 const logger = new Logger('PremiumUIBuilder');
 void logger; // Silence unused logger warning
@@ -51,8 +52,8 @@ export function buildSectionDivider(title) {
 export function buildMatchCard(match, index = 1, includeOdds = true) {
   if (!match) return '';
 
-  let home = match.home || match.homeTeam || (match.raw && match.raw.home_team) || (match.raw && match.raw.homeTeam) || 'Home';
-  let away = match.away || match.awayTeam || (match.raw && match.raw.away_team) || (match.raw && match.raw.awayTeam) || 'Away';
+  let home = safeName(match.home || match.homeTeam || (match.raw && match.raw.home_team) || (match.raw && match.raw.homeTeam), 'Home');
+  let away = safeName(match.away || match.awayTeam || (match.raw && match.raw.away_team) || (match.raw && match.raw.awayTeam), 'Away');
   
   // Additional fallback from raw data for teams
   if ((home === 'Home' || !home) && match.raw) {
@@ -83,7 +84,7 @@ export function buildMatchCard(match, index = 1, includeOdds = true) {
 
   // League/Competition info
   if (match.league || match.competition) {
-    card += `🏆 *${match.league || match.competition}*\n`;
+    card += `🏆 *${safeName(match.league || match.competition, '')}*\n`;
   }
 
   // Odds if available
@@ -190,8 +191,8 @@ export function buildFixturesDisplay(fixtures, league = 'League', view = 'upcomi
   fixtures.slice(0, 15).forEach((f, i) => {
     const status = f.status === 'LIVE' || f.status === 'live' ? '🔴' : '📅';
     const time = f.time || f.date || 'TBD';
-    const home = f.home || f.homeTeam || 'Home';
-    const away = f.away || f.awayTeam || 'Away';
+    const home = safeName(f.home || f.homeTeam, 'Home');
+    const away = safeName(f.away || f.awayTeam, 'Away');
     const score = f.score || (f.homeScore !== undefined ? `${f.homeScore}-${f.awayScore}` : '─');
 
     display += `${i + 1}. ${status} \`${score}\` *${home}* vs *${away}*\n`;
@@ -246,7 +247,7 @@ export function buildLeagueSelectorKeyboard(sport = 'football', tier = 'FREE') {
  */
 export function buildBetAnalysis(match, analysis = {}) {
   let text = `🤖 *AI Bet Analysis*\n\n`;
-  text += `*${match.home}* vs *${match.away}*\n\n`;
+  text += `*${safeName(match.home, 'Home')}* vs *${safeName(match.away, 'Away')}*\n\n`;
 
   if (analysis.prediction) {
     text += `🎯 *Prediction:* ${analysis.prediction}\n`;
@@ -294,8 +295,8 @@ export function buildUpcomingFixtures(fixtures = [], league = '', daysBefore = 7
   });
 
   sorted.slice(0, 10).forEach((f, i) => {
-    const home = f.home || f.homeTeam || 'Home';
-    const away = f.away || f.awayTeam || 'Away';
+    const home = safeName(f.home || f.homeTeam, 'Home');
+    const away = safeName(f.away || f.awayTeam, 'Away');
     const dateStr = f.date ? new Date(f.date).toLocaleDateString() : 'TBD';
     const timeStr = f.time ? new Date(f.time).toLocaleTimeString() : 'TBD';
 
@@ -379,7 +380,9 @@ export function buildLiveMatchTicker(matches = []) {
   matches.slice(0, 8).forEach((m) => {
     const score = m.homeScore !== undefined ? `${m.homeScore}-${m.awayScore}` : '─';
     const time = m.time || '...';
-    ticker += `⚽ \`${score}\` *${m.home}* vs *${m.away}* (${time})\n`;
+    const home = safeName(m.home || m.homeTeam, 'Home');
+    const away = safeName(m.away || m.awayTeam, 'Away');
+    ticker += `⚽ \`${score}\` *${home}* vs *${away}* (${time})\n`;
   });
 
   if (matches.length > 8) {
@@ -393,6 +396,9 @@ export function buildLiveMatchTicker(matches = []) {
  * Build stat comparison between two teams
  */
 export function buildTeamComparison(home, away, homeStats = {}, awayStats = {}) {
+  home = safeName(home, 'Home');
+  away = safeName(away, 'Away');
+
   let comparison = `⚖️ *Team Comparison*\n\n`;
   comparison += `*${home}* vs *${away}*\n\n`;
 
@@ -419,11 +425,11 @@ export function buildTeamComparison(home, away, homeStats = {}, awayStats = {}) 
  */
 export function buildNotificationAlert(type, data) {
   const alerts = {
-    'goal': `⚽ *GOAL!* ${data.scorer} just scored!\n*${data.home}* ${data.score} *${data.away}*`,
+    'goal': `⚽ *GOAL!* ${data.scorer} just scored!\n*${safeName(data.home, 'Home')}* ${data.score} *${safeName(data.away, 'Away')}*`,
     'redcard': `🔴 *RED CARD!* ${data.player} has been sent off!`,
     'yellowcard': `🟨 *YELLOW CARD* for ${data.player}`,
     'status': `📡 *Match Status Update*\n${data.status}`,
-    'odds_update': `💰 *Odds Updated!*\n${data.home} @ ${data.homeOdds}\nDraw @ ${data.drawOdds}\n${data.away} @ ${data.awayOdds}`
+    'odds_update': `💰 *Odds Updated!*\n${safeName(data.home, 'Home')} @ ${data.homeOdds}\nDraw @ ${data.drawOdds}\n${safeName(data.away, 'Away')} @ ${data.awayOdds}`
   };
 
   return alerts[type] || `📡 *Notification*\n${JSON.stringify(data)}`;

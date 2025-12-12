@@ -4,6 +4,7 @@
  */
 
 import { Logger } from '../utils/logger.js';
+import safeName from '../utils/safe-name.js';
 
 const logger = new Logger('MenuHandler');
 void logger;
@@ -244,7 +245,7 @@ Check back later for exciting matchups! ⚽`;
   let text = `${BETRIX_HEADER}\n\n*🔴 LIVE ${sport.toUpperCase()} MATCHES*\n`;
 
   games.slice(0, 10).forEach((game, i) => {
-    text += `\n${i + 1}. *${game.home}* vs *${game.away}*`;
+    text += `\n${i + 1}. *${safeName(game.home, 'Home')}* vs *${safeName(game.away, 'Away')}*`;
     if (game.score) text += `\n   • Score: ${game.score}`;
     if (game.time) text += `\n   • ⏱ ${game.time}`;
     if (game.odds) text += `\n   • 📊 Odds: ${game.odds}`;
@@ -281,7 +282,7 @@ export function buildLiveMenuPayload(games, sport = 'Football', userTier = 'FREE
 
   pageGames.forEach((game, i) => {
     const idx = start + i + 1;
-    text += `\n${idx}. *${game.home}* vs *${game.away}*`;
+    text += `\n${idx}. *${safeName(game.home, 'Home')}* vs *${safeName(game.away, 'Away')}*`;
     if (game.score) text += `\n   • Score: ${game.score}`;
     if (game.time) text += `\n   • ⏱ ${game.time}`;
     text += `\n   — Tap Details to analyze or ⭐ to add to Favorites\n`;
@@ -322,7 +323,7 @@ export function formatOdds(matches) {
   let text = `${BETRIX_HEADER}\n\n*📊 LIVE ODDS & PREDICTIONS*\n`;
 
   matches.slice(0, 8).forEach((m, i) => {
-    text += `\n${i + 1}. *${m.home}* vs *${m.away}*`;
+    text += `\n${i + 1}. *${safeName(m.home, 'Home')}* vs *${safeName(m.away, 'Away')}*`;
     text += `\n   • 💰 Home: ${m.homeOdds}  •  Draw: ${m.drawOdds}  •  Away: ${m.awayOdds}`;
     if (m.prediction) text += `\n   • 🤖 Prediction: ${m.prediction}`;
     if (m.value) text += `\n   • ⭐ Value Bet: ${m.value}`;
