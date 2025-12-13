@@ -116,7 +116,34 @@ async function getLiveMatchesBySport(sport, redis, sportsAggregator) {
       const data = tryParseJson(cached);
       if (data && data.sports && data.sports[sport] && Array.isArray(data.sports[sport].samples)) {
         logger.info(`📦 Got cached ${sport} matches from prefetch (${data.sports[sport].count || 0} total)`);
-        return data.sports[sport].samples;
+        // Defensive filter: remove obviously stale/demo fixtures based on kickoff timestamps
+        const nowTs = Date.now();
+        const minTs = nowTs - (7 * 24 * 60 * 60 * 1000); // 7 days in past
+        const maxTs = nowTs + (90 * 24 * 60 * 60 * 1000); // 90 days in future
+        const parseFixtureTs = (f) => {
+          try {
+            const cands = [f.kickoff, f.kickoff_at, f.utcDate, f.utc_date, f.date, f.time, f.starting_at, f.timestamp, f.ts, f.start, f.match_time, f.datetime];
+            for (const c of cands) {
+              if (!c && c !== 0) continue;
+              if (typeof c === 'number') return c < 1e12 ? c * 1000 : c;
+              if (typeof c === 'string') {
+                if (/^\d{10}$/.test(c)) return Number(c) * 1000;
+                if (/^\d{13}$/.test(c)) return Number(c);
+                const d = new Date(c);
+                if (!isNaN(d.getTime())) return d.getTime();
+              }
+            }
+          } catch (e) { /* ignore */ }
+          return null;
+        };
+
+        const samples = data.sports[sport].samples.filter(f => {
+          const ts = parseFixtureTs(f);
+          if (!ts) return false;
+          return ts >= minTs && ts <= maxTs;
+        });
+
+        return samples;
       }
     }
 
@@ -125,7 +152,44 @@ async function getLiveMatchesBySport(sport, redis, sportsAggregator) {
       const parsed = tryParseJson(live39);
       if (Array.isArray(parsed) && parsed.length > 0) {
         logger.info('📦 Got cached soccer matches from live:39 fallback');
-        return parsed;
+        // Filter live: prefer items that are live or within reasonable time window
+        const nowTs = Date.now();
+        const minTs = nowTs - (7 * 24 * 60 * 60 * 1000);
+        const maxTs = nowTs + (90 * 24 * 60 * 60 * 1000);
+        const isLiveMatch = (m) => {
+          try {
+            if (!m) return false;
+            if (m.status && String(m.status).toLowerCase().includes('live')) return true;
+            if (m.time_status && String(m.time_status).toLowerCase().includes('live')) return true;
+            if (typeof m.is_live === 'boolean') return m.is_live === true;
+            if (m.minute || m.elapsed) return true;
+          } catch (e) { /* ignore */ }
+          return false;
+        };
+        const parseFixtureTs = (f) => {
+          try {
+            const cands = [f.kickoff, f.kickoff_at, f.utcDate, f.utc_date, f.date, f.time, f.starting_at, f.timestamp, f.ts, f.start, f.match_time, f.datetime];
+            for (const c of cands) {
+              if (!c && c !== 0) continue;
+              if (typeof c === 'number') return c < 1e12 ? c * 1000 : c;
+              if (typeof c === 'string') {
+                if (/^\d{10}$/.test(c)) return Number(c) * 1000;
+                if (/^\d{13}$/.test(c)) return Number(c);
+                const d = new Date(c);
+                if (!isNaN(d.getTime())) return d.getTime();
+              }
+            }
+          } catch (e) { /* ignore */ }
+          return null;
+        };
+
+        const filtered = parsed.filter(m => {
+          if (isLiveMatch(m)) return true;
+          const ts = parseFixtureTs(m);
+          if (!ts) return false;
+          return ts >= minTs && ts <= maxTs;
+        });
+        return filtered;
       }
     }
 
@@ -135,7 +199,34 @@ async function getLiveMatchesBySport(sport, redis, sportsAggregator) {
       const parsedPm = tryParseJson(pm);
       if (parsedPm && Array.isArray(parsedPm.data)) {
         logger.info(`📦 Got cached soccer matches from prefetch:sportsmonks:live (${parsedPm.count || parsedPm.data.length})`);
-        return parsedPm.data;
+        // Filter out stale/demo entries using same date window as other handlers
+        const nowTs = Date.now();
+        const minTs = nowTs - (7 * 24 * 60 * 60 * 1000);
+        const maxTs = nowTs + (90 * 24 * 60 * 60 * 1000);
+        const parseFixtureTs = (f) => {
+          try {
+            const cands = [f.kickoff, f.kickoff_at, f.utcDate, f.utc_date, f.date, f.time, f.starting_at, f.timestamp, f.ts, f.start, f.match_time, f.datetime];
+            for (const c of cands) {
+              if (!c && c !== 0) continue;
+              if (typeof c === 'number') return c < 1e12 ? c * 1000 : c;
+              if (typeof c === 'string') {
+                if (/^\d{10}$/.test(c)) return Number(c) * 1000;
+                if (/^\d{13}$/.test(c)) return Number(c);
+                const d = new Date(c);
+                if (!isNaN(d.getTime())) return d.getTime();
+              }
+            }
+          } catch (e) { /* ignore */ }
+          return null;
+        };
+
+        const samples = parsedPm.data.filter(f => {
+          const ts = parseFixtureTs(f);
+          if (!ts) return false;
+          return ts >= minTs && ts <= maxTs;
+        });
+
+        return samples;
       }
     } catch (e) { void e; }
 
