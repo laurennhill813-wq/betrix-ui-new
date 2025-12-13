@@ -15,10 +15,43 @@ async function loadMatches() {
     const raw = await fs.readFile(MATCHES_FILE, 'utf8');
     const data = JSON.parse(raw);
     // Expect an array; if object, try common keys
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data.matches)) return data.matches;
-    if (Array.isArray(data.data)) return data.data;
-    return [];
+    let list = [];
+    if (Array.isArray(data)) list = data;
+    else if (Array.isArray(data.matches)) list = data.matches;
+    else if (Array.isArray(data.data)) list = data.data;
+
+    // Filter out obviously stale/demo data: keep fixtures that have a kickoff/date
+    // within a reasonable window (past 7 days to next 90 days). This prevents
+    // old archived datasets (eg. 2005/2006) from being shown to users.
+    const now = Date.now();
+    const minTs = now - (7 * 24 * 60 * 60 * 1000); // 7 days in past
+    const maxTs = now + (90 * 24 * 60 * 60 * 1000); // 90 days in future
+
+    const filtered = list.filter(m => {
+      try {
+        const candidates = [m.kickoff, m.kickoff_at, m.utcDate, m.utc_date, m.date, m.time, m.starting_at, m.timestamp, m.ts, m.start, m.match_time, m.datetime];
+        for (const c of candidates) {
+          if (!c && c !== 0) continue;
+          let ts = null;
+          if (typeof c === 'number') {
+            ts = c < 1e12 ? c * 1000 : c;
+          } else if (typeof c === 'string') {
+            if (/^\d{10}$/.test(c)) ts = Number(c) * 1000;
+            else if (/^\d{13}$/.test(c)) ts = Number(c);
+            else {
+              const d = new Date(c);
+              if (!isNaN(d.getTime())) ts = d.getTime();
+            }
+          }
+          if (ts && ts >= minTs && ts <= maxTs) return true;
+        }
+      } catch (e) {
+        // ignore parsing problems for a single item
+      }
+      return false;
+    });
+
+    return filtered || [];
   } catch (err) {
     console.warn('Could not load matches file', MATCHES_FILE, err?.message);
     return [];

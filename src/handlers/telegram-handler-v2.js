@@ -1165,8 +1165,18 @@ async function handleMatchCallback(data, chatId, userId, redis, services) {
  */
 async function handleAnalyzeMatch(data, chatId, userId, redis, services) {
   try {
-    const parts = data.split('_');
-    const matchId = parts[2]; // analyze_match_{matchId}
+    const parts = String(data).split('_');
+    // support both forms:
+    //  - analyze_match_{matchId}
+    //  - analyze_match_{leagueId}_{indexOrId}
+    let leagueToken = null;
+    let matchToken = null;
+    if (parts.length >= 4) {
+      leagueToken = parts[2];
+      matchToken = parts.slice(3).join('_');
+    } else {
+      matchToken = parts[2];
+    }
 
     if (!services || !services.sportsAggregator) {
       const errorText = '❌ Analysis service unavailable';
@@ -1175,12 +1185,71 @@ async function handleAnalyzeMatch(data, chatId, userId, redis, services) {
 
     const agg = services.sportsAggregator;
 
-    // Step 1: get live matches from Football-Data (normalized)
-    const liveMatches = await agg._getLiveFromFootballData().catch(() => []);
-    const match = (liveMatches || []).find(m => String(m.id) === String(matchId));
+    // Try multiple sources to locate the target match: live matches, upcoming fixtures
+    let match = null;
+    // Helper to resolve by index or id or fuzzy name
+    const resolveFromList = (list, token) => {
+      if (!Array.isArray(list) || list.length === 0) return null;
+      // numeric index (0-based or 1-based)
+      if (/^\d+$/.test(String(token))) {
+        const idx = Number(token);
+        // prefer 1-based indices from UI: try idx-1 then idx
+        if (idx > 0 && list[idx - 1]) return list[idx - 1];
+        if (list[idx]) return list[idx];
+      }
+      // match by id field
+      const foundById = list.find(m => String(m.id) === String(token) || String(m.fixtureId) === String(token) || String(m.match_id) === String(token));
+      if (foundById) return foundById;
+      // fuzzy match by home/away names
+      const lower = String(token).toLowerCase();
+      return list.find(m => (String(m.home || m.homeTeam || m.home_name || (m.raw && (m.raw.home && m.raw.home.name)) || '').toLowerCase().includes(lower)) || (String(m.away || m.awayTeam || m.away_name || (m.raw && (m.raw.away && m.raw.away.name)) || '').toLowerCase().includes(lower)));
+    };
+
+    // 1) If leagueToken indicates 'live' or omitted: try live matches first
+    try {
+      if (!leagueToken || leagueToken === 'live' || leagueToken === 'all') {
+        const liveMatches = (typeof agg.getAllLiveMatches === 'function') ? await agg.getAllLiveMatches().catch(() => []) : [];
+        match = resolveFromList(liveMatches, matchToken);
+      }
+    } catch (e) {
+      // continue to next fallback
+    }
+
+    // 2) If not found yet and a leagueToken was provided, try upcoming fixtures for that league
+    if (!match && leagueToken && leagueToken !== 'live' && leagueToken !== 'all') {
+      try {
+        const leagueId = isNaN(Number(leagueToken)) ? leagueToken : Number(leagueToken);
+        const fixtures = (typeof agg.getFixtures === 'function') ? await agg.getFixtures(leagueId).catch(() => []) : [];
+        match = resolveFromList(fixtures, matchToken);
+      } catch (e) {
+        // ignore and fallthrough
+      }
+    }
+
+    // 3)  Try global upcoming fixtures if still not found
+    if (!match) {
+      try {
+        const allFixtures = (typeof agg.getFixtures === 'function') ? await agg.getFixtures().catch(() => []) : [];
+        match = resolveFromList(allFixtures, matchToken);
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // 4) Fallback: try local static matches loader (file based) if aggregator didn't find anything
+    if (!match) {
+      try {
+        const fb = await import('../bot/football.js');
+        const upcomingRes = await (fb && fb.getUpcomingFixtures ? fb.getUpcomingFixtures({ page: 1, perPage: 200 }) : { items: [] });
+        const localList = upcomingRes.items || [];
+        match = resolveFromList(localList, matchToken);
+      } catch (e) {
+        // ignore
+      }
+    }
 
     if (!match) {
-      return { method: 'sendMessage', chat_id: chatId, text: '⚠️ Match not found or not live.', parse_mode: 'Markdown' };
+      return { method: 'sendMessage', chat_id: chatId, text: '⚠️ Match not found or not available for analysis.', parse_mode: 'Markdown' };
     }
 
     // Derive team identifiers for SportMonks where possible
