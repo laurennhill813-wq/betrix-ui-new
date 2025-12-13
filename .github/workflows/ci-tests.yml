@@ -18,18 +18,10 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Bun
-        run: |
-          curl -fsSL https://bun.sh/install | bash -s -- --yes
-          # Persist bun to PATH in a GitHub Actions-compatible way
-          echo "$HOME/.bun/bin" >> $GITHUB_PATH
-        shell: bash
-        continue-on-error: true
-
       - name: Print versions
         run: |
           node --version
-          bun --version || true
+          npm --version
         shell: bash
 
       - name: Install dependencies
