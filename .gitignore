@@ -92,3 +92,4 @@ docker-compose.yml
 
 .history/
 \n.bun-bin/
+.bun-bin/

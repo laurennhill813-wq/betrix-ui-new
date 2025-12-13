@@ -3,7 +3,7 @@ import createRag from './rag.js';
 import structured from './structured.js';
 import metrics from '../utils/metrics.js';
 
-export function createAIWrapper({ azure, gemini, huggingface, localAI, claude, redis, logger }) {
+export function createAIWrapper({ azure, gemini, huggingface, localAI, claude, groq, redis, logger }) {
   const rag = createRag({ redis, azure, logger });
 
   // Temporary in-memory provider blocklist to avoid repeatedly calling rate-limited providers
@@ -71,8 +71,10 @@ export function createAIWrapper({ azure, gemini, huggingface, localAI, claude, r
         logger && logger.warn && logger.warn('RAG retrieval failed', e && e.message);
       }
 
-      // Prefer Azure as brain
+      // Prefer Azure as brain (unless configured to prefer Claude/Anthropic)
       const FORCE_AZURE = (String(process.env.FORCE_AZURE || process.env.FORCE_AZURE_PROVIDER || process.env.PREFER_AZURE || '').toLowerCase() === '1' || String(process.env.FORCE_AZURE || process.env.FORCE_AZURE_PROVIDER || process.env.PREFER_AZURE || '').toLowerCase() === 'true');
+      const FORCE_CLAUDE = (String(process.env.FORCE_CLAUDE || process.env.PREFER_CLAUDE || process.env.PROVIDER_CLAUDE_ONLY || '').toLowerCase() === '1' || String(process.env.FORCE_CLAUDE || process.env.PREFER_CLAUDE || process.env.PROVIDER_CLAUDE_ONLY || '').toLowerCase() === 'true');
+      const FORCE_GROQ = (String(process.env.FORCE_GROQ || process.env.PREFER_GROQ || process.env.PROVIDER_GROQ_ONLY || '').toLowerCase() === '1' || String(process.env.FORCE_GROQ || process.env.PREFER_GROQ || process.env.PROVIDER_GROQ_ONLY || '').toLowerCase() === 'true');
 
       if (FORCE_AZURE && azure && azure.isHealthy() && !isBlocked('azure')) {
         try {
@@ -91,6 +93,20 @@ export function createAIWrapper({ azure, gemini, huggingface, localAI, claude, r
             logger && logger.info && logger.info('Blocking azure due to rate-limit', { ttl });
           }
           metrics && metrics.incError && metrics.incError('azure');
+        }
+      }
+
+      if (FORCE_GROQ && groq && groq.isHealthy() && !isBlocked('groq')) {
+        try {
+          const out = await groq.chat(augmented, context);
+          metrics && metrics.incRequest && metrics.incRequest('groq');
+          logger && logger.info && logger.info('AI provider used (force)', { provider: 'groq' });
+          try { console.info('AI provider used (force)', JSON.stringify({ provider: 'groq' })); } catch (e) {}
+          return out;
+        } catch (err) {
+          logger && logger.warn && logger.warn('Groq.chat forced failed — falling through', err && err.message);
+          if (isRateLimitError(err)) { const ttl = parseRetrySeconds(err) || 60; blockProvider('groq', ttl); logger && logger.info && logger.info('Blocking groq due to rate-limit', { ttl }); }
+          metrics && metrics.incError && metrics.incError('groq');
         }
       }
 
@@ -153,11 +169,22 @@ export function createAIWrapper({ azure, gemini, huggingface, localAI, claude, r
       const skipGeminiBecauseForced = FORCE_AZURE;
       if (claude && claude.enabled && !isBlocked('claude')) {
         try {
-          const out = await claude.chat(message, context);
+          // pass augmented input (with RAG + persona system prompt in context)
+          const out = await claude.chat(augmented, context);
           try { console.info('AI provider used', JSON.stringify({ provider: 'claude' })); } catch (e) {}
           logger && logger.info && logger.info('AI provider used', { provider: 'claude' });
           return out;
-        } catch(e) { logger && logger.warn && logger.warn('Claude failed', e && e.message); if (isRateLimitError(e)) blockProvider('claude', 60); }
+        } catch(e) {
+          logger && logger.warn && logger.warn('Claude failed', e && e.message);
+          // billing-specific handling: surface a clear message and avoid retrying
+          if (e && e.code === 'billing') {
+            logger && logger.error && logger.error('Anthropic billing/credits issue detected — disabling Claude until resolved');
+            // block for a long time to allow operator fix (best-effort)
+            blockProvider('claude', 60 * 60);
+            return "Anthropic (Claude) billing issue: please enable billing or top up credits so BETRIX can generate responses.";
+          }
+          if (isRateLimitError(e)) blockProvider('claude', 60);
+        }
       }
       if (!skipGeminiBecauseForced && gemini && gemini.enabled && !isBlocked('gemini')) {
         try {
@@ -175,6 +202,16 @@ export function createAIWrapper({ azure, gemini, huggingface, localAI, claude, r
           return out;
         } catch(e) { logger && logger.warn && logger.warn('HuggingFace failed', e && e.message); if (isRateLimitError(e)) blockProvider('huggingface', 60); }
       }
+      // As a final fallback try Groq (if available and not blocked)
+      if (groq && groq.isHealthy() && !isBlocked('groq')) {
+        try {
+          const out = await groq.chat(augmented, context);
+          try { console.info('AI provider used', JSON.stringify({ provider: 'groq' })); } catch(e) {}
+          logger && logger.info && logger.info('AI provider used', { provider: 'groq' });
+          return out;
+        } catch (e) { logger && logger.warn && logger.warn('Groq failed', e && e.message); if (isRateLimitError(e)) blockProvider('groq', 60); }
+      }
+
       try {
         const out = await localAI.chat(message, context);
         try { console.info('AI provider used', JSON.stringify({ provider: 'localAI' })); } catch(e) {}

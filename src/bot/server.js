@@ -26,6 +26,9 @@ if (!BOT_TOKEN) {
 
 const bot = new Telegraf(BOT_TOKEN);
 
+// BETRIXX analysis command wiring
+import { analyseFixtureWithBetrixx } from '../services/betrixx_analysis.js';
+
 // --- Admin /health command guard ---
 const ADMIN_USER_ID = process.env.ADMIN_TELEGRAM_ID ? String(process.env.ADMIN_TELEGRAM_ID) : null;
 
@@ -341,6 +344,50 @@ bot.command('health', async (ctx) => {
     await ctx.reply(`Health OK\nRedis: ${r}\nLive matches: ${live?.length || 0}\nFixtures cached: ${fixtures?.length || 0}`);
   } catch (err) {
     await ctx.reply('Health check failed: ' + String(err.message || err));
+  }
+});
+
+// Analyse fixture via BETRIXX (Groq-powered). Usage: /analyse_fixture <fixtureId>
+bot.command('analyse_fixture', async (ctx) => {
+  try {
+    const parts = (ctx.message && ctx.message.text) ? ctx.message.text.trim().split(/\s+/).filter(Boolean) : [];
+    const fixtureId = parts[1];
+    if (!fixtureId) return await ctx.reply('Usage: /analyse_fixture <fixtureId>');
+
+    await ctx.reply('🧠 Analysing this fixture with BETRIXX...');
+
+    // try to fetch fixture from aggregator cache (supports upcoming/live/past fixtures)
+    let fixture = null;
+    try {
+      const all = await sportsAgg.getFixtures();
+      fixture = (all || []).find(f => String(f.id) === String(fixtureId) || String(f.fixture?.id) === String(fixtureId));
+    } catch (e) {
+      // fallthrough, we'll try alternative lookups
+    }
+
+    if (!fixture) {
+      // try live matches
+      try {
+        const live = await sportsAgg.getAllLiveMatches?.() || await sportsAgg.getLiveMatches?.() || [];
+        fixture = (live || []).find(m => String(m.id) === String(fixtureId) || String(m.fixture?.id) === String(fixtureId));
+      } catch (e) { /* ignore */ }
+    }
+
+    if (!fixture) return await ctx.reply("I couldn't find that fixture. Check the ID and try again.");
+
+    try {
+      const analysis = await analyseFixtureWithBetrixx(fixture);
+      if (!analysis || String(analysis).trim().length === 0) return await ctx.reply('BETRIXX could not generate analysis right now. Try again shortly.');
+      // Telegram message length limit 4096; truncate if required
+      const msg = String(analysis).slice(0, 4000);
+      await ctx.reply(msg);
+    } catch (err) {
+      console.error('analyse_fixture error (AI):', err?.message || err);
+      await ctx.reply('Something went wrong while analysing that fixture.');
+    }
+  } catch (err) {
+    console.error('analyse_fixture handler error:', err?.message || err);
+    try { await ctx.reply('Error: analysis failed.'); } catch(_) {}
   }
 });
 

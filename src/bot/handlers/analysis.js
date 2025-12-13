@@ -1,5 +1,11 @@
 import axios from 'axios';
 import SportsAggregator from '../../services/sports-aggregator.js';
+import safeName from '../../utils/safe-name.js';
+import GroqService from '../../services/groq.js';
+import persona from '../../ai/persona.js';
+
+// Instantiate Groq once for this handler (falls back if API key not configured)
+const groq = new GroqService(process.env.GROQ_API_KEY || null, process.env.GROQ_MODEL || null, Number(process.env.GROQ_TIMEOUT_MS || 20000), process.env.GROQ_BASE_URL || null);
 
 export async function analyse_match(ctx, matchId) {
   try {
@@ -53,9 +59,48 @@ export async function analyse_match(ctx, matchId) {
       console.warn('Odds fetch failed:', e?.message || e);
     }
 
+    // Try AI-powered BETRIXX analysis first (Groq)
+    try {
+      if (groq && groq.enabled) {
+        const fixture = {
+          id: match.id,
+          home: match.home,
+          away: match.away,
+          homeScore: match.homeScore,
+          awayScore: match.awayScore,
+          competition: match.competition || (match.raw && match.raw.competition && match.raw.competition.name) || null,
+          kickoff: match.time || match.kickoff || null,
+          venue: match.venue || null,
+          headToHead: h2h || null,
+          recentFormHome: recentFormHome || null,
+          recentFormAway: recentFormAway || null,
+          standings: standings || null,
+          odds: odds || null,
+          raw: match.raw || null
+        };
+
+        const prompt = `Provide a BETRIXX-style analysis for this fixture:\n\n${JSON.stringify(fixture, null, 2)}\n\nFollow the BETRIXX persona rules.`;
+        const system = persona.getSystemPrompt();
+        try {
+          const aiResp = await groq.chat(prompt, { system, few_shot_examples: persona.FEW_SHOT_EXAMPLES, model: process.env.GROQ_MODEL });
+          if (aiResp && String(aiResp).trim().length > 0) {
+            await ctx.editMessageText(String(aiResp).trim(), { parse_mode: 'Markdown' });
+            return;
+          }
+        } catch (e) {
+          console.warn('Groq analysis failed, falling back to static analysis:', e?.message || e);
+        }
+      }
+    } catch (e) {
+      console.warn('Groq analysis attempt errored:', e?.message || e);
+    }
+
     // Format analysis text
-    let analysisText = `*Match Analysis: ${match.home} vs ${match.away}*\n\n`;
-    analysisText += `Status: ${match.status}\n`;
+    const homeName = safeName(match.home, 'Home');
+    const awayName = safeName(match.away, 'Away');
+    // Ensure title uses safe names to avoid literal 'undefined' appearing
+    let analysisText = `*Match Analysis: ${homeName} vs ${awayName}*\n\n`;
+    analysisText += `Status: ${match.status || 'N/A'}\n`;
     analysisText += `Score: ${match.homeScore ?? '-'}-${match.awayScore ?? '-'}\n`;
     analysisText += `Competition: ${match.competition || (match.raw && match.raw.competition && match.raw.competition.name) || 'Unknown'}\n`;
     analysisText += `Kickoff: ${match.time || match.kickoff || 'TBA'}\n`;
@@ -68,12 +113,12 @@ Total: ${h2h.totalMatches} | Home wins: ${h2h.homeWins} | Away wins: ${h2h.awayW
     }
 
     if (recentFormHome && recentFormHome.length > 0) {
-      analysisText += `*Recent Form (${match.home}):*\n`;
+      analysisText += `*Recent Form (${homeName}):*\n`;
       analysisText += recentFormHome.slice(0,5).map(m => `${m.starting_at || m.date || m.date_time || m.utcDate || ''}: ${m.result || (m.score ? JSON.stringify(m.score) : '')}`).join('\n') + '\n\n';
     }
 
     if (recentFormAway && recentFormAway.length > 0) {
-      analysisText += `*Recent Form (${match.away}):*\n`;
+      analysisText += `*Recent Form (${awayName}):*\n`;
       analysisText += recentFormAway.slice(0,5).map(m => `${m.starting_at || m.date || m.date_time || m.utcDate || ''}: ${m.result || (m.score ? JSON.stringify(m.score) : '')}`).join('\n') + '\n\n';
     }
 
@@ -82,8 +127,8 @@ Total: ${h2h.totalMatches} | Home wins: ${h2h.homeWins} | Away wins: ${h2h.awayW
       const awayStanding = standings.find(t => t.team && (t.team.name === match.away || t.team.id === match.awayId || t.team.id === match.raw?.awayTeam?.id));
       if (homeStanding || awayStanding) {
         analysisText += `*League Standings:*\n`;
-        if (homeStanding) analysisText += `${match.home}: ${homeStanding.position} (${homeStanding.points} pts)\n`;
-        if (awayStanding) analysisText += `${match.away}: ${awayStanding.position} (${awayStanding.points} pts)\n`;
+        if (homeStanding) analysisText += `${homeName}: ${homeStanding.position} (${homeStanding.points} pts)\n`;
+        if (awayStanding) analysisText += `${awayName}: ${awayStanding.position} (${awayStanding.points} pts)\n`;
         analysisText += '\n';
       }
     }

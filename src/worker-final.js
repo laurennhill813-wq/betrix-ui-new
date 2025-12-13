@@ -32,6 +32,7 @@ import { HuggingFaceService } from "./services/huggingface.js";
 import { AzureAIService } from "./services/azure-ai.js";
 import { FreeSportsService } from "./services/free-sports.js";
 import ClaudeService from "./services/claude.js";
+import GroqService from './services/groq.js';
 import { BotHandlers } from "./handlers.js";
 import OpenLigaDBService from "./services/openligadb.js";
 import RSSAggregator from "./services/rss-aggregator.js";
@@ -254,12 +255,14 @@ const sportsDataAPI = new SportsDataAPI();
 
 // Claude (Anthropic) - prefer if enabled in config
 const claude = new ClaudeService(CONFIG.CLAUDE.API_KEY, CONFIG.CLAUDE.MODEL, CONFIG.CLAUDE.TIMEOUT_MS);
+// Groq - OpenAI-compatible provider
+const groq = new GroqService(process.env.GROQ_API_KEY || CONFIG.GROQ && CONFIG.GROQ.API_KEY, process.env.GROQ_MODEL || (CONFIG.GROQ && CONFIG.GROQ.MODEL), Number(process.env.GROQ_TIMEOUT_MS || 20000), process.env.GROQ_BASE_URL || (CONFIG.GROQ && CONFIG.GROQ.BASE_URL) || 'https://api.groq.com');
 
 // Composite AI wrapper: try Gemini per-request, fall back to LocalAI on errors.
 // create AI wrapper that uses Azure + RAG as the brain
 import { createAIWrapper } from './ai/wrapper.js';
 
-const ai = createAIWrapper({ azure, gemini, huggingface, localAI, claude, redis, logger });
+const ai = createAIWrapper({ azure, gemini, huggingface, localAI, claude, groq, redis, logger });
 
 // Startup probe: check remote AI providers (Azure, HuggingFace) and disable them
 // automatically if they return 401/unauthorized so the worker can fall back
