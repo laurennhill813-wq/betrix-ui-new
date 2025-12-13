@@ -21,7 +21,8 @@ jobs:
       - name: Install Bun
         run: |
           curl -fsSL https://bun.sh/install | bash -s -- --yes
-          echo "::add-path::$HOME/.bun/bin"
+          # Persist bun to PATH in a GitHub Actions-compatible way
+          echo "$HOME/.bun/bin" >> $GITHUB_PATH
         shell: bash
 
       - name: Print versions
