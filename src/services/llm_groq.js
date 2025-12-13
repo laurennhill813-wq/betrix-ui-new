@@ -8,7 +8,9 @@ if (!GROQ_API_KEY) {
   console.warn('[llm_groq] GROQ_API_KEY is not set. Groq calls will fail.');
 }
 
-export async function groqChat({ system, user, temperature = 0.7, max_tokens = 800, model } = {}) {
+// Increase default token allowance to permit detailed analyses when callers
+// don't explicitly pass a larger `max_tokens` value.
+export async function groqChat({ system, user, temperature = 0.7, max_tokens = 2000, model } = {}) {
   if (!GROQ_API_KEY) throw new Error('GROQ_API_KEY missing');
   const payload = {
     model: model || GROQ_MODEL,

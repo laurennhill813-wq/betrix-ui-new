@@ -28,6 +28,8 @@ const bot = new Telegraf(BOT_TOKEN);
 
 // BETRIXX analysis command wiring
 import { analyseFixtureWithBetrixx } from '../services/betrixx_analysis.js';
+import { groqChat } from '../services/llm_groq.js';
+import persona from '../ai/persona.js';
 
 // --- Admin /health command guard ---
 const ADMIN_USER_ID = process.env.ADMIN_TELEGRAM_ID ? String(process.env.ADMIN_TELEGRAM_ID) : null;
@@ -376,11 +378,14 @@ bot.command('analyse_fixture', async (ctx) => {
     if (!fixture) return await ctx.reply("I couldn't find that fixture. Check the ID and try again.");
 
     try {
-      const analysis = await analyseFixtureWithBetrixx(fixture);
+      const analysis = await analyseFixtureWithBetrixx(fixture, { max_tokens: 1800 });
       if (!analysis || String(analysis).trim().length === 0) return await ctx.reply('BETRIXX could not generate analysis right now. Try again shortly.');
-      // Telegram message length limit 4096; truncate if required
-      const msg = String(analysis).slice(0, 4000);
-      await ctx.reply(msg);
+      // Split long analyses into Telegram-safe chunks and send sequentially
+      const full = String(analysis || '');
+      const chunkSize = 3800;
+      for (let i = 0; i < full.length; i += chunkSize) {
+        await ctx.reply(full.slice(i, i + chunkSize));
+      }
     } catch (err) {
       console.error('analyse_fixture error (AI):', err?.message || err);
       await ctx.reply('Something went wrong while analysing that fixture.');
@@ -471,6 +476,89 @@ bot.command('prefetch_status', async (ctx) => {
   } catch (err) {
     console.error('Error in /prefetch_status command', err);
     await ctx.reply('Failed to fetch prefetch status.');
+  }
+});
+
+// Conversational handler: route casual chat through BETRIX persona and
+// handle lightweight analysis intents (e.g., "Liverpool vs Man City").
+bot.on('text', async (ctx) => {
+  try {
+    const text = String(ctx.message && ctx.message.text || '').trim();
+    if (!text) return;
+    // Ignore explicit commands
+    if (text.startsWith('/')) return;
+
+    const lower = text.toLowerCase();
+
+    // Lightweight analysis intent detection
+    const analysisKeywords = ['analyse', 'analyze', 'analysis', 'predict', 'who will win', 'who wins', 'probability', 'odds'];
+    const mentionsVs = /\bvs?\b| v | vs\./i.test(text);
+    const hasAnalysisKeyword = analysisKeywords.some(k => lower.includes(k));
+    const looksLikeFixtureId = /\b\d{4,}\b/.test(text);
+
+    if (hasAnalysisKeyword || mentionsVs || looksLikeFixtureId) {
+      // If a numeric fixture id is present try to fetch and analyse
+      const idMatch = text.match(/(\d{4,})/);
+      if (idMatch) {
+        const fid = idMatch[1];
+        await ctx.reply('🧠 Looking up that fixture and running a BETRIXX analysis...');
+        let fixture = null;
+        try {
+          const all = await sportsAgg.getFixtures();
+          fixture = (all || []).find(f => String(f.id) === fid || String(f.fixture?.id) === fid);
+        } catch (e) { /* ignore */ }
+        if (!fixture) {
+          try {
+            const live = await sportsAgg.getAllLiveMatches?.() || await sportsAgg.getLiveMatches?.() || [];
+            fixture = (live || []).find(m => String(m.id) === fid || String(m.fixture?.id) === fid);
+          } catch (e) { /* ignore */ }
+        }
+        if (!fixture) {
+          await ctx.reply("I couldn't find that fixture ID. Send `/analyse_fixture <fixtureId>` or paste the match like 'Liverpool vs Man City'.");
+          return;
+        }
+        try {
+          const analysis = await analyseFixtureWithBetrixx(fixture);
+          const full = String(analysis || '');
+          // Split into 4000-char chunks for Telegram and send sequentially
+          const chunkSize = 3800;
+          for (let i = 0; i < full.length; i += chunkSize) {
+            const part = full.slice(i, i + chunkSize);
+            await ctx.reply(part);
+          }
+          return;
+        } catch (err) {
+          console.error('Text-handler analysis error', err);
+          await ctx.reply('Failed to generate analysis. Try /analyse_fixture <fixtureId>');
+          return;
+        }
+      }
+
+      // If mentions a "vs" or analysis keyword but no id, ask for clarification
+      if (mentionsVs || hasAnalysisKeyword) {
+        await ctx.reply('Do you want a quick BETRIXX take on a match? Send a fixture ID or type like "Liverpool vs Man City" and I will analyse it.');
+        return;
+      }
+    }
+
+    // Default: general conversational reply using BETRIX persona
+    await ctx.replyWithChatAction('typing');
+    const system = persona.getSystemPrompt();
+    const userPrompt = `User: ${text}\n\nRespond in a lively, punchy BETRIXX voice. Use emojis naturally to add personality (e.g. ⚽️, 🔥, ✅). Keep replies engaging but not verbose; ask a friendly follow-up when useful.`;
+    try {
+      const resp = await groqChat({ system, user: userPrompt, model: process.env.GROQ_MODEL, temperature: 0.8, max_tokens: 800 });
+      if (resp && String(resp).trim().length > 0) {
+        await ctx.reply(String(resp).slice(0, 4000));
+      } else {
+        await ctx.reply('Sorry — I could not think of a reply right now. Try again in a moment.');
+      }
+    } catch (err) {
+      console.error('Groq conversational error', err);
+      await ctx.reply('Sorry — I hit an error while trying to reply.');
+    }
+  } catch (err) {
+    console.error('text-handler error', err);
+    try { await ctx.reply('Sorry, something went wrong while I tried to reply.'); } catch (_) {}
   }
 });
 
