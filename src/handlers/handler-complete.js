@@ -384,6 +384,34 @@ export async function handleCallbackQuery(cq, redis, services) {
         };
       }
 
+      // Filter out stale/demo fixtures (keep only fixtures within a reasonable window)
+      const nowTs = Date.now();
+      const minTs = nowTs - (7 * 24 * 60 * 60 * 1000); // 7 days in past
+      const maxTs = nowTs + (90 * 24 * 60 * 60 * 1000); // 90 days in future
+      const parseFixtureTs = (f) => {
+        try {
+          const cands = [f.kickoff, f.kickoff_at, f.utcDate, f.utc_date, f.date, f.time, f.starting_at, f.timestamp, f.ts, f.start, f.match_time, f.datetime];
+          for (const c of cands) {
+            if (!c && c !== 0) continue;
+            if (typeof c === 'number') return c < 1e12 ? c * 1000 : c;
+            if (typeof c === 'string') {
+              if (/^\d{10}$/.test(c)) return Number(c) * 1000;
+              if (/^\d{13}$/.test(c)) return Number(c);
+              const d = new Date(c);
+              if (!isNaN(d.getTime())) return d.getTime();
+            }
+          }
+        } catch (e) { /* ignore */ }
+        return null;
+      };
+
+      // apply filter
+      fixtures = (fixtures || []).filter(f => {
+        const ts = parseFixtureTs(f);
+        if (!ts) return false;
+        return ts >= minTs && ts <= maxTs;
+      });
+
       // Group by competition (use readable competition name).
       // Attempt to resolve numeric/ID-only competition values to a human name
       // using available fixture fields (competition.name, competition_name, leagueName, etc.).
@@ -642,12 +670,40 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
           return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: 'No fixtures available', show_alert: false };
         }
 
+        // Filter out stale/demo fixtures from the all-list as well
+        const nowTs = Date.now();
+        const minTs = nowTs - (7 * 24 * 60 * 60 * 1000);
+        const maxTs = nowTs + (90 * 24 * 60 * 60 * 1000);
+        const parseFixtureTs = (f) => {
+          try {
+            const cands = [f.kickoff, f.kickoff_at, f.utcDate, f.utc_date, f.date, f.time, f.starting_at, f.timestamp, f.ts, f.start, f.match_time, f.datetime];
+            for (const c of cands) {
+              if (!c && c !== 0) continue;
+              if (typeof c === 'number') return c < 1e12 ? c * 1000 : c;
+              if (typeof c === 'string') {
+                if (/^\d{10}$/.test(c)) return Number(c) * 1000;
+                if (/^\d{13}$/.test(c)) return Number(c);
+                const d = new Date(c);
+                if (!isNaN(d.getTime())) return d.getTime();
+              }
+            }
+          } catch (e) { /* ignore */ }
+          return null;
+        };
+
+        const filteredFixtures = (fixtures || []).filter(f => {
+          const ts = parseFixtureTs(f);
+          if (!ts) return false;
+          return ts >= minTs && ts <= maxTs;
+        });
+        const useFixtures = filteredFixtures.length ? filteredFixtures : fixtures;
+
         // Prepare an actions array to return multiple sendMessage actions
         const actions = [];
         // Build pages of up to 25 fixtures per message to avoid Telegram limits
         const pageSize = 25;
-        for (let i = 0; i < fixtures.length; i += pageSize) {
-          const page = fixtures.slice(i, i + pageSize);
+        for (let i = 0; i < useFixtures.length; i += pageSize) {
+          const page = useFixtures.slice(i, i + pageSize);
           let text = `📋 *All Upcoming Fixtures* (page ${Math.floor(i / pageSize) + 1}/${Math.ceil(fixtures.length / pageSize)})\n\n`;
           for (const f of page) {
             const home = safeName(f.home || f.homeTeam || f.homeName || (f.raw && f.raw.homeTeam), 'Home');
