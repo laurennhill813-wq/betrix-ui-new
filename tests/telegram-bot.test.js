@@ -49,4 +49,7 @@ async function runTests() {
   }
 }
 
-runTests();
+const _isMain = (typeof require !== 'undefined') ? require.main === module : (import.meta && import.meta.url === `file://${process.argv[1]}`);
+if (_isMain) {
+  runTests();
+}
