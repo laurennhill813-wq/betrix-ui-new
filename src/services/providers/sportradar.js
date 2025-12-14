@@ -16,14 +16,27 @@ export async function fetchSportradar(sport, type, params = {}, opts = {}) {
   const key = process.env.SPORTRADAR_KEY;
   if (!key) return { error: true, message: 'Missing SPORTRADAR_KEY' };
 
-  // Map canonical types to Sportradar trial endpoints (minimal mapping)
-  let path;
+  // Map canonical types to Sportradar endpoint patterns. Try production-style
+  // paths first, then fall back to the trial paths. This helps support keys
+  // that are on a production plan vs trial accounts.
+  const candidates = [];
   if (sport === 'soccer') {
-    if (type === 'competitions') path = `/soccer/trial/v4/en/competitions.json`;
-    else if (type === 'seasons') path = `/soccer/trial/v4/en/seasons.json`;
-    else if (type === 'matches_by_date' && params.date) path = `/soccer/trial/v4/en/matches/${params.date}/summaries.json`;
-    else if (type === 'standings') path = `/soccer/trial/v4/en/standings.json`;
-    else return { error: true, message: `Unsupported type ${type} for sport ${sport}` };
+    if (type === 'competitions') {
+      // production then trial
+      candidates.push(`/soccer/v4/en/competitions.json`);
+      candidates.push(`/soccer/trial/v4/en/competitions.json`);
+    } else if (type === 'seasons') {
+      candidates.push(`/soccer/v4/en/seasons.json`);
+      candidates.push(`/soccer/trial/v4/en/seasons.json`);
+    } else if (type === 'matches_by_date' && params.date) {
+      candidates.push(`/soccer/v4/en/matches/${params.date}/summaries.json`);
+      candidates.push(`/soccer/trial/v4/en/matches/${params.date}/summaries.json`);
+    } else if (type === 'standings') {
+      candidates.push(`/soccer/v4/en/standings.json`);
+      candidates.push(`/soccer/trial/v4/en/standings.json`);
+    } else {
+      return { error: true, message: `Unsupported type ${type} for sport ${sport}` };
+    }
   } else {
     return { error: true, message: `Unsupported sport: ${sport}` };
   }
@@ -44,8 +57,26 @@ export async function fetchSportradar(sport, type, params = {}, opts = {}) {
   // Allow tests to inject a fetcher to avoid network calls
   const fetcher = opts.fetcher || callProvider;
 
-  const res = await fetcher({ base: 'https://api.sportradar.com', path, auth: DEFAULT_AUTH, key }, opts);
-  if (!res.ok) return { error: true, provider: 'Sportradar', status: res.status, headers: res.headers, bodyText: res.bodyText };
+  // Try candidate paths in order until one returns ok
+  let res = null;
+  let lastErr = null;
+  for (const pathCandidate of candidates) {
+    try {
+      res = await fetcher({ base: 'https://api.sportradar.com', path: pathCandidate, auth: DEFAULT_AUTH, key }, opts);
+    } catch (e) {
+      lastErr = e;
+      res = null;
+    }
+    if (res && res.ok) {
+      // found a working endpoint
+      break;
+    }
+  }
+  if (!res || !res.ok) {
+    // Prefer to return provider response details when available, otherwise propagate error
+    if (res) return { error: true, provider: 'Sportradar', status: res.status, headers: res.headers, bodyText: res.bodyText };
+    return { error: true, provider: 'Sportradar', message: 'Failed to reach any configured Sportradar endpoint', cause: String(lastErr) };
+  }
 
   // Very small normalization for competitions/seasons/matches
   if (type === 'competitions') {

@@ -17,6 +17,7 @@ import liveScraper from './live-scraper.js';
 import { getLiveMatchesFromGoal } from './goal-scraper.js';
 import { getLiveMatchesFromFlashscore, getLiveMatchesByLeagueFromFlashscore } from './flashscore-scraper.js';
 import { ProviderHealth } from '../utils/provider-health.js';
+import { PROVIDERS } from './providers/index.js';
 import SportMonksService from './sportmonks-service.js';
 import ISportsService from './isports-service.js';
 import SportGameOddsService from './sportsgameodds.js';
@@ -73,6 +74,10 @@ export class SportsAggregator {
     this.sportmonks = (this._isAllowedSync('SPORTSMONKS') && CONFIG.SPORTSMONKS && CONFIG.SPORTSMONKS.KEY) ? new SportMonksService(redis) : null;
     // ISports (API-Football) wrapper - used as an additional fallback for fixtures/live
     this.isports = (this._isAllowedSync('API_SPORTS') && CONFIG.API_FOOTBALL && CONFIG.API_FOOTBALL.KEY) ? new ISportsService(redis) : null;
+    // Sportradar adapter (optional)
+    this.sportradar = (this._isAllowedSync('SPORTRADAR') && CONFIG.SPORTRADAR && CONFIG.SPORTRADAR.KEY && PROVIDERS.sportradar && typeof PROVIDERS.sportradar.handler === 'function')
+      ? PROVIDERS.sportradar.handler
+      : null;
     this.providerHealth = new ProviderHealth(redis);
   }
 
@@ -185,6 +190,23 @@ export class SportsAggregator {
       }
 
       // Fall back to built-in popular leagues if no provider returned data
+      // If Sportradar is configured, try fetching competitions as leagues
+      if (this.sportradar && await this._isProviderEnabled('SPORTRADAR')) {
+        try {
+          logger.debug('📡 Fetching leagues via Sportradar (competitions)');
+          const sr = await this.sportradar('soccer', 'competitions', {}, {});
+          if (sr && sr.ok && sr.data && Array.isArray(sr.data.competitions) && sr.data.competitions.length > 0) {
+            const mapped = sr.data.competitions.map(c => ({ id: c.id || null, name: c.name || 'Unknown', country: c.country || null }));
+            this._setCached(cacheKey, mapped);
+            await this._recordProviderHealth('sportradar', true, `Found ${mapped.length} competitions`);
+            return mapped;
+          }
+        } catch (e) {
+          logger.warn('Sportradar league fetch failed', e?.message || String(e));
+          try { await this._recordProviderHealth('sportradar', false, e?.message || String(e)); } catch(_) { void _; }
+        }
+      }
+
       return Object.values(LEAGUE_MAPPINGS).slice(0, 6);
     } catch (err) {
       logger.error('getLeagues failed', err);
@@ -268,6 +290,40 @@ export class SportsAggregator {
         } catch (e) {
           logger.warn('ISports live fetch failed', e?.message || String(e));
           try { await this._recordProviderHealth('isports', false, e?.message || String(e)); } catch(_) { void _; }
+        }
+      }
+
+      // Sportradar fallback: attempt to fetch matches by date for the league's day
+      if (this.sportradar && await this._isProviderEnabled('SPORTRADAR')) {
+        try {
+          logger.debug('📡 Trying Sportradar for global live matches (matches_by_date)');
+          const date = new Date().toISOString().slice(0,10);
+          const sr = await this.sportradar('soccer', 'matches_by_date', { date }, {});
+          if (sr && sr.ok) {
+            // sr.data may be { generated_at, matches: [...] } or similar
+            let rawMatches = sr.data && (sr.data.matches || sr.data.summaries || sr.data) || [];
+            if (!Array.isArray(rawMatches) && rawMatches && rawMatches.matches) rawMatches = rawMatches.matches;
+            if (Array.isArray(rawMatches) && rawMatches.length > 0) {
+              logger.info(`✅ Sportradar: Found ${rawMatches.length} matches from matches_by_date`);
+              await this.dataCache.storeLiveMatches('sportradar', rawMatches);
+              const formatted = this._formatMatches(rawMatches, 'sportradar') || [];
+              const liveOnly = formatted.filter(m => String(m.status || '').toUpperCase() === 'LIVE');
+              if (liveOnly.length > 0) {
+                this._setCached(cacheKey, liveOnly);
+                await this._recordProviderHealth('sportradar', true, `Found ${liveOnly.length} live matches`);
+                return liveOnly;
+              }
+              // otherwise return formatted results
+              if (formatted.length > 0) {
+                this._setCached(cacheKey, formatted);
+                await this._recordProviderHealth('sportradar', true, `Found ${formatted.length} matches`);
+                return formatted;
+              }
+            }
+          }
+        } catch (e) {
+          logger.debug('Sportradar live fetch failed', e?.message || String(e));
+          try { await this._recordProviderHealth('sportradar', false, e?.message || String(e)); } catch(_) { void _; }
         }
       }
 
@@ -1586,6 +1642,62 @@ export class SportsAggregator {
           status: safe(status, 'UNKNOWN'),
           time: safe(time, 'TBA'),
           provider: 'statpal',
+          raw: m
+        };
+      }
+
+      // Sportradar normalization
+      if (source === 'sportradar') {
+        // Sportradar responses vary by endpoint; try common shapes
+        const pickNameFromCompetitors = (arr, sidePreferred) => {
+          try {
+            if (!Array.isArray(arr)) return null;
+            // prefer explicit side markers
+            let found = null;
+            if (sidePreferred === 'home') {
+              found = arr.find(c => c.side === 'home' || c.home === true || c.is_home === true || (c.role && c.role === 'home'));
+            } else if (sidePreferred === 'away') {
+              found = arr.find(c => c.side === 'away' || c.away === true || c.is_away === true || (c.role && c.role === 'away'));
+            }
+            if (!found) {
+              // fallback to position or first/second
+              found = (sidePreferred === 'home') ? arr[0] : arr[1];
+            }
+            if (!found) return null;
+            return found.name || (found.team && (found.team.name || found.team.fullName)) || null;
+          } catch (e) { return null; }
+        };
+
+        const homeFromCompetitors = pickNameFromCompetitors(m.competitors || m.participants || m.teams, 'home');
+        const awayFromCompetitors = pickNameFromCompetitors(m.competitors || m.participants || m.teams, 'away');
+
+        const homeName = safe(
+          homeFromCompetitors || m.home && (m.home.name || m.home.team_name) || m.home_team && (m.home_team.name || m.home_team.fullName) || m.localteam && m.localteam.name,
+          'Home'
+        );
+        const awayName = safe(
+          awayFromCompetitors || m.away && (m.away.name || m.away.team_name) || m.away_team && (m.away_team.name || m.away_team.fullName) || m.visitorteam && m.visitorteam.name,
+          'Away'
+        );
+
+        // scores: common fields
+        const homeScore = (typeof m.home_score === 'number') ? m.home_score : (m.scores && m.scores.home) || (m.result && m.result.home) || (m.home && m.home.score) || null;
+        const awayScore = (typeof m.away_score === 'number') ? m.away_score : (m.scores && m.scores.away) || (m.result && m.result.away) || (m.away && m.away.score) || null;
+
+        const status = safe(m.status || m.match_status || (m.state && m.state.status) || (m.result && m.result.status), 'UNKNOWN');
+        const time = (m.schedule && m.schedule.start_time) ? safe(m.schedule.start_time) : safe(m.match_time || m.generated_at || m.date || m.start_date || 'TBA');
+        const league = safe((m.tournament && (m.tournament.name || m.tournament.fullName)) || (m.competition && (m.competition.name || m.competition.fullName)) || m.league, 'Unknown');
+
+        return {
+          id: m.id || m.match_id || m.fixture_id || null,
+          home: homeName,
+          away: awayName,
+          homeScore: (typeof homeScore === 'number') ? homeScore : (homeScore ? Number(homeScore) : null),
+          awayScore: (typeof awayScore === 'number') ? awayScore : (awayScore ? Number(awayScore) : null),
+          status: status,
+          time: time,
+          league: league,
+          provider: 'sportradar',
           raw: m
         };
       }
