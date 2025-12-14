@@ -5,7 +5,10 @@ const path = require('path');
 
 const testsDir = path.join(__dirname);
 const entries = readdirSync(testsDir)
-  .filter(f => /\.(js|cjs)$/.test(f) && f !== 'run-all-tests.cjs' && f !== 'run-tests.js')
+  // include .js and .cjs test files but exclude runner/debug scripts
+  .filter(f => /\.(js|cjs)$/.test(f)
+    && !/^run-all-tests/.test(f)
+    && f !== 'run-tests.js')
   .sort();
 
 const { writeFileSync } = require('fs');
