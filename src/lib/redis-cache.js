@@ -65,3 +65,38 @@ export async function cacheDel(key) {
 }
 
 export function _clearFallback() { fallbackStore = new Map(); }
+
+// Atomic increment with optional TTL. Returns numeric value after increment.
+export async function incrWithTTL(key, ttlSeconds = 0) {
+  const c = getClient();
+  if (!c) {
+    const raw = fallbackStore.get(key) || 0;
+    const next = Number(raw) + 1;
+    fallbackStore.set(key, next);
+    return next;
+  }
+  try {
+    const val = await c.incr(key);
+    if (ttlSeconds && ttlSeconds > 0) {
+      try { await c.expire(key, ttlSeconds); } catch (e) { /* ignore */ }
+    }
+    return Number(val);
+  } catch (e) {
+    // fallback
+    const raw = fallbackStore.get(key) || 0;
+    const next = Number(raw) + 1;
+    fallbackStore.set(key, next);
+    return next;
+  }
+}
+
+export async function getRaw(key) {
+  const c = getClient();
+  if (!c) return fallbackStore.get(key) || null;
+  try {
+    const v = await c.get(key);
+    return v === null ? null : v;
+  } catch (e) {
+    return fallbackStore.get(key) || null;
+  }
+}

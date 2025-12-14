@@ -14,6 +14,7 @@ import crypto from "crypto";
 import { betrixIngest } from "./lib/betrix-ingest.js";
 import { MpesaCallbackHandler } from "./middleware/mpesa-callback.js";
 import { updateStatusByProviderEventId } from './lib/local-payments.js';
+import jobsRouter from './routes/jobs.js';
 
 const logger = new Logger("Server");
 const app = express();
@@ -35,6 +36,9 @@ app.use(limiter);
 app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date(), service: "BETRIX" });
 });
+
+// Jobs route (auto media trigger)
+app.use('/api', jobsRouter);
 
 // Telegram webhook
 app.post("/webhook/telegram", async (req, res) => {

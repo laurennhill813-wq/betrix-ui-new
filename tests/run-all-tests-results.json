@@ -1,0 +1,116 @@
+[
+  {
+    "file": ".eslintrc.cjs",
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "ai-persona.test.js",
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "ai.intent.test.js",
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "ai.predictor.test.js",
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "azure-ai.smoke.node.cjs",
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "azure-ai.smoke.node.js",
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "cache-service.test.js",
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "comprehensive-integration.test.js",
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "news-service.test.js",
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "openligadb.test.js",
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "payment-guides.test.js",
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "payment-integration.test.js",
+    "status": null,
+    "signal": "SIGTERM",
+    "error": null
+  },
+  {
+    "file": "payment-normalizer.test.js",
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "payment-router.test.js",
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "rss-aggregator.test.js",
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "structured.test.js",
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "telegram-bot.test.js",
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "telegram-handler-v2.smoke.test.js",
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "v3-handlers.test.js",
+    "status": 0,
+    "signal": null,
+    "error": null
+  }
+]

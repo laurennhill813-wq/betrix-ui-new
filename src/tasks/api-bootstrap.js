@@ -6,6 +6,7 @@
 
 import { CONFIG } from '../config.js';
 import { Logger } from '../utils/logger.js';
+import { probeSportradarCapabilities } from '../services/providers/sportradar.js';
 
 const logger = new Logger('APIBootstrap');
 
@@ -21,7 +22,7 @@ export class APIBootstrap {
   /**
    * Validate all configured API keys and report status
    */
-  validateAPIKeys() {
+  async validateAPIKeys() {
     const status = {
       timestamp: new Date().toISOString(),
       providers: {}
@@ -66,6 +67,23 @@ export class APIBootstrap {
       };
       this.providers.sportradar = true;
       logger.info('✅ Sportradar configured', status.providers.SPORTRADAR);
+
+      // Probe Sportradar endpoints and store capability info into Redis for monitoring
+      try {
+        const probe = await probeSportradarCapabilities('soccer');
+        status.providers.SPORTRADAR.capabilities = probe.summary;
+        // write Redis health key with 1 hour TTL
+        try {
+          this.redis.set('betrix:provider:health:sportradar', JSON.stringify(probe), 'EX', 3600);
+        } catch (e) {
+          logger.warn('Failed to write Sportradar health to Redis', e?.message);
+        }
+        logger.info('🔎 Sportradar capability probe result', probe.summary);
+      } catch (e) {
+        logger.warn('🔎 Sportradar capability probe failed', e?.message);
+        status.providers.SPORTRADAR.capabilities = { error: e?.message || 'probe_failed' };
+      }
+
     } else {
       status.providers.SPORTRADAR = { enabled: false, reason: 'SPORTRADAR_KEY not set' };
       logger.info('ℹ️  Sportradar not configured (SPORTRADAR_KEY missing)');
@@ -189,7 +207,7 @@ export class APIBootstrap {
       logger.info('🚀 Starting API Bootstrap...');
       
       // Step 1: Validate all keys
-      const keyStatus = this.validateAPIKeys();
+      const keyStatus = await this.validateAPIKeys();
       
       logger.info(`✅ Bootstrap found configured providers`);
 

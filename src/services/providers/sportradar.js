@@ -104,3 +104,51 @@ export async function fetchSportradar(sport, type, params = {}, opts = {}) {
 
   return { ok: true, provider: 'Sportradar', data: res.body };
 }
+
+/**
+ * Probe available Sportradar endpoints for this key.
+ * Returns an object describing which route families succeeded and details.
+ */
+export async function probeSportradarCapabilities(sport = 'soccer', date = null, opts = {}) {
+  const key = process.env.SPORTRADAR_KEY;
+  if (!key) return { error: true, message: 'Missing SPORTRADAR_KEY' };
+
+  const fetcher = opts.fetcher || callProvider;
+  const base = opts.base || 'https://api.sportradar.com';
+  const probeDate = date || new Date().toISOString().slice(0, 10);
+
+  const probes = {};
+
+  // reuse candidate logic for common types
+  const candidateMap = {
+    competitions: [`/soccer/v4/en/competitions.json`, `/soccer/trial/v4/en/competitions.json`],
+    matches_by_date: [
+      `/soccer/v4/en/matches/${probeDate}/schedule.json`,
+      `/soccer/v4/en/matches/${probeDate}/matches.json`,
+      `/soccer/trial/v4/en/matches/${probeDate}/schedule.json`,
+      `/soccer/trial/v4/en/matches/${probeDate}/matches.json`,
+      `/soccer/v4/en/matches_by_date/${probeDate}.json`,
+      `/soccer/trial/v4/en/matches_by_date/${probeDate}.json`
+    ]
+  };
+
+  for (const [kind, candidates] of Object.entries(candidateMap)) {
+    probes[kind] = [];
+    for (const p of candidates) {
+      try {
+        const res = await fetcher({ base, path: p, auth: DEFAULT_AUTH, key }, opts);
+        probes[kind].push({ path: p, ok: !!(res && res.ok), status: res && res.status, statusText: res && res.statusText });
+      } catch (e) {
+        probes[kind].push({ path: p, ok: false, error: String(e) });
+      }
+    }
+  }
+
+  // Summarize
+  const summary = {};
+  for (const k of Object.keys(probes)) {
+    summary[k] = probes[k].some(r => r.ok) ? 'available' : 'unavailable';
+  }
+
+  return { ok: true, provider: 'Sportradar', summary, probes };
+}
