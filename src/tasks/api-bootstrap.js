@@ -27,7 +27,7 @@ export class APIBootstrap {
       providers: {}
     };
 
-    logger.info('🚀 Initializing with SportMonks and Football-Data only');
+    logger.info('🚀 Initializing providers (Football-Data, SportMonks, Sportradar)');
 
     // Check Football-Data.org
     if (CONFIG.FOOTBALLDATA && CONFIG.FOOTBALLDATA.KEY) {
@@ -55,6 +55,20 @@ export class APIBootstrap {
     } else {
       status.providers.SPORTSMONKS = { enabled: false, reason: 'SPORTSMONKS_API_KEY not set' };
       logger.warn('⚠️  SportMonks NOT configured');
+    }
+
+    // Check Sportradar (optional) — only enabled if SPORTRADAR_KEY provided
+    if (CONFIG.SPORTRADAR && CONFIG.SPORTRADAR.KEY) {
+      status.providers.SPORTRADAR = {
+        enabled: true,
+        key: `${CONFIG.SPORTRADAR.KEY.substring(0, 8)}...${CONFIG.SPORTRADAR.KEY.substring(CONFIG.SPORTRADAR.KEY.length - 4)}`,
+        base: CONFIG.SPORTRADAR.BASE || 'https://api.sportradar.com'
+      };
+      this.providers.sportradar = true;
+      logger.info('✅ Sportradar configured', status.providers.SPORTRADAR);
+    } else {
+      status.providers.SPORTRADAR = { enabled: false, reason: 'SPORTRADAR_KEY not set' };
+      logger.info('ℹ️  Sportradar not configured (SPORTRADAR_KEY missing)');
     }
 
     // Summary
