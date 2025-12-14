@@ -35,6 +35,12 @@ const CONFIG = {
     CACHE_TTL: Number(process.env.SPORTSGAMEODDS_CACHE_TTL || 600),
   },
 
+  // Sportradar
+  SPORTRADAR: {
+    KEY: process.env.SPORTRADAR_KEY || process.env.SPORTRADAR_API_KEY,
+    BASE: process.env.SPORTRADAR_BASE || 'https://api.sportradar.com',
+  },
+
   // Football-Data.org
   FOOTBALLDATA: {
     KEY: process.env.FOOTBALL_DATA_API || process.env.FOOTBALLDATA_API_KEY,
