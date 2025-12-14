@@ -32,6 +32,12 @@ export default class SportMonksService {
     // Do NOT override DNS globally - that affects all Node requests
     // Instead, we'll use proxy/agent per-request
     logger.info(`[SportMonksService] Initialized with base URL: ${this.base}`);
+    // Log resolved env/config values useful for ops when diagnosing TLS or endpoint issues
+    try {
+      logger.debug('[SportMonksService] CONFIG.SPORTSMONKS.BASE:', (CONFIG.SPORTSMONKS && CONFIG.SPORTSMONKS.BASE) || 'unset');
+      logger.debug('[SportMonksService] ENV SPORTSMONKS_BASE:', process.env.SPORTSMONKS_BASE || 'unset');
+      logger.debug('[SportMonksService] ENV SPORTSMONKS_INSECURE:', process.env.SPORTSMONKS_INSECURE || 'false');
+    } catch (_) { void _; }
   }
 
   _buildUrl(endpoint, query = {}) {
@@ -84,6 +90,8 @@ export default class SportMonksService {
           logger.info(`[SportMonksService] Requesting (strategy:${strat}) ${safeUrlForLog}`);
 
           const insecure = (process.env.SPORTSMONKS_INSECURE === 'true');
+          // Log per-request TLS choice so operators can verify whether an insecure mode was used
+          logger.info(`[SportMonksService] Using per-request TLS rejectUnauthorized=${!insecure} for base=${currentBase}`);
           const agent = new https.Agent({ rejectUnauthorized: !insecure, keepAlive: true, maxSockets: 50 });
           const resp = await axios.get(url, { timeout: 15000, httpsAgent: agent, headers });
           const data = resp && resp.data ? resp.data : null;
