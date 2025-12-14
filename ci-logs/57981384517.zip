@@ -1,0 +1,772 @@
+﻿2025-12-13T19:07:26.0895115Z Current runner version: '2.329.0'
+2025-12-13T19:07:26.0916913Z ##[group]Runner Image Provisioner
+2025-12-13T19:07:26.0917753Z Hosted Compute Agent
+2025-12-13T19:07:26.0918309Z Version: 20251202.455
+2025-12-13T19:07:26.0918931Z Commit: 6c10caca4910e198df60de23adf20ad317c474e3
+2025-12-13T19:07:26.0919641Z Build Date: 2025-12-02T15:56:59Z
+2025-12-13T19:07:26.0920318Z Worker ID: {2d9b0133-068b-4b4b-8a7d-9aa7871cbab9}
+2025-12-13T19:07:26.0920976Z ##[endgroup]
+2025-12-13T19:07:26.0921738Z ##[group]Operating System
+2025-12-13T19:07:26.0922275Z Ubuntu
+2025-12-13T19:07:26.0922796Z 24.04.3
+2025-12-13T19:07:26.0923234Z LTS
+2025-12-13T19:07:26.0923691Z ##[endgroup]
+2025-12-13T19:07:26.0924170Z ##[group]Runner Image
+2025-12-13T19:07:26.0924773Z Image: ubuntu-24.04
+2025-12-13T19:07:26.0925281Z Version: 20251208.163.1
+2025-12-13T19:07:26.0926240Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20251208.163/images/ubuntu/Ubuntu2404-Readme.md
+2025-12-13T19:07:26.0927797Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20251208.163
+2025-12-13T19:07:26.0928849Z ##[endgroup]
+2025-12-13T19:07:26.0931501Z ##[group]GITHUB_TOKEN Permissions
+2025-12-13T19:07:26.0933385Z Actions: write
+2025-12-13T19:07:26.0934039Z ArtifactMetadata: write
+2025-12-13T19:07:26.0934602Z Attestations: write
+2025-12-13T19:07:26.0935140Z Checks: write
+2025-12-13T19:07:26.0935658Z Contents: write
+2025-12-13T19:07:26.0936168Z Deployments: write
+2025-12-13T19:07:26.0936656Z Discussions: write
+2025-12-13T19:07:26.0937215Z Issues: write
+2025-12-13T19:07:26.0937674Z Metadata: read
+2025-12-13T19:07:26.0938190Z Models: read
+2025-12-13T19:07:26.0938680Z Packages: write
+2025-12-13T19:07:26.0939216Z Pages: write
+2025-12-13T19:07:26.0939680Z PullRequests: write
+2025-12-13T19:07:26.0940332Z RepositoryProjects: write
+2025-12-13T19:07:26.0940932Z SecurityEvents: write
+2025-12-13T19:07:26.0941695Z Statuses: write
+2025-12-13T19:07:26.0942246Z ##[endgroup]
+2025-12-13T19:07:26.0944204Z Secret source: Actions
+2025-12-13T19:07:26.0944909Z Prepare workflow directory
+2025-12-13T19:07:26.1318787Z Prepare all required actions
+2025-12-13T19:07:26.1356547Z Getting action download info
+2025-12-13T19:07:26.4680003Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2025-12-13T19:07:26.5610214Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2025-12-13T19:07:26.7360300Z Complete job name: tests
+2025-12-13T19:07:26.8023452Z ##[group]Run actions/checkout@v4
+2025-12-13T19:07:26.8024262Z with:
+2025-12-13T19:07:26.8024710Z   repository: elijahjessy311-afk/betrix-ui-new
+2025-12-13T19:07:26.8025418Z   token: ***
+2025-12-13T19:07:26.8025815Z   ssh-strict: true
+2025-12-13T19:07:26.8026213Z   ssh-user: git
+2025-12-13T19:07:26.8026630Z   persist-credentials: true
+2025-12-13T19:07:26.8027077Z   clean: true
+2025-12-13T19:07:26.8027483Z   sparse-checkout-cone-mode: true
+2025-12-13T19:07:26.8027955Z   fetch-depth: 1
+2025-12-13T19:07:26.8028347Z   fetch-tags: false
+2025-12-13T19:07:26.8028760Z   show-progress: true
+2025-12-13T19:07:26.8029172Z   lfs: false
+2025-12-13T19:07:26.8029540Z   submodules: false
+2025-12-13T19:07:26.8029947Z   set-safe-directory: true
+2025-12-13T19:07:26.8030573Z ##[endgroup]
+2025-12-13T19:07:26.9100876Z Syncing repository: elijahjessy311-afk/betrix-ui-new
+2025-12-13T19:07:26.9102829Z ##[group]Getting Git version info
+2025-12-13T19:07:26.9103630Z Working directory is '/home/runner/work/betrix-ui-new/betrix-ui-new'
+2025-12-13T19:07:26.9104616Z [command]/usr/bin/git version
+2025-12-13T19:07:26.9185089Z git version 2.52.0
+2025-12-13T19:07:26.9210465Z ##[endgroup]
+2025-12-13T19:07:26.9224307Z Temporarily overriding HOME='/home/runner/work/_temp/62ca0815-521c-4e40-94e3-7240deee80ac' before making global git config changes
+2025-12-13T19:07:26.9225681Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-13T19:07:26.9236430Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/betrix-ui-new/betrix-ui-new
+2025-12-13T19:07:26.9273998Z Deleting the contents of '/home/runner/work/betrix-ui-new/betrix-ui-new'
+2025-12-13T19:07:26.9277418Z ##[group]Initializing the repository
+2025-12-13T19:07:26.9281436Z [command]/usr/bin/git init /home/runner/work/betrix-ui-new/betrix-ui-new
+2025-12-13T19:07:26.9395589Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-12-13T19:07:26.9396767Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2025-12-13T19:07:26.9397666Z hint: to use in all of your new repositories, which will suppress this warning,
+2025-12-13T19:07:26.9398341Z hint: call:
+2025-12-13T19:07:26.9398716Z hint:
+2025-12-13T19:07:26.9399243Z hint: 	git config --global init.defaultBranch <name>
+2025-12-13T19:07:26.9400184Z hint:
+2025-12-13T19:07:26.9400865Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-12-13T19:07:26.9401874Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-12-13T19:07:26.9402575Z hint:
+2025-12-13T19:07:26.9402948Z hint: 	git branch -m <name>
+2025-12-13T19:07:26.9403383Z hint:
+2025-12-13T19:07:26.9403968Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-12-13T19:07:26.9405165Z Initialized empty Git repository in /home/runner/work/betrix-ui-new/betrix-ui-new/.git/
+2025-12-13T19:07:26.9411134Z [command]/usr/bin/git remote add origin https://github.com/elijahjessy311-afk/betrix-ui-new
+2025-12-13T19:07:26.9449193Z ##[endgroup]
+2025-12-13T19:07:26.9450374Z ##[group]Disabling automatic garbage collection
+2025-12-13T19:07:26.9454104Z [command]/usr/bin/git config --local gc.auto 0
+2025-12-13T19:07:26.9482463Z ##[endgroup]
+2025-12-13T19:07:26.9483669Z ##[group]Setting up auth
+2025-12-13T19:07:26.9490003Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-12-13T19:07:26.9520482Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-12-13T19:07:26.9864317Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-13T19:07:26.9893838Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-12-13T19:07:27.0108424Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-13T19:07:27.0138237Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2025-12-13T19:07:27.0362338Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-12-13T19:07:27.0394658Z ##[endgroup]
+2025-12-13T19:07:27.0395901Z ##[group]Fetching the repository
+2025-12-13T19:07:27.0404025Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +052672bce02cb03c0acf0bed80402887082eeb76:refs/remotes/origin/main
+2025-12-13T19:07:29.4110531Z From https://github.com/elijahjessy311-afk/betrix-ui-new
+2025-12-13T19:07:29.4112634Z  * [new ref]         052672bce02cb03c0acf0bed80402887082eeb76 -> origin/main
+2025-12-13T19:07:29.4142869Z ##[endgroup]
+2025-12-13T19:07:29.4144069Z ##[group]Determining the checkout info
+2025-12-13T19:07:29.4145485Z ##[endgroup]
+2025-12-13T19:07:29.4149596Z [command]/usr/bin/git sparse-checkout disable
+2025-12-13T19:07:29.4188908Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-12-13T19:07:29.4213589Z ##[group]Checking out the ref
+2025-12-13T19:07:29.4217316Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2025-12-13T19:07:29.7810423Z Switched to a new branch 'main'
+2025-12-13T19:07:29.7812334Z branch 'main' set up to track 'origin/main'.
+2025-12-13T19:07:29.7849173Z ##[endgroup]
+2025-12-13T19:07:29.7887144Z [command]/usr/bin/git log -1 --format=%H
+2025-12-13T19:07:29.7910404Z 052672bce02cb03c0acf0bed80402887082eeb76
+2025-12-13T19:07:29.8207941Z ##[group]Run actions/setup-node@v4
+2025-12-13T19:07:29.8209123Z with:
+2025-12-13T19:07:29.8209930Z   node-version: 20
+2025-12-13T19:07:29.8210831Z   always-auth: false
+2025-12-13T19:07:29.8211889Z   check-latest: false
+2025-12-13T19:07:29.8213212Z   token: ***
+2025-12-13T19:07:29.8214044Z ##[endgroup]
+2025-12-13T19:07:29.9970111Z Found in cache @ /opt/hostedtoolcache/node/20.19.6/x64
+2025-12-13T19:07:29.9975165Z ##[group]Environment details
+2025-12-13T19:07:30.3340269Z node: v20.19.6
+2025-12-13T19:07:30.3340810Z npm: 10.8.2
+2025-12-13T19:07:30.3341401Z yarn: 1.22.22
+2025-12-13T19:07:30.3342384Z ##[endgroup]
+2025-12-13T19:07:30.3455393Z ##[group]Run curl -fsSL https://bun.sh/install | bash -s -- --yes
+2025-12-13T19:07:30.3455980Z [36;1mcurl -fsSL https://bun.sh/install | bash -s -- --yes[0m
+2025-12-13T19:07:30.3456446Z [36;1m# Persist bun to PATH in a GitHub Actions-compatible way[0m
+2025-12-13T19:07:30.3456874Z [36;1mecho "$HOME/.bun/bin" >> $GITHUB_PATH[0m
+2025-12-13T19:07:30.3503391Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2025-12-13T19:07:30.3503765Z ##[endgroup]
+2025-12-13T19:07:30.7226735Z curl: (22) The requested URL returned error: 404
+2025-12-13T19:07:30.7227038Z 
+2025-12-13T19:07:30.7238658Z error: Failed to download bun from "https://github.com/oven-sh/bun/releases/download/--yes/bun-linux-x64.zip"
+2025-12-13T19:07:30.7254088Z ##[error]Process completed with exit code 1.
+2025-12-13T19:07:30.7300801Z ##[group]Run node --version
+2025-12-13T19:07:30.7301122Z [36;1mnode --version[0m
+2025-12-13T19:07:30.7301542Z [36;1mbun --version || true[0m
+2025-12-13T19:07:30.7334540Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2025-12-13T19:07:30.7334905Z ##[endgroup]
+2025-12-13T19:07:30.7416712Z v20.19.6
+2025-12-13T19:07:30.7428107Z /home/runner/work/_temp/94564645-104a-4546-bac7-c02183bcfda8.sh: line 2: bun: command not found
+2025-12-13T19:07:30.7456435Z ##[group]Run # Prefer npm install for reproducibility in CI
+2025-12-13T19:07:30.7456894Z [36;1m# Prefer npm install for reproducibility in CI[0m
+2025-12-13T19:07:30.7457230Z [36;1mnpm ci[0m
+2025-12-13T19:07:30.7488738Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2025-12-13T19:07:30.7489120Z ##[endgroup]
+2025-12-13T19:07:33.1518865Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2025-12-13T19:07:33.6325062Z npm warn deprecated @paypal/checkout-server-sdk@1.0.3: Package no longer supported. The author suggests using the @paypal/paypal-server-sdk package instead: https://www.npmjs.com/package/@paypal/paypal-server-sdk. Contact Support at https://www.npmjs.com/support for more info.
+2025-12-13T19:07:35.1002079Z 
+2025-12-13T19:07:35.1003350Z added 263 packages, and audited 264 packages in 4s
+2025-12-13T19:07:35.1004134Z 
+2025-12-13T19:07:35.1004481Z 45 packages are looking for funding
+2025-12-13T19:07:35.1005208Z   run `npm fund` for details
+2025-12-13T19:07:35.1013718Z 
+2025-12-13T19:07:35.1014300Z found 0 vulnerabilities
+2025-12-13T19:07:35.1237968Z ##[group]Run npm test
+2025-12-13T19:07:35.1238241Z [36;1mnpm test[0m
+2025-12-13T19:07:35.1271668Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2025-12-13T19:07:35.1271983Z ##[endgroup]
+2025-12-13T19:07:35.2474792Z 
+2025-12-13T19:07:35.2475232Z > betrix-ui@2.0.0 test
+2025-12-13T19:07:35.2475689Z > node --test tests/*.js
+2025-12-13T19:07:35.2475929Z 
+2025-12-13T19:07:35.2991629Z TAP version 13
+2025-12-13T19:07:35.3200673Z # file:///home/runner/work/betrix-ui-new/betrix-ui-new/src/ai/persona.js:26
+2025-12-13T19:07:35.3206786Z #  - You NEVER hallucinate lineups or injuries. If unknown, say "data not available".
+2025-12-13T19:07:35.3213432Z #        ^^^^^
+2025-12-13T19:07:35.3233249Z # SyntaxError: Unexpected identifier 'NEVER'
+2025-12-13T19:07:35.3236222Z #     at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
+2025-12-13T19:07:35.3237980Z #     at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:146:18)
+2025-12-13T19:07:35.3239504Z #     at \#translate (node:internal/modules/esm/loader:497:12)
+2025-12-13T19:07:35.3245788Z #     at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:544:27)
+2025-12-13T19:07:35.3246511Z # Node.js v20.19.6
+2025-12-13T19:07:35.3352508Z # Subtest: /home/runner/work/betrix-ui-new/betrix-ui-new/tests/ai-persona.test.js
+2025-12-13T19:07:35.3364499Z not ok 1 - /home/runner/work/betrix-ui-new/betrix-ui-new/tests/ai-persona.test.js
+2025-12-13T19:07:35.3365742Z   ---
+2025-12-13T19:07:35.3366534Z   duration_ms: 50.510164
+2025-12-13T19:07:35.3367319Z   location: '/home/runner/work/betrix-ui-new/betrix-ui-new/tests/ai-persona.test.js:1:1'
+2025-12-13T19:07:35.3368071Z   failureType: 'testCodeFailure'
+2025-12-13T19:07:35.3368462Z   exitCode: 1
+2025-12-13T19:07:35.3368767Z   signal: ~
+2025-12-13T19:07:35.3369095Z   error: 'test failed'
+2025-12-13T19:07:35.3369434Z   code: 'ERR_TEST_FAILURE'
+2025-12-13T19:07:35.3369775Z   ...
+2025-12-13T19:07:35.3840373Z # Subtest: AI Intent classifier (smoke)
+2025-12-13T19:07:35.3859959Z     # Subtest: recognizes command /start
+2025-12-13T19:07:35.3866866Z     ok 1 - recognizes command /start
+2025-12-13T19:07:35.3872864Z       ---
+2025-12-13T19:07:35.3877169Z       duration_ms: 1.187121
+2025-12-13T19:07:35.3891876Z       ...
+2025-12-13T19:07:35.3892792Z     # Subtest: detects odds intent from text
+2025-12-13T19:07:35.3893803Z     ok 2 - detects odds intent from text
+2025-12-13T19:07:35.3896482Z       ---
+2025-12-13T19:07:35.3897088Z       duration_ms: 0.301354
+2025-12-13T19:07:35.3897872Z       ...
+2025-12-13T19:07:35.3902105Z     1..2
+2025-12-13T19:07:35.3906525Z ok 2 - AI Intent classifier (smoke)
+2025-12-13T19:07:35.3907312Z   ---
+2025-12-13T19:07:35.3909043Z   duration_ms: 2.920423
+2025-12-13T19:07:35.3909753Z   type: 'suite'
+2025-12-13T19:07:35.3912657Z   ...
+2025-12-13T19:07:35.3979699Z # Subtest: AI Predictor (smoke)
+2025-12-13T19:07:35.3990633Z     # Subtest: returns probabilities and rationale
+2025-12-13T19:07:35.3992948Z     ok 1 - returns probabilities and rationale
+2025-12-13T19:07:35.3993952Z       ---
+2025-12-13T19:07:35.3994623Z       duration_ms: 1.347591
+2025-12-13T19:07:35.3996443Z       ...
+2025-12-13T19:07:35.3996925Z     1..1
+2025-12-13T19:07:35.3998484Z ok 3 - AI Predictor (smoke)
+2025-12-13T19:07:35.3999198Z   ---
+2025-12-13T19:07:35.3999733Z   duration_ms: 2.806229
+2025-12-13T19:07:35.4001665Z   type: 'suite'
+2025-12-13T19:07:35.4002351Z   ...
+2025-12-13T19:07:35.4444044Z # AzureAIService.request {
+2025-12-13T19:07:35.4445095Z #   endpoint: 'https://example.com',
+2025-12-13T19:07:35.4445796Z #   deployment: 'deployment',
+2025-12-13T19:07:35.4446461Z #   apiVersion: '2024-08-01-preview',
+2025-12-13T19:07:35.4447065Z #   timeoutMs: 60000,
+2025-12-13T19:07:35.4447605Z #   messagePreview: 'hi'
+2025-12-13T19:07:35.4448086Z # }
+2025-12-13T19:07:35.4448566Z # AzureAIService.response {
+2025-12-13T19:07:35.4449122Z #   status: 200,
+2025-12-13T19:07:35.4449997Z #   preview: '{"choices":[{"message":{"content":"Hello from Azure"}}]}'
+2025-12-13T19:07:35.4450858Z # }
+2025-12-13T19:07:35.4452061Z # AzureAIService.request {
+2025-12-13T19:07:35.4452895Z #   endpoint: 'https://example.com',
+2025-12-13T19:07:35.4453619Z #   deployment: 'deployment',
+2025-12-13T19:07:35.4454350Z #   apiVersion: '2024-08-01-preview',
+2025-12-13T19:07:35.4455002Z #   timeoutMs: 60000,
+2025-12-13T19:07:35.4455587Z #   messagePreview: 'hi'
+2025-12-13T19:07:35.4456128Z # }
+2025-12-13T19:07:35.4457094Z # AzureAIService.response { status: 500, preview: '{"error":{"message":"something bad"}}' }
+2025-12-13T19:07:35.4461808Z # AzureAI non-OK response { status: 500, bodyPreview: 'something bad' }
+2025-12-13T19:07:35.4462484Z # AzureAIService.request {
+2025-12-13T19:07:35.4462992Z #   endpoint: 'https://example.com',
+2025-12-13T19:07:35.4463489Z #   deployment: 'deployment',
+2025-12-13T19:07:35.4463925Z #   apiVersion: '2023-05-15',
+2025-12-13T19:07:35.4464330Z #   timeoutMs: 50,
+2025-12-13T19:07:35.4464720Z #   messagePreview: 'hi'
+2025-12-13T19:07:35.4465338Z # }
+2025-12-13T19:07:35.4465773Z # AzureAI request aborted after 50ms {
+2025-12-13T19:07:35.4466844Z #   url: 'https://example.com/openai/deployments/deployment/chat/completions?api-version=2023-05-15',
+2025-12-13T19:07:35.4467769Z #   deployment: 'deployment',
+2025-12-13T19:07:35.4468328Z #   error: Error [AbortError]: aborted
+2025-12-13T19:07:35.4469567Z #       at EventTarget.<anonymous> (file:///home/runner/work/betrix-ui-new/betrix-ui-new/tests/azure-ai.smoke.node.js:83:19)
+2025-12-13T19:07:35.4470903Z #       at [nodejs.internal.kHybridDispatch] (node:internal/event_target:831:20)
+2025-12-13T19:07:35.4472091Z #       at EventTarget.dispatchEvent (node:internal/event_target:766:26)
+2025-12-13T19:07:35.4472898Z #       at abortSignal (node:internal/abort_controller:370:10)
+2025-12-13T19:07:35.4473727Z #       at AbortController.abort (node:internal/abort_controller:392:5)
+2025-12-13T19:07:35.4474609Z #       at Timeout.<anonymous> (src/services/azure-ai.js:65:47)
+2025-12-13T19:07:35.4475406Z #       at listOnTimeout (node:internal/timers:581:17)
+2025-12-13T19:07:35.4570376Z #       at process.processTimers (node:internal/timers:519:7)
+2025-12-13T19:07:35.4576033Z # }
+2025-12-13T19:07:35.4589937Z # All Azure AI smoke tests passed.
+2025-12-13T19:07:35.4691755Z # Subtest: /home/runner/work/betrix-ui-new/betrix-ui-new/tests/azure-ai.smoke.node.js
+2025-12-13T19:07:35.4693437Z ok 4 - /home/runner/work/betrix-ui-new/betrix-ui-new/tests/azure-ai.smoke.node.js
+2025-12-13T19:07:35.4694398Z   ---
+2025-12-13T19:07:35.4694957Z   duration_ms: 132.479491
+2025-12-13T19:07:35.4695494Z   ...
+2025-12-13T19:07:35.4696188Z # Subtest: CacheService - basic get/set operations
+2025-12-13T19:07:35.4697029Z ok 5 - CacheService - basic get/set operations
+2025-12-13T19:07:35.4697744Z   ---
+2025-12-13T19:07:35.4698240Z   duration_ms: 1.889375
+2025-12-13T19:07:35.4698737Z   ...
+2025-12-13T19:07:35.4699425Z # Subtest: CacheService - rate limiting within bounds
+2025-12-13T19:07:35.4700340Z ok 6 - CacheService - rate limiting within bounds
+2025-12-13T19:07:35.4701026Z   ---
+2025-12-13T19:07:35.4701759Z   duration_ms: 0.337361
+2025-12-13T19:07:35.4702291Z   ...
+2025-12-13T19:07:35.4702999Z # Subtest: CacheService - rate limiting exceeds bounds
+2025-12-13T19:07:35.4703913Z ok 7 - CacheService - rate limiting exceeds bounds
+2025-12-13T19:07:35.4704649Z   ---
+2025-12-13T19:07:35.4705217Z   duration_ms: 0.257041
+2025-12-13T19:07:35.4705844Z   ...
+2025-12-13T19:07:35.4706687Z # Subtest: CacheService - handles null/undefined values gracefully
+2025-12-13T19:07:35.4707841Z ok 8 - CacheService - handles null/undefined values gracefully
+2025-12-13T19:07:35.4708642Z   ---
+2025-12-13T19:07:35.4709199Z   duration_ms: 0.931292
+2025-12-13T19:07:35.4709787Z   ...
+2025-12-13T19:07:35.4710541Z # Subtest: CacheService - serialization/deserialization
+2025-12-13T19:07:35.4711836Z ok 9 - CacheService - serialization/deserialization
+2025-12-13T19:07:35.4712650Z   ---
+2025-12-13T19:07:35.4713136Z   duration_ms: 0.243425
+2025-12-13T19:07:35.4713754Z   ...
+2025-12-13T19:07:35.4715265Z # ╔════════════════════════════════════════════════════════════════╗
+2025-12-13T19:07:35.4716483Z # ║         COMPREHENSIVE INTEGRATION TEST COMPLETE                ║
+2025-12-13T19:07:35.4748804Z # ╚════════════════════════════════════════════════════════════════╝
+2025-12-13T19:07:35.4750035Z # ✅ NLP Tests: 90+ intent variations tested
+2025-12-13T19:07:35.4750984Z # ✅ Command Tests: 9 commands validated
+2025-12-13T19:07:35.4772347Z # ✅ Callback Tests: 10+ callback routes working
+2025-12-13T19:07:35.4773375Z # ✅ Betting Sites: Kenya bookmakers verified
+2025-12-13T19:07:35.4774324Z # ✅ UI/UX: All formatters checked
+2025-12-13T19:07:35.4775196Z # ✅ Data Models: Schemas validated
+2025-12-13T19:07:35.4776106Z # ✅ Edge Cases: 50+ scenarios tested
+2025-12-13T19:07:35.4777080Z # ✅ Error Handling: Graceful failures verified
+2025-12-13T19:07:35.4777819Z # Total Test Coverage: 
+2025-12-13T19:07:35.4778575Z #   • 100+ natural language intents
+2025-12-13T19:07:35.4779644Z #   • 9 command handlers
+2025-12-13T19:07:35.4780248Z #   • 10+ callback routes
+2025-12-13T19:07:35.4780873Z #   • 6 Kenya betting sites
+2025-12-13T19:07:35.4781694Z #   • 50+ edge cases
+2025-12-13T19:07:35.4782392Z # Status: 🚀 READY FOR PRODUCTION
+2025-12-13T19:07:35.4783329Z # ✅ Core intent classification tests: 19/19 core commands work
+2025-12-13T19:07:35.4784219Z # ✅ Edge case tests: 5/5 passed
+2025-12-13T19:07:35.4785473Z # [2025-12-13T19:07:35.455Z] [INFO] [Commands] handleCommand { cmd: 'start', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4787004Z # [2025-12-13T19:07:35.457Z] [INFO] [Commands] handleCommand { cmd: 'help', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4788403Z # [2025-12-13T19:07:35.457Z] [INFO] [Commands] handleCommand { cmd: 'menu', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4789748Z # [2025-12-13T19:07:35.457Z] [INFO] [Commands] handleCommand { cmd: 'odds', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4791138Z # [2025-12-13T19:07:35.458Z] [INFO] [Commands] handleCommand { cmd: 'analyze', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4792862Z # [2025-12-13T19:07:35.458Z] [INFO] [Commands] handleCommand { cmd: 'news', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4794366Z # [2025-12-13T19:07:35.458Z] [INFO] [Commands] handleCommand { cmd: 'vvip', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4795883Z # [2025-12-13T19:07:35.459Z] [INFO] [Commands] handleCommand { cmd: 'pay', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4797318Z # [2025-12-13T19:07:35.459Z] [INFO] [Commands] handleCommand { cmd: 'signup', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4798502Z # ✅ All 9 command handlers working correctly
+2025-12-13T19:07:35.4799610Z # [2025-12-13T19:07:35.459Z] [INFO] [Commands] handleCommand { cmd: 'start', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4800731Z # ✅ /start command formatted correctly
+2025-12-13T19:07:35.4802081Z # [2025-12-13T19:07:35.460Z] [INFO] [Commands] handleCommand { cmd: 'help', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4803395Z # ✅ /help command working correctly
+2025-12-13T19:07:35.4804568Z # [2025-12-13T19:07:35.466Z] [INFO] [Commands] handleCommand { cmd: 'menu', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4805673Z # ✅ /menu command working correctly
+2025-12-13T19:07:35.4806817Z # [2025-12-13T19:07:35.466Z] [INFO] [Commands] handleCommand { cmd: 'unknown123', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4808087Z # ✅ Unknown command handled correctly
+2025-12-13T19:07:35.4810599Z # ✅ Kenya betting sites: 6 sites with complete info
+2025-12-13T19:07:35.4811711Z # ✅ Betting sites formatted with site details and bonuses
+2025-12-13T19:07:35.4812814Z # [2025-12-13T19:07:35.473Z] [INFO] [Commands] handleCommand { cmd: 'odds', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4813970Z # ✅ Odds command returns structured response with buttons
+2025-12-13T19:07:35.4815053Z # [2025-12-13T19:07:35.474Z] [INFO] [Commands] handleCommand { cmd: 'vvip', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4816135Z # ✅ VVIP response includes tier options and prices
+2025-12-13T19:07:35.4817513Z # [2025-12-13T19:07:35.474Z] [INFO] [Commands] handleCommand { cmd: 'analyze', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4824608Z # ✅ Analysis response structured correctly
+2025-12-13T19:07:35.4825959Z # ✅ User profile structure valid
+2025-12-13T19:07:35.4826791Z # ✅ Currency formatting works (KES display)
+2025-12-13T19:07:35.4827388Z # ✅ VVIP expiry calculation works
+2025-12-13T19:07:35.4874473Z # [2025-12-13T19:07:35.484Z] [INFO] [Commands] handleCommand { cmd: 'analyze', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4876186Z # ✅ Gracefully handles missing API responses
+2025-12-13T19:07:35.4877636Z # [2025-12-13T19:07:35.484Z] [INFO] [Commands] handleCommand { cmd: 'menu', userId: null, chatId: 456 }
+2025-12-13T19:07:35.4878927Z # ✅ Handles null/undefined values gracefully
+2025-12-13T19:07:35.4880349Z # [2025-12-13T19:07:35.485Z] [INFO] [Commands] handleCommand { cmd: 'analyze', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4881747Z # ✅ Handles extremely long input gracefully
+2025-12-13T19:07:35.4909441Z # ✅ Handles special characters and XSS attempts safely
+2025-12-13T19:07:35.4951916Z # [2025-12-13T19:07:35.494Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'menu_main', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.4957595Z # [2025-12-13T19:07:35.495Z] [INFO] [Callbacks] handleMenuCallback { data: 'menu_main' }
+2025-12-13T19:07:35.4981971Z # [2025-12-13T19:07:35.497Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'menu_odds', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.5007542Z # [2025-12-13T19:07:35.497Z] [INFO] [Callbacks] handleMenuCallback { data: 'menu_odds' }
+2025-12-13T19:07:35.5008978Z # [2025-12-13T19:07:35.498Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'menu_analyze', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.5010310Z # [2025-12-13T19:07:35.498Z] [INFO] [Callbacks] handleMenuCallback { data: 'menu_analyze' }
+2025-12-13T19:07:35.5012129Z # [2025-12-13T19:07:35.498Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'vvip_daily', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.5013486Z # [2025-12-13T19:07:35.498Z] [INFO] [Callbacks] handleVVIPCallback { data: 'vvip_daily' }
+2025-12-13T19:07:35.5014844Z # [2025-12-13T19:07:35.498Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'pay_mpesa', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.5104149Z # Subtest: NLP - Intent classification works with core commands
+2025-12-13T19:07:35.5111843Z ok 10 - NLP - Intent classification works with core commands
+2025-12-13T19:07:35.5114126Z   ---
+2025-12-13T19:07:35.5116116Z   duration_ms: 4.177755
+2025-12-13T19:07:35.5118096Z   ...
+2025-12-13T19:07:35.5177533Z # Subtest: NLP - Edge cases and unknown intents
+2025-12-13T19:07:35.5182274Z ok 11 - NLP - Edge cases and unknown intents
+2025-12-13T19:07:35.5186612Z   ---
+2025-12-13T19:07:35.5190666Z   duration_ms: 0.339656
+2025-12-13T19:07:35.5194821Z   ...
+2025-12-13T19:07:35.5199226Z # Subtest: Command handlers - all commands exist and return valid responses
+2025-12-13T19:07:35.5204231Z ok 12 - Command handlers - all commands exist and return valid responses
+2025-12-13T19:07:35.5208536Z   ---
+2025-12-13T19:07:35.5234649Z   duration_ms: 4.484981
+2025-12-13T19:07:35.5237101Z   ...
+2025-12-13T19:07:35.5239939Z # Subtest: Command handlers - /start shows welcome message with buttons
+2025-12-13T19:07:35.5242947Z ok 13 - Command handlers - /start shows welcome message with buttons
+2025-12-13T19:07:35.5245281Z   ---
+2025-12-13T19:07:35.5247046Z   duration_ms: 0.434643
+2025-12-13T19:07:35.5249107Z   ...
+2025-12-13T19:07:35.5332699Z # Subtest: Command handlers - /help returns comprehensive FAQs
+2025-12-13T19:07:35.5457738Z ok 14 - Command handlers - /help returns comprehensive FAQs
+2025-12-13T19:07:35.5458544Z   ---
+2025-12-13T19:07:35.5459060Z   duration_ms: 5.596049
+2025-12-13T19:07:35.5459566Z   ...
+2025-12-13T19:07:35.5460322Z # Subtest: Command handlers - /menu shows main menu with categories
+2025-12-13T19:07:35.5461554Z ok 15 - Command handlers - /menu shows main menu with categories
+2025-12-13T19:07:35.5462330Z   ---
+2025-12-13T19:07:35.5462866Z   duration_ms: 0.648303
+2025-12-13T19:07:35.5463731Z   ...
+2025-12-13T19:07:35.5464597Z # Subtest: Command handlers - unknown command handled gracefully
+2025-12-13T19:07:35.5465698Z ok 16 - Command handlers - unknown command handled gracefully
+2025-12-13T19:07:35.5466476Z   ---
+2025-12-13T19:07:35.5466978Z   duration_ms: 2.391874
+2025-12-13T19:07:35.5467527Z   ...
+2025-12-13T19:07:35.5468238Z # Subtest: Betting sites - Kenya sites available with all info
+2025-12-13T19:07:35.5469173Z ok 17 - Betting sites - Kenya sites available with all info
+2025-12-13T19:07:35.5469840Z   ---
+2025-12-13T19:07:35.5470421Z   duration_ms: 0.5184
+2025-12-13T19:07:35.5470992Z   ...
+2025-12-13T19:07:35.5471990Z # Subtest: Betting sites formatting - creates clickable keyboard
+2025-12-13T19:07:35.5473032Z ok 18 - Betting sites formatting - creates clickable keyboard
+2025-12-13T19:07:35.5473750Z   ---
+2025-12-13T19:07:35.5474218Z   duration_ms: 0.595294
+2025-12-13T19:07:35.5474724Z   ...
+2025-12-13T19:07:35.5475758Z # Subtest: UI/UX - Odds response has structure and buttons
+2025-12-13T19:07:35.5476735Z ok 19 - UI/UX - Odds response has structure and buttons
+2025-12-13T19:07:35.5477500Z   ---
+2025-12-13T19:07:35.5477980Z   duration_ms: 0.560469
+2025-12-13T19:07:35.5478427Z   ...
+2025-12-13T19:07:35.5479033Z # Subtest: UI/UX - VVIP response with tier info
+2025-12-13T19:07:35.5479775Z ok 20 - UI/UX - VVIP response with tier info
+2025-12-13T19:07:35.5480325Z   ---
+2025-12-13T19:07:35.5480773Z   duration_ms: 0.456333
+2025-12-13T19:07:35.5481487Z   ...
+2025-12-13T19:07:35.5482163Z # Subtest: UI/UX - Analysis response has structure
+2025-12-13T19:07:35.5482948Z ok 21 - UI/UX - Analysis response has structure
+2025-12-13T19:07:35.5483577Z   ---
+2025-12-13T19:07:35.5484020Z   duration_ms: 6.563418
+2025-12-13T19:07:35.5484497Z   ...
+2025-12-13T19:07:35.5485195Z # Subtest: Data models - user profile creation and formatting
+2025-12-13T19:07:35.5486219Z ok 22 - Data models - user profile creation and formatting
+2025-12-13T19:07:35.5495527Z   ---
+2025-12-13T19:07:35.5496086Z   duration_ms: 0.254776
+2025-12-13T19:07:35.5496585Z   ...
+2025-12-13T19:07:35.5497163Z # Subtest: Data models - currency formatting (KES)
+2025-12-13T19:07:35.5497917Z ok 23 - Data models - currency formatting (KES)
+2025-12-13T19:07:35.5498506Z   ---
+2025-12-13T19:07:35.5498918Z   duration_ms: 0.34239
+2025-12-13T19:07:35.5499401Z   ...
+2025-12-13T19:07:35.5500028Z # Subtest: Data models - VVIP expiry calculation
+2025-12-13T19:07:35.5500904Z ok 24 - Data models - VVIP expiry calculation
+2025-12-13T19:07:35.5501795Z   ---
+2025-12-13T19:07:35.5502650Z   duration_ms: 2.333094
+2025-12-13T19:07:35.5503108Z   ...
+2025-12-13T19:07:35.5503754Z # Subtest: Edge cases - handling missing services gracefully
+2025-12-13T19:07:35.5504635Z ok 25 - Edge cases - handling missing services gracefully
+2025-12-13T19:07:35.5505216Z   ---
+2025-12-13T19:07:35.5505592Z   duration_ms: 0.551812
+2025-12-13T19:07:35.5506013Z   ...
+2025-12-13T19:07:35.5638788Z # Subtest: Edge cases - handling nil/null values
+2025-12-13T19:07:35.5642587Z ok 26 - Edge cases - handling nil/null values
+2025-12-13T19:07:35.5650745Z   ---
+2025-12-13T19:07:35.5652524Z   duration_ms: 0.434463
+2025-12-13T19:07:35.5654076Z   ...
+2025-12-13T19:07:35.5655716Z # Subtest: Edge cases - very long fixture IDs
+2025-12-13T19:07:35.5659788Z ok 27 - Edge cases - very long fixture IDs
+2025-12-13T19:07:35.5664260Z   ---
+2025-12-13T19:07:35.5668372Z   duration_ms: 0.724686
+2025-12-13T19:07:35.5672956Z   ...
+2025-12-13T19:07:35.5675618Z # Subtest: Edge cases - special characters in input
+2025-12-13T19:07:35.5678312Z ok 28 - Edge cases - special characters in input
+2025-12-13T19:07:35.5680809Z   ---
+2025-12-13T19:07:35.5683480Z   duration_ms: 8.037186
+2025-12-13T19:07:35.5686120Z   ...
+2025-12-13T19:07:35.6059132Z # [2025-12-13T19:07:35.603Z] [INFO] [Callbacks] handlePaymentCallback routed { data: 'pay_mpesa', userId: 123 }
+2025-12-13T19:07:35.6062200Z # [2025-12-13T19:07:35.603Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'help_main', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.6067596Z # [2025-12-13T19:07:35.604Z] [INFO] [Callbacks] handleHelpCallback { data: 'help_main' }
+2025-12-13T19:07:35.6072876Z # [2025-12-13T19:07:35.604Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'odds_live', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.6077883Z # [2025-12-13T19:07:35.604Z] [INFO] [Callbacks] handleOddsCallback { data: 'odds_live' }
+2025-12-13T19:07:35.6082579Z # [2025-12-13T19:07:35.604Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'bet_fixture_12345', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.6086128Z # [2025-12-13T19:07:35.604Z] [INFO] [Callbacks] handleBettingCallback { data: 'bet_fixture_12345' }
+2025-12-13T19:07:35.6088681Z # [2025-12-13T19:07:35.604Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'news_refresh', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.6093382Z # [2025-12-13T19:07:35.605Z] [INFO] [Callbacks] handleNewsCallback { data: 'news_refresh' }
+2025-12-13T19:07:35.6105958Z # [2025-12-13T19:07:35.608Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'signup_start', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.6109170Z # [2025-12-13T19:07:35.609Z] [INFO] [Callbacks] handleSignupCallback { data: 'signup_start' }
+2025-12-13T19:07:35.6111921Z # ✅ All 10 callback types route correctly
+2025-12-13T19:07:35.6182433Z # [2025-12-13T19:07:35.611Z] [INFO] [Commands] handleCommand { cmd: 'start', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.6183979Z # [2025-12-13T19:07:35.611Z] [INFO] [Commands] handleCommand { cmd: 'menu', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.6185319Z # [2025-12-13T19:07:35.612Z] [INFO] [Commands] handleCommand { cmd: 'help', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.6186634Z # [2025-12-13T19:07:35.612Z] [INFO] [Commands] handleCommand { cmd: 'odds', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.6187948Z # [2025-12-13T19:07:35.612Z] [INFO] [Commands] handleCommand { cmd: 'news', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.6189303Z # [2025-12-13T19:07:35.612Z] [INFO] [Commands] handleCommand { cmd: 'vvip', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.6190624Z # [2025-12-13T19:07:35.612Z] [INFO] [Commands] handleCommand { cmd: 'pay', userId: 123, chatId: 456 }
+2025-12-13T19:07:35.6192036Z # ✅ All response structures are valid and complete
+2025-12-13T19:07:35.6192945Z # Subtest: Callbacks - routing all callback types
+2025-12-13T19:07:35.6193820Z ok 29 - Callbacks - routing all callback types
+2025-12-13T19:07:35.6194469Z   ---
+2025-12-13T19:07:35.6194989Z   duration_ms: 115.720964
+2025-12-13T19:07:35.6195496Z   ...
+2025-12-13T19:07:35.6196233Z # Subtest: Response structure - all responses have required fields
+2025-12-13T19:07:35.6197308Z ok 30 - Response structure - all responses have required fields
+2025-12-13T19:07:35.6198064Z   ---
+2025-12-13T19:07:35.6198551Z   duration_ms: 2.643435
+2025-12-13T19:07:35.6199060Z   ...
+2025-12-13T19:07:35.9767093Z # Subtest: fetchArticleHtmlByLink returns wrapped HTML for example.com
+2025-12-13T19:07:35.9768520Z ok 31 - fetchArticleHtmlByLink returns wrapped HTML for example.com
+2025-12-13T19:07:35.9769393Z   ---
+2025-12-13T19:07:35.9769924Z   duration_ms: 258.44853
+2025-12-13T19:07:35.9770497Z   ...
+2025-12-13T19:07:35.9920562Z # Subtest: OpenLigaDBService instantiates without cache
+2025-12-13T19:07:35.9926672Z ok 32 - OpenLigaDBService instantiates without cache
+2025-12-13T19:07:35.9952445Z   ---
+2025-12-13T19:07:35.9953103Z   duration_ms: 1.894173
+2025-12-13T19:07:35.9953647Z   ...
+2025-12-13T19:07:35.9954629Z # Subtest: OpenLigaDBService instantiates with CacheService
+2025-12-13T19:07:35.9955669Z ok 33 - OpenLigaDBService instantiates with CacheService
+2025-12-13T19:07:35.9956395Z   ---
+2025-12-13T19:07:35.9956894Z   duration_ms: 0.408424
+2025-12-13T19:07:35.9957452Z   ...
+2025-12-13T19:07:35.9958249Z # 📚 Payment Guides Test
+2025-12-13T19:07:35.9958944Z # - Checking guide for MPESA: OK
+2025-12-13T19:07:35.9959695Z # - Checking guide for SAFARICOM_TILL: OK
+2025-12-13T19:07:35.9960481Z # - Checking guide for PAYPAL: OK
+2025-12-13T19:07:35.9961757Z # - Checking guide for BINANCE: OK
+2025-12-13T19:07:35.9962540Z # - Checking guide for SWIFT: OK
+2025-12-13T19:07:35.9963263Z # - Checking guide for BITCOIN: OK
+2025-12-13T19:07:35.9964145Z # ✅ All payment guides present and non-empty
+2025-12-13T19:07:35.9965315Z # Subtest: /home/runner/work/betrix-ui-new/betrix-ui-new/tests/payment-guides.test.js
+2025-12-13T19:07:35.9966694Z ok 9 - /home/runner/work/betrix-ui-new/betrix-ui-new/tests/payment-guides.test.js
+2025-12-13T19:07:35.9967555Z   ---
+2025-12-13T19:07:35.9968015Z   duration_ms: 96.084566
+2025-12-13T19:07:35.9968486Z   ...
+2025-12-13T19:07:35.9969152Z # ⚠️  Using MockRedis for integration tests
+2025-12-13T19:07:36.0016097Z # 🧪 Payment Integration Tests
+2025-12-13T19:07:36.0016979Z # 📌 Test: normalizePaymentMethod is a function
+2025-12-13T19:07:36.0017608Z # ✅ PASS
+2025-12-13T19:07:36.0018406Z # 📌 Test: createPaymentOrder accepts various method formats
+2025-12-13T19:07:36.0019478Z # [2025-12-13T19:07:35.724Z] [INFO] [PaymentRouter] Payment order created {
+2025-12-13T19:07:36.0089770Z #   orderId: 'ORD1234561765652855723',
+2025-12-13T19:07:36.0090397Z #   userId: 123456,
+2025-12-13T19:07:36.0090979Z #   paymentMethod: 'SAFARICOM_TILL'
+2025-12-13T19:07:36.0091836Z # }
+2025-12-13T19:07:36.0092569Z # ✅ PASS: Canonical key accepted
+2025-12-13T19:07:36.0093512Z # [2025-12-13T19:07:35.726Z] [INFO] [PaymentRouter] Payment order created {
+2025-12-13T19:07:36.0094385Z #   orderId: 'ORD1234571765652855726',
+2025-12-13T19:07:36.0094993Z #   userId: 123457,
+2025-12-13T19:07:36.0095622Z #   paymentMethod: 'SAFARICOM_TILL'
+2025-12-13T19:07:36.0096184Z # }
+2025-12-13T19:07:36.0096907Z # ✅ PASS: Common alias accepted and normalized
+2025-12-13T19:07:36.0097939Z # [2025-12-13T19:07:35.726Z] [INFO] [PaymentRouter] Payment order created {
+2025-12-13T19:07:36.0098807Z #   orderId: 'ORD1234581765652855726',
+2025-12-13T19:07:36.0099422Z #   userId: 123458,
+2025-12-13T19:07:36.0099985Z #   paymentMethod: 'MPESA'
+2025-12-13T19:07:36.0100538Z # }
+2025-12-13T19:07:36.0101538Z # ✅ PASS: M-Pesa STK alias accepted and normalized
+2025-12-13T19:07:36.0102671Z # 📌 Test: createCustomPaymentOrder accepts various method formats
+2025-12-13T19:07:36.0103772Z # [2025-12-13T19:07:35.728Z] [ERROR] [PaymentRouter] createPayPalOrder failed {
+2025-12-13T19:07:36.0104735Z #   message: 'PayPal credentials not configured',
+2025-12-13T19:07:36.0105577Z #   stack: 'Error: PayPal credentials not configured\\n' +
+2025-12-13T19:07:36.0106978Z #     '    at paypalClient (file:///home/runner/work/betrix-ui-new/betrix-ui-new/src/handlers/payment-router.js:528:11)\\n' +
+2025-12-13T19:07:36.0108671Z #     '    at createPayPalOrder (file:///home/runner/work/betrix-ui-new/betrix-ui-new/src/handlers/payment-router.js:542:16)\\n' +
+2025-12-13T19:07:36.0110430Z #     '    at createCustomPaymentOrder (file:///home/runner/work/betrix-ui-new/betrix-ui-new/src/handlers/payment-router.js:459:36)\\n' +
+2025-12-13T19:07:36.0112461Z #     '    at runTests (file:///home/runner/work/betrix-ui-new/betrix-ui-new/tests/payment-integration.test.js:114:25)'
+2025-12-13T19:07:36.0113440Z # }
+2025-12-13T19:07:36.0114196Z # [2025-12-13T19:07:35.728Z] [INFO] [PaymentRouter] Custom payment order created {
+2025-12-13T19:07:36.0115064Z #   orderId: 'ORD1234661765652855727',
+2025-12-13T19:07:36.0115697Z #   userId: 123466,
+2025-12-13T19:07:36.0116231Z #   paymentMethod: 'PAYPAL',
+2025-12-13T19:07:36.0116837Z #   amount: 150
+2025-12-13T19:07:36.0117308Z # }
+2025-12-13T19:07:36.0118030Z # ✅ PASS: Alias normalized in custom order creation
+2025-12-13T19:07:36.0119072Z # 📌 Test: Callback data method extraction (simulates telegram handler)
+2025-12-13T19:07:36.0120348Z # ✅ PASS: Callback method extracted and normalized correctly
+2025-12-13T19:07:36.0121498Z # 📌 Test: Signup payment callback parsing
+2025-12-13T19:07:36.0122374Z # ✅ PASS: Signup callback method normalized correctly
+2025-12-13T19:07:36.0123242Z # 📌 Test: Provider ref mappings use normalized keys
+2025-12-13T19:07:36.0124576Z # ✅ PASS: Provider ref key format verified: payment:by_provider_ref:SAFARICOM_TILL:TEST_REF
+2025-12-13T19:07:36.0126836Z # 🎉 All integration tests passed!
+2025-12-13T19:07:36.0128092Z # Subtest: /home/runner/work/betrix-ui-new/betrix-ui-new/tests/payment-integration.test.js
+2025-12-13T19:07:36.0129284Z ok 10 - /home/runner/work/betrix-ui-new/betrix-ui-new/tests/payment-integration.test.js
+2025-12-13T19:07:36.0129954Z   ---
+2025-12-13T19:07:36.0130242Z   duration_ms: 96.115016
+2025-12-13T19:07:36.0130561Z   ...
+2025-12-13T19:07:36.0131059Z # 🧪 Payment Method Normalizer Tests
+2025-12-13T19:07:36.0131935Z # 📌 Test: Direct provider keys (uppercase)
+2025-12-13T19:07:36.0132741Z # ✅ PASS: All direct provider keys normalize correctly
+2025-12-13T19:07:36.0133608Z # 📌 Test: Common aliases
+2025-12-13T19:07:36.0134227Z # ✅ PASS: All common aliases normalize correctly
+2025-12-13T19:07:36.0134871Z # 📌 Test: Safaricom Till aliases
+2025-12-13T19:07:36.0135580Z # ✅ PASS: All Safaricom Till aliases normalize correctly
+2025-12-13T19:07:36.0136528Z # 📌 Test: M-Pesa aliases
+2025-12-13T19:07:36.0137165Z # ✅ PASS: All M-Pesa aliases normalize correctly
+2025-12-13T19:07:36.0137734Z # 📌 Test: Binance aliases
+2025-12-13T19:07:36.0138353Z # ✅ PASS: All Binance aliases normalize correctly
+2025-12-13T19:07:36.0138940Z # 📌 Test: Bank/Swift aliases
+2025-12-13T19:07:36.0139581Z # ✅ PASS: All Bank/Swift aliases normalize correctly
+2025-12-13T19:07:36.0140166Z # 📌 Test: Bitcoin aliases
+2025-12-13T19:07:36.0140775Z # ✅ PASS: All Bitcoin aliases normalize correctly
+2025-12-13T19:07:36.0141614Z # 📌 Test: Whitespace handling
+2025-12-13T19:07:36.0142210Z # ✅ PASS: Whitespace is handled correctly
+2025-12-13T19:07:36.0142794Z # 📌 Test: Invalid/unknown methods
+2025-12-13T19:07:36.0143357Z # ✅ PASS: Invalid inputs return null
+2025-12-13T19:07:36.0143900Z # 📌 Test: Mixed case combinations
+2025-12-13T19:07:36.0144518Z # ✅ PASS: All mixed case inputs normalize correctly
+2025-12-13T19:07:36.0145271Z # 📌 Test: All defined providers normalize from lowercase
+2025-12-13T19:07:36.0146060Z # ✅ PASS: All defined providers normalize from lowercase
+2025-12-13T19:07:36.0146740Z # 🎉 All payment normalizer tests passed!
+2025-12-13T19:07:36.0147626Z # Subtest: /home/runner/work/betrix-ui-new/betrix-ui-new/tests/payment-normalizer.test.js
+2025-12-13T19:07:36.0148733Z ok 11 - /home/runner/work/betrix-ui-new/betrix-ui-new/tests/payment-normalizer.test.js
+2025-12-13T19:07:36.0149385Z   ---
+2025-12-13T19:07:36.0149662Z   duration_ms: 96.831176
+2025-12-13T19:07:36.0149982Z   ...
+2025-12-13T19:07:36.0150344Z # 🧪 Payment Router Tests
+2025-12-13T19:07:36.0150924Z # 📌 Test: createPaymentOrder with SAFARICOM_TILL
+2025-12-13T19:07:36.0262201Z # [2025-12-13T19:07:35.826Z] [INFO] [PaymentRouter] Payment order created {
+2025-12-13T19:07:36.0262918Z #   orderId: 'ORD4242421765652855825',
+2025-12-13T19:07:36.0263363Z #   userId: 424242,
+2025-12-13T19:07:36.0263797Z #   paymentMethod: 'SAFARICOM_TILL'
+2025-12-13T19:07:36.0264202Z # }
+2025-12-13T19:07:36.0264840Z # ✅ PASS: Safaricom Till order created with instructions
+2025-12-13T19:07:36.0265627Z # 📌 Test: getPaymentInstructions for till
+2025-12-13T19:07:36.0266339Z # ✅ PASS: getPaymentInstructions returned till data
+2025-12-13T19:07:36.0267010Z # 📌 Test: verifyAndActivatePayment
+2025-12-13T19:07:36.0268282Z # [2025-12-13T19:07:35.835Z] [INFO] [PaymentRouter] Payment verified and activated { orderId: 'ORD4242421765652855825', userId: 424242, tier: 'PLUS' }
+2025-12-13T19:07:36.0269570Z # ✅ PASS: verifyAndActivatePayment activated subscription
+2025-12-13T19:07:36.0270188Z # All Payment Router tests passed!
+2025-12-13T19:07:36.0271031Z # Subtest: /home/runner/work/betrix-ui-new/betrix-ui-new/tests/payment-router.test.js
+2025-12-13T19:07:36.0272338Z ok 12 - /home/runner/work/betrix-ui-new/betrix-ui-new/tests/payment-router.test.js
+2025-12-13T19:07:36.0272989Z   ---
+2025-12-13T19:07:36.0273307Z   duration_ms: 108.545062
+2025-12-13T19:07:36.0273648Z   ...
+2025-12-13T19:07:36.0735379Z # Subtest: RSSAggregator instantiates without cache
+2025-12-13T19:07:36.0736480Z ok 38 - RSSAggregator instantiates without cache
+2025-12-13T19:07:36.0737533Z   ---
+2025-12-13T19:07:36.0738155Z   duration_ms: 1.74301
+2025-12-13T19:07:36.0738643Z   ...
+2025-12-13T19:07:36.0741498Z # Subtest: RSSAggregator instantiates with cache
+2025-12-13T19:07:36.0743654Z ok 39 - RSSAggregator instantiates with cache
+2025-12-13T19:07:36.0744986Z   ---
+2025-12-13T19:07:36.0745587Z   duration_ms: 0.352169
+2025-12-13T19:07:36.0746062Z   ...
+2025-12-13T19:07:36.1079732Z # run your tests here
+2025-12-13T19:07:36.1091839Z # Subtest: /home/runner/work/betrix-ui-new/betrix-ui-new/tests/run-tests.js
+2025-12-13T19:07:36.1096278Z ok 14 - /home/runner/work/betrix-ui-new/betrix-ui-new/tests/run-tests.js
+2025-12-13T19:07:36.1099771Z   ---
+2025-12-13T19:07:36.1103143Z   duration_ms: 39.666415
+2025-12-13T19:07:36.1105256Z   ...
+2025-12-13T19:07:36.1117905Z # 🧪 structured.test.js
+2025-12-13T19:07:36.1120491Z # ✅ structured validation tests passed
+2025-12-13T19:07:36.1123447Z # Subtest: /home/runner/work/betrix-ui-new/betrix-ui-new/tests/structured.test.js
+2025-12-13T19:07:36.1125989Z ok 15 - /home/runner/work/betrix-ui-new/betrix-ui-new/tests/structured.test.js
+2025-12-13T19:07:36.1131554Z   ---
+2025-12-13T19:07:36.1131888Z   duration_ms: 154.117474
+2025-12-13T19:07:36.1132232Z   ...
+2025-12-13T19:07:36.3123062Z # 🧪 Starting BETRIX Bot Command Tests (clean)...
+2025-12-13T19:07:36.3124237Z # [2025-12-13T19:07:36.310Z] [INFO] [Commands] handleStart { userId: 123456, chatId: 789012 }
+2025-12-13T19:07:36.3125294Z # [2025-12-13T19:07:36.312Z] [INFO] [Commands] New user created { userId: 123456 }
+2025-12-13T19:07:36.3128374Z # [2025-12-13T19:07:36.312Z] [INFO] [Commands] handleMenu { userId: 123456 }
+2025-12-13T19:07:36.3129346Z # [2025-12-13T19:07:36.312Z] [INFO] [Commands] handleHelp { chatId: 789012 }
+2025-12-13T19:07:36.3131400Z # [2025-12-13T19:07:36.312Z] [INFO] [CallbackHandlers] Callback received { userId: 123456, data: 'menu_main' }
+2025-12-13T19:07:36.3132748Z # ✅ Telegram bot smoke tests passed.
+2025-12-13T19:07:36.3188011Z # Subtest: /home/runner/work/betrix-ui-new/betrix-ui-new/tests/telegram-bot.test.js
+2025-12-13T19:07:36.3189096Z ok 16 - /home/runner/work/betrix-ui-new/betrix-ui-new/tests/telegram-bot.test.js
+2025-12-13T19:07:36.3189695Z   ---
+2025-12-13T19:07:36.3189988Z   duration_ms: 329.085999
+2025-12-13T19:07:36.3190306Z   ...
+2025-12-13T19:07:36.3190914Z # Subtest: telegram-handler-v2: default and named imports load and callable
+2025-12-13T19:07:36.3192350Z ok 43 - telegram-handler-v2: default and named imports load and callable
+2025-12-13T19:07:36.3192895Z   ---
+2025-12-13T19:07:36.3193162Z   duration_ms: 3.067939
+2025-12-13T19:07:36.3193472Z   ...
+2025-12-13T19:07:36.3193966Z # ✅ BETRIX v3 Handler Validation Complete
+2025-12-13T19:07:36.3194529Z # All v3 modules load and execute successfully:
+2025-12-13T19:07:36.3195120Z #   ✓ commands-v3.js (9 commands)
+2025-12-13T19:07:36.3195807Z #   ✓ message-handler-v3.js (intent routing + state machine)
+2025-12-13T19:07:36.3196565Z #   ✓ callbacks-v3.js (unified callback dispatcher)
+2025-12-13T19:07:36.3197266Z #   ✓ betting-sites.js (Kenya bookmaker directory)
+2025-12-13T19:07:36.3197899Z #   ✓ data-models.js (Redis schemas + helpers)
+2025-12-13T19:07:36.3198547Z # Ready to integrate into telegram-handler-v2.js and deploy!
+2025-12-13T19:07:36.3199212Z # Subtest: v3 - commands-v3.js loads and exports
+2025-12-13T19:07:36.3199767Z ok 44 - v3 - commands-v3.js loads and exports
+2025-12-13T19:07:36.3200169Z   ---
+2025-12-13T19:07:36.3200441Z   duration_ms: 12.761676
+2025-12-13T19:07:36.3200748Z   ...
+2025-12-13T19:07:36.3201326Z # Subtest: v3 - handleStart returns welcome message
+2025-12-13T19:07:36.3202016Z ok 45 - v3 - handleStart returns welcome message
+2025-12-13T19:07:36.3202480Z   ---
+2025-12-13T19:07:36.3202754Z   duration_ms: 0.3805
+2025-12-13T19:07:36.3203040Z   ...
+2025-12-13T19:07:36.3203428Z # Subtest: v3 - handleMenu returns main menu
+2025-12-13T19:07:36.3203949Z ok 46 - v3 - handleMenu returns main menu
+2025-12-13T19:07:36.3204341Z   ---
+2025-12-13T19:07:36.3204628Z   duration_ms: 0.421316
+2025-12-13T19:07:36.3204921Z   ...
+2025-12-13T19:07:36.3205817Z # Subtest: v3 - handleVVIP returns VVIP options
+2025-12-13T19:07:36.3206416Z ok 47 - v3 - handleVVIP returns VVIP options
+2025-12-13T19:07:36.3206823Z   ---
+2025-12-13T19:07:36.3207089Z   duration_ms: 0.389437
+2025-12-13T19:07:36.3207388Z   ...
+2025-12-13T19:07:36.3207836Z # Subtest: v3 - message-handler-v3.js loads and exports
+2025-12-13T19:07:36.3208455Z ok 48 - v3 - message-handler-v3.js loads and exports
+2025-12-13T19:07:36.3208715Z   ---
+2025-12-13T19:07:36.3208879Z   duration_ms: 5.750127
+2025-12-13T19:07:36.3209054Z   ...
+2025-12-13T19:07:36.3209309Z # Subtest: v3 - classifyIntent detects signup intent
+2025-12-13T19:07:36.3209660Z ok 49 - v3 - classifyIntent detects signup intent
+2025-12-13T19:07:36.3209917Z   ---
+2025-12-13T19:07:36.3210089Z   duration_ms: 2.678972
+2025-12-13T19:07:36.3210268Z   ...
+2025-12-13T19:07:36.3210520Z # Subtest: v3 - classifyIntent detects odds intent
+2025-12-13T19:07:36.3211041Z ok 50 - v3 - classifyIntent detects odds intent
+2025-12-13T19:07:36.3212624Z   ---
+2025-12-13T19:07:36.3212905Z   duration_ms: 0.461089
+2025-12-13T19:07:36.3213201Z   ...
+2025-12-13T19:07:36.3213548Z # Subtest: v3 - classifyIntent detects analyze intent
+2025-12-13T19:07:36.3213918Z ok 51 - v3 - classifyIntent detects analyze intent
+2025-12-13T19:07:36.3214168Z   ---
+2025-12-13T19:07:36.3214335Z   duration_ms: 3.227993
+2025-12-13T19:07:36.3214513Z   ...
+2025-12-13T19:07:36.3215027Z # [2025-12-13T19:07:36.190Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'menu_main', userId: 123, chatId: 456 }
+2025-12-13T19:07:36.3215699Z # [2025-12-13T19:07:36.192Z] [INFO] [Callbacks] handleMenuCallback { data: 'menu_main' }
+2025-12-13T19:07:36.3216313Z # [2025-12-13T19:07:36.197Z] [INFO] [DataModels] User profile created { userId: 123, name: 'John Doe' }
+2025-12-13T19:07:36.3216800Z # Subtest: v3 - callbacks-v3.js loads and exports
+2025-12-13T19:07:36.3217141Z ok 52 - v3 - callbacks-v3.js loads and exports
+2025-12-13T19:07:36.3217382Z   ---
+2025-12-13T19:07:36.3217547Z   duration_ms: 7.083351
+2025-12-13T19:07:36.3217726Z   ...
+2025-12-13T19:07:36.3218008Z # Subtest: v3 - handleCallbackQuery routes menu callbacks
+2025-12-13T19:07:36.3218385Z ok 53 - v3 - handleCallbackQuery routes menu callbacks
+2025-12-13T19:07:36.3218639Z   ---
+2025-12-13T19:07:36.3218791Z   duration_ms: 3.056477
+2025-12-13T19:07:36.3218963Z   ...
+2025-12-13T19:07:36.3219200Z # Subtest: v3 - betting-sites.js loads and exports
+2025-12-13T19:07:36.3219541Z ok 54 - v3 - betting-sites.js loads and exports
+2025-12-13T19:07:36.3219785Z   ---
+2025-12-13T19:07:36.3219939Z   duration_ms: 0.48336
+2025-12-13T19:07:36.3220118Z   ...
+2025-12-13T19:07:36.3220404Z # Subtest: v3 - getBettingSitesForCountry returns Kenya sites
+2025-12-13T19:07:36.3220821Z ok 55 - v3 - getBettingSitesForCountry returns Kenya sites
+2025-12-13T19:07:36.3221091Z   ---
+2025-12-13T19:07:36.3221504Z   duration_ms: 3.020932
+2025-12-13T19:07:36.3221752Z   ...
+2025-12-13T19:07:36.3222002Z # Subtest: v3 - data-models.js loads and exports
+2025-12-13T19:07:36.3222330Z ok 56 - v3 - data-models.js loads and exports
+2025-12-13T19:07:36.3222566Z   ---
+2025-12-13T19:07:36.3222720Z   duration_ms: 0.383476
+2025-12-13T19:07:36.3222899Z   ...
+2025-12-13T19:07:36.3223217Z # Subtest: v3 - createUserProfile creates profile with correct fields
+2025-12-13T19:07:36.3223704Z ok 57 - v3 - createUserProfile creates profile with correct fields
+2025-12-13T19:07:36.3223997Z   ---
+2025-12-13T19:07:36.3224160Z   duration_ms: 4.014394
+2025-12-13T19:07:36.3224346Z   ...
+2025-12-13T19:07:36.3224607Z # Subtest: v3 - formatCurrency formats KES correctly
+2025-12-13T19:07:36.3224958Z ok 58 - v3 - formatCurrency formats KES correctly
+2025-12-13T19:07:36.3225207Z   ---
+2025-12-13T19:07:36.3225366Z   duration_ms: 0.378888
+2025-12-13T19:07:36.3225537Z   ...
+2025-12-13T19:07:36.3225805Z # Subtest: v3 - calculateVVIPExpiry sets correct dates
+2025-12-13T19:07:36.3226169Z ok 59 - v3 - calculateVVIPExpiry sets correct dates
+2025-12-13T19:07:36.3226435Z   ---
+2025-12-13T19:07:36.3226592Z   duration_ms: 2.867901
+2025-12-13T19:07:36.3226923Z   ...
+2025-12-13T19:07:36.3227196Z # Subtest: v3 - handleOdds returns fixture list or empty
+2025-12-13T19:07:36.3227559Z ok 60 - v3 - handleOdds returns fixture list or empty
+2025-12-13T19:07:36.3227814Z   ---
+2025-12-13T19:07:36.3227973Z   duration_ms: 0.496784
+2025-12-13T19:07:36.3228141Z   ...
+2025-12-13T19:07:36.3228348Z # Subtest: v3 - handleHelp returns FAQs
+2025-12-13T19:07:36.3228641Z ok 61 - v3 - handleHelp returns FAQs
+2025-12-13T19:07:36.3228852Z   ---
+2025-12-13T19:07:36.3229012Z   duration_ms: 0.476688
+2025-12-13T19:07:36.3229177Z   ...
+2025-12-13T19:07:36.3229320Z 1..61
+2025-12-13T19:07:36.3229467Z # tests 62
+2025-12-13T19:07:36.3229618Z # suites 2
+2025-12-13T19:07:36.3229776Z # pass 61
+2025-12-13T19:07:36.3229922Z # fail 1
+2025-12-13T19:07:36.3230078Z # cancelled 0
+2025-12-13T19:07:36.3230244Z # skipped 0
+2025-12-13T19:07:36.3230392Z # todo 0
+2025-12-13T19:07:36.3230567Z # duration_ms 1045.076597
+2025-12-13T19:07:36.3347377Z ##[error]Process completed with exit code 1.
+2025-12-13T19:07:36.3447913Z Post job cleanup.
+2025-12-13T19:07:36.4420508Z [command]/usr/bin/git version
+2025-12-13T19:07:36.4460052Z git version 2.52.0
+2025-12-13T19:07:36.4505271Z Temporarily overriding HOME='/home/runner/work/_temp/fb5a63e2-2b27-4049-b8a4-2b280bb7b98c' before making global git config changes
+2025-12-13T19:07:36.4506615Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-13T19:07:36.4510578Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/betrix-ui-new/betrix-ui-new
+2025-12-13T19:07:36.4547987Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-12-13T19:07:36.4581562Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-12-13T19:07:36.4818892Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-13T19:07:36.4840608Z http.https://github.com/.extraheader
+2025-12-13T19:07:36.4854098Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-12-13T19:07:36.4886207Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-12-13T19:07:36.5115394Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-13T19:07:36.5147965Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2025-12-13T19:07:36.5497736Z Cleaning up orphan processes

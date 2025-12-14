@@ -1,0 +1,7 @@
+{
+  "generated_at": "2025-12-14T00:00:00Z",
+  "competitions": [
+    { "id": "sr:competition:1", "name": "Test League", "category": { "country_code": "USA" } },
+    { "id": "sr:competition:2", "name": "Another League", "category": { "country_code": "ENG" } }
+  ]
+}

@@ -1,0 +1,153 @@
+﻿2025-12-13T18:51:49.3558377Z Current runner version: '2.329.0'
+2025-12-13T18:51:49.3582773Z ##[group]Runner Image Provisioner
+2025-12-13T18:51:49.3583652Z Hosted Compute Agent
+2025-12-13T18:51:49.3584201Z Version: 20251202.455
+2025-12-13T18:51:49.3584821Z Commit: 6c10caca4910e198df60de23adf20ad317c474e3
+2025-12-13T18:51:49.3585702Z Build Date: 2025-12-02T15:56:59Z
+2025-12-13T18:51:49.3586364Z Worker ID: {077acc84-ca8a-4528-985d-d0b40ba60694}
+2025-12-13T18:51:49.3587078Z ##[endgroup]
+2025-12-13T18:51:49.3587909Z ##[group]Operating System
+2025-12-13T18:51:49.3588521Z Ubuntu
+2025-12-13T18:51:49.3589001Z 24.04.3
+2025-12-13T18:51:49.3589619Z LTS
+2025-12-13T18:51:49.3590059Z ##[endgroup]
+2025-12-13T18:51:49.3590602Z ##[group]Runner Image
+2025-12-13T18:51:49.3591111Z Image: ubuntu-24.04
+2025-12-13T18:51:49.3591702Z Version: 20251208.163.1
+2025-12-13T18:51:49.3592704Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20251208.163/images/ubuntu/Ubuntu2404-Readme.md
+2025-12-13T18:51:49.3594324Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20251208.163
+2025-12-13T18:51:49.3595353Z ##[endgroup]
+2025-12-13T18:51:49.3598114Z ##[group]GITHUB_TOKEN Permissions
+2025-12-13T18:51:49.3600293Z Actions: write
+2025-12-13T18:51:49.3600836Z ArtifactMetadata: write
+2025-12-13T18:51:49.3601471Z Attestations: write
+2025-12-13T18:51:49.3601999Z Checks: write
+2025-12-13T18:51:49.3602461Z Contents: write
+2025-12-13T18:51:49.3603015Z Deployments: write
+2025-12-13T18:51:49.3603538Z Discussions: write
+2025-12-13T18:51:49.3604111Z Issues: write
+2025-12-13T18:51:49.3604721Z Metadata: read
+2025-12-13T18:51:49.3605178Z Models: read
+2025-12-13T18:51:49.3605698Z Packages: write
+2025-12-13T18:51:49.3606203Z Pages: write
+2025-12-13T18:51:49.3606766Z PullRequests: write
+2025-12-13T18:51:49.3607370Z RepositoryProjects: write
+2025-12-13T18:51:49.3608166Z SecurityEvents: write
+2025-12-13T18:51:49.3608908Z Statuses: write
+2025-12-13T18:51:49.3609696Z ##[endgroup]
+2025-12-13T18:51:49.3612526Z Secret source: Actions
+2025-12-13T18:51:49.3614167Z Prepare workflow directory
+2025-12-13T18:51:49.4060112Z Prepare all required actions
+2025-12-13T18:51:49.4114834Z Getting action download info
+2025-12-13T18:51:49.6884304Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2025-12-13T18:51:49.7879619Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2025-12-13T18:51:49.9585864Z Complete job name: tests
+2025-12-13T18:51:50.0252019Z ##[group]Run actions/checkout@v4
+2025-12-13T18:51:50.0252855Z with:
+2025-12-13T18:51:50.0253304Z   repository: elijahjessy311-afk/betrix-ui-new
+2025-12-13T18:51:50.0254027Z   token: ***
+2025-12-13T18:51:50.0254412Z   ssh-strict: true
+2025-12-13T18:51:50.0254818Z   ssh-user: git
+2025-12-13T18:51:50.0255216Z   persist-credentials: true
+2025-12-13T18:51:50.0255670Z   clean: true
+2025-12-13T18:51:50.0256093Z   sparse-checkout-cone-mode: true
+2025-12-13T18:51:50.0256617Z   fetch-depth: 1
+2025-12-13T18:51:50.0256995Z   fetch-tags: false
+2025-12-13T18:51:50.0257421Z   show-progress: true
+2025-12-13T18:51:50.0258061Z   lfs: false
+2025-12-13T18:51:50.0258438Z   submodules: false
+2025-12-13T18:51:50.0258857Z   set-safe-directory: true
+2025-12-13T18:51:50.0259535Z ##[endgroup]
+2025-12-13T18:51:50.1330717Z Syncing repository: elijahjessy311-afk/betrix-ui-new
+2025-12-13T18:51:50.1333130Z ##[group]Getting Git version info
+2025-12-13T18:51:50.1334327Z Working directory is '/home/runner/work/betrix-ui-new/betrix-ui-new'
+2025-12-13T18:51:50.1335840Z [command]/usr/bin/git version
+2025-12-13T18:51:50.1462031Z git version 2.52.0
+2025-12-13T18:51:50.1489374Z ##[endgroup]
+2025-12-13T18:51:50.1511271Z Temporarily overriding HOME='/home/runner/work/_temp/fcbc01f6-f755-40ab-88cd-0516534a8cdf' before making global git config changes
+2025-12-13T18:51:50.1512695Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-13T18:51:50.1516814Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/betrix-ui-new/betrix-ui-new
+2025-12-13T18:51:50.1555688Z Deleting the contents of '/home/runner/work/betrix-ui-new/betrix-ui-new'
+2025-12-13T18:51:50.1559353Z ##[group]Initializing the repository
+2025-12-13T18:51:50.1563472Z [command]/usr/bin/git init /home/runner/work/betrix-ui-new/betrix-ui-new
+2025-12-13T18:51:50.1681937Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-12-13T18:51:50.1683186Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2025-12-13T18:51:50.1684701Z hint: to use in all of your new repositories, which will suppress this warning,
+2025-12-13T18:51:50.1685885Z hint: call:
+2025-12-13T18:51:50.1686468Z hint:
+2025-12-13T18:51:50.1687208Z hint: 	git config --global init.defaultBranch <name>
+2025-12-13T18:51:50.1688265Z hint:
+2025-12-13T18:51:50.1688853Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-12-13T18:51:50.1689778Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-12-13T18:51:50.1690515Z hint:
+2025-12-13T18:51:50.1690908Z hint: 	git branch -m <name>
+2025-12-13T18:51:50.1691369Z hint:
+2025-12-13T18:51:50.1692050Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-12-13T18:51:50.1693458Z Initialized empty Git repository in /home/runner/work/betrix-ui-new/betrix-ui-new/.git/
+2025-12-13T18:51:50.1697986Z [command]/usr/bin/git remote add origin https://github.com/elijahjessy311-afk/betrix-ui-new
+2025-12-13T18:51:50.1732377Z ##[endgroup]
+2025-12-13T18:51:50.1733122Z ##[group]Disabling automatic garbage collection
+2025-12-13T18:51:50.1736348Z [command]/usr/bin/git config --local gc.auto 0
+2025-12-13T18:51:50.1764764Z ##[endgroup]
+2025-12-13T18:51:50.1765457Z ##[group]Setting up auth
+2025-12-13T18:51:50.1771566Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-12-13T18:51:50.1801457Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-12-13T18:51:50.2146308Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-13T18:51:50.2176945Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-12-13T18:51:50.2394574Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-13T18:51:50.2424462Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2025-12-13T18:51:50.2654047Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-12-13T18:51:50.2687948Z ##[endgroup]
+2025-12-13T18:51:50.2689321Z ##[group]Fetching the repository
+2025-12-13T18:51:50.2697454Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +e52ff9f0d0b2bcbdca3bd3446d637282e88d0959:refs/remotes/origin/main
+2025-12-13T18:51:52.2773469Z From https://github.com/elijahjessy311-afk/betrix-ui-new
+2025-12-13T18:51:52.2774567Z  * [new ref]         e52ff9f0d0b2bcbdca3bd3446d637282e88d0959 -> origin/main
+2025-12-13T18:51:52.2804709Z ##[endgroup]
+2025-12-13T18:51:52.2805526Z ##[group]Determining the checkout info
+2025-12-13T18:51:52.2806858Z ##[endgroup]
+2025-12-13T18:51:52.2811791Z [command]/usr/bin/git sparse-checkout disable
+2025-12-13T18:51:52.2854707Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-12-13T18:51:52.2880151Z ##[group]Checking out the ref
+2025-12-13T18:51:52.2883662Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2025-12-13T18:51:52.6501513Z Switched to a new branch 'main'
+2025-12-13T18:51:52.6503210Z branch 'main' set up to track 'origin/main'.
+2025-12-13T18:51:52.6541085Z ##[endgroup]
+2025-12-13T18:51:52.6580129Z [command]/usr/bin/git log -1 --format=%H
+2025-12-13T18:51:52.6602700Z e52ff9f0d0b2bcbdca3bd3446d637282e88d0959
+2025-12-13T18:51:52.6903097Z ##[group]Run actions/setup-node@v4
+2025-12-13T18:51:52.6904289Z with:
+2025-12-13T18:51:52.6905086Z   node-version: 20
+2025-12-13T18:51:52.6905993Z   always-auth: false
+2025-12-13T18:51:52.6906905Z   check-latest: false
+2025-12-13T18:51:52.6908317Z   token: ***
+2025-12-13T18:51:52.6909154Z ##[endgroup]
+2025-12-13T18:51:52.8677783Z Found in cache @ /opt/hostedtoolcache/node/20.19.6/x64
+2025-12-13T18:51:52.8684005Z ##[group]Environment details
+2025-12-13T18:51:53.2380503Z node: v20.19.6
+2025-12-13T18:51:53.2381480Z npm: 10.8.2
+2025-12-13T18:51:53.2381856Z yarn: 1.22.22
+2025-12-13T18:51:53.2382838Z ##[endgroup]
+2025-12-13T18:51:53.2482885Z ##[group]Run curl -fsSL https://bun.sh/install | bash -s -- --yes
+2025-12-13T18:51:53.2483473Z [36;1mcurl -fsSL https://bun.sh/install | bash -s -- --yes[0m
+2025-12-13T18:51:53.2483881Z [36;1mecho "::add-path::$HOME/.bun/bin"[0m
+2025-12-13T18:51:53.2540047Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2025-12-13T18:51:53.2540432Z ##[endgroup]
+2025-12-13T18:51:53.4965626Z curl: (22) The requested URL returned error: 404
+2025-12-13T18:51:53.4965986Z 
+2025-12-13T18:51:53.4986579Z error: Failed to download bun from "https://github.com/oven-sh/bun/releases/download/--yes/bun-linux-x64.zip"
+2025-12-13T18:51:53.5002460Z ##[error]Process completed with exit code 1.
+2025-12-13T18:51:53.5118666Z Post job cleanup.
+2025-12-13T18:51:53.6051191Z [command]/usr/bin/git version
+2025-12-13T18:51:53.6087949Z git version 2.52.0
+2025-12-13T18:51:53.6131557Z Temporarily overriding HOME='/home/runner/work/_temp/966c7bab-b2b6-452d-a4a6-4324b25e09cf' before making global git config changes
+2025-12-13T18:51:53.6133230Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-13T18:51:53.6144212Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/betrix-ui-new/betrix-ui-new
+2025-12-13T18:51:53.6178607Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-12-13T18:51:53.6211047Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-12-13T18:51:53.6437291Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-13T18:51:53.6458188Z http.https://github.com/.extraheader
+2025-12-13T18:51:53.6470346Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-12-13T18:51:53.6500914Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-12-13T18:51:53.6716423Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-13T18:51:53.6748397Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2025-12-13T18:51:53.7142958Z Cleaning up orphan processes

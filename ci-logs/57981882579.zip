@@ -1,0 +1,272 @@
+﻿2025-12-13T19:26:41.0519316Z Current runner version: '2.329.0'
+2025-12-13T19:26:41.0543101Z ##[group]Runner Image Provisioner
+2025-12-13T19:26:41.0543912Z Hosted Compute Agent
+2025-12-13T19:26:41.0544502Z Version: 20251202.455
+2025-12-13T19:26:41.0545120Z Commit: 6c10caca4910e198df60de23adf20ad317c474e3
+2025-12-13T19:26:41.0545769Z Build Date: 2025-12-02T15:56:59Z
+2025-12-13T19:26:41.0546440Z Worker ID: {9178a2e4-af66-4579-946e-ac0b28c3a504}
+2025-12-13T19:26:41.0547111Z ##[endgroup]
+2025-12-13T19:26:41.0547632Z ##[group]Operating System
+2025-12-13T19:26:41.0548209Z Ubuntu
+2025-12-13T19:26:41.0548887Z 24.04.3
+2025-12-13T19:26:41.0549339Z LTS
+2025-12-13T19:26:41.0549750Z ##[endgroup]
+2025-12-13T19:26:41.0550336Z ##[group]Runner Image
+2025-12-13T19:26:41.0550833Z Image: ubuntu-24.04
+2025-12-13T19:26:41.0551318Z Version: 20251208.163.1
+2025-12-13T19:26:41.0552359Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20251208.163/images/ubuntu/Ubuntu2404-Readme.md
+2025-12-13T19:26:41.0553886Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20251208.163
+2025-12-13T19:26:41.0554944Z ##[endgroup]
+2025-12-13T19:26:41.0557446Z ##[group]GITHUB_TOKEN Permissions
+2025-12-13T19:26:41.0559639Z Actions: write
+2025-12-13T19:26:41.0560209Z ArtifactMetadata: write
+2025-12-13T19:26:41.0560711Z Attestations: write
+2025-12-13T19:26:41.0561340Z Checks: write
+2025-12-13T19:26:41.0561793Z Contents: write
+2025-12-13T19:26:41.0562289Z Deployments: write
+2025-12-13T19:26:41.0562795Z Discussions: write
+2025-12-13T19:26:41.0563322Z Issues: write
+2025-12-13T19:26:41.0563796Z Metadata: read
+2025-12-13T19:26:41.0564297Z Models: read
+2025-12-13T19:26:41.0564792Z Packages: write
+2025-12-13T19:26:41.0565251Z Pages: write
+2025-12-13T19:26:41.0565763Z PullRequests: write
+2025-12-13T19:26:41.0566351Z RepositoryProjects: write
+2025-12-13T19:26:41.0566909Z SecurityEvents: write
+2025-12-13T19:26:41.0567501Z Statuses: write
+2025-12-13T19:26:41.0567965Z ##[endgroup]
+2025-12-13T19:26:41.0570503Z Secret source: Actions
+2025-12-13T19:26:41.0571371Z Prepare workflow directory
+2025-12-13T19:26:41.0889397Z Prepare all required actions
+2025-12-13T19:26:41.0928652Z Getting action download info
+2025-12-13T19:26:41.5025276Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2025-12-13T19:26:41.6174205Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2025-12-13T19:26:41.7855740Z Complete job name: monitor
+2025-12-13T19:26:41.8530825Z ##[group]Run actions/checkout@v4
+2025-12-13T19:26:41.8531680Z with:
+2025-12-13T19:26:41.8532122Z   repository: elijahjessy311-afk/betrix-ui-new
+2025-12-13T19:26:41.8532818Z   token: ***
+2025-12-13T19:26:41.8533201Z   ssh-strict: true
+2025-12-13T19:26:41.8533579Z   ssh-user: git
+2025-12-13T19:26:41.8533966Z   persist-credentials: true
+2025-12-13T19:26:41.8534414Z   clean: true
+2025-12-13T19:26:41.8534817Z   sparse-checkout-cone-mode: true
+2025-12-13T19:26:41.8535287Z   fetch-depth: 1
+2025-12-13T19:26:41.8535675Z   fetch-tags: false
+2025-12-13T19:26:41.8536093Z   show-progress: true
+2025-12-13T19:26:41.8536488Z   lfs: false
+2025-12-13T19:26:41.8536848Z   submodules: false
+2025-12-13T19:26:41.8537243Z   set-safe-directory: true
+2025-12-13T19:26:41.8537882Z ##[endgroup]
+2025-12-13T19:26:41.9597608Z Syncing repository: elijahjessy311-afk/betrix-ui-new
+2025-12-13T19:26:41.9599636Z ##[group]Getting Git version info
+2025-12-13T19:26:41.9600540Z Working directory is '/home/runner/work/betrix-ui-new/betrix-ui-new'
+2025-12-13T19:26:41.9601534Z [command]/usr/bin/git version
+2025-12-13T19:26:41.9699189Z git version 2.52.0
+2025-12-13T19:26:41.9724495Z ##[endgroup]
+2025-12-13T19:26:41.9738577Z Temporarily overriding HOME='/home/runner/work/_temp/c4c8ee0d-a59b-4a25-a4fb-0193443ffc52' before making global git config changes
+2025-12-13T19:26:41.9740067Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-13T19:26:41.9750936Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/betrix-ui-new/betrix-ui-new
+2025-12-13T19:26:41.9791242Z Deleting the contents of '/home/runner/work/betrix-ui-new/betrix-ui-new'
+2025-12-13T19:26:41.9794844Z ##[group]Initializing the repository
+2025-12-13T19:26:41.9799693Z [command]/usr/bin/git init /home/runner/work/betrix-ui-new/betrix-ui-new
+2025-12-13T19:26:41.9915578Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-12-13T19:26:41.9917051Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2025-12-13T19:26:41.9917948Z hint: to use in all of your new repositories, which will suppress this warning,
+2025-12-13T19:26:41.9918886Z hint: call:
+2025-12-13T19:26:41.9919348Z hint:
+2025-12-13T19:26:41.9920172Z hint: 	git config --global init.defaultBranch <name>
+2025-12-13T19:26:41.9920924Z hint:
+2025-12-13T19:26:41.9921611Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-12-13T19:26:41.9923218Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-12-13T19:26:41.9924530Z hint:
+2025-12-13T19:26:41.9925211Z hint: 	git branch -m <name>
+2025-12-13T19:26:41.9926004Z hint:
+2025-12-13T19:26:41.9927096Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-12-13T19:26:41.9929132Z Initialized empty Git repository in /home/runner/work/betrix-ui-new/betrix-ui-new/.git/
+2025-12-13T19:26:41.9934336Z [command]/usr/bin/git remote add origin https://github.com/elijahjessy311-afk/betrix-ui-new
+2025-12-13T19:26:41.9966996Z ##[endgroup]
+2025-12-13T19:26:41.9968193Z ##[group]Disabling automatic garbage collection
+2025-12-13T19:26:41.9972053Z [command]/usr/bin/git config --local gc.auto 0
+2025-12-13T19:26:42.0000388Z ##[endgroup]
+2025-12-13T19:26:42.0001599Z ##[group]Setting up auth
+2025-12-13T19:26:42.0007822Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-12-13T19:26:42.0038740Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-12-13T19:26:42.0406447Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-13T19:26:42.0437203Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-12-13T19:26:42.0656112Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-13T19:26:42.0685831Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2025-12-13T19:26:42.0914944Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-12-13T19:26:42.0948936Z ##[endgroup]
+2025-12-13T19:26:42.0950183Z ##[group]Fetching the repository
+2025-12-13T19:26:42.0958960Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +fe459888327fdf28bfa5ad7fd90f959579eeefb0:refs/remotes/origin/main
+2025-12-13T19:26:44.3426439Z From https://github.com/elijahjessy311-afk/betrix-ui-new
+2025-12-13T19:26:44.3427565Z  * [new ref]         fe459888327fdf28bfa5ad7fd90f959579eeefb0 -> origin/main
+2025-12-13T19:26:44.3462686Z ##[endgroup]
+2025-12-13T19:26:44.3464086Z ##[group]Determining the checkout info
+2025-12-13T19:26:44.3465921Z ##[endgroup]
+2025-12-13T19:26:44.3470788Z [command]/usr/bin/git sparse-checkout disable
+2025-12-13T19:26:44.3513983Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-12-13T19:26:44.3541891Z ##[group]Checking out the ref
+2025-12-13T19:26:44.3546349Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2025-12-13T19:26:44.7144171Z Switched to a new branch 'main'
+2025-12-13T19:26:44.7145920Z branch 'main' set up to track 'origin/main'.
+2025-12-13T19:26:44.7183968Z ##[endgroup]
+2025-12-13T19:26:44.7223277Z [command]/usr/bin/git log -1 --format=%H
+2025-12-13T19:26:44.7246304Z fe459888327fdf28bfa5ad7fd90f959579eeefb0
+2025-12-13T19:26:44.7479116Z ##[group]Run actions/setup-node@v4
+2025-12-13T19:26:44.7479550Z with:
+2025-12-13T19:26:44.7479793Z   node-version: 18
+2025-12-13T19:26:44.7480065Z   always-auth: false
+2025-12-13T19:26:44.7480331Z   check-latest: false
+2025-12-13T19:26:44.7480775Z   token: ***
+2025-12-13T19:26:44.7481029Z ##[endgroup]
+2025-12-13T19:26:44.9224423Z Attempting to download 18...
+2025-12-13T19:26:45.7621091Z Acquiring 18.20.8 - x64 from https://github.com/actions/node-versions/releases/download/18.20.8-14110393767/node-18.20.8-linux-x64.tar.gz
+2025-12-13T19:26:46.3065832Z Extracting ...
+2025-12-13T19:26:46.3172953Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/4a05639a-895b-4a54-9d0d-1d8cbe7cbbd0 -f /home/runner/work/_temp/cb6d9afe-7ddc-4c40-86cc-d52be68773cc
+2025-12-13T19:26:47.2549167Z Adding to the cache ...
+2025-12-13T19:26:48.8521490Z ##[group]Environment details
+2025-12-13T19:26:49.0884237Z node: v18.20.8
+2025-12-13T19:26:49.0885210Z npm: 10.8.2
+2025-12-13T19:26:49.0885508Z yarn: 1.22.22
+2025-12-13T19:26:49.0886184Z ##[endgroup]
+2025-12-13T19:26:49.1036270Z ##[group]Run npm ci
+2025-12-13T19:26:49.1036550Z [36;1mnpm ci[0m
+2025-12-13T19:26:49.1075346Z shell: /usr/bin/bash -e {0}
+2025-12-13T19:26:49.1075604Z ##[endgroup]
+2025-12-13T19:26:49.5698917Z npm warn EBADENGINE Unsupported engine {
+2025-12-13T19:26:49.5699767Z npm warn EBADENGINE   package: 'betrix-ui@2.0.0',
+2025-12-13T19:26:49.5700561Z npm warn EBADENGINE   required: { node: '>=20.0.0' },
+2025-12-13T19:26:49.5701359Z npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+2025-12-13T19:26:49.5701968Z npm warn EBADENGINE }
+2025-12-13T19:26:49.5702500Z npm warn EBADENGINE Unsupported engine {
+2025-12-13T19:26:49.5703204Z npm warn EBADENGINE   package: '@supabase/auth-js@2.86.0',
+2025-12-13T19:26:49.5703860Z npm warn EBADENGINE   required: { node: '>=20.0.0' },
+2025-12-13T19:26:49.5704581Z npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+2025-12-13T19:26:49.5705184Z npm warn EBADENGINE }
+2025-12-13T19:26:49.5705751Z npm warn EBADENGINE Unsupported engine {
+2025-12-13T19:26:49.5706498Z npm warn EBADENGINE   package: '@supabase/functions-js@2.86.0',
+2025-12-13T19:26:49.5707243Z npm warn EBADENGINE   required: { node: '>=20.0.0' },
+2025-12-13T19:26:49.5708022Z npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+2025-12-13T19:26:49.5708750Z npm warn EBADENGINE }
+2025-12-13T19:26:49.5709231Z npm warn EBADENGINE Unsupported engine {
+2025-12-13T19:26:49.5709948Z npm warn EBADENGINE   package: '@supabase/postgrest-js@2.86.0',
+2025-12-13T19:26:49.5710674Z npm warn EBADENGINE   required: { node: '>=20.0.0' },
+2025-12-13T19:26:49.5711434Z npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+2025-12-13T19:26:49.5711988Z npm warn EBADENGINE }
+2025-12-13T19:26:49.5712451Z npm warn EBADENGINE Unsupported engine {
+2025-12-13T19:26:49.5713177Z npm warn EBADENGINE   package: '@supabase/realtime-js@2.86.0',
+2025-12-13T19:26:49.5713894Z npm warn EBADENGINE   required: { node: '>=20.0.0' },
+2025-12-13T19:26:49.5714646Z npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+2025-12-13T19:26:49.5715206Z npm warn EBADENGINE }
+2025-12-13T19:26:49.5715679Z npm warn EBADENGINE Unsupported engine {
+2025-12-13T19:26:49.5716430Z npm warn EBADENGINE   package: '@supabase/storage-js@2.86.0',
+2025-12-13T19:26:49.5717149Z npm warn EBADENGINE   required: { node: '>=20.0.0' },
+2025-12-13T19:26:49.5717906Z npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+2025-12-13T19:26:49.5718402Z npm warn EBADENGINE }
+2025-12-13T19:26:49.5718925Z npm warn EBADENGINE Unsupported engine {
+2025-12-13T19:26:49.5719345Z npm warn EBADENGINE   package: '@supabase/supabase-js@2.86.0',
+2025-12-13T19:26:49.5719762Z npm warn EBADENGINE   required: { node: '>=20.0.0' },
+2025-12-13T19:26:49.5720188Z npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+2025-12-13T19:26:49.5720847Z npm warn EBADENGINE }
+2025-12-13T19:26:49.5724792Z npm warn EBADENGINE Unsupported engine {
+2025-12-13T19:26:49.5725423Z npm warn EBADENGINE   package: 'cheerio@1.1.2',
+2025-12-13T19:26:49.5725876Z npm warn EBADENGINE   required: { node: '>=20.18.1' },
+2025-12-13T19:26:49.5726315Z npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+2025-12-13T19:26:49.5726652Z npm warn EBADENGINE }
+2025-12-13T19:26:49.5732534Z npm warn EBADENGINE Unsupported engine {
+2025-12-13T19:26:49.5733166Z npm warn EBADENGINE   package: 'iceberg-js@0.8.0',
+2025-12-13T19:26:49.5733604Z npm warn EBADENGINE   required: { node: '>=20.0.0' },
+2025-12-13T19:26:49.5734034Z npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+2025-12-13T19:26:49.5734356Z npm warn EBADENGINE }
+2025-12-13T19:26:49.5736068Z npm warn EBADENGINE Unsupported engine {
+2025-12-13T19:26:49.5736663Z npm warn EBADENGINE   package: 'joi@18.0.2',
+2025-12-13T19:26:49.5737188Z npm warn EBADENGINE   required: { node: '>= 20' },
+2025-12-13T19:26:49.5737620Z npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+2025-12-13T19:26:49.5737935Z npm warn EBADENGINE }
+2025-12-13T19:26:49.5744939Z npm warn EBADENGINE Unsupported engine {
+2025-12-13T19:26:49.5745489Z npm warn EBADENGINE   package: 'undici@7.16.0',
+2025-12-13T19:26:49.5745882Z npm warn EBADENGINE   required: { node: '>=20.18.1' },
+2025-12-13T19:26:49.5746321Z npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+2025-12-13T19:26:49.5746656Z npm warn EBADENGINE }
+2025-12-13T19:26:51.2775875Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2025-12-13T19:26:51.8165361Z npm warn deprecated @paypal/checkout-server-sdk@1.0.3: Package no longer supported. The author suggests using the @paypal/paypal-server-sdk package instead: https://www.npmjs.com/package/@paypal/paypal-server-sdk. Contact Support at https://www.npmjs.com/support for more info.
+2025-12-13T19:26:53.3947907Z 
+2025-12-13T19:26:53.3948976Z added 263 packages, and audited 264 packages in 4s
+2025-12-13T19:26:53.3949465Z 
+2025-12-13T19:26:53.3949800Z 45 packages are looking for funding
+2025-12-13T19:26:53.3950401Z   run `npm fund` for details
+2025-12-13T19:26:53.3964056Z 
+2025-12-13T19:26:53.3964475Z found 0 vulnerabilities
+2025-12-13T19:26:53.4204922Z ##[group]Run node scripts/mapping-miss-monitor.js
+2025-12-13T19:26:53.4205300Z [36;1mnode scripts/mapping-miss-monitor.js[0m
+2025-12-13T19:26:53.4239418Z shell: /usr/bin/bash -e {0}
+2025-12-13T19:26:53.4239630Z env:
+2025-12-13T19:26:53.4239787Z   REDIS_URL: 
+2025-12-13T19:26:53.4239950Z   TELEGRAM_TOKEN: 
+2025-12-13T19:26:53.4240124Z   ADMIN_TELEGRAM_ID: 
+2025-12-13T19:26:53.4240299Z ##[endgroup]
+2025-12-13T19:26:53.5406577Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:26:53.5407157Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:26:53.5925359Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:26:53.5926169Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:26:53.6936267Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:26:53.6937373Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:26:53.8448983Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:26:53.8449757Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:26:54.0459086Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:26:54.0459947Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:26:54.2972901Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:26:54.2973960Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:26:54.5985732Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:26:54.5986744Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:26:54.9497684Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:26:54.9498692Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:26:55.3512837Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:26:55.3513548Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:26:55.8028099Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:26:55.8029591Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:26:56.3044541Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:26:56.3045197Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:26:56.8559134Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:26:56.8560062Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:26:57.4565906Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:26:57.4566831Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:26:58.1082322Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:26:58.1083034Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:26:58.8098995Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:26:58.8100190Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:26:59.5607104Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:26:59.5607926Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:27:00.3622902Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:27:00.3623644Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:27:01.2140377Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:27:01.2141390Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:27:02.1164357Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:27:02.1165142Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:27:03.0679963Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:27:03.0680954Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:27:04.0690220Z [ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+2025-12-13T19:27:04.0691420Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+2025-12-13T19:27:04.0706857Z Monitor failed: MaxRetriesPerRequestError: Reached the max retries per request limit (which is 20). Refer to "maxRetriesPerRequest" option for details.
+2025-12-13T19:27:04.0708921Z     at Socket.<anonymous> (/home/runner/work/betrix-ui-new/betrix-ui-new/node_modules/ioredis/built/redis/event_handler.js:207:37)
+2025-12-13T19:27:04.0710006Z     at Object.onceWrapper (node:events:632:26)
+2025-12-13T19:27:04.0710477Z     at Socket.emit (node:events:517:28)
+2025-12-13T19:27:04.0710934Z     at TCP.<anonymous> (node:net:350:12)
+2025-12-13T19:27:04.0757298Z ##[error]Process completed with exit code 2.
+2025-12-13T19:27:04.0854408Z Post job cleanup.
+2025-12-13T19:27:04.1803290Z [command]/usr/bin/git version
+2025-12-13T19:27:04.1840844Z git version 2.52.0
+2025-12-13T19:27:04.1888652Z Temporarily overriding HOME='/home/runner/work/_temp/511b43cc-7052-4788-bbc6-68606bba8d14' before making global git config changes
+2025-12-13T19:27:04.1890134Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-13T19:27:04.1895133Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/betrix-ui-new/betrix-ui-new
+2025-12-13T19:27:04.1932676Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-12-13T19:27:04.1965928Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-12-13T19:27:04.2198613Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-13T19:27:04.2220009Z http.https://github.com/.extraheader
+2025-12-13T19:27:04.2232060Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-12-13T19:27:04.2262325Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-12-13T19:27:04.2484967Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-13T19:27:04.2515464Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2025-12-13T19:27:04.2845675Z Cleaning up orphan processes

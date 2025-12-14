@@ -1,0 +1,408 @@
+﻿2025-12-13T19:27:11.6299714Z Current runner version: '2.329.0'
+2025-12-13T19:27:11.6324490Z ##[group]Runner Image Provisioner
+2025-12-13T19:27:11.6325422Z Hosted Compute Agent
+2025-12-13T19:27:11.6325966Z Version: 20251202.455
+2025-12-13T19:27:11.6326651Z Commit: 6c10caca4910e198df60de23adf20ad317c474e3
+2025-12-13T19:27:11.6327349Z Build Date: 2025-12-02T15:56:59Z
+2025-12-13T19:27:11.6327962Z Worker ID: {88d8e0ad-6fb0-4200-a83b-f17196fe2d26}
+2025-12-13T19:27:11.6328734Z ##[endgroup]
+2025-12-13T19:27:11.6329234Z ##[group]Operating System
+2025-12-13T19:27:11.6329805Z Ubuntu
+2025-12-13T19:27:11.6330322Z 24.04.3
+2025-12-13T19:27:11.6330741Z LTS
+2025-12-13T19:27:11.6331192Z ##[endgroup]
+2025-12-13T19:27:11.6331699Z ##[group]Runner Image
+2025-12-13T19:27:11.6332253Z Image: ubuntu-24.04
+2025-12-13T19:27:11.6332717Z Version: 20251208.163.1
+2025-12-13T19:27:11.6333771Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20251208.163/images/ubuntu/Ubuntu2404-Readme.md
+2025-12-13T19:27:11.6335485Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20251208.163
+2025-12-13T19:27:11.6336576Z ##[endgroup]
+2025-12-13T19:27:11.6339026Z ##[group]GITHUB_TOKEN Permissions
+2025-12-13T19:27:11.6341328Z Actions: write
+2025-12-13T19:27:11.6341872Z ArtifactMetadata: write
+2025-12-13T19:27:11.6342427Z Attestations: write
+2025-12-13T19:27:11.6342879Z Checks: write
+2025-12-13T19:27:11.6343427Z Contents: write
+2025-12-13T19:27:11.6343888Z Deployments: write
+2025-12-13T19:27:11.6344661Z Discussions: write
+2025-12-13T19:27:11.6345231Z Issues: write
+2025-12-13T19:27:11.6345726Z Metadata: read
+2025-12-13T19:27:11.6346211Z Models: read
+2025-12-13T19:27:11.6346722Z Packages: write
+2025-12-13T19:27:11.6347219Z Pages: write
+2025-12-13T19:27:11.6347699Z PullRequests: write
+2025-12-13T19:27:11.6348383Z RepositoryProjects: write
+2025-12-13T19:27:11.6348919Z SecurityEvents: write
+2025-12-13T19:27:11.6349443Z Statuses: write
+2025-12-13T19:27:11.6349997Z ##[endgroup]
+2025-12-13T19:27:11.6352108Z Secret source: Actions
+2025-12-13T19:27:11.6352859Z Prepare workflow directory
+2025-12-13T19:27:11.6869306Z Prepare all required actions
+2025-12-13T19:27:11.6907185Z Getting action download info
+2025-12-13T19:27:12.0604098Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2025-12-13T19:27:12.4884862Z Download action repository 'docker/setup-buildx-action@v3' (SHA:e468171a9de216ec08956ac3ada2f0791b6bd435)
+2025-12-13T19:27:13.2508738Z Download action repository 'docker/login-action@v3' (SHA:5e57cd118135c172c3672efd75eb46360885c0ef)
+2025-12-13T19:27:14.0775801Z Complete job name: build-and-publish
+2025-12-13T19:27:14.1379301Z ##[group]Run actions/checkout@v4
+2025-12-13T19:27:14.1379927Z with:
+2025-12-13T19:27:14.1380216Z   repository: elijahjessy311-afk/betrix-ui-new
+2025-12-13T19:27:14.1380695Z   token: ***
+2025-12-13T19:27:14.1380927Z   ssh-strict: true
+2025-12-13T19:27:14.1381162Z   ssh-user: git
+2025-12-13T19:27:14.1381410Z   persist-credentials: true
+2025-12-13T19:27:14.1381685Z   clean: true
+2025-12-13T19:27:14.1381944Z   sparse-checkout-cone-mode: true
+2025-12-13T19:27:14.1382232Z   fetch-depth: 1
+2025-12-13T19:27:14.1382463Z   fetch-tags: false
+2025-12-13T19:27:14.1382706Z   show-progress: true
+2025-12-13T19:27:14.1382946Z   lfs: false
+2025-12-13T19:27:14.1383156Z   submodules: false
+2025-12-13T19:27:14.1383395Z   set-safe-directory: true
+2025-12-13T19:27:14.1383836Z env:
+2025-12-13T19:27:14.1384076Z   IMAGE_NAME: betrix-local
+2025-12-13T19:27:14.1384553Z   IMAGE_TAG: d1b951adeb1d79e1641a646c67ab0d1e7a24cd72
+2025-12-13T19:27:14.1384885Z   CONTAINER_PORT: 10000
+2025-12-13T19:27:14.1385157Z ##[endgroup]
+2025-12-13T19:27:14.2463200Z Syncing repository: elijahjessy311-afk/betrix-ui-new
+2025-12-13T19:27:14.2464968Z ##[group]Getting Git version info
+2025-12-13T19:27:14.2465463Z Working directory is '/home/runner/work/betrix-ui-new/betrix-ui-new'
+2025-12-13T19:27:14.2466109Z [command]/usr/bin/git version
+2025-12-13T19:27:14.3687290Z git version 2.52.0
+2025-12-13T19:27:14.3714652Z ##[endgroup]
+2025-12-13T19:27:14.3736566Z Temporarily overriding HOME='/home/runner/work/_temp/b5512652-405d-49cf-9c01-12c51cebf0bf' before making global git config changes
+2025-12-13T19:27:14.3737467Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-13T19:27:14.3742043Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/betrix-ui-new/betrix-ui-new
+2025-12-13T19:27:14.3829241Z Deleting the contents of '/home/runner/work/betrix-ui-new/betrix-ui-new'
+2025-12-13T19:27:14.3833436Z ##[group]Initializing the repository
+2025-12-13T19:27:14.3838573Z [command]/usr/bin/git init /home/runner/work/betrix-ui-new/betrix-ui-new
+2025-12-13T19:27:14.4437492Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-12-13T19:27:14.4438962Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2025-12-13T19:27:14.4439800Z hint: to use in all of your new repositories, which will suppress this warning,
+2025-12-13T19:27:14.4440441Z hint: call:
+2025-12-13T19:27:14.4440788Z hint:
+2025-12-13T19:27:14.4441261Z hint: 	git config --global init.defaultBranch <name>
+2025-12-13T19:27:14.4441780Z hint:
+2025-12-13T19:27:14.4442297Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-12-13T19:27:14.4443102Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-12-13T19:27:14.4443728Z hint:
+2025-12-13T19:27:14.4444062Z hint: 	git branch -m <name>
+2025-12-13T19:27:14.4444683Z hint:
+2025-12-13T19:27:14.4445220Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-12-13T19:27:14.4483592Z Initialized empty Git repository in /home/runner/work/betrix-ui-new/betrix-ui-new/.git/
+2025-12-13T19:27:14.4495698Z [command]/usr/bin/git remote add origin https://github.com/elijahjessy311-afk/betrix-ui-new
+2025-12-13T19:27:14.4577727Z ##[endgroup]
+2025-12-13T19:27:14.4578273Z ##[group]Disabling automatic garbage collection
+2025-12-13T19:27:14.4582112Z [command]/usr/bin/git config --local gc.auto 0
+2025-12-13T19:27:14.4610185Z ##[endgroup]
+2025-12-13T19:27:14.4610610Z ##[group]Setting up auth
+2025-12-13T19:27:14.4617521Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-12-13T19:27:14.4646898Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-12-13T19:27:14.6441590Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-13T19:27:14.6475462Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-12-13T19:27:14.6717070Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-13T19:27:14.6752698Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2025-12-13T19:27:14.7001110Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-12-13T19:27:14.7035456Z ##[endgroup]
+2025-12-13T19:27:14.7036219Z ##[group]Fetching the repository
+2025-12-13T19:27:14.7044680Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +d1b951adeb1d79e1641a646c67ab0d1e7a24cd72:refs/remotes/origin/main
+2025-12-13T19:27:17.4231766Z From https://github.com/elijahjessy311-afk/betrix-ui-new
+2025-12-13T19:27:17.4232697Z  * [new ref]         d1b951adeb1d79e1641a646c67ab0d1e7a24cd72 -> origin/main
+2025-12-13T19:27:17.4322336Z ##[endgroup]
+2025-12-13T19:27:17.4322942Z ##[group]Determining the checkout info
+2025-12-13T19:27:17.4323566Z ##[endgroup]
+2025-12-13T19:27:17.4324050Z [command]/usr/bin/git sparse-checkout disable
+2025-12-13T19:27:17.4720052Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-12-13T19:27:17.4757376Z ##[group]Checking out the ref
+2025-12-13T19:27:17.4760840Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2025-12-13T19:27:18.0184552Z Switched to a new branch 'main'
+2025-12-13T19:27:18.0194532Z branch 'main' set up to track 'origin/main'.
+2025-12-13T19:27:18.0227971Z ##[endgroup]
+2025-12-13T19:27:18.0271788Z [command]/usr/bin/git log -1 --format=%H
+2025-12-13T19:27:18.0297381Z d1b951adeb1d79e1641a646c67ab0d1e7a24cd72
+2025-12-13T19:27:18.0504102Z ##[group]Run docker/setup-buildx-action@v3
+2025-12-13T19:27:18.0504677Z with:
+2025-12-13T19:27:18.0504880Z   driver: docker-container
+2025-12-13T19:27:18.0505090Z   install: false
+2025-12-13T19:27:18.0505272Z   use: true
+2025-12-13T19:27:18.0505456Z   keep-state: false
+2025-12-13T19:27:18.0505649Z   cache-binary: true
+2025-12-13T19:27:18.0505829Z   cleanup: true
+2025-12-13T19:27:18.0505997Z env:
+2025-12-13T19:27:18.0506157Z   IMAGE_NAME: betrix-local
+2025-12-13T19:27:18.0506409Z   IMAGE_TAG: d1b951adeb1d79e1641a646c67ab0d1e7a24cd72
+2025-12-13T19:27:18.0506698Z   CONTAINER_PORT: 10000
+2025-12-13T19:27:18.0506891Z ##[endgroup]
+2025-12-13T19:27:18.3676922Z ##[group]Docker info
+2025-12-13T19:27:18.3705176Z [command]/usr/bin/docker version
+2025-12-13T19:27:19.5304016Z Client: Docker Engine - Community
+2025-12-13T19:27:19.5305630Z  Version:           28.0.4
+2025-12-13T19:27:19.5306931Z  API version:       1.48
+2025-12-13T19:27:19.5307424Z  Go version:        go1.23.7
+2025-12-13T19:27:19.5307954Z  Git commit:        b8034c0
+2025-12-13T19:27:19.5308391Z  Built:             Tue Mar 25 15:07:16 2025
+2025-12-13T19:27:19.5308876Z  OS/Arch:           linux/amd64
+2025-12-13T19:27:19.5309310Z  Context:           default
+2025-12-13T19:27:19.5309589Z 
+2025-12-13T19:27:19.5309809Z Server: Docker Engine - Community
+2025-12-13T19:27:19.5310167Z  Engine:
+2025-12-13T19:27:19.5310440Z   Version:          28.0.4
+2025-12-13T19:27:19.5310888Z   API version:      1.48 (minimum version 1.24)
+2025-12-13T19:27:19.5311398Z   Go version:       go1.23.7
+2025-12-13T19:27:19.5311832Z   Git commit:       6430e49
+2025-12-13T19:27:19.5312470Z   Built:            Tue Mar 25 15:07:16 2025
+2025-12-13T19:27:19.5312859Z   OS/Arch:          linux/amd64
+2025-12-13T19:27:19.5313105Z   Experimental:     false
+2025-12-13T19:27:19.5313481Z  containerd:
+2025-12-13T19:27:19.5313781Z   Version:          v2.2.0
+2025-12-13T19:27:19.5314162Z   GitCommit:        1c4457e00facac03ce1d75f7b6777a7a851e5c41
+2025-12-13T19:27:19.5314799Z  runc:
+2025-12-13T19:27:19.5315022Z   Version:          1.3.4
+2025-12-13T19:27:19.5315371Z   GitCommit:        v1.3.4-0-gd6d73eb8
+2025-12-13T19:27:19.5315747Z  docker-init:
+2025-12-13T19:27:19.5316033Z   Version:          0.19.0
+2025-12-13T19:27:19.5316361Z   GitCommit:        de40ad0
+2025-12-13T19:27:19.5361350Z [command]/usr/bin/docker info
+2025-12-13T19:27:30.0342423Z Client: Docker Engine - Community
+2025-12-13T19:27:30.0342945Z  Version:    28.0.4
+2025-12-13T19:27:30.0343284Z  Context:    default
+2025-12-13T19:27:30.0343600Z  Debug Mode: false
+2025-12-13T19:27:30.0344365Z  Plugins:
+2025-12-13T19:27:30.0344812Z   buildx: Docker Buildx (Docker Inc.)
+2025-12-13T19:27:30.0345316Z     Version:  v0.30.1
+2025-12-13T19:27:30.0345859Z     Path:     /usr/libexec/docker/cli-plugins/docker-buildx
+2025-12-13T19:27:30.0346493Z   compose: Docker Compose (Docker Inc.)
+2025-12-13T19:27:30.0347002Z     Version:  v2.38.2
+2025-12-13T19:27:30.0347575Z     Path:     /usr/libexec/docker/cli-plugins/docker-compose
+2025-12-13T19:27:30.0348001Z 
+2025-12-13T19:27:30.0348147Z Server:
+2025-12-13T19:27:30.0348517Z  Containers: 0
+2025-12-13T19:27:30.0348848Z   Running: 0
+2025-12-13T19:27:30.0349336Z   Paused: 0
+2025-12-13T19:27:30.0349764Z   Stopped: 0
+2025-12-13T19:27:30.0350082Z  Images: 0
+2025-12-13T19:27:30.0350553Z  Server Version: 28.0.4
+2025-12-13T19:27:30.0350952Z  Storage Driver: overlay2
+2025-12-13T19:27:30.0351397Z   Backing Filesystem: extfs
+2025-12-13T19:27:30.0351909Z   Supports d_type: true
+2025-12-13T19:27:30.0352388Z   Using metacopy: false
+2025-12-13T19:27:30.0353134Z   Native Overlay Diff: false
+2025-12-13T19:27:30.0353681Z   userxattr: false
+2025-12-13T19:27:30.0354069Z  Logging Driver: json-file
+2025-12-13T19:27:30.0354843Z  Cgroup Driver: systemd
+2025-12-13T19:27:30.0355375Z  Cgroup Version: 2
+2025-12-13T19:27:30.0355817Z  Plugins:
+2025-12-13T19:27:30.0356300Z   Volume: local
+2025-12-13T19:27:30.0356786Z   Network: bridge host ipvlan macvlan null overlay
+2025-12-13T19:27:30.0357866Z   Log: awslogs fluentd gcplogs gelf journald json-file local splunk syslog
+2025-12-13T19:27:30.0358507Z  Swarm: inactive
+2025-12-13T19:27:30.0359071Z  Runtimes: io.containerd.runc.v2 runc
+2025-12-13T19:27:30.0359466Z  Default Runtime: runc
+2025-12-13T19:27:30.0359896Z  Init Binary: docker-init
+2025-12-13T19:27:30.0360345Z  containerd version: 1c4457e00facac03ce1d75f7b6777a7a851e5c41
+2025-12-13T19:27:30.0360733Z  runc version: v1.3.4-0-gd6d73eb8
+2025-12-13T19:27:30.0361061Z  init version: de40ad0
+2025-12-13T19:27:30.0361299Z  Security Options:
+2025-12-13T19:27:30.0361664Z   apparmor
+2025-12-13T19:27:30.0361885Z   seccomp
+2025-12-13T19:27:30.0362119Z    Profile: builtin
+2025-12-13T19:27:30.0362452Z   cgroupns
+2025-12-13T19:27:30.0362715Z  Kernel Version: 6.11.0-1018-azure
+2025-12-13T19:27:30.0363023Z  Operating System: Ubuntu 24.04.3 LTS
+2025-12-13T19:27:30.0363406Z  OSType: linux
+2025-12-13T19:27:30.0363671Z  Architecture: x86_64
+2025-12-13T19:27:30.0363910Z  CPUs: 4
+2025-12-13T19:27:30.0364407Z  Total Memory: 15.62GiB
+2025-12-13T19:27:30.0364712Z  Name: runnervm6qbrg
+2025-12-13T19:27:30.0365022Z  ID: 5e7b34de-caf9-4a90-9729-aef6292858fb
+2025-12-13T19:27:30.0365501Z  Docker Root Dir: /var/lib/docker
+2025-12-13T19:27:30.0366062Z  Debug Mode: false
+2025-12-13T19:27:30.0366494Z  Username: githubactions
+2025-12-13T19:27:30.0366970Z  Experimental: false
+2025-12-13T19:27:30.0367277Z  Insecure Registries:
+2025-12-13T19:27:30.0370726Z   ::1/128
+2025-12-13T19:27:30.0371217Z   127.0.0.0/8
+2025-12-13T19:27:30.0371591Z  Live Restore Enabled: false
+2025-12-13T19:27:30.0371809Z 
+2025-12-13T19:27:30.0372324Z ##[endgroup]
+2025-12-13T19:27:30.2148821Z ##[group]Buildx version
+2025-12-13T19:27:30.2170572Z [command]/usr/bin/docker buildx version
+2025-12-13T19:27:30.2745844Z github.com/docker/buildx v0.30.1 9e66234aa13328a5e75b75aa5574e1ca6d6d9c01
+2025-12-13T19:27:30.2780079Z ##[endgroup]
+2025-12-13T19:27:30.2934834Z ##[group]Inspecting default docker context
+2025-12-13T19:27:30.3076591Z [
+2025-12-13T19:27:30.3076980Z   {
+2025-12-13T19:27:30.3077367Z     "Name": "default",
+2025-12-13T19:27:30.3077883Z     "Metadata": {},
+2025-12-13T19:27:30.3078346Z     "Endpoints": {
+2025-12-13T19:27:30.3078825Z       "docker": {
+2025-12-13T19:27:30.3079290Z         "Host": "unix:///var/run/docker.sock",
+2025-12-13T19:27:30.3079773Z         "SkipTLSVerify": false
+2025-12-13T19:27:30.3080052Z       }
+2025-12-13T19:27:30.3080342Z     },
+2025-12-13T19:27:30.3080573Z     "TLSMaterial": {},
+2025-12-13T19:27:30.3080894Z     "Storage": {
+2025-12-13T19:27:30.3081125Z       "MetadataPath": "<IN MEMORY>",
+2025-12-13T19:27:30.3081538Z       "TLSPath": "<IN MEMORY>"
+2025-12-13T19:27:30.3081793Z     }
+2025-12-13T19:27:30.3082014Z   }
+2025-12-13T19:27:30.3082313Z ]
+2025-12-13T19:27:30.3082787Z ##[endgroup]
+2025-12-13T19:27:30.3083283Z ##[group]Creating a new builder instance
+2025-12-13T19:27:30.4563358Z [command]/usr/bin/docker buildx create --name builder-a7e62850-7898-46de-bc7f-254a81a5e28a --driver docker-container --buildkitd-flags --allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host --use
+2025-12-13T19:27:30.5811236Z builder-a7e62850-7898-46de-bc7f-254a81a5e28a
+2025-12-13T19:27:30.5847126Z ##[endgroup]
+2025-12-13T19:27:30.5847736Z ##[group]Booting builder
+2025-12-13T19:27:30.5878773Z [command]/usr/bin/docker buildx inspect --bootstrap --builder builder-a7e62850-7898-46de-bc7f-254a81a5e28a
+2025-12-13T19:27:30.6394765Z #1 [internal] booting buildkit
+2025-12-13T19:27:30.7899402Z #1 pulling image moby/buildkit:buildx-stable-1
+2025-12-13T19:27:34.4732108Z #1 pulling image moby/buildkit:buildx-stable-1 3.8s done
+2025-12-13T19:27:34.6241352Z #1 creating container buildx_buildkit_builder-a7e62850-7898-46de-bc7f-254a81a5e28a0
+2025-12-13T19:27:36.0133970Z #1 creating container buildx_buildkit_builder-a7e62850-7898-46de-bc7f-254a81a5e28a0 1.5s done
+2025-12-13T19:27:36.0151294Z #1 DONE 5.4s
+2025-12-13T19:27:36.0481375Z Name:          builder-a7e62850-7898-46de-bc7f-254a81a5e28a
+2025-12-13T19:27:36.0481911Z Driver:        docker-container
+2025-12-13T19:27:36.0482725Z Last Activity: 2025-12-13 19:27:30 +0000 UTC
+2025-12-13T19:27:36.0483038Z 
+2025-12-13T19:27:36.0483150Z Nodes:
+2025-12-13T19:27:36.0486047Z Name:                  builder-a7e62850-7898-46de-bc7f-254a81a5e28a0
+2025-12-13T19:27:36.0486559Z Endpoint:              unix:///var/run/docker.sock
+2025-12-13T19:27:36.0486953Z Status:                running
+2025-12-13T19:27:36.0487693Z BuildKit daemon flags: --allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host
+2025-12-13T19:27:36.0488446Z BuildKit version:      v0.26.2
+2025-12-13T19:27:36.0488922Z Platforms:             linux/amd64, linux/amd64/v2, linux/amd64/v3, linux/386
+2025-12-13T19:27:36.0489408Z Labels:
+2025-12-13T19:27:36.0489788Z  org.mobyproject.buildkit.worker.executor:         oci
+2025-12-13T19:27:36.0490419Z  org.mobyproject.buildkit.worker.hostname:         a6f4959dea34
+2025-12-13T19:27:36.0491059Z  org.mobyproject.buildkit.worker.network:          host
+2025-12-13T19:27:36.0491694Z  org.mobyproject.buildkit.worker.oci.process-mode: sandbox
+2025-12-13T19:27:36.0492332Z  org.mobyproject.buildkit.worker.selinux.enabled:  false
+2025-12-13T19:27:36.0492856Z  org.mobyproject.buildkit.worker.snapshotter:      overlayfs
+2025-12-13T19:27:36.0493268Z GC Policy rule#0:
+2025-12-13T19:27:36.0493529Z  All:            false
+2025-12-13T19:27:36.0493845Z  Filters:        type==source.local,type==exec.cachemount,type==source.git.checkout
+2025-12-13T19:27:36.0494538Z  Keep Duration:  48h0m0s
+2025-12-13T19:27:36.0494745Z  Max Used Space: 488.3MiB
+2025-12-13T19:27:36.0495084Z GC Policy rule#1:
+2025-12-13T19:27:36.0495283Z  All:            false
+2025-12-13T19:27:36.0495476Z  Keep Duration:  1440h0m0s
+2025-12-13T19:27:36.0495668Z  Reserved Space: 7.451GiB
+2025-12-13T19:27:36.0495989Z  Max Used Space: 54.02GiB
+2025-12-13T19:27:36.0496180Z  Min Free Space: 13.97GiB
+2025-12-13T19:27:36.0496360Z GC Policy rule#2:
+2025-12-13T19:27:36.0496527Z  All:            false
+2025-12-13T19:27:36.0496828Z  Reserved Space: 7.451GiB
+2025-12-13T19:27:36.0497027Z  Max Used Space: 54.02GiB
+2025-12-13T19:27:36.0497209Z  Min Free Space: 13.97GiB
+2025-12-13T19:27:36.0497449Z GC Policy rule#3:
+2025-12-13T19:27:36.0497675Z  All:            true
+2025-12-13T19:27:36.0497855Z  Reserved Space: 7.451GiB
+2025-12-13T19:27:36.0498037Z  Max Used Space: 54.02GiB
+2025-12-13T19:27:36.0498284Z  Min Free Space: 13.97GiB
+2025-12-13T19:27:36.0535784Z ##[endgroup]
+2025-12-13T19:27:36.1397516Z ##[group]Inspect builder
+2025-12-13T19:27:36.1401567Z {
+2025-12-13T19:27:36.1401854Z   "nodes": [
+2025-12-13T19:27:36.1402117Z     {
+2025-12-13T19:27:36.1402518Z       "name": "builder-a7e62850-7898-46de-bc7f-254a81a5e28a0",
+2025-12-13T19:27:36.1402898Z       "endpoint": "unix:///var/run/docker.sock",
+2025-12-13T19:27:36.1403167Z       "status": "running",
+2025-12-13T19:27:36.1403655Z       "buildkitd-flags": "--allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host",
+2025-12-13T19:27:36.1404144Z       "buildkit": "v0.26.2",
+2025-12-13T19:27:36.1404996Z       "platforms": "linux/amd64,linux/amd64/v2,linux/amd64/v3,linux/386",
+2025-12-13T19:27:36.1405321Z       "features": {
+2025-12-13T19:27:36.1405597Z         "Automatically load images to the Docker Engine image store": true,
+2025-12-13T19:27:36.1405924Z         "Cache export": true,
+2025-12-13T19:27:36.1406142Z         "Direct push": true,
+2025-12-13T19:27:36.1406355Z         "Docker exporter": true,
+2025-12-13T19:27:36.1406694Z         "Multi-platform build": true,
+2025-12-13T19:27:36.1407080Z         "OCI exporter": true
+2025-12-13T19:27:36.1407403Z       },
+2025-12-13T19:27:36.1407977Z       "labels": {
+2025-12-13T19:27:36.1408391Z         "org.mobyproject.buildkit.worker.executor": "oci",
+2025-12-13T19:27:36.1408965Z         "org.mobyproject.buildkit.worker.hostname": "a6f4959dea34",
+2025-12-13T19:27:36.1409321Z         "org.mobyproject.buildkit.worker.network": "host",
+2025-12-13T19:27:36.1409694Z         "org.mobyproject.buildkit.worker.oci.process-mode": "sandbox",
+2025-12-13T19:27:36.1410563Z         "org.mobyproject.buildkit.worker.selinux.enabled": "false",
+2025-12-13T19:27:36.1411205Z         "org.mobyproject.buildkit.worker.snapshotter": "overlayfs"
+2025-12-13T19:27:36.1411617Z       },
+2025-12-13T19:27:36.1411768Z       "gcPolicy": [
+2025-12-13T19:27:36.1411943Z         {
+2025-12-13T19:27:36.1412094Z           "all": false,
+2025-12-13T19:27:36.1412280Z           "filter": [
+2025-12-13T19:27:36.1412472Z             "type==source.local",
+2025-12-13T19:27:36.1412689Z             "type==exec.cachemount",
+2025-12-13T19:27:36.1412930Z             "type==source.git.checkout"
+2025-12-13T19:27:36.1413151Z           ],
+2025-12-13T19:27:36.1413329Z           "keepDuration": "48h0m0s",
+2025-12-13T19:27:36.1413544Z           "maxUsedSpace": "488.3MiB"
+2025-12-13T19:27:36.1413747Z         },
+2025-12-13T19:27:36.1413892Z         {
+2025-12-13T19:27:36.1414044Z           "all": false,
+2025-12-13T19:27:36.1414686Z           "keepDuration": "1440h0m0s",
+2025-12-13T19:27:36.1414932Z           "reservedSpace": "7.451GiB",
+2025-12-13T19:27:36.1415166Z           "maxUsedSpace": "54.02GiB",
+2025-12-13T19:27:36.1415383Z           "minFreeSpace": "13.97GiB"
+2025-12-13T19:27:36.1415584Z         },
+2025-12-13T19:27:36.1415722Z         {
+2025-12-13T19:27:36.1415873Z           "all": false,
+2025-12-13T19:27:36.1416056Z           "reservedSpace": "7.451GiB",
+2025-12-13T19:27:36.1416279Z           "maxUsedSpace": "54.02GiB",
+2025-12-13T19:27:36.1416490Z           "minFreeSpace": "13.97GiB"
+2025-12-13T19:27:36.1416688Z         },
+2025-12-13T19:27:36.1416824Z         {
+2025-12-13T19:27:36.1416973Z           "all": true,
+2025-12-13T19:27:36.1417161Z           "reservedSpace": "7.451GiB",
+2025-12-13T19:27:36.1417386Z           "maxUsedSpace": "54.02GiB",
+2025-12-13T19:27:36.1417614Z           "minFreeSpace": "13.97GiB"
+2025-12-13T19:27:36.1417814Z         }
+2025-12-13T19:27:36.1417961Z       ]
+2025-12-13T19:27:36.1418101Z     }
+2025-12-13T19:27:36.1418245Z   ],
+2025-12-13T19:27:36.1418445Z   "name": "builder-a7e62850-7898-46de-bc7f-254a81a5e28a",
+2025-12-13T19:27:36.1418735Z   "driver": "docker-container",
+2025-12-13T19:27:36.1418962Z   "lastActivity": "2025-12-13T19:27:30.000Z"
+2025-12-13T19:27:36.1419189Z }
+2025-12-13T19:27:36.1419526Z ##[endgroup]
+2025-12-13T19:27:36.1419816Z ##[group]BuildKit version
+2025-12-13T19:27:36.1420070Z builder-a7e62850-7898-46de-bc7f-254a81a5e28a0: v0.26.2
+2025-12-13T19:27:36.1420450Z ##[endgroup]
+2025-12-13T19:27:36.1532041Z ##[group]Run docker/login-action@v3
+2025-12-13T19:27:36.1532300Z with:
+2025-12-13T19:27:36.1532460Z   logout: true
+2025-12-13T19:27:36.1532623Z env:
+2025-12-13T19:27:36.1532790Z   IMAGE_NAME: betrix-local
+2025-12-13T19:27:36.1533037Z   IMAGE_TAG: d1b951adeb1d79e1641a646c67ab0d1e7a24cd72
+2025-12-13T19:27:36.1533303Z   CONTAINER_PORT: 10000
+2025-12-13T19:27:36.1533492Z ##[endgroup]
+2025-12-13T19:27:36.4544041Z ##[error]Username and password required
+2025-12-13T19:27:36.4686836Z Post job cleanup.
+2025-12-13T19:27:36.7883489Z [command]/usr/bin/docker logout docker.io
+2025-12-13T19:27:36.8024926Z Removing login credentials for docker.io
+2025-12-13T19:27:36.8058178Z ##[group]Post cache
+2025-12-13T19:27:36.8059843Z State not set
+2025-12-13T19:27:36.8061427Z ##[endgroup]
+2025-12-13T19:27:36.8194550Z Post job cleanup.
+2025-12-13T19:27:37.0947413Z ##[group]Removing builder
+2025-12-13T19:27:37.2161423Z [command]/usr/bin/docker buildx rm builder-a7e62850-7898-46de-bc7f-254a81a5e28a
+2025-12-13T19:27:37.3520265Z builder-a7e62850-7898-46de-bc7f-254a81a5e28a removed
+2025-12-13T19:27:37.3555086Z ##[endgroup]
+2025-12-13T19:27:37.3556410Z ##[group]Cleaning up certificates
+2025-12-13T19:27:37.3563063Z ##[endgroup]
+2025-12-13T19:27:37.3565418Z ##[group]Post cache
+2025-12-13T19:27:37.3566287Z State not set
+2025-12-13T19:27:37.3567162Z ##[endgroup]
+2025-12-13T19:27:37.3713931Z Post job cleanup.
+2025-12-13T19:27:37.4654551Z [command]/usr/bin/git version
+2025-12-13T19:27:37.4691631Z git version 2.52.0
+2025-12-13T19:27:37.4735314Z Temporarily overriding HOME='/home/runner/work/_temp/9c5ab34b-1713-4a22-abc2-f8820ff95f4e' before making global git config changes
+2025-12-13T19:27:37.4736592Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-13T19:27:37.4748693Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/betrix-ui-new/betrix-ui-new
+2025-12-13T19:27:37.4783938Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-12-13T19:27:37.4816981Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-12-13T19:27:37.5090583Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-13T19:27:37.5111298Z http.https://github.com/.extraheader
+2025-12-13T19:27:37.5124328Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-12-13T19:27:37.5154926Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-12-13T19:27:37.5374969Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-13T19:27:37.5404971Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2025-12-13T19:27:37.5726551Z Cleaning up orphan processes

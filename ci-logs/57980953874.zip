@@ -1,0 +1,304 @@
+﻿2025-12-13T18:51:50.1692588Z Current runner version: '2.329.0'
+2025-12-13T18:51:50.1716263Z ##[group]Runner Image Provisioner
+2025-12-13T18:51:50.1717218Z Hosted Compute Agent
+2025-12-13T18:51:50.1717729Z Version: 20251202.455
+2025-12-13T18:51:50.1718432Z Commit: 6c10caca4910e198df60de23adf20ad317c474e3
+2025-12-13T18:51:50.1719119Z Build Date: 2025-12-02T15:56:59Z
+2025-12-13T18:51:50.1719711Z Worker ID: {b4aa9274-473c-4c7b-bd7d-12ca7d995a8e}
+2025-12-13T18:51:50.1720810Z ##[endgroup]
+2025-12-13T18:51:50.1721335Z ##[group]Operating System
+2025-12-13T18:51:50.1721885Z Ubuntu
+2025-12-13T18:51:50.1722396Z 24.04.3
+2025-12-13T18:51:50.1722850Z LTS
+2025-12-13T18:51:50.1723259Z ##[endgroup]
+2025-12-13T18:51:50.1723824Z ##[group]Runner Image
+2025-12-13T18:51:50.1724358Z Image: ubuntu-24.04
+2025-12-13T18:51:50.1724834Z Version: 20251208.163.1
+2025-12-13T18:51:50.1725894Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20251208.163/images/ubuntu/Ubuntu2404-Readme.md
+2025-12-13T18:51:50.1727414Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20251208.163
+2025-12-13T18:51:50.1728438Z ##[endgroup]
+2025-12-13T18:51:50.1731089Z ##[group]GITHUB_TOKEN Permissions
+2025-12-13T18:51:50.1733314Z Actions: write
+2025-12-13T18:51:50.1733893Z ArtifactMetadata: write
+2025-12-13T18:51:50.1734408Z Attestations: write
+2025-12-13T18:51:50.1734956Z Checks: write
+2025-12-13T18:51:50.1735458Z Contents: write
+2025-12-13T18:51:50.1735923Z Deployments: write
+2025-12-13T18:51:50.1736522Z Discussions: write
+2025-12-13T18:51:50.1737018Z Issues: write
+2025-12-13T18:51:50.1737503Z Metadata: read
+2025-12-13T18:51:50.1737934Z Models: read
+2025-12-13T18:51:50.1738472Z Packages: write
+2025-12-13T18:51:50.1738931Z Pages: write
+2025-12-13T18:51:50.1739431Z PullRequests: write
+2025-12-13T18:51:50.1740110Z RepositoryProjects: write
+2025-12-13T18:51:50.1740994Z SecurityEvents: write
+2025-12-13T18:51:50.1741513Z Statuses: write
+2025-12-13T18:51:50.1742058Z ##[endgroup]
+2025-12-13T18:51:50.1744082Z Secret source: Actions
+2025-12-13T18:51:50.1744789Z Prepare workflow directory
+2025-12-13T18:51:50.2123724Z Prepare all required actions
+2025-12-13T18:51:50.2165241Z Getting action download info
+2025-12-13T18:51:50.6599097Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2025-12-13T18:51:50.8359840Z Complete job name: build-and-smoke
+2025-12-13T18:51:50.9105769Z ##[group]Run actions/checkout@v4
+2025-12-13T18:51:50.9106587Z with:
+2025-12-13T18:51:50.9107029Z   repository: elijahjessy311-afk/betrix-ui-new
+2025-12-13T18:51:50.9107724Z   token: ***
+2025-12-13T18:51:50.9108109Z   ssh-strict: true
+2025-12-13T18:51:50.9108492Z   ssh-user: git
+2025-12-13T18:51:50.9108956Z   persist-credentials: true
+2025-12-13T18:51:50.9109405Z   clean: true
+2025-12-13T18:51:50.9109809Z   sparse-checkout-cone-mode: true
+2025-12-13T18:51:50.9110473Z   fetch-depth: 1
+2025-12-13T18:51:50.9110874Z   fetch-tags: false
+2025-12-13T18:51:50.9111267Z   show-progress: true
+2025-12-13T18:51:50.9111674Z   lfs: false
+2025-12-13T18:51:50.9112105Z   submodules: false
+2025-12-13T18:51:50.9112532Z   set-safe-directory: true
+2025-12-13T18:51:50.9113206Z env:
+2025-12-13T18:51:50.9113558Z   PORT: 10000
+2025-12-13T18:51:50.9113954Z ##[endgroup]
+2025-12-13T18:51:51.0176882Z Syncing repository: elijahjessy311-afk/betrix-ui-new
+2025-12-13T18:51:51.0178700Z ##[group]Getting Git version info
+2025-12-13T18:51:51.0179440Z Working directory is '/home/runner/work/betrix-ui-new/betrix-ui-new'
+2025-12-13T18:51:51.0180611Z [command]/usr/bin/git version
+2025-12-13T18:51:51.0266835Z git version 2.52.0
+2025-12-13T18:51:51.0292874Z ##[endgroup]
+2025-12-13T18:51:51.0314014Z Temporarily overriding HOME='/home/runner/work/_temp/caab0802-028b-4b10-b0f7-fef432763518' before making global git config changes
+2025-12-13T18:51:51.0316149Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-13T18:51:51.0318940Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/betrix-ui-new/betrix-ui-new
+2025-12-13T18:51:51.0358937Z Deleting the contents of '/home/runner/work/betrix-ui-new/betrix-ui-new'
+2025-12-13T18:51:51.0362778Z ##[group]Initializing the repository
+2025-12-13T18:51:51.0366650Z [command]/usr/bin/git init /home/runner/work/betrix-ui-new/betrix-ui-new
+2025-12-13T18:51:51.0475280Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-12-13T18:51:51.0476511Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2025-12-13T18:51:51.0477496Z hint: to use in all of your new repositories, which will suppress this warning,
+2025-12-13T18:51:51.0478260Z hint: call:
+2025-12-13T18:51:51.0478642Z hint:
+2025-12-13T18:51:51.0479224Z hint: 	git config --global init.defaultBranch <name>
+2025-12-13T18:51:51.0480191Z hint:
+2025-12-13T18:51:51.0481064Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-12-13T18:51:51.0482044Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-12-13T18:51:51.0482810Z hint:
+2025-12-13T18:51:51.0483241Z hint: 	git branch -m <name>
+2025-12-13T18:51:51.0483714Z hint:
+2025-12-13T18:51:51.0484352Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-12-13T18:51:51.0485821Z Initialized empty Git repository in /home/runner/work/betrix-ui-new/betrix-ui-new/.git/
+2025-12-13T18:51:51.0491801Z [command]/usr/bin/git remote add origin https://github.com/elijahjessy311-afk/betrix-ui-new
+2025-12-13T18:51:51.0524409Z ##[endgroup]
+2025-12-13T18:51:51.0525106Z ##[group]Disabling automatic garbage collection
+2025-12-13T18:51:51.0528527Z [command]/usr/bin/git config --local gc.auto 0
+2025-12-13T18:51:51.0555766Z ##[endgroup]
+2025-12-13T18:51:51.0556560Z ##[group]Setting up auth
+2025-12-13T18:51:51.0563358Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-12-13T18:51:51.0593732Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-12-13T18:51:51.0949298Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-13T18:51:51.0979388Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-12-13T18:51:51.1195924Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-13T18:51:51.1230081Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2025-12-13T18:51:51.1458094Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-12-13T18:51:51.1495499Z ##[endgroup]
+2025-12-13T18:51:51.1496370Z ##[group]Fetching the repository
+2025-12-13T18:51:51.1507295Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +e52ff9f0d0b2bcbdca3bd3446d637282e88d0959:refs/remotes/origin/main
+2025-12-13T18:51:53.0552398Z From https://github.com/elijahjessy311-afk/betrix-ui-new
+2025-12-13T18:51:53.0553513Z  * [new ref]         e52ff9f0d0b2bcbdca3bd3446d637282e88d0959 -> origin/main
+2025-12-13T18:51:53.0588579Z ##[endgroup]
+2025-12-13T18:51:53.0590048Z ##[group]Determining the checkout info
+2025-12-13T18:51:53.0591745Z ##[endgroup]
+2025-12-13T18:51:53.0596617Z [command]/usr/bin/git sparse-checkout disable
+2025-12-13T18:51:53.0643732Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-12-13T18:51:53.0672137Z ##[group]Checking out the ref
+2025-12-13T18:51:53.0676820Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2025-12-13T18:51:53.4305918Z Switched to a new branch 'main'
+2025-12-13T18:51:53.4307252Z branch 'main' set up to track 'origin/main'.
+2025-12-13T18:51:53.4342969Z ##[endgroup]
+2025-12-13T18:51:53.4381171Z [command]/usr/bin/git log -1 --format=%H
+2025-12-13T18:51:53.4403318Z e52ff9f0d0b2bcbdca3bd3446d637282e88d0959
+2025-12-13T18:51:53.4603670Z ##[group]Run docker pull node:22
+2025-12-13T18:51:53.4605053Z [36;1mdocker pull node:22[0m
+2025-12-13T18:51:53.4643425Z shell: /usr/bin/bash -e {0}
+2025-12-13T18:51:53.4644612Z env:
+2025-12-13T18:51:53.4645518Z   PORT: 10000
+2025-12-13T18:51:53.4646489Z ##[endgroup]
+2025-12-13T18:51:54.5249953Z 22: Pulling from library/node
+2025-12-13T18:51:54.7717227Z c8443a297fa4: Pulling fs layer
+2025-12-13T18:51:54.7717730Z 6ae8659f7a8d: Pulling fs layer
+2025-12-13T18:51:54.7718238Z c237534654fe: Pulling fs layer
+2025-12-13T18:51:54.7718776Z e8d2a98f6bdf: Pulling fs layer
+2025-12-13T18:51:54.7719394Z 92efd96750ec: Pulling fs layer
+2025-12-13T18:51:54.7720839Z 908ed71b7c85: Pulling fs layer
+2025-12-13T18:51:54.7721153Z 7b2e0bbafa0f: Pulling fs layer
+2025-12-13T18:51:54.7721534Z 5c7975d105a9: Pulling fs layer
+2025-12-13T18:51:54.7721881Z 908ed71b7c85: Waiting
+2025-12-13T18:51:54.7722284Z 7b2e0bbafa0f: Waiting
+2025-12-13T18:51:54.7722594Z 5c7975d105a9: Waiting
+2025-12-13T18:51:54.7722902Z 92efd96750ec: Waiting
+2025-12-13T18:51:54.7723171Z e8d2a98f6bdf: Waiting
+2025-12-13T18:51:55.1151842Z 6ae8659f7a8d: Verifying Checksum
+2025-12-13T18:51:55.1153883Z 6ae8659f7a8d: Download complete
+2025-12-13T18:51:55.2463319Z c8443a297fa4: Download complete
+2025-12-13T18:51:55.2859812Z c237534654fe: Verifying Checksum
+2025-12-13T18:51:55.2860659Z c237534654fe: Download complete
+2025-12-13T18:51:55.4755551Z 92efd96750ec: Download complete
+2025-12-13T18:51:55.7613972Z 7b2e0bbafa0f: Download complete
+2025-12-13T18:51:55.8506592Z 908ed71b7c85: Verifying Checksum
+2025-12-13T18:51:55.8507022Z 908ed71b7c85: Download complete
+2025-12-13T18:51:56.0196767Z 5c7975d105a9: Verifying Checksum
+2025-12-13T18:51:56.0197611Z 5c7975d105a9: Download complete
+2025-12-13T18:51:56.2683468Z e8d2a98f6bdf: Verifying Checksum
+2025-12-13T18:51:56.2683949Z e8d2a98f6bdf: Download complete
+2025-12-13T18:51:57.1572928Z c8443a297fa4: Pull complete
+2025-12-13T18:51:59.1574145Z 6ae8659f7a8d: Pull complete
+2025-12-13T18:52:01.5190722Z c237534654fe: Pull complete
+2025-12-13T18:52:08.0636420Z e8d2a98f6bdf: Pull complete
+2025-12-13T18:52:08.0785267Z 92efd96750ec: Pull complete
+2025-12-13T18:52:10.4673840Z 908ed71b7c85: Pull complete
+2025-12-13T18:52:10.5026640Z 7b2e0bbafa0f: Pull complete
+2025-12-13T18:52:10.5145400Z 5c7975d105a9: Pull complete
+2025-12-13T18:52:10.5183898Z Digest: sha256:c8abd8da9cfddd2dfd2d5aa9ea2e54f9f70d3968ecf81bf5c2422594fa13fa83
+2025-12-13T18:52:10.5196376Z Status: Downloaded newer image for node:22
+2025-12-13T18:52:10.5206821Z docker.io/library/node:22
+2025-12-13T18:52:10.5255587Z ##[group]Run set -euo pipefail
+2025-12-13T18:52:10.5255962Z [36;1mset -euo pipefail[0m
+2025-12-13T18:52:10.5256202Z [36;1mWORKDIR=$GITHUB_WORKSPACE[0m
+2025-12-13T18:52:10.5256493Z [36;1m# Use numeric default for PORT when not provided[0m
+2025-12-13T18:52:10.5256775Z [36;1mPORT=${PORT:-10000}[0m
+2025-12-13T18:52:10.5257078Z [36;1mCOMMIT_SHA=${COMMIT_SHA:-$(git rev-parse --short HEAD)}[0m
+2025-12-13T18:52:10.5257502Z [36;1mCONTAINER_NAME="betrix-smoke-pub-${GITHUB_RUN_ID:-local}"[0m
+2025-12-13T18:52:10.5257806Z [36;1m[0m
+2025-12-13T18:52:10.5258124Z [36;1mecho "Starting container $CONTAINER_NAME with -p ${PORT}:${PORT} and HOST=0.0.0.0"[0m
+2025-12-13T18:52:10.5258660Z [36;1m# Start container and keep it alive while the server runs so we can inspect logs.[0m
+2025-12-13T18:52:10.5259304Z [36;1mdocker run --rm -d --name "$CONTAINER_NAME" -p ${PORT}:${PORT} -v "$WORKDIR":"$WORKDIR":rw -w "$WORKDIR" -e PORT=${PORT} -e HOST=0.0.0.0 node:22 \[0m
+2025-12-13T18:52:10.5260715Z [36;1m  bash -lc "npm ci --silent 2>&1 | tee /tmp/npmci.log || true; if npm run | grep -q build; then npm run build 2>&1 | tee -a /tmp/npmci.log || true; fi; echo starting server; PORT=${PORT} COMMIT_SHA=${COMMIT_SHA} HOST=0.0.0.0 npm run start > server.log 2>&1 & sleep 1; tail -n +1 -f server.log" || true[0m
+2025-12-13T18:52:10.5261544Z [36;1m[0m
+2025-12-13T18:52:10.5261813Z [36;1m# Give the container a bit more time to finish setup and start the server[0m
+2025-12-13T18:52:10.5262390Z [36;1msleep 10[0m
+2025-12-13T18:52:10.5262553Z [36;1m[0m
+2025-12-13T18:52:10.5262744Z [36;1mecho "---- docker ps (container) ----"[0m
+2025-12-13T18:52:10.5263046Z [36;1mdocker ps --filter name="$CONTAINER_NAME" || true[0m
+2025-12-13T18:52:10.5263312Z [36;1m[0m
+2025-12-13T18:52:10.5263497Z [36;1mecho "---- container logs (tail 200) ----"[0m
+2025-12-13T18:52:10.5263798Z [36;1mdocker logs "$CONTAINER_NAME" --tail 200 || true[0m
+2025-12-13T18:52:10.5264053Z [36;1m[0m
+2025-12-13T18:52:10.5264281Z [36;1mecho "---- inside-container: listening sockets ----"[0m
+2025-12-13T18:52:10.5264763Z [36;1mdocker exec "$CONTAINER_NAME" sh -c "ss -lntp 2>/dev/null || netstat -tulpen 2>/dev/null || true" || true[0m
+2025-12-13T18:52:10.5265169Z [36;1m[0m
+2025-12-13T18:52:10.5265403Z [36;1mecho "---- inside-container: curl localhost:${PORT} ----"[0m
+2025-12-13T18:52:10.5265766Z [36;1m# Use the application health endpoint to check readiness[0m
+2025-12-13T18:52:10.5266364Z [36;1mdocker exec "$CONTAINER_NAME" sh -c "curl --silent --fail -v http://localhost:${PORT}/health 2>&1 || echo inside-curl-failed" || true[0m
+2025-12-13T18:52:10.5266865Z [36;1m[0m
+2025-12-13T18:52:10.5267091Z [36;1mecho "---- runner: curl http://localhost:${PORT} ----"[0m
+2025-12-13T18:52:10.5267532Z [36;1mif curl --silent --fail "http://localhost:${PORT}/health" >/dev/null 2>&1; then[0m
+2025-12-13T18:52:10.5267896Z [36;1m  echo "runner curl succeeded"[0m
+2025-12-13T18:52:10.5268125Z [36;1melse[0m
+2025-12-13T18:52:10.5268346Z [36;1m  echo "runner curl failed; dumping diagnostics"[0m
+2025-12-13T18:52:10.5268651Z [36;1m  echo "---- container logs (tail 1000) ----"[0m
+2025-12-13T18:52:10.5268954Z [36;1m  docker logs "$CONTAINER_NAME" --tail 1000 || true[0m
+2025-12-13T18:52:10.5269233Z [36;1m  echo "---- docker ps -a ----"[0m
+2025-12-13T18:52:10.5269522Z [36;1m  docker ps -a --filter name="$CONTAINER_NAME" || true[0m
+2025-12-13T18:52:10.5269808Z [36;1m  echo "---- docker top ----"[0m
+2025-12-13T18:52:10.5270060Z [36;1m  docker top "$CONTAINER_NAME" || true[0m
+2025-12-13T18:52:10.5270863Z [36;1m  echo "---- try to show server.log from container ----"[0m
+2025-12-13T18:52:10.5271477Z [36;1m  docker exec "$CONTAINER_NAME" sh -c 'if [ -f server.log ]; then echo "server.log exists; tail:"; tail -n 200 server.log; else echo "no server.log"; fi' || true[0m
+2025-12-13T18:52:10.5272060Z [36;1m  docker kill "$CONTAINER_NAME" 2>/dev/null || true[0m
+2025-12-13T18:52:10.5272325Z [36;1m  exit 1[0m
+2025-12-13T18:52:10.5272669Z [36;1mfi[0m
+2025-12-13T18:52:10.5272829Z [36;1m[0m
+2025-12-13T18:52:10.5273131Z [36;1mecho "runner curl success; dumping container short logs and stopping container"[0m
+2025-12-13T18:52:10.5273551Z [36;1mdocker logs "$CONTAINER_NAME" --tail 200 || true[0m
+2025-12-13T18:52:10.5273866Z [36;1mdocker kill "$CONTAINER_NAME" 2>/dev/null || true[0m
+2025-12-13T18:52:10.5309440Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2025-12-13T18:52:10.5309767Z env:
+2025-12-13T18:52:10.5309928Z   PORT: 10000
+2025-12-13T18:52:10.5310102Z ##[endgroup]
+2025-12-13T18:52:10.5378737Z Starting container betrix-smoke-pub-20196372678 with -p 10000:10000 and HOST=0.0.0.0
+2025-12-13T18:52:10.5626222Z 446374dbf31c9e7edcdd517ddccac6ff81216b599e49558a3a1dabbe0422fdaf
+2025-12-13T18:52:20.7378048Z ---- docker ps (container) ----
+2025-12-13T18:52:20.7490605Z CONTAINER ID   IMAGE     COMMAND                  CREATED          STATUS          PORTS                                             NAMES
+2025-12-13T18:52:20.7497548Z 446374dbf31c   node:22   "docker-entrypoint.s…"   10 seconds ago   Up 10 seconds   0.0.0.0:10000->10000/tcp, [::]:10000->10000/tcp   betrix-smoke-pub-20196372678
+2025-12-13T18:52:20.7505656Z ---- container logs (tail 200) ----
+2025-12-13T18:52:20.7624602Z starting server
+2025-12-13T18:52:20.7624921Z 
+2025-12-13T18:52:20.7625088Z > betrix-ui@2.0.0 start
+2025-12-13T18:52:20.7625524Z > node src/worker-final.js
+2025-12-13T18:52:20.7626189Z 
+2025-12-13T18:52:20.7626626Z [redis-factory] ⚠️  Using MockRedis (no REDIS_URL or USE_MOCK_REDIS=1)
+2025-12-13T18:52:20.7627411Z [dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+2025-12-13T18:52:20.7628028Z [2025-12-13T18:52:15.220Z] [ERROR] [FinalWorker] Configuration failed {
+2025-12-13T18:52:20.7628503Z   message: 'Missing required env vars: REDIS_URL, TELEGRAM_TOKEN',
+2025-12-13T18:52:20.7628995Z   stack: 'Error: Missing required env vars: REDIS_URL, TELEGRAM_TOKEN\n' +
+2025-12-13T18:52:20.7629659Z     '    at validateConfig (file:///home/runner/work/betrix-ui-new/betrix-ui-new/src/config.js:219:11)\n' +
+2025-12-13T18:52:20.7630488Z     '    at file:///home/runner/work/betrix-ui-new/betrix-ui-new/src/worker-final.js:77:3\n' +
+2025-12-13T18:52:20.7631023Z     '    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n' +
+2025-12-13T18:52:20.7631566Z     '    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)\n' +
+2025-12-13T18:52:20.7632154Z     '    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)'
+2025-12-13T18:52:20.7632607Z }
+2025-12-13T18:52:20.7637789Z ---- inside-container: listening sockets ----
+2025-12-13T18:52:20.8157388Z ---- inside-container: curl localhost:10000 ----
+2025-12-13T18:52:20.8694085Z *   Trying 127.0.0.1:10000...
+2025-12-13T18:52:20.8695503Z * connect to 127.0.0.1 port 10000 failed: Connection refused
+2025-12-13T18:52:20.8696255Z *   Trying [::1]:10000...
+2025-12-13T18:52:20.8696784Z * connect to ::1 port 10000 failed: Connection refused
+2025-12-13T18:52:20.8697380Z * Failed to connect to localhost port 10000 after 0 ms: Couldn't connect to server
+2025-12-13T18:52:20.8697907Z * Closing connection 0
+2025-12-13T18:52:20.8705706Z inside-curl-failed
+2025-12-13T18:52:20.8732365Z ---- runner: curl http://localhost:10000 ----
+2025-12-13T18:52:20.8795732Z runner curl failed; dumping diagnostics
+2025-12-13T18:52:20.8796222Z ---- container logs (tail 1000) ----
+2025-12-13T18:52:20.8909408Z starting server
+2025-12-13T18:52:20.8909684Z 
+2025-12-13T18:52:20.8909825Z > betrix-ui@2.0.0 start
+2025-12-13T18:52:20.8910193Z > node src/worker-final.js
+2025-12-13T18:52:20.8910592Z 
+2025-12-13T18:52:20.8911086Z [redis-factory] ⚠️  Using MockRedis (no REDIS_URL or USE_MOCK_REDIS=1)
+2025-12-13T18:52:20.8911815Z [dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+2025-12-13T18:52:20.8912445Z [2025-12-13T18:52:15.220Z] [ERROR] [FinalWorker] Configuration failed {
+2025-12-13T18:52:20.8913279Z   message: 'Missing required env vars: REDIS_URL, TELEGRAM_TOKEN',
+2025-12-13T18:52:20.8913786Z   stack: 'Error: Missing required env vars: REDIS_URL, TELEGRAM_TOKEN\n' +
+2025-12-13T18:52:20.8914379Z     '    at validateConfig (file:///home/runner/work/betrix-ui-new/betrix-ui-new/src/config.js:219:11)\n' +
+2025-12-13T18:52:20.8915026Z     '    at file:///home/runner/work/betrix-ui-new/betrix-ui-new/src/worker-final.js:77:3\n' +
+2025-12-13T18:52:20.8915574Z     '    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n' +
+2025-12-13T18:52:20.8916113Z     '    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)\n' +
+2025-12-13T18:52:20.8916715Z     '    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)'
+2025-12-13T18:52:20.8917168Z }
+2025-12-13T18:52:20.8921549Z ---- docker ps -a ----
+2025-12-13T18:52:20.9033059Z CONTAINER ID   IMAGE     COMMAND                  CREATED          STATUS          PORTS                                             NAMES
+2025-12-13T18:52:20.9034983Z 446374dbf31c   node:22   "docker-entrypoint.s…"   10 seconds ago   Up 10 seconds   0.0.0.0:10000->10000/tcp, [::]:10000->10000/tcp   betrix-smoke-pub-20196372678
+2025-12-13T18:52:20.9046294Z ---- docker top ----
+2025-12-13T18:52:20.9239989Z UID                 PID                 PPID                C                   STIME               TTY                 TIME                CMD
+2025-12-13T18:52:20.9241377Z root                2211                2187                0                   18:52               ?                   00:00:00            tail -n +1 -f server.log
+2025-12-13T18:52:20.9253225Z ---- try to show server.log from container ----
+2025-12-13T18:52:20.9873889Z server.log exists; tail:
+2025-12-13T18:52:20.9877488Z 
+2025-12-13T18:52:20.9881392Z > betrix-ui@2.0.0 start
+2025-12-13T18:52:20.9881797Z > node src/worker-final.js
+2025-12-13T18:52:20.9882046Z 
+2025-12-13T18:52:20.9882733Z [redis-factory] ⚠️  Using MockRedis (no REDIS_URL or USE_MOCK_REDIS=1)
+2025-12-13T18:52:20.9883881Z [dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+2025-12-13T18:52:20.9884798Z [2025-12-13T18:52:15.220Z] [ERROR] [FinalWorker] Configuration failed {
+2025-12-13T18:52:20.9885469Z   message: 'Missing required env vars: REDIS_URL, TELEGRAM_TOKEN',
+2025-12-13T18:52:20.9886164Z   stack: 'Error: Missing required env vars: REDIS_URL, TELEGRAM_TOKEN\n' +
+2025-12-13T18:52:20.9887104Z     '    at validateConfig (file:///home/runner/work/betrix-ui-new/betrix-ui-new/src/config.js:219:11)\n' +
+2025-12-13T18:52:20.9888068Z     '    at file:///home/runner/work/betrix-ui-new/betrix-ui-new/src/worker-final.js:77:3\n' +
+2025-12-13T18:52:20.9888836Z     '    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n' +
+2025-12-13T18:52:20.9889623Z     '    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)\n' +
+2025-12-13T18:52:20.9890660Z     '    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)'
+2025-12-13T18:52:20.9891296Z }
+2025-12-13T18:52:21.1876885Z betrix-smoke-pub-20196372678
+2025-12-13T18:52:21.1912339Z ##[error]Process completed with exit code 1.
+2025-12-13T18:52:21.2047401Z Post job cleanup.
+2025-12-13T18:52:21.3053616Z [command]/usr/bin/git version
+2025-12-13T18:52:21.3090896Z git version 2.52.0
+2025-12-13T18:52:21.3133747Z Temporarily overriding HOME='/home/runner/work/_temp/a545bf3b-fcb3-4571-b7fb-4f1a6345ffd4' before making global git config changes
+2025-12-13T18:52:21.3134648Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-13T18:52:21.3139040Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/betrix-ui-new/betrix-ui-new
+2025-12-13T18:52:21.3175596Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-12-13T18:52:21.3207446Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-12-13T18:52:21.3433572Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-13T18:52:21.3453631Z http.https://github.com/.extraheader
+2025-12-13T18:52:21.3466022Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-12-13T18:52:21.3496135Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-12-13T18:52:21.3713655Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-13T18:52:21.3744857Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2025-12-13T18:52:21.4129968Z Cleaning up orphan processes
