@@ -39,7 +39,13 @@ try {
   console.warn('Could not write diagnostics file:', e && e.message);
 }
 
-const failures = results.filter(r => r.status !== 0 && r.status !== null && r.status !== undefined);
+const failures = results.filter(r => {
+  // If we have a numeric exit status, non-zero means failure
+  if (typeof r.status === 'number') return r.status !== 0;
+  // If the child was terminated by a signal (e.g. timeout), treat as failure
+  if (r.signal) return true;
+  return false;
+});
 
 if (failures.length === 0) {
   console.log('\nAll test files passed.');
