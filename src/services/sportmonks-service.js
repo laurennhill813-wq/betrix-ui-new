@@ -115,6 +115,23 @@ export default class SportMonksService {
             if (msg.includes('certificate has expired') || (e && e.code === 'CERT_HAS_EXPIRED')) {
               logger.error('[SportMonksService] TLS certificate appears expired or invalid for SportMonks endpoint.');
               logger.error('[SportMonksService] Recommended actions: (1) verify SPORTSMONKS_BASE env, (2) contact SportMonks support, or (3) set SPORTSMONKS_INSECURE=true for short-term testing only.');
+              // Attempt to capture peer certificate details from the underlying socket (if available)
+              try {
+                const sock = e && e.request && e.request.socket ? e.request.socket : (e && e.config && e.config.transport && e.config.transport.socket ? e.config.transport.socket : null);
+                if (sock && typeof sock.getPeerCertificate === 'function') {
+                  const cert = sock.getPeerCertificate(true);
+                  const certInfo = {
+                    subject: cert && cert.subject ? cert.subject : undefined,
+                    issuer: cert && cert.issuer ? cert.issuer : undefined,
+                    valid_from: cert && cert.valid_from ? cert.valid_from : undefined,
+                    valid_to: cert && cert.valid_to ? cert.valid_to : undefined,
+                    fingerprint: cert && cert.fingerprint ? cert.fingerprint : undefined,
+                  };
+                  logger.info('[SportMonksService] Peer certificate details:', JSON.stringify(certInfo));
+                }
+              } catch (certLogErr) {
+                logger.debug('[SportMonksService] Failed to read peer certificate details', certLogErr?.message || String(certLogErr));
+              }
               try {
                 if (this.redis && typeof this.redis.set === 'function') {
                   const now = Math.floor(Date.now() / 1000);
