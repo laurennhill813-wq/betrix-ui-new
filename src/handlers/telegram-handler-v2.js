@@ -1254,7 +1254,7 @@ async function handleMatchCallback(data, chatId, userId, redis, services) {
  * Provides head-to-head, recent form, standings, and odds
  * callback: analyze_match_{matchId}
  */
-async function handleAnalyzeMatch(data, chatId, userId, redis, services) {
+export async function handleAnalyzeMatch(data, chatId, userId, redis, services) {
   try {
     const parts = String(data).split('_');
     // support both forms:
@@ -1275,6 +1275,11 @@ async function handleAnalyzeMatch(data, chatId, userId, redis, services) {
     }
 
     const agg = services.sportsAggregator;
+
+    // Diagnostic logging: tokens and user context
+    try {
+      logger.info('[handleAnalyzeMatch] tokens', { raw: String(data), leagueToken, matchToken, userId, chatId });
+    } catch (e) { /* ignore logging failure */ }
 
     // Try multiple sources to locate the target match: live matches, upcoming fixtures
     let match = null;
@@ -1300,7 +1305,9 @@ async function handleAnalyzeMatch(data, chatId, userId, redis, services) {
     try {
       if (!leagueToken || leagueToken === 'live' || leagueToken === 'all') {
         const liveMatches = (typeof agg.getAllLiveMatches === 'function') ? await agg.getAllLiveMatches().catch(() => []) : [];
+        logger.debug('[handleAnalyzeMatch] liveMatches count', { count: Array.isArray(liveMatches) ? liveMatches.length : 0 });
         match = resolveFromList(liveMatches, matchToken);
+        if (match) logger.info('[handleAnalyzeMatch] resolved from liveMatches', { id: match.id || match.fixtureId || null, home: safeNameOf(match.home), away: safeNameOf(match.away) });
       }
     } catch (e) {
       // continue to next fallback
@@ -1311,7 +1318,9 @@ async function handleAnalyzeMatch(data, chatId, userId, redis, services) {
       try {
         const leagueId = isNaN(Number(leagueToken)) ? leagueToken : Number(leagueToken);
         const fixtures = (typeof agg.getFixtures === 'function') ? await agg.getFixtures(leagueId).catch(() => []) : [];
+        logger.debug('[handleAnalyzeMatch] fixtures for league', { leagueId, count: Array.isArray(fixtures) ? fixtures.length : 0 });
         match = resolveFromList(fixtures, matchToken);
+        if (match) logger.info('[handleAnalyzeMatch] resolved from league fixtures', { leagueId, id: match.id || match.fixtureId || null, home: safeNameOf(match.home), away: safeNameOf(match.away) });
       } catch (e) {
         // ignore and fallthrough
       }
@@ -1321,7 +1330,9 @@ async function handleAnalyzeMatch(data, chatId, userId, redis, services) {
     if (!match) {
       try {
         const allFixtures = (typeof agg.getFixtures === 'function') ? await agg.getFixtures().catch(() => []) : [];
+        logger.debug('[handleAnalyzeMatch] allFixtures count', { count: Array.isArray(allFixtures) ? allFixtures.length : 0 });
         match = resolveFromList(allFixtures, matchToken);
+        if (match) logger.info('[handleAnalyzeMatch] resolved from allFixtures', { id: match.id || match.fixtureId || null, home: safeNameOf(match.home), away: safeNameOf(match.away) });
       } catch (e) {
         // ignore
       }
@@ -1333,13 +1344,16 @@ async function handleAnalyzeMatch(data, chatId, userId, redis, services) {
         const fb = await import('../bot/football.js');
         const upcomingRes = await (fb && fb.getUpcomingFixtures ? fb.getUpcomingFixtures({ page: 1, perPage: 200 }) : { items: [] });
         const localList = upcomingRes.items || [];
+        logger.debug('[handleAnalyzeMatch] local staticList count', { count: Array.isArray(localList) ? localList.length : 0 });
         match = resolveFromList(localList, matchToken);
+        if (match) logger.info('[handleAnalyzeMatch] resolved from local static list', { id: match.id || match.fixtureId || null, home: safeNameOf(match.home), away: safeNameOf(match.away) });
       } catch (e) {
         // ignore
       }
     }
 
     if (!match) {
+      logger.warn('[handleAnalyzeMatch] match not found', { token: matchToken, leagueToken });
       return { method: 'sendMessage', chat_id: chatId, text: '⚠️ Match not found or not available for analysis.', parse_mode: 'Markdown' };
     }
 

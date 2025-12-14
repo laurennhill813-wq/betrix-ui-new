@@ -13,7 +13,35 @@ export function setAggregator(agg) {
 async function loadMatches() {
   try {
     const raw = await fs.readFile(MATCHES_FILE, 'utf8');
-    const data = JSON.parse(raw);
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch (parseErr) {
+      // Attempt to recover from badly-formed JSON by trimming leading/trailing
+      // content and parsing the most likely JSON object/array fragment.
+      try {
+        const firstBrace = raw.indexOf('{');
+        const firstBracket = raw.indexOf('[');
+        const start = (firstBrace === -1) ? firstBracket : (firstBracket === -1 ? firstBrace : Math.min(firstBrace, firstBracket));
+        const lastBrace = raw.lastIndexOf('}');
+        const lastBracket = raw.lastIndexOf(']');
+        const end = Math.max(lastBrace, lastBracket);
+        if (start !== -1 && end !== -1 && end > start) {
+          const candidate = raw.slice(start, end + 1);
+          try {
+            data = JSON.parse(candidate);
+            console.warn('football.js: recovered corrupted matches file by trimming non-JSON prefix/suffix');
+          } catch (e2) {
+            // give up recovery
+            throw parseErr;
+          }
+        } else {
+          throw parseErr;
+        }
+      } catch (e) {
+        throw parseErr;
+      }
+    }
     // Expect an array; if object, try common keys
     let list = [];
     if (Array.isArray(data)) list = data;
