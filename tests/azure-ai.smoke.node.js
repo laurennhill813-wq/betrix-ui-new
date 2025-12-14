@@ -100,15 +100,18 @@ async function runTimeoutTest() {
   assert.ok(threw, 'Expected chat() to throw on timeout/abort');
 }
 
-(async () => {
-  try {
-    await runSuccessTest();
-    await runErrorTest();
-    await runTimeoutTest();
-    console.log('\nAll Azure AI smoke tests passed.');
-    process.exit(0);
-  } catch (err) {
-    console.error('\nAzure AI smoke tests failed:', err);
-    process.exit(2);
-  }
-})();
+const _isMain = (typeof require !== 'undefined') ? require.main === module : (typeof import.meta !== 'undefined' && import.meta.url === `file://${process.argv[1]}`);
+if (_isMain) {
+  (async () => {
+    try {
+      await runSuccessTest();
+      await runErrorTest();
+      await runTimeoutTest();
+      console.log('\nAll Azure AI smoke tests passed.');
+      process.exit(0);
+    } catch (err) {
+      console.error('\nAzure AI smoke tests failed:', err);
+      process.exit(2);
+    }
+  })();
+}

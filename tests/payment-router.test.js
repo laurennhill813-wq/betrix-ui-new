@@ -78,7 +78,10 @@ async function run() {
   process.exit(0);
 }
 
-run().catch(err => {
-  console.error('❌ Payment Router tests failed', err);
-  process.exit(1);
-});
+const _isMain = (typeof require !== 'undefined') ? require.main === module : (typeof import.meta !== 'undefined' && import.meta.url === `file://${process.argv[1]}`);
+if (_isMain) {
+  run().catch(err => {
+    console.error('❌ Payment Router tests failed', err);
+    process.exit(1);
+  });
+}

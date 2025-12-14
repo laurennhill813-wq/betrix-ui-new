@@ -12,7 +12,7 @@
     "dev": "node src/worker-db.js",
     "bot:start": "node src/bot/server.js",
     "worker": "node src/worker-final.js",
-    "test": "node --test tests/*.js",
+    "test": "node tests/run-all-tests.cjs",
     "redis:validate": "node scripts/validate-redis-connection.js",
     "redis:monitor": "node scripts/monitor-redis-health.js",
     "redis:test-handlers": "node scripts/test-redis-handlers.js",
