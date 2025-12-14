@@ -51,7 +51,6 @@ if (failures.length === 0) {
     console.error(` - ${ff.file}: ${ff.status}`);
     if (ff.error) console.error('   error:', ff.error);
   }
-  console.error('NOTE: runner would exit 1 here, but for debugging we keep exit 0 to inspect results file.');
-  // process.exit(1);
-  process.exit(0);
+  console.error('Runner exiting with code 1 due to test failures.');
+  process.exit(1);
 }
