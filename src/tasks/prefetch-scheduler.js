@@ -124,9 +124,12 @@ export function startPrefetchScheduler({ redis, openLiga, rss, scorebat, footbal
       }
 
       // 5) SportMonks & Football-Data live/fixtures - main providers, prefetch every 60s
+      // Note: SportMonks may be temporarily paused due to TLS/DNS issues. We still
+      // want to allow Football-Data prefetch to run while SportMonks is paused.
       if (sportsAggregator) {
         try {
-          if (!await isAllowedToRun('sportsmonks')) { /* skip due to backoff */ }
+          const allowedToRunSports = (await isAllowedToRun('sportsmonks')) || (await isAllowedToRun('footballdata'));
+          if (!allowedToRunSports) { /* skip due to backoff for both providers */ }
           else {
             // Fetch full lists (but cap to MAX_PREFETCH_STORE to avoid unbounded Redis usage)
             const live = await sportsAggregator.getAllLiveMatches().catch(async (err) => { await recordFailure('sportsmonks'); throw err; });
