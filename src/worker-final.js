@@ -556,10 +556,10 @@ try {
   const { startLiveAlertsScheduler } = await import('./automation/liveAlerts.js');
 
   function startSchedulers() {
-    try { startMediaTickerScheduler(cron); } catch(e) { logger.warn('MediaTicker failed to start', e && e.message ? e.message : e); }
-    try { startOddsTickerScheduler(cron); } catch(e) { logger.warn('OddsTicker failed to start', e && e.message ? e.message : e); }
-    try { startFixturesTickerScheduler(cron); } catch(e) { logger.warn('FixturesTicker failed to start', e && e.message ? e.message : e); }
-    try { startLiveAlertsScheduler(cron); } catch(e) { logger.warn('LiveAlerts failed to start', e && e.message ? e.message : e); }
+    try { startMediaTickerScheduler(cron, sportsAggregator); } catch(e) { logger.warn('MediaTicker failed to start', e && e.message ? e.message : e); }
+    try { startOddsTickerScheduler(cron, sportsAggregator); } catch(e) { logger.warn('OddsTicker failed to start', e && e.message ? e.message : e); }
+    try { startFixturesTickerScheduler(cron, sportsAggregator); } catch(e) { logger.warn('FixturesTicker failed to start', e && e.message ? e.message : e); }
+    try { startLiveAlertsScheduler(cron, sportsAggregator); } catch(e) { logger.warn('LiveAlerts failed to start', e && e.message ? e.message : e); }
   }
 
   startSchedulers();

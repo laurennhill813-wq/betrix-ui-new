@@ -1,22 +1,21 @@
 import { broadcastText } from '../telegram/broadcast.js';
-import SportsAggregator from '../services/sports-aggregator.js';
 
 const FIXTURES_TICKER_ENABLED = String(process.env.FIXTURES_TICKER_ENABLED || 'false').toLowerCase() === 'true';
 
-async function getTodayFixtures() {
-  try {
-    if (typeof SportsAggregator === 'function') {
-      const agg = new SportsAggregator();
-      if (typeof agg.getTodayFixtures === 'function') return await agg.getTodayFixtures();
-    }
-  } catch (e) { /* ignore */ }
-  return [];
+let aggInstance = null;
+
+export function setAggregator(aggregator) {
+  aggInstance = aggregator;
 }
 
 export async function runFixturesTickerCycle() {
   if (!FIXTURES_TICKER_ENABLED) return;
   try {
-    const fixtures = await getTodayFixtures();
+    if (!aggInstance || typeof aggInstance.getTodayFixtures !== 'function') {
+      console.warn('[FixturesTicker] No aggregator available or method missing; skipping cycle');
+      return;
+    }
+    const fixtures = await aggInstance.getTodayFixtures();
     if (!fixtures || fixtures.length === 0) return;
     const lines = fixtures.slice(0, 20).map(f => `• <b>${f.home} vs ${f.away}</b> — ${f.kickoffLocal || f.kickoff || ''}`);
     const text = ['📅 <b>Today’s Matches</b>', '', ...lines, '', 'Stay tuned — more updates live.'].join('\n');
@@ -27,7 +26,8 @@ export async function runFixturesTickerCycle() {
   }
 }
 
-export function startFixturesTickerScheduler(cron) {
+export function startFixturesTickerScheduler(cron, aggregator) {
+  if (aggregator) setAggregator(aggregator);
   if (!FIXTURES_TICKER_ENABLED) {
     console.log('[FixturesTicker] Disabled (FIXTURES_TICKER_ENABLED != true)');
     return;
@@ -37,4 +37,4 @@ export function startFixturesTickerScheduler(cron) {
   cron.schedule(expr, () => { runFixturesTickerCycle(); });
 }
 
-export default { runFixturesTickerCycle, startFixturesTickerScheduler };
+export default { runFixturesTickerCycle, startFixturesTickerScheduler, setAggregator };

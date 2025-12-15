@@ -1,16 +1,18 @@
 import { broadcastText } from '../telegram/broadcast.js';
-import SportsAggregator from '../services/sports-aggregator.js';
 
 const LIVE_ALERTS_ENABLED = String(process.env.LIVE_ALERTS_ENABLED || 'false').toLowerCase() === 'true';
 
 let lastEventIds = new Set();
+let aggInstance = null;
+
+export function setAggregator(aggregator) {
+  aggInstance = aggregator;
+}
 
 async function getLiveMatchesWithEvents() {
   try {
-    if (typeof SportsAggregator === 'function') {
-      const agg = new SportsAggregator();
-      if (typeof agg.getLiveMatchesWithEvents === 'function') return await agg.getLiveMatchesWithEvents();
-    }
+    if (!aggInstance || typeof aggInstance.getLiveMatchesWithEvents !== 'function') return [];
+    return await aggInstance.getLiveMatchesWithEvents();
   } catch (e) { /* ignore */ }
   return [];
 }
@@ -40,7 +42,8 @@ export async function runLiveAlertsCycle() {
   }
 }
 
-export function startLiveAlertsScheduler(cron) {
+export function startLiveAlertsScheduler(cron, aggregator) {
+  if (aggregator) setAggregator(aggregator);
   if (!LIVE_ALERTS_ENABLED) {
     console.log('[LiveAlerts] Disabled (LIVE_ALERTS_ENABLED != true)');
     return;
@@ -50,4 +53,4 @@ export function startLiveAlertsScheduler(cron) {
   cron.schedule(expr, () => { runLiveAlertsCycle(); });
 }
 
-export default { runLiveAlertsCycle, startLiveAlertsScheduler };
+export default { runLiveAlertsCycle, startLiveAlertsScheduler, setAggregator };

@@ -3,6 +3,10 @@ import { broadcastPhoto } from '../telegram/broadcast.js';
 const TICKER_ENABLED = String(process.env.MEDIA_TICKER_ENABLED || 'false').toLowerCase() === 'true';
 const TICKER_INTERVAL_MINUTES = Number(process.env.MEDIA_TICKER_INTERVAL_MINUTES || 60);
 
+// Media ticker does not require the sportsAggregator, but accept it if passed
+let aggInstance = null;
+export function setAggregator(aggregator) { aggInstance = aggregator; }
+
 async function getNextMediaItem() {
   // TODO: replace with real media selection/AI generation
   return {
@@ -23,7 +27,8 @@ export async function runMediaTickerCycle() {
   }
 }
 
-export function startMediaTickerScheduler(cron) {
+export function startMediaTickerScheduler(cron, aggregator) {
+  if (aggregator) setAggregator(aggregator);
   if (!TICKER_ENABLED) {
     console.log('[MediaTicker] Disabled (MEDIA_TICKER_ENABLED != true)');
     return;
@@ -33,4 +38,4 @@ export function startMediaTickerScheduler(cron) {
   cron.schedule(expr, () => { runMediaTickerCycle(); });
 }
 
-export default { runMediaTickerCycle, startMediaTickerScheduler };
+export default { runMediaTickerCycle, startMediaTickerScheduler, setAggregator };

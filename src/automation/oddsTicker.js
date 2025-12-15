@@ -1,23 +1,24 @@
 import { broadcastText } from '../telegram/broadcast.js';
-import SportsAggregator from '../services/sports-aggregator.js';
 
 const ODDS_TICKER_ENABLED = String(process.env.ODDS_TICKER_ENABLED || 'false').toLowerCase() === 'true';
 
-async function getUpcomingMatchesWithOdds() {
-  // Try to reuse existing SportsAggregator if available
-  try {
-    if (typeof SportsAggregator === 'function') {
-      const agg = new SportsAggregator();
-      if (typeof agg.getUpcomingWithOdds === 'function') return await agg.getUpcomingWithOdds();
-    }
-  } catch (e) { /* ignore */ }
-  return [];
+// The module expects an instantiated sportsAggregator to be injected by the
+// worker process. This avoids creating new aggregator instances and reusing
+// the cached, prefetch-enabled aggregator already running in the worker.
+let aggInstance = null;
+
+export function setAggregator(aggregator) {
+  aggInstance = aggregator;
 }
 
 export async function runOddsTickerCycle() {
   if (!ODDS_TICKER_ENABLED) return;
   try {
-    const matches = await getUpcomingMatchesWithOdds();
+    if (!aggInstance || typeof aggInstance.getUpcomingWithOdds !== 'function') {
+      console.warn('[OddsTicker] No aggregator available or method missing; skipping cycle');
+      return;
+    }
+    const matches = await aggInstance.getUpcomingWithOdds();
     if (!matches || matches.length === 0) return;
     const lines = matches.slice(0, 10).map(m => `• <b>${m.home} vs ${m.away}</b>\n  ${m.oddsSummary || m.odds || ''}`);
     const text = ['🎯 <b>Upcoming Odds</b>', '', ...lines, '', 'More odds live inside BETRIX.'].join('\n');
@@ -28,7 +29,8 @@ export async function runOddsTickerCycle() {
   }
 }
 
-export function startOddsTickerScheduler(cron) {
+export function startOddsTickerScheduler(cron, aggregator) {
+  if (aggregator) setAggregator(aggregator);
   if (!ODDS_TICKER_ENABLED) {
     console.log('[OddsTicker] Disabled (ODDS_TICKER_ENABLED != true)');
     return;
@@ -38,4 +40,4 @@ export function startOddsTickerScheduler(cron) {
   cron.schedule(expr, () => { runOddsTickerCycle(); });
 }
 
-export default { runOddsTickerCycle, startOddsTickerScheduler };
+export default { runOddsTickerCycle, startOddsTickerScheduler, setAggregator };
