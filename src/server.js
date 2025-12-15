@@ -28,12 +28,11 @@ app.use(cors());
 // capture raw body for signature verification while still parsing JSON
 app.use(express.json({ limit: "10mb", verify: (req, res, buf) => { req.rawBody = buf; } }));
 
-// Rate limiting
+// Rate limiting (registered after health/readiness endpoints so probes aren't rate-limited)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
 });
-app.use(limiter);
 
 // Health check
 app.get("/health", (req, res) => {
@@ -50,6 +49,9 @@ app.get('/ready', async (req, res) => {
     return res.status(500).json({ status: 'error', error: 'readiness check failed' });
   }
 });
+
+// Apply rate limiter after health/readiness endpoints so platform probes are not blocked
+app.use(limiter);
 
 // Jobs route (auto media trigger)
 app.use('/api', jobsRouter);
