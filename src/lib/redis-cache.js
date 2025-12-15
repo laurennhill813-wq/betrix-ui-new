@@ -100,3 +100,10 @@ export async function getRaw(key) {
     return fallbackStore.get(key) || null;
   }
 }
+
+// Export a function to access the Redis client when callers need to perform
+// non-cache operations such as pushing to lists. Returns `null` if no
+// `REDIS_URL` configured so callers can gracefully fall back.
+export function getRedisClient() {
+  return getClient();
+}

@@ -15,7 +15,7 @@ import { betrixIngest } from "./lib/betrix-ingest.js";
 import { MpesaCallbackHandler } from "./middleware/mpesa-callback.js";
 import { updateStatusByProviderEventId } from './lib/local-payments.js';
 import jobsRouter from './routes/jobs.js';
-import { cacheSet } from './lib/redis-cache.js';
+import { cacheSet, getRedisClient } from './lib/redis-cache.js';
 import createAdminRouter from './routes/admin.js';
 import { getMetrics as getLivelinessMetrics } from './lib/liveliness.js';
 
@@ -72,6 +72,24 @@ app.post("/webhook/telegram", async (req, res) => {
       }
     } catch (e) {
       console.warn('failed to persist last chat id', e && e.message ? e.message : e);
+    }
+
+    // Enqueue the full Telegram update into the worker queue so the background
+    // worker can process and respond. This uses a Redis LIST `telegram:updates`.
+    try {
+      const client = getRedisClient();
+      if (client) {
+        try {
+          await client.rPush('telegram:updates', JSON.stringify(req.body));
+          console.log('[WEBHOOK] Enqueued Telegram update');
+        } catch (e) {
+          console.warn('[WEBHOOK] failed to enqueue telegram update', e && e.message ? e.message : e);
+        }
+      } else {
+        console.warn('[WEBHOOK] No Redis client available; skipping enqueue');
+      }
+    } catch (e) {
+      console.warn('[WEBHOOK] enqueue step failed', e && e.message ? e.message : e);
     }
     res.status(200).json({ ok: true });
   } catch (err) {
