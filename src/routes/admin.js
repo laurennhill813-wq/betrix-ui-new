@@ -1,36 +1,37 @@
 import express from 'express';
-import { cacheGet } from '../lib/redis-cache.js';
-import { getMetrics } from '../lib/liveliness.js';
-
-const router = express.Router();
-
-router.get('/admin/last-chat', async (req, res) => {
-  try {
-    const id = await cacheGet('betrix:last_chat_id');
-    return res.json({ ok: true, last_chat_id: id || null });
-  } catch (e) {
-    return res.status(500).json({ ok: false, error: String(e) });
-  }
-});
-
-router.get('/admin/health', async (req, res) => {
-  try {
-    const metrics = await getMetrics();
-    return res.json({ ok: true, liveliness: metrics });
-  } catch (e) {
-    return res.status(500).json({ ok: false, error: String(e) });
-  }
-});
-
-export default router;
-import express from 'express';
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
+import { cacheGet } from '../lib/redis-cache.js';
+import { getMetrics } from '../lib/liveliness.js';
+import { adminAuth } from '../middleware/admin-auth.js';
 
 export default function createAdminRouter() {
   const router = express.Router();
 
+  // Protect admin routes with ADMIN_API_KEY when configured
+  router.use('/admin', adminAuth);
+
+  // Return last seen chat id stored in Redis (best-effort)
+  router.get('/admin/last-chat', async (req, res) => {
+    try {
+      const id = await cacheGet('betrix:last_chat_id');
+      return res.json({ ok: true, last_chat_id: id || null });
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: String(e) });
+    }
+  });
+
+  // Health endpoint that aggregates liveliness metrics
+  router.get('/admin/health', async (req, res) => {
+    try {
+      const metrics = await getMetrics();
+      return res.json({ ok: true, liveliness: metrics });
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: String(e) });
+    }
+  });
+
+  // Additional diagnostics (mounted under /admin when router is used)
   router.get('/health', (_req, res) => res.json({ ok: true, commit: process.env.RENDER_GIT_COMMIT || process.env.COMMIT_SHA || null }));
 
   router.get('/queue', (_req, res) => res.json({ ok: true, commit: process.env.RENDER_GIT_COMMIT || process.env.COMMIT_SHA || null }));

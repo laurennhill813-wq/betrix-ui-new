@@ -16,7 +16,7 @@ import { MpesaCallbackHandler } from "./middleware/mpesa-callback.js";
 import { updateStatusByProviderEventId } from './lib/local-payments.js';
 import jobsRouter from './routes/jobs.js';
 import { cacheSet } from './lib/redis-cache.js';
-import adminRouter from './routes/admin.js';
+import createAdminRouter from './routes/admin.js';
 import { getMetrics as getLivelinessMetrics } from './lib/liveliness.js';
 
 const logger = new Logger("Server");
@@ -43,7 +43,7 @@ app.get("/health", (req, res) => {
 // Jobs route (auto media trigger)
 app.use('/api', jobsRouter);
 // Admin routes
-app.use('/api', adminRouter);
+app.use('/api', createAdminRouter());
 
 // Telegram webhook
 app.post("/webhook/telegram", async (req, res) => {
