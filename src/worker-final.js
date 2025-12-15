@@ -546,6 +546,28 @@ const advancedHandler = new AdvancedHandler(basicHandlers, redis, telegram, user
 const premiumService = new PremiumService(redis, ai);
 const adminDashboard = new AdminDashboard(redis, telegram, analytics);
 
+// Start automation schedulers (media ticker, odds, fixtures, live alerts)
+try {
+  import cron from 'node-cron';
+  // dynamic import of automation modules
+  const { startMediaTickerScheduler } = await import('./automation/mediaTicker.js');
+  const { startOddsTickerScheduler } = await import('./automation/oddsTicker.js');
+  const { startFixturesTickerScheduler } = await import('./automation/fixturesTicker.js');
+  const { startLiveAlertsScheduler } = await import('./automation/liveAlerts.js');
+
+  function startSchedulers() {
+    try { startMediaTickerScheduler(cron); } catch(e) { logger.warn('MediaTicker failed to start', e && e.message ? e.message : e); }
+    try { startOddsTickerScheduler(cron); } catch(e) { logger.warn('OddsTicker failed to start', e && e.message ? e.message : e); }
+    try { startFixturesTickerScheduler(cron); } catch(e) { logger.warn('FixturesTicker failed to start', e && e.message ? e.message : e); }
+    try { startLiveAlertsScheduler(cron); } catch(e) { logger.warn('LiveAlerts failed to start', e && e.message ? e.message : e); }
+  }
+
+  startSchedulers();
+  logger.info('✅ Automation schedulers start attempted');
+} catch (e) {
+  logger.warn('Automation schedulers failed to initialize', e && e.message ? e.message : e);
+}
+
 logger.info("🚀 BETRIX Final Worker - All Services Initialized");
 
 let running = true; // flag used to gracefully stop the main loop on SIGTERM/SIGINT
