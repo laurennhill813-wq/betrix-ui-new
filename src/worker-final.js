@@ -24,6 +24,7 @@ import { getRedis, MockRedis } from "./lib/redis-factory.js";
 import { CONFIG, validateConfig } from "./config.js";
 import { Logger } from "./utils/logger.js";
 import { TelegramService } from "./services/telegram.js";
+import { broadcastText } from "./telegram/broadcast.js";
 import { UserService } from "./services/user.js";
 // API-Football removed from runtime per operator request — prefer SportMonks and Football-Data
 import { GeminiService } from "./services/gemini.js";
@@ -79,6 +80,20 @@ try {
 } catch (err) {
   logger.error("Configuration failed", err);
   process.exit(1);
+}
+
+// ---- FORCE startup test broadcast (temporary) ----
+try {
+  const testChat = process.env.BOT_BROADCAST_CHAT_ID || (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.BROADCAST_CHAT_ID) || null;
+  if (testChat) {
+    broadcastText(String(testChat), "🚀 BETRIX TEST BROADCAST — Worker startup test.")
+      .then(() => logger.info('Startup test broadcast dispatched', { chat: testChat }))
+      .catch(err => logger.error('Startup test broadcast error', err && err.message ? err.message : String(err)));
+  } else {
+    logger.info('No BOT_BROADCAST_CHAT_ID set — skipping top-level startup test broadcast');
+  }
+} catch (e) {
+  try { logger.warn('Startup test broadcast triggered an exception', e && e.message ? e.message : String(e)); } catch(_) { /* ignore */ }
 }
 
 // Initialize Redis with a safe fallback to in-memory MockRedis for local dev
@@ -566,6 +581,25 @@ try {
 
   startSchedulers();
   logger.info('✅ Automation schedulers start attempted');
+  // ---- Startup test broadcast (temporary) ----
+  try {
+    const testChat = process.env.BOT_BROADCAST_CHAT_ID || (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.BROADCAST_CHAT_ID) || null;
+    if (testChat) {
+      (async () => {
+        try {
+          // Use existing TelegramService instance to send a one-off verification message
+          await telegram.sendMessage(Number(testChat), "🚀 BETRIX TEST BROADCAST — If you see this, the channel wiring works.");
+          logger.info('Startup test broadcast sent', { chat: testChat });
+        } catch (err) {
+          logger.error('Startup test broadcast failed', err && err.message ? err.message : String(err));
+        }
+      })();
+    } else {
+      logger.info('No BOT_BROADCAST_CHAT_ID set — skipping startup test broadcast');
+    }
+  } catch (e) {
+    logger.warn('Startup test broadcast encountered an error', e && e.message ? e.message : String(e));
+  }
 } catch (e) {
   logger.warn('Automation schedulers failed to initialize', e && e.message ? e.message : e);
 }
