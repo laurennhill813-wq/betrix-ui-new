@@ -48,15 +48,13 @@ app.use('/api', createAdminRouter());
 // Telegram webhook
 app.post("/webhook/telegram", async (req, res) => {
   try {
-    // UNCONDITIONAL PATCH: always log the raw Telegram update (temporary)
-    // WARNING: This prints raw webhook payloads (may contain PII). Remove this
-    // unconditional log after you extract the `chat.id` and set
-    // `BOT_BROADCAST_CHAT_ID` in Render.
+    // Lightweight logging: don't print full webhook payloads in production.
+    // Log only the resolved chat id (if present). Keep the DEBUG flag for
+    // temporarily enabling full payload dumps when needed.
     try {
-      console.log("[TELEGRAM UPDATE RAW]", JSON.stringify(req.body, null, 2));
-    } catch (e) {
-      console.log('[TELEGRAM UPDATE RAW] <unserializable>');
-    }
+      const _chatLogId = req?.body?.message?.chat?.id || req?.body?.edited_message?.chat?.id || req?.body?.channel_post?.chat?.id || null;
+      console.log('[WEBHOOK] Received Telegram update', { chatId: _chatLogId });
+    } catch (e) { /* ignore logging errors */ }
 
     // Debug logging gated by env flag (kept for backward compatibility)
     if (String(process.env.DEBUG_TELEGRAM_UPDATES || '').toLowerCase() === 'true') {
