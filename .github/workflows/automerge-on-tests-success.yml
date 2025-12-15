@@ -1,0 +1,52 @@
+name: Auto-merge on successful tests
+
+on:
+  workflow_run:
+    workflows: ["Run tests with Bun"]
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  automerge:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find PR for head SHA
+        id: find_pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const head_sha = process.env.GITHUB_SHA || github.event.workflow_run.head_sha;
+            const { data: pulls } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+            });
+            const pr = pulls.find(p => p.head.sha === head_sha || p.head.ref === github.event.workflow_run.head_branch);
+            if (!pr) {
+              core.setOutput('pr_number', '');
+              console.log('No open PR found for head SHA / branch', head_sha, github.event.workflow_run.head_branch);
+            } else {
+              core.setOutput('pr_number', String(pr.number));
+              console.log('Found PR', pr.number);
+            }
+
+      - name: Merge PR
+        if: steps.find_pr.outputs.pr_number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = Number(core.getInput('pr_number') || process.env.PR_NUMBER || steps.find_pr.outputs.pr_number);
+            console.log('Merging PR', prNumber);
+            const resp = await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              merge_method: 'squash'
+            });
+            console.log('Merge response', resp.status);
+        env:
+          pr_number: ${{ steps.find_pr.outputs.pr_number }}
