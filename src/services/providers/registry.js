@@ -1,5 +1,7 @@
-export const PROVIDERS = {
-  // Sportradar provider entry
+import PROVIDERS_FULL from '../../config/providers_full.js';
+
+// Legacy minimal registry entries (kept for backwards compatibility)
+const LEGACY = {
   sportradar: {
     id: 'sportradar',
     name: 'Sportradar',
@@ -13,6 +15,15 @@ export const PROVIDERS = {
       headerName: 'Api-Key'
     }
   }
+};
+
+// Merge canonical full providers (from config) with legacy entries.
+// Non-destructive: legacy keys are preserved and canonical entries are added.
+export const PROVIDERS = {
+  // Spread full canonical providers first so legacy keys (like 'sportradar')
+  // can override or be preserved below if present.
+  ...PROVIDERS_FULL,
+  ...LEGACY
 };
 
 export function registerProvider(id, handlerFn) {
