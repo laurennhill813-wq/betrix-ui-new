@@ -8,9 +8,10 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "start": "node src/worker-final.js",
+    "start": "node bin/start-server.js",
     "dev": "node src/worker-db.js",
     "bot:start": "node src/bot/server.js",
+    "ui:start": "node bin/start-server.js",
     "worker": "node src/worker-final.js",
     "test": "node tests/run-all-tests.cjs",
     "redis:validate": "node scripts/validate-redis-connection.js",
