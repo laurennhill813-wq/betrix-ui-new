@@ -82,18 +82,28 @@ try {
   process.exit(1);
 }
 
-// ---- FORCE startup test broadcast (temporary) ----
+// ---- SAFE startup test broadcast (temporary) ----
+// Prefer sending to configured admin ID to avoid posting to a channel the bot
+// isn't a member of. If no admin or broadcast ID is configured, skip the test.
 try {
-  const testChat = process.env.BOT_BROADCAST_CHAT_ID || (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.BROADCAST_CHAT_ID) || null;
-  if (testChat) {
-    broadcastText(String(testChat), "🚀 BETRIX TEST BROADCAST — Worker startup test.")
-      .then(() => logger.info('Startup test broadcast dispatched', { chat: testChat }))
+  const adminId = process.env.ADMIN_TELEGRAM_ID || (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.ADMIN_ID) || null;
+  const broadcastEnv = process.env.BOT_BROADCAST_CHAT_ID || (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.BROADCAST_CHAT_ID) || null;
+  const target = adminId || broadcastEnv || null;
+
+  if (target) {
+    const msg = adminId
+      ? "🚀 BETRIX TEST BROADCAST — Admin delivery check."
+      : "🚀 BETRIX TEST BROADCAST — Channel delivery check.";
+
+    // Use broadcastText helper which is async; do not block initialization.
+    broadcastText(String(target), msg)
+      .then(() => logger.info('Startup test broadcast dispatched', { target }))
       .catch(err => logger.error('Startup test broadcast error', err && err.message ? err.message : String(err)));
   } else {
-    logger.info('No BOT_BROADCAST_CHAT_ID set — skipping top-level startup test broadcast');
+    logger.info('No ADMIN_TELEGRAM_ID or BOT_BROADCAST_CHAT_ID set — skipping startup test broadcast');
   }
 } catch (e) {
-  try { logger.warn('Startup test broadcast triggered an exception', e && e.message ? e.message : String(e)); } catch(_) { /* ignore */ }
+  logger.warn('Startup test broadcast encountered an exception', e && e.message ? e.message : String(e));
 }
 
 // Initialize Redis with a safe fallback to in-memory MockRedis for local dev
