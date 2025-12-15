@@ -1,6 +1,7 @@
 import { getProvidersBySportAndType } from "./providers/helpers.js";
 import { callProvider } from "./providers/fetcher.js";
 import { cacheGet, cacheSet } from "./../lib/redis-cache.js";
+import resolveDirectImage from "../media/resolveDirectImage.js";
 
 // TTL fallback (seconds)
 const DEFAULT_TTL = 60 * 60; // 1 hour for media items
@@ -19,7 +20,7 @@ export async function fetchRandomMediaItem({ sport }) {
   for (const provider of providers) {
     try {
       const result = await fetchMediaFromProvider(provider, { sport });
-      const item = pickRandomMedia(result, provider.id, sport);
+      const item = await pickRandomMedia(result, provider.id, sport);
       if (item) {
         try { await cacheSet(cacheKey, item, DEFAULT_TTL); } catch (e) {}
         return item;
@@ -53,7 +54,7 @@ async function fetchMediaFromProvider(provider, { sport }) {
   }
 }
 
-function pickRandomMedia(res, providerId, fallbackSport) {
+async function pickRandomMedia(res, providerId, fallbackSport) {
   if (!res) return null;
 
   // callProvider returns { ok, body, bodyText }
@@ -68,13 +69,27 @@ function pickRandomMedia(res, providerId, fallbackSport) {
   const url = raw.url || raw.preview_url || raw.thumbnail_url || (raw.display_sizes && raw.display_sizes[0] && raw.display_sizes[0].uri);
   if (!url) return null;
 
-  return {
-    providerId,
-    url,
-    title: raw.title || raw.caption || raw.headline || null,
-    sport: raw.sport || fallbackSport || null,
-    league: raw.league || raw.competition || null,
-  };
+  // Try to resolve a direct image URL (follows redirects, checks content-type, OG tags, etc.)
+  try {
+    const direct = await resolveDirectImage(url).catch(() => null);
+    const finalUrl = direct || url;
+    return {
+      providerId,
+      url: finalUrl,
+      title: raw.title || raw.caption || raw.headline || null,
+      sport: raw.sport || fallbackSport || null,
+      league: raw.league || raw.competition || null,
+    };
+  } catch (e) {
+    // If resolver fails unexpectedly, fall back to original url
+    return {
+      providerId,
+      url,
+      title: raw.title || raw.caption || raw.headline || null,
+      sport: raw.sport || fallbackSport || null,
+      league: raw.league || raw.competition || null,
+    };
+  }
 }
 
 export default { fetchRandomMediaItem };

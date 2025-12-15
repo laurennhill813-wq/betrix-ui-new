@@ -9,6 +9,10 @@ export async function sendPhotoWithCaption({ chatId, photoUrl, caption, parse_mo
     console.warn('sendPhotoWithCaption: chatId missing');
     return;
   }
+  if (!photoUrl) {
+    console.warn('sendPhotoWithCaption: photoUrl missing - skipping sendPhoto');
+    return;
+  }
 
   const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`;
   const body = { chat_id: chatId, photo: photoUrl, caption, parse_mode };
