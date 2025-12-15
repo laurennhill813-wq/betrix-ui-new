@@ -48,9 +48,19 @@ app.use('/api', adminRouter);
 // Telegram webhook
 app.post("/webhook/telegram", async (req, res) => {
   try {
-    // Debug logging gated by env flag
+    // UNCONDITIONAL PATCH: always log the raw Telegram update (temporary)
+    // WARNING: This prints raw webhook payloads (may contain PII). Remove this
+    // unconditional log after you extract the `chat.id` and set
+    // `BOT_BROADCAST_CHAT_ID` in Render.
+    try {
+      console.log("[TELEGRAM UPDATE RAW]", JSON.stringify(req.body, null, 2));
+    } catch (e) {
+      console.log('[TELEGRAM UPDATE RAW] <unserializable>');
+    }
+
+    // Debug logging gated by env flag (kept for backward compatibility)
     if (String(process.env.DEBUG_TELEGRAM_UPDATES || '').toLowerCase() === 'true') {
-      try { console.log("[TELEGRAM UPDATE RAW]", JSON.stringify(req.body, null, 2)); } catch (e) { console.log('[TELEGRAM UPDATE RAW] <unserializable>'); }
+      try { console.log("[TELEGRAM UPDATE RAW - DEBUG_FLAG]", JSON.stringify(req.body, null, 2)); } catch (e) { console.log('[TELEGRAM UPDATE RAW] <unserializable>'); }
     }
 
     // Persist last seen chat id to Redis for quick extraction (best-effort)
