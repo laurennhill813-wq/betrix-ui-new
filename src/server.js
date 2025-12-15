@@ -40,6 +40,17 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date(), service: "BETRIX" });
 });
 
+// Readiness / liveliness endpoint (used by platform health checks)
+app.get('/ready', async (req, res) => {
+  try {
+    const metrics = await getLivelinessMetrics();
+    return res.json({ status: 'ok', timestamp: new Date(), metrics });
+  } catch (e) {
+    logger.warn('Readiness check failed', e && e.message ? e.message : e);
+    return res.status(500).json({ status: 'error', error: 'readiness check failed' });
+  }
+});
+
 // Jobs route (auto media trigger)
 app.use('/api', jobsRouter);
 // Admin routes
@@ -183,9 +194,37 @@ export function startServer() {
     logger.info(`🚀 Server on port ${PORT}`);
   });
 
-  process.on("SIGTERM", () => {
-    logger.info("Shutting down...");
-    server.close(() => process.exit(0));
+  function shutdown(signal) {
+    try {
+      logger.info(`Received ${signal} - shutting down gracefully`);
+      // stop accepting new connections
+      server.close(() => {
+        logger.info('Server closed cleanly');
+        process.exit(0);
+      });
+
+      // force exit if close doesn't complete in time
+      setTimeout(() => {
+        logger.error('Graceful shutdown timed out, forcing exit');
+        process.exit(1);
+      }, 10000).unref();
+    } catch (e) {
+      logger.error('Error during shutdown', e);
+      process.exit(1);
+    }
+  }
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+
+  process.on('uncaughtException', (err) => {
+    logger.error('uncaughtException - exiting', err && err.stack ? err.stack : err);
+    // allow logs to flush then exit
+    try { setTimeout(() => process.exit(1), 100); } catch (e) { process.exit(1); }
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    logger.error('unhandledRejection', { reason, promise });
   });
 
   return server;
