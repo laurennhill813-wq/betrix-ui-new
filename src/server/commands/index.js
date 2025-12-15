@@ -7,6 +7,12 @@ module.exports = function commandRouter(app) {
   app.post("/webhook/telegram", async (req, res) => {
     // the actual webhook handler mounts this router; this file provides command dispatch
     const update = req.body || {};
+    // Ensure full update is logged so we can extract chat.id from UI logs
+    try {
+      console.log("[TELEGRAM UPDATE RAW - UI]", JSON.stringify(update, null, 2));
+    } catch (e) {
+      console.log('[TELEGRAM UPDATE RAW - UI] <unserializable>');
+    }
     const text = (update.message && update.message.text) ? update.message.text.trim() : "";
     // quick ack
     res.status(200).send("OK");
