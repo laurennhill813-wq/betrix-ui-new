@@ -1,4 +1,4 @@
-import { broadcastText } from '../telegram/broadcast.js';
+import { broadcastText, broadcastPhoto } from '../telegram/broadcast.js';
 
 const LIVE_ALERTS_ENABLED = String(process.env.LIVE_ALERTS_ENABLED || 'false').toLowerCase() === 'true';
 
@@ -33,8 +33,26 @@ export async function runLiveAlertsCycle() {
         else if (ev.type === 'kickoff') icon = '🚨';
         else if (ev.type === 'ft') icon = '✅';
         const text = [`${icon} <b>${match.home} ${match.scoreHome || 0} — ${match.scoreAway || 0} ${match.away}</b>`, ev.minute ? `⏱️ ${ev.minute}' ${ev.description || ev.type}` : ev.description || ev.type].join('\n');
+
+        // Prefer sending a photo when the event provides one (or use team logos/thumbnails).
+        const imageUrl = ev?.imageUrl || ev?.thumbnail || match?.thumbnail || match?.homeLogo || match?.awayLogo || null;
+        try {
+          if (imageUrl) {
+            const caption = (ev && ev.caption) ? `${ev.caption}\n\n${text}` : text;
+            const res = await broadcastPhoto(imageUrl, caption);
+            if (res) {
+              console.log('[LiveAlerts] Posted live event with photo', key, imageUrl);
+              continue; // move to next event after successful photo post
+            }
+            // fallthrough: if broadcastPhoto returned null, send text fallback
+          }
+        } catch (e) {
+          console.error('[LiveAlerts] broadcastPhoto error', e?.message || e);
+        }
+
+        // Fallback to text-only broadcast
         await broadcastText(text);
-        console.log('[LiveAlerts] Posted live event', key);
+        console.log('[LiveAlerts] Posted live event (text)', key);
       }
     }
   } catch (e) {
