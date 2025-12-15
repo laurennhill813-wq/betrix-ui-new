@@ -70,6 +70,19 @@ app.post('/webhook', async (req, res) => {
       console.warn('Telegram webhook: no Redis available to enqueue update');
       return res.sendStatus(503);
     }
+    // TEMPORARY: optional chat.id capture for admin — enabled via env
+    try {
+      if (String(process.env.ENABLE_CHAT_ID_LOG || '').toLowerCase() === 'true') {
+        const update = req.body || {};
+        const chatId = update?.message?.chat?.id || update?.edited_message?.chat?.id || update?.callback_query?.message?.chat?.id || update?.my_chat_member?.chat?.id || update?.chat_join_request?.chat?.id || null;
+        if (chatId) {
+          console.log('[CHAT-ID-CAPTURE]', chatId);
+        } else {
+          console.log('[CHAT-ID-CAPTURE] No chat.id found in update');
+        }
+      }
+    } catch (e) { console.warn('CHAT-ID-CAPTURE error', e && e.message ? e.message : String(e)); }
+
     await webhookRedis.lpush('telegram:updates', JSON.stringify(req.body));
     console.log('[WEBHOOK] Enqueued Telegram update');
     return res.sendStatus(200);
@@ -91,6 +104,19 @@ app.post('/webhook/telegram', async (req, res) => {
       console.warn('Telegram webhook: no Redis available to enqueue update (telegram endpoint)');
       return res.sendStatus(503);
     }
+    // TEMPORARY: optional chat.id capture for admin — enabled via env
+    try {
+      if (String(process.env.ENABLE_CHAT_ID_LOG || '').toLowerCase() === 'true') {
+        const update = req.body || {};
+        const chatId = update?.message?.chat?.id || update?.edited_message?.chat?.id || update?.callback_query?.message?.chat?.id || update?.my_chat_member?.chat?.id || update?.chat_join_request?.chat?.id || null;
+        if (chatId) {
+          console.log('[CHAT-ID-CAPTURE]', chatId);
+        } else {
+          console.log('[CHAT-ID-CAPTURE] No chat.id found in update');
+        }
+      }
+    } catch (e) { console.warn('CHAT-ID-CAPTURE error', e && e.message ? e.message : String(e)); }
+
     await webhookRedis.lpush('telegram:updates', JSON.stringify(req.body));
     console.log('[WEBHOOK] Enqueued Telegram update (telegram endpoint)');
     return res.sendStatus(200);
