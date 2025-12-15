@@ -548,7 +548,9 @@ const adminDashboard = new AdminDashboard(redis, telegram, analytics);
 
 // Start automation schedulers (media ticker, odds, fixtures, live alerts)
 try {
-  import cron from 'node-cron';
+  // dynamic import of `node-cron` and automation modules
+  const cronMod = await import('node-cron');
+  const cron = cronMod && cronMod.default ? cronMod.default : cronMod;
   // dynamic import of automation modules
   const { startMediaTickerScheduler } = await import('./automation/mediaTicker.js');
   const { startOddsTickerScheduler } = await import('./automation/oddsTicker.js');
