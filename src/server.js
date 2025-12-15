@@ -43,6 +43,8 @@ app.use('/api', jobsRouter);
 // Telegram webhook
 app.post("/webhook/telegram", async (req, res) => {
   try {
+    // PATCH: Log the full Telegram update so we can extract chat IDs (one-time debug)
+    try { console.log("[TELEGRAM UPDATE RAW]", JSON.stringify(req.body, null, 2)); } catch (e) { console.log('[TELEGRAM UPDATE RAW] <unserializable>'); }
     res.status(200).json({ ok: true });
   } catch (err) {
     logger.error("Webhook error", err);
