@@ -1,6 +1,7 @@
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
+import { execFile } from 'child_process';
 import { cacheGet } from '../lib/redis-cache.js';
 import { getMetrics } from '../lib/liveliness.js';
 import { adminAuth } from '../middleware/admin-auth.js';
@@ -110,6 +111,29 @@ export default function createAdminRouter() {
         } catch (e) { /* ignore per-layer errors */ }
       });
       return res.json({ ok: true, routes });
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: e?.message || String(e) });
+    }
+  });
+
+  // Admin: inspect SportMonks TLS certificate via existing script
+  // POST /admin/inspect-sportmonks
+  router.post('/admin/inspect-sportmonks', async (req, res) => {
+    try {
+      const scriptPath = path.join(process.cwd(), 'scripts', 'inspect-sportmonks-cert.js');
+      if (!fs.existsSync(scriptPath)) return res.status(404).json({ ok: false, error: 'inspect script not found' });
+
+      // Run the script with a safe timeout and capture stdout/stderr
+      const childArgs = [scriptPath];
+      const opts = { timeout: 20000, env: Object.assign({}, process.env) };
+
+      execFile('node', childArgs, opts, (err, stdout, stderr) => {
+        if (err) {
+          // include stdout/stderr for diagnostics even on error
+          return res.status(500).json({ ok: false, error: err.message, stdout: String(stdout || '').slice(0, 20000), stderr: String(stderr || '').slice(0, 20000) });
+        }
+        return res.json({ ok: true, stdout: String(stdout || '').slice(0, 20000), stderr: String(stderr || '').slice(0, 20000) });
+      });
     } catch (e) {
       return res.status(500).json({ ok: false, error: e?.message || String(e) });
     }

@@ -15,6 +15,7 @@
  */
 
 import { Logger } from '../utils/logger.js';
+import resolveDirectImage from './resolveDirectImage.js';
 
 const logger = new Logger('MediaRouter');
 
@@ -68,7 +69,11 @@ export async function getBestImageForEvent({ event = {}, match = {} } = {}) {
     event.mediaUrl,
   ];
   const evImg = pickFromCandidates(eventCandidates);
-  if (evImg) return { imageUrl: evImg, provider: 'event', reason: 'event.explicit' };
+  if (evImg) {
+    const direct = await resolveDirectImage(evImg).catch(() => null);
+    if (direct) return { imageUrl: direct, provider: 'event', reason: 'event.explicit' };
+    logger.info('[MediaRouter] event explicit image not direct — continuing to match/providers', evImg);
+  }
 
   // 2) check match-level candidates
   const matchCandidates = [
@@ -80,16 +85,28 @@ export async function getBestImageForEvent({ event = {}, match = {} } = {}) {
     match.away_logo,
   ];
   const mImg = pickFromCandidates(matchCandidates);
-  if (mImg) return { imageUrl: mImg, provider: 'match', reason: 'match.level' };
+  if (mImg) {
+    const direct = await resolveDirectImage(mImg).catch(() => null);
+    if (direct) return { imageUrl: direct, provider: 'match', reason: 'match.level' };
+    logger.info('[MediaRouter] match-level image not direct — continuing to providers', mImg);
+  }
 
   // 3) query configured providers in priority order
   for (const provider of providerPriority) {
     // prefer event-level provider function first
     const evRes = await tryProvider(provider, 'getImageForEvent', { event, match });
-    if (evRes && evRes.imageUrl) return { ...evRes, reason: `provider:${provider}:event` };
+    if (evRes && evRes.imageUrl) {
+      const direct = await resolveDirectImage(evRes.imageUrl).catch(() => null);
+      if (direct) return { ...evRes, imageUrl: direct, reason: `provider:${provider}:event` };
+      logger.info('[MediaRouter] provider event image not direct — trying next', provider, evRes.imageUrl);
+    }
 
     const matchRes = await tryProvider(provider, 'getImageForMatch', { match });
-    if (matchRes && matchRes.imageUrl) return { ...matchRes, reason: `provider:${provider}:match` };
+    if (matchRes && matchRes.imageUrl) {
+      const direct = await resolveDirectImage(matchRes.imageUrl).catch(() => null);
+      if (direct) return { ...matchRes, imageUrl: direct, reason: `provider:${provider}:match` };
+      logger.info('[MediaRouter] provider match image not direct — trying next', provider, matchRes.imageUrl);
+    }
   }
 
   // 4) fallback to default placeholder
