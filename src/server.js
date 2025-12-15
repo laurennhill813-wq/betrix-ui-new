@@ -15,6 +15,9 @@ import { betrixIngest } from "./lib/betrix-ingest.js";
 import { MpesaCallbackHandler } from "./middleware/mpesa-callback.js";
 import { updateStatusByProviderEventId } from './lib/local-payments.js';
 import jobsRouter from './routes/jobs.js';
+import { cacheSet } from './lib/redis-cache.js';
+import adminRouter from './routes/admin.js';
+import { getMetrics as getLivelinessMetrics } from './lib/liveliness.js';
 
 const logger = new Logger("Server");
 const app = express();
@@ -39,12 +42,27 @@ app.get("/health", (req, res) => {
 
 // Jobs route (auto media trigger)
 app.use('/api', jobsRouter);
+// Admin routes
+app.use('/api', adminRouter);
 
 // Telegram webhook
 app.post("/webhook/telegram", async (req, res) => {
   try {
-    // PATCH: Log the full Telegram update so we can extract chat IDs (one-time debug)
-    try { console.log("[TELEGRAM UPDATE RAW]", JSON.stringify(req.body, null, 2)); } catch (e) { console.log('[TELEGRAM UPDATE RAW] <unserializable>'); }
+    // Debug logging gated by env flag
+    if (String(process.env.DEBUG_TELEGRAM_UPDATES || '').toLowerCase() === 'true') {
+      try { console.log("[TELEGRAM UPDATE RAW]", JSON.stringify(req.body, null, 2)); } catch (e) { console.log('[TELEGRAM UPDATE RAW] <unserializable>'); }
+    }
+
+    // Persist last seen chat id to Redis for quick extraction (best-effort)
+    try {
+      const chatId = req?.body?.message?.chat?.id || req?.body?.edited_message?.chat?.id || req?.body?.channel_post?.chat?.id || null;
+      if (chatId) {
+        // store as string under betrix:last_chat_id with 7-day TTL
+        await cacheSet('betrix:last_chat_id', String(chatId), 60 * 60 * 24 * 7);
+      }
+    } catch (e) {
+      console.warn('failed to persist last chat id', e && e.message ? e.message : e);
+    }
     res.status(200).json({ ok: true });
   } catch (err) {
     logger.error("Webhook error", err);

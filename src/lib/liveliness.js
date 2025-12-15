@@ -41,3 +41,18 @@ export async function markPosted() {
 }
 
 export default { canPostNow, markPosted };
+
+export async function getMetrics() {
+  try {
+    const lastRaw = await cacheGet('liveliness:lastPostAt');
+    const last = lastRaw ? Number(lastRaw) : null;
+    // derive hour key similar to markPosted
+    const d = new Date();
+    const hk = `liveliness:postsHour:${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}:${String(d.getUTCHours()).padStart(2,'0')}`;
+    const countRaw = await getRaw(hk);
+    const count = countRaw ? Number(countRaw) : 0;
+    return { lastPostAt: last, postsThisHour: count };
+  } catch (e) {
+    return { lastPostAt: null, postsThisHour: null };
+  }
+}

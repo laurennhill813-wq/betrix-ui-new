@@ -1,4 +1,29 @@
 import express from 'express';
+import { cacheGet } from '../lib/redis-cache.js';
+import { getMetrics } from '../lib/liveliness.js';
+
+const router = express.Router();
+
+router.get('/admin/last-chat', async (req, res) => {
+  try {
+    const id = await cacheGet('betrix:last_chat_id');
+    return res.json({ ok: true, last_chat_id: id || null });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
+router.get('/admin/health', async (req, res) => {
+  try {
+    const metrics = await getMetrics();
+    return res.json({ ok: true, liveliness: metrics });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
+export default router;
+import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
