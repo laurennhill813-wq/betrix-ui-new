@@ -4,6 +4,8 @@ import path from 'path';
 import { cacheGet } from '../lib/redis-cache.js';
 import { getMetrics } from '../lib/liveliness.js';
 import { adminAuth } from '../middleware/admin-auth.js';
+import mediaRouter from '../media/mediaRouter.js';
+import { broadcastPhoto, broadcastText } from '../telegram/broadcast.js';
 
 export default function createAdminRouter() {
   const router = express.Router();
@@ -55,6 +57,34 @@ export default function createAdminRouter() {
       const lines = txt.split(/\r?\n/).filter(Boolean).slice(-200);
       const parsed = lines.map(l => { try { return JSON.parse(l); } catch { return { raw: l }; } });
       return res.json({ ok: true, entries: parsed });
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: e?.message || String(e) });
+    }
+  });
+
+  // Admin: test media lookup and optional broadcast (protected by adminAuth)
+  // POST /admin/test-media
+  // Body: { match?: object, event?: object, caption?: string, autoBroadcast?: boolean }
+  router.post('/admin/test-media', async (req, res) => {
+    try {
+      const { match = {}, event = {}, caption = '', autoBroadcast = false } = req.body || {};
+      const best = await mediaRouter.getBestImageForEvent({ event, match });
+      const out = { ok: true, best };
+
+      if (autoBroadcast) {
+        if (!process.env.BOT_BROADCAST_CHAT_ID) {
+          return res.status(400).json({ ok: false, error: 'BOT_BROADCAST_CHAT_ID not configured' });
+        }
+        // attempt to broadcast the photo (best-effort)
+        try {
+          const resp = await broadcastPhoto(best.imageUrl, caption || '', {});
+          out.broadcast = { ok: true, resp };
+        } catch (bErr) {
+          out.broadcast = { ok: false, error: String(bErr) };
+        }
+      }
+
+      return res.json(out);
     } catch (e) {
       return res.status(500).json({ ok: false, error: e?.message || String(e) });
     }
