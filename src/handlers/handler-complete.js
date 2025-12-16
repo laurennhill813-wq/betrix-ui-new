@@ -11,6 +11,7 @@ import { createCustomPaymentOrder } from './payment-router.js';
 import lipana from '../lib/lipana-client.js';
 import { Pool } from 'pg';
 import SportMonksService from '../services/sportmonks-service.js';
+import * as telegramSanitize from '../utils/telegram-sanitize.js';
 
 const logger = new Logger('HandlerComplete');
 
@@ -701,13 +702,20 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
           if (out.length > 4000) out = out.slice(0, 4000) + '\n\n...';
 
           // Send analysis as a new message to avoid overwriting the menu message
-              actions.push({
-            method: 'sendMessage',
-            chat_id: chatId,
-            text: out,
-            reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] },
-            parse_mode: 'MarkdownV2'
-          });
+          // Escape dynamic content for MarkdownV2 to avoid Telegram parse errors
+          try {
+            const safeOut = telegramSanitize.escapeMarkdownV2(out);
+            actions.push({
+              method: 'sendMessage',
+              chat_id: chatId,
+              text: safeOut,
+              reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] },
+              parse_mode: 'MarkdownV2'
+            });
+          } catch (e) {
+            // If sanitization fails for any reason, fall back to sending raw text without parse mode
+            actions.push({ method: 'sendMessage', chat_id: chatId, text: String(out), reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] } });
+          }
 
           return actions;
         }
@@ -721,7 +729,12 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
               : (`🔍 Analysis for ${home} vs ${away}\n${JSON.stringify(analysis).slice(0,1500)}`);
 
             // Send fallback odds analysis as a new message to chat
-            actions.push({ method: 'sendMessage', chat_id: chatId, text, reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] }, parse_mode: 'MarkdownV2' });
+            try {
+              const safeText = telegramSanitize.escapeMarkdownV2(text);
+              actions.push({ method: 'sendMessage', chat_id: chatId, text: safeText, reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] }, parse_mode: 'MarkdownV2' });
+            } catch (e) {
+              actions.push({ method: 'sendMessage', chat_id: chatId, text, reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] } });
+            }
             return actions;
           } catch (errOdds) {
             logger.warn('OddsAnalyzer failed', errOdds?.message || String(errOdds));
