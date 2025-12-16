@@ -15,5 +15,4 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Run unified test suite
-        shell: pwsh
-        run: ./scripts/run-all-tests.ps1
+        run: npm test --silent
