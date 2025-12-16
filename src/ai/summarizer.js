@@ -1,6 +1,7 @@
 import { GeminiService } from '../services/gemini.js';
 import { LocalAIService } from '../services/local-ai.js';
 import { AzureAIService } from '../services/azure-ai.js';
+import { getToneInstructions, inferToneFromEvent, BETRIX_TONES } from './personality.js';
 
 const gemini = new GeminiService(process.env.GEMINI_API_KEY || null);
 const localAI = new LocalAIService();
@@ -46,7 +47,11 @@ async function tryLocal(prompt) {
   }
 }
 
-export async function summarizeEventForTelegram(sportEvent = {}) {
+/**
+ * summarizeEventForTelegram(sportEvent, tone = 'auto')
+ * tone: 'auto' | 'hype' | 'pro' | 'hybrid'
+ */
+export async function summarizeEventForTelegram(sportEvent = {}, tone = 'auto') {
   const {
     sport,
     league,
@@ -60,21 +65,30 @@ export async function summarizeEventForTelegram(sportEvent = {}) {
     context = {},
   } = sportEvent || {};
 
+  const effectiveTone = tone === 'auto' ? inferToneFromEvent(sportEvent) : tone;
+  const toneBlock = getToneInstructions(effectiveTone);
+
   const prompt = [
-    'You are BETRIX — an AI sports analyst with a unified voice:',
-    '- Clear and factual like a journalist.',
-    '- Energetic and hype-driven like a fan.',
-    '- Minimalist and punchy in delivery.',
-    '- Narrative-driven with context and momentum.',
-    '- Betting-aware, but NEVER giving betting advice, only context.',
+    'You are BETRIX — an AI sports narrator and caption writer.',
     '',
-    'Write a short Telegram post about the following event.',
-    'Constraints:',
-    '- Max 3 short lines.',
-    "- First line: bold match or topic (use **).",
-    '- Second line: narrative summary (momentum, stakes, story).',
-    "- Third line: 2–4 tags like #PremierLeague #NBA #BETRIXLive.",
-    '- No emojis.',
+    'Core identity:',
+    "- One unified personality across all sports.",
+    "- Clear like a journalist.",
+    "- Energetic like a fan.",
+    "- Minimalist in wording (no clutter).",
+    "- Narrative-driven: always hint at the story behind the numbers.",
+    '',
+    'Tone mode for this caption:',
+    toneBlock,
+    '',
+    'Task:',
+    "- Write a short Telegram caption about the following event.",
+    "- Max 3 short lines.",
+    "- Line 1: bold match/topic (use ** around text).",
+    "- Line 2: narrative summary (momentum, stakes, story).",
+    "- Line 3: 2–4 concise tags (e.g. #PremierLeague #NBA #BETRIXLive).",
+    "- No emojis.",
+    "- No betting tips (describe context only, never say what to bet).",
     '',
     'Event data (JSON):',
     JSON.stringify({ sport, league, home, away, status, score, time, odds, importance, context }, null, 2),
@@ -84,17 +98,17 @@ export async function summarizeEventForTelegram(sportEvent = {}) {
 
   // Try provider chain: Azure -> Gemini -> Local
   const azureOut = await tryAzure(prompt);
-  if (azureOut) return { caption: azureOut };
+  if (azureOut) return { caption: azureOut, tone: effectiveTone };
 
   const gemOut = await tryGemini(prompt);
-  if (gemOut) return { caption: gemOut };
+  if (gemOut) return { caption: gemOut, tone: effectiveTone };
 
   const locOut = await tryLocal(prompt);
-  if (locOut) return { caption: locOut };
+  if (locOut) return { caption: locOut, tone: effectiveTone };
 
   // Fallback deterministic caption
   const fallback = `**${home || 'Home'} vs ${away || 'Away'}**\n${status || ''} ${time || ''}\n#${(league || 'Sports').replace(/\s+/g,'')} #BETRIXLive`;
-  return { caption: fallback };
+  return { caption: fallback, tone: effectiveTone };
 }
 
 export default { summarizeEventForTelegram };

@@ -20,7 +20,7 @@ export async function runMediaAiTick() {
 
   const [image, aiSummary] = await Promise.all([
     selectBestImageForEvent(chosen).catch(() => null),
-    summarizeEventForTelegram(chosen).catch(() => ({ caption: null })),
+    summarizeEventForTelegram(chosen, 'auto').catch(() => ({ caption: null, tone: null })),
   ]);
 
   if (!image || !image.imageUrl) return console.warn('[MediaAiTicker] No valid image resolved, skipping post');
@@ -29,7 +29,7 @@ export async function runMediaAiTick() {
 
   await sendPhotoWithCaption({ chatId, photoUrl: image.imageUrl, caption }).catch(err => console.error('[MediaAiTicker] sendPhoto failed', err && err.message ? err.message : err));
 
-  console.info('[MediaAiTicker] Posted AI media item', { sport: chosen.sport, league: chosen.league, source: image.source });
+  console.info('[MediaAiTicker] Posted AI media item', { sport: chosen.sport, league: chosen.league, source: image.source, tone: aiSummary && aiSummary.tone });
 
   lastPostedAt = now;
 }
