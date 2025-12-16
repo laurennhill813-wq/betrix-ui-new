@@ -2,7 +2,7 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
-import { cacheGet } from '../lib/redis-cache.js';
+import { cacheGet, getRaw } from '../lib/redis-cache.js';
 import { getMetrics } from '../lib/liveliness.js';
 import { adminAuth } from '../middleware/admin-auth.js';
 import mediaRouter from '../media/mediaRouter.js';
@@ -147,6 +147,29 @@ export default function createAdminRouter() {
       // The ticker itself performs its own checks; we run it and return status
       await runMediaAiTick();
       return res.json({ ok: true, message: 'Media AI ticker executed (check worker logs for details)' });
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: e?.message || String(e) });
+    }
+  });
+
+  // Admin: expose provider bootstrap & runtime provider status
+  // GET /admin/providers
+  router.get('/admin/providers', async (req, res) => {
+    try {
+      // Try to read the last bootstrap status stored by APIBootstrap
+      const bootstrap = await cacheGet('betrix:api:bootstrap:status');
+      // Strategy and prefetch keys are stored as raw strings in Redis
+      const sportsmonksStrategy = await getRaw('betrix:provider:strategy:sportsmonks');
+      const prefetchNext = await getRaw('prefetch:next:sportsmonks');
+      const sportradarHealth = await cacheGet('betrix:provider:health:sportradar');
+
+      return res.json({
+        ok: true,
+        bootstrap: bootstrap || null,
+        sportsmonksStrategy: sportsmonksStrategy || null,
+        prefetchNext: prefetchNext ? Number(prefetchNext) : null,
+        sportradarHealth: sportradarHealth || null,
+      });
     } catch (e) {
       return res.status(500).json({ ok: false, error: e?.message || String(e) });
     }
