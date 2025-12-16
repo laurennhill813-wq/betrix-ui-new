@@ -116,31 +116,41 @@ async function tryAiAnalyze(services, matchData, prompt, maxAttempts = 3, sport 
  */
 async function getLiveMatches(services = {}, sport = 'football') {
   try {
-    void sport;
     // Prefer injected sportsAggregator if available (provides caching and fixtures integration)
     if (services && services.sportsAggregator && typeof services.sportsAggregator.getAllLiveMatches === 'function') {
-      return await services.sportsAggregator.getAllLiveMatches();
+      try {
+        // If the aggregator supports sport-scoped queries, pass through the sport parameter
+        return await services.sportsAggregator.getAllLiveMatches(sport);
+      } catch (e) {
+        // Graceful fallback to sport-agnostic call
+        try { return await services.sportsAggregator.getAllLiveMatches(); } catch (e2) { void e2; }
+      }
     }
 
-    const sportMonks = new SportMonksService();
-    const matches = await sportMonks.getLivescores();
-    
-    if (!matches || matches.length === 0) return [];
+    // Fallback provider: SportMonksService (football-only). Only attempt when sport is football
+    if (String(sport || '').toLowerCase() === 'football') {
+      const sportMonks = new SportMonksService();
+      const matches = await sportMonks.getLivescores();
+      if (!matches || matches.length === 0) return [];
 
-    return matches.map(m => ({
-      id: m.id || String(Math.random()),
-      home: m.home_team || m.home || 'Unknown',
-      away: m.away_team || m.away || 'Unknown',
-      homeScore: m.homeScore !== undefined ? m.homeScore : m.score?.home,
-      awayScore: m.awayScore !== undefined ? m.awayScore : m.score?.away,
-      time: m.time || m.status || 'LIVE',
-      league: m.league || 'Unknown League',
-      homeOdds: m.homeOdds || '1.95',
-      drawOdds: m.drawOdds || '3.60',
-      awayOdds: m.awayOdds || '4.10',
-      prediction: m.prediction || '50/50',
-      provider: 'SportMonks'
-    }));
+      return matches.map(m => ({
+        id: m.id || String(Math.random()),
+        home: m.home_team || m.home || 'Unknown',
+        away: m.away_team || m.away || 'Unknown',
+        homeScore: m.homeScore !== undefined ? m.homeScore : m.score?.home,
+        awayScore: m.awayScore !== undefined ? m.awayScore : m.score?.away,
+        time: m.time || m.status || 'LIVE',
+        league: m.league || 'Unknown League',
+        homeOdds: m.homeOdds || '1.95',
+        drawOdds: m.drawOdds || '3.60',
+        awayOdds: m.awayOdds || '4.10',
+        prediction: m.prediction || '50/50',
+        provider: 'SportMonks'
+      }));
+    }
+
+    // No provider available for requested sport -> return empty list
+    return [];
   } catch (e) {
     logger.warn('getLiveMatches error', e?.message);
     return [];
@@ -259,6 +269,19 @@ export async function handleCallbackQuery(cq, redis, services) {
         message_id: messageId,
         text: completeMenus.sportsMenu.text,
         reply_markup: completeMenus.sportsMenu.reply_markup,
+        parse_mode: 'Markdown'
+      };
+    }
+
+    // Top-level News button (opens the news categories)
+    if (data === 'news') {
+      const menu = completeMenus.buildNewsMenu();
+      return {
+        method: 'editMessageText',
+        chat_id: chatId,
+        message_id: messageId,
+        text: menu.text,
+        reply_markup: menu.reply_markup,
         parse_mode: 'Markdown'
       };
     }
