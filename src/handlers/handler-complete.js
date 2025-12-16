@@ -203,6 +203,20 @@ export async function handleCallbackQuery(cq, redis, services) {
 
     logger.info(`Callback: ${data}`);
 
+    // Normalize alias callbacks to the canonical analyseFixture handler
+    // Some menus use `analysis:<id>` while the handler expects `analyseFixture:<id>`
+    try {
+      if (typeof data === 'string' && data.startsWith('analysis:')) {
+        const parts = data.split(':');
+        const fid = parts[1];
+        if (fid) {
+          logger.debug(`Normalizing callback alias analysis:${fid} -> analyseFixture:${fid}`);
+          // reassign data so the downstream logic handles it as analyseFixture
+          // eslint-disable-next-line no-param-reassign
+          data = `analyseFixture:${fid}`;
+        }
+      }
+    } catch (e) { void e; }
     // ========================================================================
     // MAIN MENU
     // ========================================================================
@@ -568,7 +582,49 @@ export async function handleCallbackQuery(cq, redis, services) {
         const away = safeName(fixture.away || fixture.awayTeam || fixture.awayName, 'Away');
         const leagueId = (fixture.competition && fixture.competition.id) || fixture.league || fixture.competition || null;
 
-        const matchData = Object.assign({}, fixture, { home, away, leagueId });
+        // Enrich fixture with additional sources where possible (raw cache, aggregator details, odds)
+        let matchData = Object.assign({}, fixture, { home, away, leagueId });
+        try {
+          // 1) Try to fetch a comprehensive match object from the aggregator
+          if (services && services.sportsAggregator && typeof services.sportsAggregator.getMatchById === 'function') {
+            try {
+              const rich = await services.sportsAggregator.getMatchById(fixture.id, 'football');
+              if (rich && typeof rich === 'object') {
+                matchData = Object.assign({}, matchData, rich);
+                logger.info(`analyseFixture: enriched match data from sportsAggregator for id=${fixture.id}`);
+              }
+            } catch (e) { logger.debug('analyseFixture: sportsAggregator.getMatchById failed', e?.message || String(e)); }
+          }
+
+          // 2) Try to attach raw provider data (footballdata / sportsmonks) from cache
+          if (services && services.cache && typeof services.cache.getFullMatchData === 'function') {
+            try {
+              const fullRaw = await services.cache.getFullMatchData(fixture.id);
+              if (fullRaw && Object.keys(fullRaw).length) {
+                matchData.raw = Object.assign({}, matchData.raw || {}, fullRaw);
+                logger.info(`analyseFixture: attached raw cached data for id=${fixture.id}`);
+              }
+            } catch (e) { logger.debug('analyseFixture: cache.getFullMatchData failed', e?.message || String(e)); }
+          }
+
+          // 3) Try to fetch available odds (may be empty if no odds provider configured)
+          try {
+            if (services && services.sportsAggregator && typeof services.sportsAggregator.getOdds === 'function') {
+              const oddsList = await services.sportsAggregator.getOdds(leagueId);
+              if (Array.isArray(oddsList) && oddsList.length) {
+                // Attempt to find a matching odds entry by match id or team names
+                let foundOdds = oddsList.find(o => String(o.matchId || o.id || o.fixture_id) === String(fixture.id));
+                if (!foundOdds && matchData.home && matchData.away) {
+                  foundOdds = oddsList.find(o => (o.home && o.away) && o.home.toLowerCase() === String(matchData.home).toLowerCase() && o.away.toLowerCase() === String(matchData.away).toLowerCase());
+                }
+                if (foundOdds) {
+                  matchData.odds = foundOdds;
+                  logger.info(`analyseFixture: found odds for id=${fixture.id}`);
+                }
+              }
+            }
+          } catch (e) { logger.debug('analyseFixture: getOdds attempt failed', e?.message || String(e)); }
+        } catch (e) { logger.debug('analyseFixture: enrichment failed', e?.message || String(e)); }
 
         // Craft a rich prompt requesting structured JSON output for betting recommendations
         const detailedPrompt = `You are a professional football betting analyst. Given the match object (JSON) that follows, produce a short Telegram-friendly summary and a list of specific recommended bets.
