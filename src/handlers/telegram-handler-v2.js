@@ -1314,13 +1314,20 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
     }
 
     // 2) If not found yet and a leagueToken was provided, try upcoming fixtures for that league
+    // Special-case the 'upcoming' token to mean global upcoming fixtures
     if (!match && leagueToken && leagueToken !== 'live' && leagueToken !== 'all') {
       try {
-        const leagueId = isNaN(Number(leagueToken)) ? leagueToken : Number(leagueToken);
-        const fixtures = (typeof agg.getFixtures === 'function') ? await agg.getFixtures(leagueId).catch(() => []) : [];
-        logger.debug('[handleAnalyzeMatch] fixtures for league', { leagueId, count: Array.isArray(fixtures) ? fixtures.length : 0 });
+        let fixtures = [];
+        if (String(leagueToken) === 'upcoming') {
+          fixtures = (typeof agg.getFixtures === 'function') ? await agg.getFixtures().catch(() => []) : [];
+          logger.debug('[handleAnalyzeMatch] fixtures (global upcoming)', { count: Array.isArray(fixtures) ? fixtures.length : 0 });
+        } else {
+          const leagueId = isNaN(Number(leagueToken)) ? leagueToken : Number(leagueToken);
+          fixtures = (typeof agg.getFixtures === 'function') ? await agg.getFixtures(leagueId).catch(() => []) : [];
+          logger.debug('[handleAnalyzeMatch] fixtures for league', { leagueId, count: Array.isArray(fixtures) ? fixtures.length : 0 });
+        }
         match = resolveFromList(fixtures, matchToken);
-        if (match) logger.info('[handleAnalyzeMatch] resolved from league fixtures', { leagueId, id: match.id || match.fixtureId || null, home: safeNameOf(match.home), away: safeNameOf(match.away) });
+        if (match) logger.info('[handleAnalyzeMatch] resolved from league/fixtures', { token: leagueToken, id: match.id || match.fixtureId || null, home: safeNameOf(match.home), away: safeNameOf(match.away) });
       } catch (e) {
         // ignore and fallthrough
       }
@@ -1483,11 +1490,29 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
         suggestions.push({ market: 'Both Teams To Score', selection: 'Yes', confidence: 55, rationale: 'Frequent scoring observed in recent matches / H2H' });
       }
 
+      // Normalize suggestions into an explicit suggested_bets schema so
+      // downstream parsers (and the AI prompt) get a predictable shape.
+      const suggested_bets = (suggestions || []).map(s => {
+        // try to extract numeric line from selection like 'Over 2.5'
+        let line = null;
+        const sel = String(s.selection || '');
+        const m = sel.match(/([Oo]ver|[Uu]nder)\s*(\d+(?:\.\d+)?)/);
+        if (m) line = Number(m[2]);
+        return {
+          type: s.market || 'market',
+          market: s.market || 'Unknown',
+          selection: s.selection || '',
+          line: line,
+          confidence: typeof s.confidence === 'number' ? s.confidence : (s.confidence ? Number(s.confidence) : null),
+          rationale: s.rationale || ''
+        };
+      });
+
       const structured = {
         match: { home: homeLabel, away: awayLabel, competition: safeNameOf(match.competition || (match.raw && match.raw.competition), 'Unknown'), kickoff: match.time || match.kickoff || 'TBA' },
         stats: { h2h: h2h || {}, recentForm: { home: recentFormHome || [], away: recentFormAway || [] }, standings: standings || [] },
         odds_summary: { bookmakers: (odds && odds.length) || 0 },
-        suggestions
+        suggested_bets
       };
 
       analysisText += `\n\n*Structured Betting Options (JSON):*\n`;
