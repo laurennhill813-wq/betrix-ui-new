@@ -295,6 +295,32 @@ export function buildLiveGamesMenu(matches = [], sport = 'football', page = 1) {
 }
 
 // ============================================================================
+// SPORT OVERVIEW (Live + Upcoming entry points)
+// ============================================================================
+export function buildSportOverviewMenu(sport = 'football') {
+  const text = `🌀 *BETRIX* - ${String(sport).toUpperCase()} Overview\n\n` +
+    `Choose what you'd like to see for *${String(sport).toUpperCase()}*:`;
+
+  const reply_markup = {
+    inline_keyboard: [
+      [
+        { text: '🔴 Live Matches', callback_data: `sport:${sport}:live` },
+        { text: '📅 Upcoming Fixtures', callback_data: `sport:${sport}:upcoming` }
+      ],
+      [
+        { text: '📰 News', callback_data: `news:${sport}` },
+        { text: '🏟 Pick Sport', callback_data: 'sports' }
+      ],
+      [
+        { text: '🔙 Back', callback_data: 'menu_main' }
+      ]
+    ]
+  };
+
+  return { text, reply_markup };
+}
+
+// ============================================================================
 // ODDS & ANALYSIS MENU
 // ============================================================================
 
@@ -744,6 +770,7 @@ export default {
   FIXED_ODDS_PACKS,
   PAYMENT_METHODS,
   buildLiveGamesMenu,
+  buildSportOverviewMenu,
   buildOddsMenu,
   buildStandingsMenu,
   buildNewsMenu,

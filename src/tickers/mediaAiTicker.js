@@ -1,6 +1,6 @@
 import { getInterestingEvents } from '../aggregator/multiSportAggregator.js';
 import { summarizeEventForTelegram } from '../ai/summarizer.js';
-import { selectBestImageForEvent } from '../media/imageSelector.js';
+import { selectBestImageForEvent, selectBestImageForEventCombined } from '../media/imageSelector.js';
 import { sendPhotoWithCaption } from '../services/telegram-sender.js';
 import { scoreEvent } from '../brain/interestScorer.js';
 import { buildEventId, hasPostedEvent, markEventPosted } from '../brain/memory.js';
@@ -61,7 +61,8 @@ export async function runMediaAiTick() {
   if (!chosen) return console.info('[MediaAiTicker] No candidate passed scoring/duplication checks');
 
   const [image, aiSummary] = await Promise.all([
-    selectBestImageForEvent(chosen).catch(() => null),
+    // try provider adapters first, then fall back to the generic ImageProvider
+    selectBestImageForEventCombined(chosen).catch(() => null),
     summarizeEventForTelegram(chosen, 'auto').catch(() => ({ caption: null, tone: null })),
   ]);
 

@@ -508,7 +508,7 @@ if (typeof v2Handler.setTelemetryRedis === 'function') {
 
 // ===== SCHEDULE: Media AI Ticker =====
 try {
-  const intervalSeconds = Number(process.env.MEDIA_AI_INTERVAL_SECONDS || process.env.MEDIA_AI_TICK_INTERVAL_SECONDS || 300);
+  const intervalSeconds = Number(process.env.MEDIA_AI_INTERVAL_SECONDS || process.env.MEDIA_AI_TICK_INTERVAL_SECONDS || 180);
   if (intervalSeconds > 0) {
     setInterval(async () => {
       try {

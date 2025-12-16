@@ -298,18 +298,101 @@ export async function handleCallbackQuery(cq, redis, services) {
       };
     }
 
-    // Sport selection
+    // Sport selection (now supports overview -> live/upcoming)
     if (data.startsWith('sport:')) {
-      const sport = data.split(':')[1];
-      const matches = await getLiveMatches(services, sport);
-      const menu = completeMenus.buildLiveGamesMenu(matches, sport, 1);
+      const parts = data.split(':');
+      const sport = parts[1];
 
+      // If caller requested a sub-view (live/upcoming)
+      if (parts.length >= 3) {
+        const view = parts[2];
+        if (view === 'live') {
+          const matches = await getLiveMatches(services, sport);
+          const menu = completeMenus.buildLiveGamesMenu(matches, sport, 1);
+          return {
+            method: 'editMessageText',
+            chat_id: chatId,
+            message_id: messageId,
+            text: menu.text,
+            reply_markup: menu.reply_markup,
+            parse_mode: 'Markdown'
+          };
+        }
+
+        if (view === 'upcoming') {
+          // Try multiple aggregator methods to collect upcoming fixtures for the selected sport
+          let upcoming = [];
+          try {
+            // Preferred: aggregator exposes getFixtures(sport) via multi-sport handler
+            if (services && services.sportsAggregator && typeof services.sportsAggregator.getFixtures === 'function') {
+              try {
+                upcoming = await services.sportsAggregator.getFixtures(sport);
+              } catch (e) {
+                // ignore and try other fallbacks
+                upcoming = [];
+              }
+            }
+
+            // Fallback for football: use existing getFixtures() which aggregates top competitions
+            if ((!upcoming || upcoming.length === 0) && String(sport).toLowerCase() === 'football') {
+              if (services && services.sportsAggregator && typeof services.sportsAggregator.getFixtures === 'function') {
+                try { upcoming = await services.sportsAggregator.getFixtures(); } catch(e){ upcoming = []; }
+              }
+            }
+          } catch (e) {
+            upcoming = [];
+          }
+
+          // Build a simple upcoming fixtures view
+          let text = `🌀 *BETRIX* - Upcoming ${String(sport).toUpperCase()} Fixtures\n\n`;
+          if (!upcoming || upcoming.length === 0) {
+            text += `No upcoming ${sport} fixtures available. Try again later or ensure providers are configured.`;
+          } else {
+            const list = upcoming.slice(0, 12);
+            for (const f of list) {
+              const home = safeName(f.home);
+              const away = safeName(f.away);
+              let kickoff = 'TBA';
+              try { const d = f.kickoff || f.utcDate || f.date || f.time || f.starting_at; if (d) kickoff = (typeof d === 'number') ? new Date(d < 1e12 ? d * 1000 : d).toLocaleString() : new Date(d).toLocaleString(); } catch(e){}
+              text += `• ${home} vs ${away} — ${kickoff}\n`;
+            }
+          }
+
+          const keyboard = [];
+          if (Array.isArray(upcoming) && upcoming.length > 0) {
+            for (const f of upcoming.slice(0, 6)) {
+              const matchId = f.id || `${sport}_${String(Math.random()).slice(2,8)}`;
+              keyboard.push([{ text: `${safeName(f.home)} vs ${safeName(f.away)}`, callback_data: `match:${matchId}:${sport}` }]);
+            }
+          }
+
+          keyboard.push([
+            { text: '🔄 Refresh', callback_data: `sport:${sport}:upcoming` },
+            { text: '🏟 Pick Sport', callback_data: 'sports' }
+          ]);
+          keyboard.push([{ text: '🔙 Back', callback_data: 'menu_main' }]);
+
+          return {
+            method: 'editMessageText',
+            chat_id: chatId,
+            message_id: messageId,
+            text,
+            reply_markup: { inline_keyboard: keyboard },
+            parse_mode: 'Markdown'
+          };
+        }
+
+        // Unknown sub-view -> show overview
+      }
+
+      // Default: show sport overview with options (Live / Upcoming / News)
+      const overview = completeMenus.buildSportOverviewMenu(sport);
       return {
         method: 'editMessageText',
         chat_id: chatId,
         message_id: messageId,
-        text: menu.text,
-        reply_markup: menu.reply_markup,
+        text: overview.text,
+        reply_markup: overview.reply_markup,
         parse_mode: 'Markdown'
       };
     }
@@ -402,6 +485,30 @@ export async function handleCallbackQuery(cq, redis, services) {
         method: 'answerCallbackQuery',
         callback_query_id: cq.id,
         text: `🏆 ${league.toUpperCase()} standings. Coming soon!`,
+        show_alert: false
+      };
+    }
+
+    // Open a news item (simple handler - tries to decode stored URL/id)
+    if (data.startsWith('news_open:')) {
+      const payload = data.split(':')[1];
+      let decoded = null;
+      try { decoded = decodeURIComponent(payload); } catch (e) { decoded = payload; }
+
+      // If decoded looks like a URL, open/send it; otherwise show a toast
+      if (decoded && (String(decoded).startsWith('http://') || String(decoded).startsWith('https://'))) {
+        return {
+          method: 'answerCallbackQuery',
+          callback_query_id: cq.id,
+          text: `🔗 Open article: ${decoded}`,
+          show_alert: false
+        };
+      }
+
+      return {
+        method: 'answerCallbackQuery',
+        callback_query_id: cq.id,
+        text: '📰 Article preview not available. (ID: ' + String(decoded) + ')',
         show_alert: false
       };
     }
@@ -907,11 +1014,53 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
 
     if (data.startsWith('news:')) {
       const category = data.split(':')[1];
+
+      // Try to fetch news headlines from the aggregator/service if available
+      let headlines = [];
+      try {
+        if (services && services.sportsAggregator && typeof services.sportsAggregator.getLiveNews === 'function') {
+          headlines = await services.sportsAggregator.getLiveNews(category, 10);
+        } else if (services && services.newsService && typeof services.newsService.getLatest === 'function') {
+          headlines = await services.newsService.getLatest(category, 10);
+        }
+      } catch (e) {
+        headlines = [];
+      }
+
+      if (!headlines || headlines.length === 0) {
+        return {
+          method: 'editMessageText',
+          chat_id: chatId,
+          message_id: messageId,
+          text: `📰 *${String(category).toUpperCase()}* - No news available right now.`,
+          reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_main' }]] },
+          parse_mode: 'Markdown'
+        };
+      }
+
+      // Build news text
+      let text = `📰 *${String(category).toUpperCase()}* - Latest Headlines\n\n`;
+      headlines.slice(0, 10).forEach((h, idx) => {
+        const title = (h && (h.title || h.headline)) ? String(h.title || h.headline) : 'Untitled';
+        const src = (h && (h.source || h.provider || h.site)) ? ` — ${String(h.source || h.provider || h.site)}` : '';
+        text += `${idx + 1}. ${title}${src}\n`;
+      });
+
+      const keyboard = [];
+      headlines.slice(0, 6).forEach((h) => {
+        const id = h && (h.id || h.url) ? encodeURIComponent(String(h.id || h.url)) : String(Math.random()).slice(2,8);
+        keyboard.push([{ text: h.title ? String(h.title).slice(0,30) : 'Read', callback_data: `news_open:${id}` }]);
+      });
+
+      keyboard.push([{ text: '🔙 Back', callback_data: 'menu_main' }]);
+
       return {
-        method: 'answerCallbackQuery',
-        callback_query_id: cq.id,
-        text: `📰 ${category} news. Loading latest articles...`,
-        show_alert: false
+        method: 'editMessageText',
+        chat_id: chatId,
+        message_id: messageId,
+        text,
+        reply_markup: { inline_keyboard: keyboard },
+        parse_mode: 'Markdown'
       };
     }
 
