@@ -173,7 +173,8 @@ export function buildMatchActionButtons(matchId, leagueId = null, userTier = 'FR
   if (userTier !== 'FREE') {
     buttons.push({
       text: '🤖 AI Analyze',
-      callback_data: `analyze_match_${leagueId || 'live'}_${matchId}`
+      // Default to 'upcoming' when no leagueId is supplied so analysis can look up fixtures
+      callback_data: `analyze_match_${leagueId || 'upcoming'}_${matchId}`
     });
   }
 
@@ -338,9 +339,9 @@ export function buildBetAnalysis(match, analysis = {}) {
 /**
  * Build fixtures/upcoming matches display
  */
-export function buildUpcomingFixtures(fixtures = [], league = '', daysBefore = 7) {
+export function buildUpcomingFixtures(fixtures = [], league = '', daysBefore = 7, opts = { showActions: false, userTier: 'FREE' }) {
   if (!fixtures || fixtures.length === 0) {
-    return `📭 No upcoming fixtures in the next ${daysBefore} days.`;
+    return { text: `📭 No upcoming fixtures in the next ${daysBefore} days.`, reply_markup: null };
   }
 
   // Ensure league header is a safe string (could be object from cache)
@@ -352,6 +353,8 @@ export function buildUpcomingFixtures(fixtures = [], league = '', daysBefore = 7
     const timeB = new Date(b.date || b.time || 0).getTime();
     return timeA - timeB;
   });
+
+  const keyboard = [];
 
   sorted.slice(0, 10).forEach((f, i) => {
     let home = safeName(f.home || f.homeTeam || f.home_name || (f.raw && f.raw.home && f.raw.home.name), 'Home');
@@ -370,9 +373,22 @@ export function buildUpcomingFixtures(fixtures = [], league = '', daysBefore = 7
     }
 
     display += `• ${home} vs ${away} — ${dateStr}${timeStr ? ' ' + timeStr : ''}\n`;
+
+    if (opts.showActions) {
+      // Build small action row for each fixture: Analyze (VVIP), Odds, Add to Fav
+      const matchId = f.id || f.fixtureId || encodeURIComponent(`${home.replace(/\s+/g,'_')}_${away.replace(/\s+/g,'_')}_${i+1}`);
+      const leagueId = league || (f.competition && (f.competition.id || f.competition)) || null;
+      const actionRow = [];
+      if (opts.userTier && opts.userTier !== 'FREE') {
+        actionRow.push({ text: '🤖 Analyze', callback_data: `analyze_match_${leagueId || 'upcoming'}_${matchId}` });
+      }
+      actionRow.push({ text: '💰 Odds', callback_data: `odds_compare_${matchId}` });
+      actionRow.push({ text: '⭐ Fav', callback_data: `fav_add_${matchId}` });
+      keyboard.push(actionRow);
+    }
   });
 
-  return display;
+  return { text: display, reply_markup: opts.showActions ? { inline_keyboard: keyboard } : null };
 }
 
 /**

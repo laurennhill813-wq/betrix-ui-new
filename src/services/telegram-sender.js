@@ -99,6 +99,12 @@ export async function sendPhotoWithCaption({ chatId, photoUrl, caption, parse_mo
               } else {
                 console.info('Telegram sendPhoto upload fallback (proxy) succeeded');
                 try { telemetry.incCounter('upload_fallback_success'); } catch(e){}
+                // Attempt to cleanup proxied cached file to avoid accumulation
+                try {
+                  if (cached && cached.path) await fs.promises.unlink(cached.path);
+                } catch (unlinkErr) {
+                  console.warn('Failed to remove cached proxy file:', unlinkErr && unlinkErr.message ? unlinkErr.message : unlinkErr);
+                }
                 return; // success
               }
             }

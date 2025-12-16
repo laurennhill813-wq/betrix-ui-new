@@ -1,6 +1,40 @@
 import resolveDirectImage from './resolveDirectImage.js';
 import ImageProvider from '../services/image-provider.js';
 
+// Deterministic Sportradar asset selector: prefer original.jpg, then largest JPEG
+export function selectBestSportradarAsset(assets = []) {
+  if (!Array.isArray(assets) || assets.length === 0) return null;
+
+  // Normalize to string URLs
+  const cleaned = assets
+    .map(a => (typeof a === 'string' ? a : a && (a.url || a.imageUrl || a.src || a.uri)))
+    .filter(Boolean);
+
+  // 1. Prefer exact original.jpg
+  const original = cleaned.find(url => url.endsWith('/original.jpg') || url.includes('/original.jpg?'));
+  if (original) return original;
+
+  // 2. Prefer largest JPEGs (exclude resized variants)
+  const jpegCandidates = cleaned.filter(url =>
+    url.toLowerCase().endsWith('.jpg') &&
+    !url.includes('width=') &&
+    !url.includes('/small/') &&
+    !url.includes('/medium/') &&
+    !url.includes('/large/')
+  );
+
+  if (jpegCandidates.length > 0) {
+    // Heuristic: longer path/filename often implies original / larger image
+    return jpegCandidates.sort((a, b) => b.length - a.length)[0];
+  }
+
+  // 3. Avoid PNG flags unless absolutely nothing else exists
+  const png = cleaned.find(url => url.toLowerCase().endsWith('.png'));
+  if (png) return png;
+
+  // 4. Fallback to first available
+  return cleaned[0] || null;
+}
 async function safeCall(fn, ...args) {
   try {
     if (!fn) return [];
@@ -78,6 +112,25 @@ export async function selectBestImageForEvent(sportEvent = {}) {
     candidates.push(...preferred, ...spor);
   }
   // Try raster candidates first
+  // If there are Sportradar candidates, select deterministically first so we avoid
+  // picking small/resized variants that cause 403s when fetched server-side.
+  try {
+    const sporCandidates = candidates.filter(c => {
+      const url = String(c && (c.url || c.imageUrl || c.src || c.uri) || '').toLowerCase();
+      return url.includes('sportradar') || String(c.source || '').toLowerCase().includes('sportradar');
+    });
+    if (sporCandidates && sporCandidates.length) {
+      const urls = sporCandidates.map(c => (c && (c.url || c.imageUrl || c.src || c.uri)) || '').filter(Boolean);
+      const selected = selectBestSportradarAsset(urls);
+      if (selected) {
+        const resolved = await resolveDirectImage(selected).catch(() => null);
+        if (resolved) return { imageUrl: resolved, source: 'sportradar', rawUrl: selected };
+      }
+    }
+  } catch (e) {
+    // ignore and fall back to normal raster iteration below
+  }
+
   for (const cand of candidates) {
     try {
       const url = cand && (cand.url || cand.imageUrl || cand.src || cand.uri);
