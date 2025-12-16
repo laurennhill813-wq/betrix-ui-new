@@ -1,5 +1,7 @@
 // Simple heuristic-based interest scorer for events
-export function scoreEvent(event = {}) {
+import { getEventVelocity } from './trending.js';
+
+export async function scoreEvent(event = {}) {
   try {
     let score = 0;
     if (!event) return 0;
@@ -25,6 +27,16 @@ export function scoreEvent(event = {}) {
     // competition/stage importance
     const comp = (event.league || '') .toString().toLowerCase();
     if (comp.includes('final') || comp.includes('champions') || comp.includes('world cup') || comp.includes('playoff')) score += 25;
+    // trending / velocity: if many mentions in short window, boost
+    try {
+      const evtId = event.id || (event.raw && event.raw.id) || (event._eventId || null);
+      const vel = await getEventVelocity(evtId).catch(() => 0);
+      if (vel && Number(vel) > 0) {
+        // small multiplier: each recent mention adds 5 points, cap at 30
+        score += Math.min(30, Number(vel) * 5);
+      }
+    } catch (e) {}
+
     // trending context flags
     if (event.context && event.context.trending) score += 20;
     // small boost for home team big clubs (if provided)
