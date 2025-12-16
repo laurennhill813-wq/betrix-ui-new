@@ -7,6 +7,7 @@ import { getMetrics } from '../lib/liveliness.js';
 import { adminAuth } from '../middleware/admin-auth.js';
 import mediaRouter from '../media/mediaRouter.js';
 import { broadcastPhoto, broadcastText } from '../telegram/broadcast.js';
+import { runMediaAiTick } from '../tickers/mediaAiTicker.js';
 
 export default function createAdminRouter() {
   const router = express.Router();
@@ -134,6 +135,18 @@ export default function createAdminRouter() {
         }
         return res.json({ ok: true, stdout: String(stdout || '').slice(0, 20000), stderr: String(stderr || '').slice(0, 20000) });
       });
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: e?.message || String(e) });
+    }
+  });
+
+  // Admin: trigger Media AI ticker immediately (protected)
+  // POST /admin/trigger-media-ai
+  router.post('/admin/trigger-media-ai', async (req, res) => {
+    try {
+      // The ticker itself performs its own checks; we run it and return status
+      await runMediaAiTick();
+      return res.json({ ok: true, message: 'Media AI ticker executed (check worker logs for details)' });
     } catch (e) {
       return res.status(500).json({ ok: false, error: e?.message || String(e) });
     }

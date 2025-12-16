@@ -58,6 +58,8 @@ import SportMonksAPI from "./services/sportmonks-api.js";
 import SportsDataAPI from "./services/sportsdata-api.js";
 import { registerDataExposureAPI } from "./app_clean.js";
 import app from "./app_clean.js";
+import { runMediaAiTick } from './tickers/mediaAiTicker.js';
+import { canPostNow, markPosted } from './lib/liveliness.js';
 import { Pool } from 'pg';
 import { reconcileWithLipana } from './tasks/reconcile-lipana.js';
 
@@ -501,6 +503,31 @@ try {
 // Inject Redis into v2 handler for telemetry wiring (no-op for MockRedis)
 if (typeof v2Handler.setTelemetryRedis === 'function') {
   try { v2Handler.setTelemetryRedis(redis); logger.info('✅ Telemetry Redis injected into v2Handler'); } catch(e){}
+}
+
+// ===== SCHEDULE: Media AI Ticker =====
+try {
+  const intervalSeconds = Number(process.env.MEDIA_AI_INTERVAL_SECONDS || process.env.MEDIA_AI_TICK_INTERVAL_SECONDS || 300);
+  if (intervalSeconds > 0) {
+    setInterval(async () => {
+      try {
+        // Respect liveliness policy stored in Redis
+        const ok = await canPostNow();
+        if (!ok) return;
+
+        await runMediaAiTick();
+        // markPosted is best-effort; if runMediaAiTick posted, mark it
+        try { await markPosted(); } catch(e) { /* ignore */ }
+      } catch (e) {
+        logger.warn('MediaAiTicker scheduled run failed', e?.message || String(e));
+      }
+    }, Math.max(1000, intervalSeconds * 1000));
+    logger.info('MediaAiTicker scheduled', { intervalSeconds });
+  } else {
+    logger.info('MediaAiTicker scheduling disabled (intervalSeconds <= 0)');
+  }
+} catch (e) {
+  logger.warn('Failed to schedule MediaAiTicker', e?.message || String(e));
 }
 
 // ===== INITIALIZE PERFORMANCE OPTIMIZER =====
