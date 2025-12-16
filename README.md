@@ -338,7 +338,7 @@ MIT - See LICENSE file
 
 **BETRIX v3.0** — Intelligent Sports Betting Analytics | Production Ready ✅
 
-## 🚀 Quick Start
+## 🚀 Quick Start     
 ```bash
 npm install
 export REDIS_URL=redis://localhost:6379
