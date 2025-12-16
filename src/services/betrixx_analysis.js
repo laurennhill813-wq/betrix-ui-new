@@ -10,7 +10,39 @@ export async function analyseFixtureWithBetrixx(fixture, opts = {}) {
   // persona voice but include more depth and structured subpoints.
   const systemPrompt = persona.getSystemPrompt({ includeContext: { mode: 'analysis', verbosity: 'full' } });
 
-  const userPrompt = `Please produce a detailed BETRIXX match analysis for the fixture below.\n\nFixture data:\n${JSON.stringify(fixture, null, 2)}\n\nRequirements:\n- Follow the BETRIXX persona and voice.\n- Produce the following sections with depth and subpoints (use bullets):\n  1) Match Context — include form (last 5 matches), stakes, motivation, and expected tempo.\n  2) Tactical Breakdown — describe likely formations, how each team will try to create chances, pressing triggers, transition patterns.\n  3) Key Battles — identify 3 specific player/area matchups to watch and why they matter.\n  4) Probability Edges — give clear probability estimates (as percentages) for win/draw/loss and one short rationale per estimate.\n  5) Narrative Summary — a punchy closing paragraph (1-3 sentences) with a light emoji where fitting.\n\n- If any necessary data (lineups, injuries, recent form) is missing from the fixture payload, explicitly say "data not available" for that point — do NOT invent specifics.\n- Be thorough: aim for a detailed short report that may span multiple Telegram messages (do not artificially shorten to a single sentence).\n- Use clear sub-bullets and short paragraphs. Avoid giving betting stakes or gambling instructions.\n`;
+  const schemaExample = JSON.stringify({
+    summary: 'short human-friendly summary',
+    predictions: [
+      {
+        market: 'Match Winner|Both Teams To Score|Over/Under|Correct Score|Other',
+        selection: 'Home|Away|Draw|Yes|No|Over X|Under X',
+        probability: 0.0,
+        confidence: 'low|medium|high',
+        suggested_stake_pct: 0,
+        rationale: 'one or two sentence rationale'
+      }
+    ],
+    preferredBets: [
+      { option: 'Home Win - Moneyline', odds: "1.95 or '-' if not available", confidence: 0.0, suggested_stake_pct: 0, rationale: 'short rationale' }
+    ],
+    notes: 'optional short notes'
+  }, null, 2);
+
+  const userPrompt = [
+    'You are BETRIXX — a concise, professional sports analyst. Given the fixture JSON below, produce two outputs in order:',
+    '1) Emit a compact JSON object ONLY (no extra commentary) that follows this schema:',
+    schemaExample,
+    '2) After the JSON, you may append a 2-3 line plain-text human summary separated by a single blank line. Keep that short and Telegram-friendly (one light emoji allowed).',
+    'Requirements:',
+    '- Use the MATCH_DATA to inform probabilities and rationales. If specific data (lineups, injuries, recent form) is missing, state "data not available" for that point and do NOT invent details.',
+    '- Keep the JSON compact and machine-parseable. Limit arrays to sensible sizes (3-6 items).',
+    "- For numeric fields use real numbers (probability 0-1, confidence as number 0-1 inside preferredBets; predictions.confidence remains a descriptive string).",
+    "- Include at least one preferredBets entry when a clear edge exists; include odds only if present in MATCH_DATA — otherwise use '-'.",
+    "- Do NOT provide gambling instructions; present suggestions as informational only.",
+    'Now analyze the match and return the JSON followed by the short text.',
+    'MATCH_DATA:',
+    JSON.stringify(fixture, null, 2)
+  ].join('\n\n');
 
   const model = opts.model || process.env.GROQ_MODEL;
   // Lower temperature for focused, factual analysis
