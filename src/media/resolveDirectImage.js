@@ -1,5 +1,5 @@
 import fetch from 'node-fetch';
-import cheerio from 'cheerio';
+import { load } from 'cheerio';
 
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
 
@@ -35,7 +35,7 @@ export async function resolveDirectImage(rawUrl) {
     if (!contentType.includes('text/html')) return null;
 
     const html = await res.text();
-    const $ = cheerio.load(html);
+    const $ = load(html);
 
     // OpenGraph image
     const ogImage = $('meta[property="og:image"]').attr('content') || $('meta[name="og:image"]').attr('content');
