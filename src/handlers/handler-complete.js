@@ -701,12 +701,12 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
           if (out.length > 4000) out = out.slice(0, 4000) + '\n\n...';
 
           // Send analysis as a new message to avoid overwriting the menu message
-          actions.push({
+              actions.push({
             method: 'sendMessage',
             chat_id: chatId,
             text: out,
             reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] },
-            parse_mode: 'Markdown'
+            parse_mode: 'MarkdownV2'
           });
 
           return actions;
@@ -721,7 +721,7 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
               : (`🔍 Analysis for ${home} vs ${away}\n${JSON.stringify(analysis).slice(0,1500)}`);
 
             // Send fallback odds analysis as a new message to chat
-            actions.push({ method: 'sendMessage', chat_id: chatId, text, reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] }, parse_mode: 'Markdown' });
+            actions.push({ method: 'sendMessage', chat_id: chatId, text, reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_fixtures' }]] }, parse_mode: 'MarkdownV2' });
             return actions;
           } catch (errOdds) {
             logger.warn('OddsAnalyzer failed', errOdds?.message || String(errOdds));

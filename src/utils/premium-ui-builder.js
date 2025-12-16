@@ -280,14 +280,13 @@ export function buildLeagueSelectorKeyboard(sport = 'football', tier = 'FREE') {
  * Build bet analysis display (for AI predictions)
  */
 export function buildBetAnalysis(match, analysis = {}) {
-  // We'll compose a MarkdownV2-formatted message. Escape dynamic fields
-  // (team names, bet options, reasoning) with MarkdownV2 escaping so callers
-  // can send with explicit `parse_mode: 'MarkdownV2'` without Telegram parse errors.
+  // Compose a lively MarkdownV2 message. Escape dynamic fields so callers
+  // can send with `parse_mode: 'MarkdownV2'` safely.
   const homeEsc = sanitize.escapeMarkdownV2(safeName(match.home, 'Home'));
   const awayEsc = sanitize.escapeMarkdownV2(safeName(match.away, 'Away'));
 
-  let text = `🤖 *AI Bet Analysis*\n\n`;
-  text += `*${homeEsc}* vs *${awayEsc}*\n\n`;
+  let text = `🧠🤖 *BETRIX — AI Bet Analysis* \n\n`;
+  text += `🎟️ *${homeEsc}* vs *${awayEsc}*\n\n`;
 
   if (analysis.prediction) {
     text += `🎯 *Prediction:* ${sanitize.escapeMarkdownV2(String(analysis.prediction))}\n`;
@@ -296,34 +295,35 @@ export function buildBetAnalysis(match, analysis = {}) {
   if (analysis.confidence || analysis.confidence === 0) {
     const conf = Math.round(Number(analysis.confidence) || 0);
     const bar = '█'.repeat(Math.round(conf / 5)) + '░'.repeat(20 - Math.round(conf / 5));
-    text += `📊 *Confidence:* ${bar} ${conf}%\n`;
+    const emoji = conf >= 75 ? '🔥' : (conf >= 50 ? '⭐' : '⚪');
+    text += `📊 *Confidence:* ${bar} ${conf}% ${emoji}\n`;
   }
 
   // Preferred bets / value bets table
   const bets = analysis.preferredBets && analysis.preferredBets.length ? analysis.preferredBets : (analysis.valueBets || []);
   if (bets && bets.length > 0) {
-    text += `\n💎 *Preferred Bets:*\n`;
-    // Build a simple monospace table for readability
-    const header = `No | Bet                      | Odds   | Conf | Stake\n`;
+    text += `\n💎 *Preferred Bets* — top suggestions:\n`;
+    // Build a simple monospace table for readability inside a code block
+    const header = `No | Bet                     | Odds   | Conf | Stake\n`;
     let rows = '';
     bets.forEach((bet, i) => {
       const name = sanitize.escapeMarkdownV2(String(bet.option || bet.name || bet.title || ''));
       const odds = sanitize.escapeMarkdownV2(String(bet.odds || bet.price || '-'));
-      const conf = sanitize.escapeMarkdownV2(String(bet.confidence || bet.conf || ''));
-      const stake = sanitize.escapeMarkdownV2(String(bet.stake || bet.recommendedStake || '-'));
-      // pad/truncate for neat columns
+      const confNum = (typeof bet.confidence === 'number') ? Math.round(bet.confidence * 100) : (bet.confidence ? String(bet.confidence) : '');
+      const conf = sanitize.escapeMarkdownV2(String(confNum));
+      const stake = sanitize.escapeMarkdownV2(String(bet.suggested_stake_pct || bet.stake || bet.recommendedStake || '-'));
       const no = String(i + 1).padEnd(2);
       const betName = (name + ' '.repeat(22)).substring(0, 22);
       const oddsCell = (odds + ' '.repeat(6)).substring(0, 6);
       const confCell = (conf + ' '.repeat(4)).substring(0, 4);
       rows += `${no} | ${betName} | ${oddsCell} | ${confCell} | ${stake}\n`;
     });
-    // Wrap table in code block (MarkdownV2) so spacing is preserved
     text += '```\n' + header + rows + '```\n';
+    text += `\n🔔 Tip: Treat these as informational suggestions — gamble responsibly.`;
   }
 
   if (analysis.reasoning) {
-    text += `\n📝 *Analysis:*\n${sanitize.escapeMarkdownV2(String(analysis.reasoning))}\n`;
+    text += `\n📝 *Analysis Summary:*\n${sanitize.escapeMarkdownV2(String(analysis.reasoning))}\n`;
   }
 
   if (analysis.riskLevel) {
