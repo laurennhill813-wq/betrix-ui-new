@@ -20,28 +20,69 @@ function findTestFiles(dir) {
 function containsNodeTest(filepath) {
   try {
     const txt = readFileSync(filepath, 'utf8');
-    return txt.includes("node:test");
+    // Heuristics to detect files intended to be run with Node's built-in runner
+    // - explicit `node:test` import
+    // - filename conventions like `.node.js` or `.smoke.node.js`
+    // - script-style tests that call `process.exit` or have a runTests() entry
+    const fileName = filepath.toLowerCase();
+    if (txt.includes('node:test')) return true;
+    if (/\.node\.(js|mjs)$/.test(fileName)) return true;
+    if (/\.smoke\.node\.(js|mjs)$/.test(fileName)) return true;
+    if (txt.includes('require.main === module') || txt.includes('import.meta.url')) return true;
+    if (txt.includes('process.exit(') || txt.includes('runtests(') || txt.includes('runtests()') || txt.includes('runtests().catch')) return true;
+    // (do not treat any arbitrary 'await' usages as node:test — that causes false positives)
+    return false;
+  } catch (e) { return false; }
+}
+
+function isCommonJS(filepath) {
+  try {
+    const txt = readFileSync(filepath, 'utf8');
+    return txt.includes('require(') || txt.includes('module.exports') || txt.includes('exports.');
   } catch (e) { return false; }
 }
 
 async function main() {
   const testsDir = join(process.cwd(), 'tests');
-  const all = findTestFiles(testsDir).filter(Boolean);
+  const all = findTestFiles(testsDir)
+    .filter(Boolean)
+    .filter(p => {
+      const base = p.split(/[/\\]/).pop().toLowerCase();
+      // skip test helpers / runners
+      if (base === 'run-all-tests.js' || base === 'run-tests.js') return false;
+      return true;
+    });
 
-  const nodeFiles = all.filter(f => containsNodeTest(f));
-  const jestFiles = all.filter(f => !containsNodeTest(f));
+  // Separate files that should be run via `node --test` from standalone
+  // CommonJS script-style tests which should be executed with normal `node <file>`.
+  const nodeTestFiles = all.filter(f => containsNodeTest(f) && !isCommonJS(f));
+  const nodeScriptFiles = all.filter(f => isCommonJS(f) && (
+    readFileSync(f, 'utf8').includes('process.exit') || readFileSync(f, 'utf8').includes('spawnSync') || readFileSync(f, 'utf8').includes('runTests()')
+  ));
+  const jestFiles = all.filter(f => !containsNodeTest(f) && !nodeScriptFiles.includes(f));
 
   let nodeExit = 0;
-  if (nodeFiles.length) {
+  if (nodeTestFiles.length) {
     console.log('Running Node built-in tests...');
     // Put reporter option before file list to avoid it being interpreted as a filename
-    const args = ['--test', '--test-reporter=spec', ...nodeFiles];
-    console.log('Debug: nodeFiles count:', nodeFiles.length);
+    const args = ['--test', '--test-reporter=spec', ...nodeTestFiles];
+    console.log('Debug: nodeFiles count:', nodeTestFiles.length);
     console.log('Debug: node args:', args);
     const r = spawnSync('node', args, { stdio: 'inherit' });
     nodeExit = r.status || 0;
   } else {
     console.log('No node:test files found.');
+  }
+
+  // Execute any CommonJS-style node script tests individually with plain node
+  if (nodeScriptFiles.length) {
+    console.log('Running standalone Node script tests (CommonJS) ...');
+    console.log('Debug: node script count:', nodeScriptFiles.length);
+    for (const f of nodeScriptFiles) {
+      console.log('Running script:', f);
+      const r = spawnSync(process.execPath, [f], { stdio: 'inherit' });
+      if ((r.status || 0) !== 0) nodeExit = r.status || 1;
+    }
   }
 
   let jestExit = 0;
