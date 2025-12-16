@@ -152,6 +152,41 @@ export default function createAdminRouter() {
     }
   });
 
+  // Admin: test-send endpoint to trigger a single Telegram send for testing
+  // POST /admin/test-send
+  // Body: { type: 'photo'|'text', chat_id?: string, photoUrl?: string, caption?: string, text?: string }
+  router.post('/admin/test-send', async (req, res) => {
+    try {
+      const body = req.body || {};
+      const type = String(body.type || '').toLowerCase();
+      const chatId = body.chat_id || process.env.BOT_BROADCAST_CHAT_ID || null;
+      if (!chatId) return res.status(400).json({ ok: false, error: 'chat_id not provided and BOT_BROADCAST_CHAT_ID not configured' });
+
+      if (type === 'photo') {
+        const photoUrl = body.photoUrl;
+        if (!photoUrl) return res.status(400).json({ ok: false, error: 'photoUrl required for photo send' });
+        try {
+          const resp = await broadcastPhoto(photoUrl, String(body.caption || ''), { chatId });
+          return res.json({ ok: true, type: 'photo', resp });
+        } catch (sendErr) {
+          return res.status(500).json({ ok: false, error: String(sendErr) });
+        }
+      } else if (type === 'text') {
+        const text = String(body.text || 'Test message from admin');
+        try {
+          const resp = await broadcastText(text, { chatId });
+          return res.json({ ok: true, type: 'text', resp });
+        } catch (sendErr) {
+          return res.status(500).json({ ok: false, error: String(sendErr) });
+        }
+      } else {
+        return res.status(400).json({ ok: false, error: 'invalid type - must be "photo" or "text"' });
+      }
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: e?.message || String(e) });
+    }
+  });
+
   // Admin: expose provider bootstrap & runtime provider status
   // GET /admin/providers
   router.get('/admin/providers', async (req, res) => {

@@ -10,6 +10,7 @@ import dns from 'dns';
 import { URL } from 'url';
 import { CONFIG } from '../config.js';
 import { Logger } from '../utils/logger.js';
+import { sendAlert } from '../lib/alerts.js';
 
 const logger = new Logger('SportMonksService');
 // Mark imports that may be optional or used conditionally to avoid lint noise
@@ -164,6 +165,16 @@ export default class SportMonksService {
                     fingerprint: cert && cert.fingerprint ? cert.fingerprint : undefined,
                   };
                   logger.info('[SportMonksService] Peer certificate details:', JSON.stringify(certInfo));
+                  // Fire an alert (best-effort) so operators can forward to on-call systems
+                  try {
+                    sendAlert({
+                      service: 'sportmonks',
+                      event: 'tls_certificate_invalid',
+                      endpoint: currentBase || this.base,
+                      cert: certInfo,
+                      timestamp: new Date().toISOString()
+                    }).catch(()=>{});
+                  } catch (_) { void _; }
                 }
               } catch (certLogErr) {
                 logger.debug('[SportMonksService] Failed to read peer certificate details', certLogErr?.message || String(certLogErr));
