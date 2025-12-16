@@ -50,7 +50,10 @@ async function main() {
     const args = ['jest', '--passWithNoTests', '--runInBand', '--verbose', ...jestFiles];
     console.log('Debug: jestFiles count:', jestFiles.length);
     console.log('Debug: npx args:', args);
-    const r = spawnSync('npx', args, { stdio: 'inherit' });
+    // Ensure Jest runs with ESM support in CI
+    const jestEnv = { ...process.env, NODE_OPTIONS: '--experimental-vm-modules' };
+    console.log('Debug: NODE_OPTIONS for jest:', jestEnv.NODE_OPTIONS);
+    const r = spawnSync('npx', args, { stdio: 'inherit', env: jestEnv });
     jestExit = r.status || 0;
   } else {
     console.log('No Jest-style files found.');
