@@ -20,17 +20,17 @@ function findTestFiles(dir) {
 function containsNodeTest(filepath) {
   try {
     const txt = readFileSync(filepath, 'utf8');
-    // Heuristics to detect files intended to be run with Node's built-in runner
-    // - explicit `node:test` import
-    // - filename conventions like `.node.js` or `.smoke.node.js`
-    // - script-style tests that call `process.exit` or have a runTests() entry
+    // Improved heuristics to detect files intended to be run with Node's built-in runner
+    // Check content for explicit node:test imports, node:assert, top-level test() or run() calls
     const fileName = filepath.toLowerCase();
     if (txt.includes('node:test')) return true;
+    if (txt.includes("from 'node:assert'") || txt.includes('from "node:assert"')) return true;
+    // Treat files with an explicit top-level run() as script-style node tests
+    if (/^\s*run\s*\(/m.test(txt)) return true;  // top-level run()
     if (/\.node\.(js|mjs)$/.test(fileName)) return true;
     if (/\.smoke\.node\.(js|mjs)$/.test(fileName)) return true;
     if (txt.includes('require.main === module') || txt.includes('import.meta.url')) return true;
     if (txt.includes('process.exit(') || txt.includes('runtests(') || txt.includes('runtests()') || txt.includes('runtests().catch')) return true;
-    // (do not treat any arbitrary 'await' usages as node:test — that causes false positives)
     return false;
   } catch (e) { return false; }
 }
@@ -53,13 +53,29 @@ async function main() {
       return true;
     });
 
-  // Separate files that should be run via `node --test` from standalone
-  // CommonJS script-style tests which should be executed with normal `node <file>`.
-  const nodeTestFiles = all.filter(f => containsNodeTest(f) && !isCommonJS(f));
-  const nodeScriptFiles = all.filter(f => isCommonJS(f) && (
-    readFileSync(f, 'utf8').includes('process.exit') || readFileSync(f, 'utf8').includes('spawnSync') || readFileSync(f, 'utf8').includes('runTests()')
-  ));
-  const jestFiles = all.filter(f => !containsNodeTest(f) && !nodeScriptFiles.includes(f));
+  // Classify files into Node built-in tests, Node script-style tests, or Jest files.
+  const nodeTestFiles = [];
+  const nodeScriptFiles = [];
+  const jestFiles = [];
+
+  for (const f of all) {
+    const txt = readFileSync(f, 'utf8');
+    // If heuristics mark this as a node-style test, prefer node execution.
+    if (containsNodeTest(f)) {
+      // If it contains a top-level run() invocation, treat as a script-style file
+      if (/^\s*run\s*\(/m.test(txt)) {
+        nodeScriptFiles.push(f);
+      } else {
+        nodeTestFiles.push(f);
+      }
+    } else if (isCommonJS(f)) {
+      // CommonJS modules should be executed as scripts
+      nodeScriptFiles.push(f);
+    } else {
+      // Otherwise, hand off to Jest
+      jestFiles.push(f);
+    }
+  }
 
   let nodeExit = 0;
   if (nodeTestFiles.length) {
