@@ -5,6 +5,7 @@
  */
 
 import { Logger } from '../utils/logger.js';
+import { analyseFixtureWithBetrixx } from '../services/betrixx_analysis.js';
 import * as completeMenus from './menu-handler-complete.js';
 import { createCustomPaymentOrder } from './payment-router.js';
 import lipana from '../lib/lipana-client.js';
@@ -74,6 +75,20 @@ async function tryAiAnalyze(services, matchData, prompt, maxAttempts = 3) {
     attempt += 1;
     try {
       const res = await services.ai.analyzeSport('football', matchData, prompt);
+      // If the AI returned a very short or clearly partial response, try the BETRIXX (Groq) analyser as a fallback
+      try {
+        const previewText = extractTextFromAi(res) || '';
+        if (String(previewText).trim().length < 80) {
+          logger.info('AI returned short response, falling back to BETRIXX analyser');
+          try {
+            const betrixResp = await analyseFixtureWithBetrixx(matchData, { max_tokens: 1800 });
+            return betrixResp;
+          } catch (e) {
+            logger.warn('BETRIXX analyser fallback failed', e?.message || String(e));
+            // continue with original small response if fallback fails
+          }
+        }
+      } catch (e) { void e; }
       return res;
     } catch (err) {
       lastErr = err;
