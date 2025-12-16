@@ -36,6 +36,8 @@ async function main() {
     console.log('Running Node built-in tests...');
     // Put reporter option before file list to avoid it being interpreted as a filename
     const args = ['--test', '--test-reporter=spec', ...nodeFiles];
+    console.log('Debug: nodeFiles count:', nodeFiles.length);
+    console.log('Debug: node args:', args);
     const r = spawnSync('node', args, { stdio: 'inherit' });
     nodeExit = r.status || 0;
   } else {
@@ -46,6 +48,8 @@ async function main() {
   if (jestFiles.length) {
     console.log('Running Jest (single invocation) on', jestFiles.length, 'files...');
     const args = ['jest', '--passWithNoTests', '--runInBand', '--verbose', ...jestFiles];
+    console.log('Debug: jestFiles count:', jestFiles.length);
+    console.log('Debug: npx args:', args);
     const r = spawnSync('npx', args, { stdio: 'inherit' });
     jestExit = r.status || 0;
   } else {
