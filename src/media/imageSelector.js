@@ -59,11 +59,40 @@ export async function selectBestImageForEvent(sportEvent = {}) {
     if (f && f.length) candidates.push(...f.map(u => ({ url: u, source: 'sportradar-flag' })));
   }
 
-  // Finally, try any candidate resolved to a direct image
+  // Prefer raster images first (jpg/png), then fall back to SVGs or others
+  const rasterExtRe = /\.(jpe?g|png|gif)($|\?)/i;
+  // If configured, deprioritize Sportradar candidates (they may require provider-side access).
+  const sportradarAllow = String(process.env.SPORTRADAR_ALLOW || 'false').toLowerCase() === 'true';
+  if (!sportradarAllow) {
+    const preferred = [];
+    const spor = [];
+    for (const c of candidates) {
+      const url = c && (c.url || c.imageUrl || c.src || c.uri) || '';
+      if (String(c.source || url).toLowerCase().includes('sportradar') || url.toLowerCase().includes('sportradar')) {
+        spor.push(c);
+      } else {
+        preferred.push(c);
+      }
+    }
+    candidates.length = 0;
+    candidates.push(...preferred, ...spor);
+  }
+  // Try raster candidates first
   for (const cand of candidates) {
     try {
       const url = cand && (cand.url || cand.imageUrl || cand.src || cand.uri);
       if (!url) continue;
+      if (!rasterExtRe.test(url)) continue;
+      const resolved = await resolveDirectImage(url).catch(() => null);
+      if (resolved) return { imageUrl: resolved, source: cand.source || 'provider', rawUrl: url };
+    } catch (e) { /* continue */ }
+  }
+  // Then try non-raster candidates (SVGs, etc.)
+  for (const cand of candidates) {
+    try {
+      const url = cand && (cand.url || cand.imageUrl || cand.src || cand.uri);
+      if (!url) continue;
+      if (rasterExtRe.test(url)) continue; // already tried
       const resolved = await resolveDirectImage(url).catch(() => null);
       if (resolved) return { imageUrl: resolved, source: cand.source || 'provider', rawUrl: url };
     } catch (e) { /* continue */ }
@@ -91,12 +120,57 @@ export async function selectBestImageForEventFallback(sportEvent = {}) {
   return null;
 }
 
+// Wikimedia fallback: try to find a pageimage for team/country names when ImageProvider is not configured.
+async function wikiImageForName(name) {
+  if (!name) return null;
+  try {
+    const titles = [name, `${name} F.C.`, `${name} FC`, `${name} Football Club`].map(encodeURIComponent).join('|');
+    const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=original&titles=${titles}`;
+    const res = await fetch(url, { redirect: 'follow' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data || !data.query || !data.query.pages) return null;
+    for (const pid of Object.keys(data.query.pages)) {
+      const p = data.query.pages[pid];
+      if (p && p.original && p.original.source) return p.original.source;
+    }
+  } catch (e) {
+    // ignore
+  }
+  return null;
+}
+
+// Extend fallback to try Wikimedia when ImageProvider is not available or returns nothing
+export async function selectBestImageForEventFallbackExtended(sportEvent = {}) {
+  const direct = await selectBestImageForEventFallback(sportEvent).catch(() => null);
+  if (direct) return direct;
+  // Try home team, away team, league for Wikimedia images
+  const names = [sportEvent.home, sportEvent.away, sportEvent.league].filter(Boolean);
+  for (const n of names) {
+    const w = await wikiImageForName(n);
+    if (w) {
+      const resolved = await resolveDirectImage(w).catch(() => null);
+      if (resolved) return { imageUrl: resolved, source: 'wikipedia', rawUrl: w };
+    }
+  }
+  return null;
+}
+
 export default { selectBestImageForEvent };
 
 // Export a combined selector that will try provider modules first and then
 // the generic ImageProvider fallback when available.
 export async function selectBestImageForEventCombined(ev) {
-  const primary = await selectBestImageForEvent(ev).catch(() => null);
-  if (primary) return primary;
-  return await selectBestImageForEventFallback(ev).catch(() => null);
+  // Prefer the generic image provider and Wikimedia first (likely to return public raster images),
+  // then fall back to provider modules (Getty/Reuters/Sportradar) if nothing found.
+  const fallbackFirst = await selectBestImageForEventFallbackExtended(ev).catch(() => null);
+  if (fallbackFirst) return fallbackFirst;
+  return await selectBestImageForEvent(ev).catch(() => null);
+}
+
+// Backwards-compat alias used by other modules: try extended fallback first (ImageProvider/Wikipedia)
+export async function selectBestImageForEventCombinedExtended(ev) {
+  const ext = await selectBestImageForEventFallbackExtended(ev).catch(() => null);
+  if (ext) return ext;
+  return await selectBestImageForEventCombined(ev).catch(() => null);
 }

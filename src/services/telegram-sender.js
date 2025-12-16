@@ -4,9 +4,49 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import telemetry from '../brain/telemetry.js';
+import imageProxy from './image-proxy.js';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (!BOT_TOKEN) console.warn('TELEGRAM_BOT_TOKEN not set - telegram sends will be disabled');
+
+const SPORTRADAR_KEY = process.env.SPORTRADAR_API_KEY || process.env.IMAGE_SERVICE_KEY || null;
+
+// Helper: try a normal fetch; if it fails for Sportradar assets, retry appending api_key and a User-Agent header.
+async function fetchWithSportradarSupport(url, opts = {}) {
+  try {
+    const r = await fetch(url, { redirect: 'follow', ...opts });
+    if (r.ok) return r;
+    const lower = String(url || '').toLowerCase();
+    if (SPORTRADAR_KEY && lower.includes('sportradar') && (r.status === 403 || r.status === 400 || !r.ok)) {
+      try {
+        let u = url;
+        if (!u.includes('api_key=')) u = u + (u.includes('?') ? `&api_key=${SPORTRADAR_KEY}` : `?api_key=${SPORTRADAR_KEY}`);
+        const headers = Object.assign({}, opts.headers || {});
+        if (!headers['user-agent'] && !headers['User-Agent']) headers['User-Agent'] = 'BetrixBot/1.0 (+https://betrix.example)';
+        const r2 = await fetch(u, { redirect: 'follow', ...opts, headers });
+        if (r2.ok) return r2;
+        return r2;
+      } catch (e) {
+        return r;
+      }
+    }
+    return r;
+  } catch (e) {
+    const lower = String(url || '').toLowerCase();
+    if (SPORTRADAR_KEY && lower.includes('sportradar')) {
+      try {
+        let u = url;
+        if (!u.includes('api_key=')) u = u + (u.includes('?') ? `&api_key=${SPORTRADAR_KEY}` : `?api_key=${SPORTRADAR_KEY}`);
+        const headers = Object.assign({}, opts.headers || {});
+        if (!headers['user-agent'] && !headers['User-Agent']) headers['User-Agent'] = 'BetrixBot/1.0 (+https://betrix.example)';
+        return await fetch(u, { redirect: 'follow', ...opts, headers });
+      } catch (e2) {
+        return { ok: false, status: 0 };
+      }
+    }
+    return { ok: false, status: 0 };
+  }
+}
 
 export async function sendPhotoWithCaption({ chatId, photoUrl, caption, parse_mode = 'Markdown' }) {
   if (!BOT_TOKEN) return;
@@ -42,11 +82,35 @@ export async function sendPhotoWithCaption({ chatId, photoUrl, caption, parse_mo
         if (res.status === 400 && (lower.includes('wrong type of the web page content') || lower.includes('failed to get http url content') || lower.includes('failed to get http url'))) {
           console.info('Telegram sendPhoto: attempting upload fallback for', photoUrl);
           try { telemetry.incCounter('upload_fallback_attempts'); } catch(e){}
-          // fetch the resource ourselves
-          const imgRes = await fetch(photoUrl, { redirect: 'follow' });
+          // Attempt to proxy-and-cache the image (handles protected Sportradar URLs)
+          try {
+            const cached = await imageProxy.fetchAndCacheImage(photoUrl);
+            if (cached && cached.path) {
+              const filename = path.basename(cached.path);
+              const form = new FormData();
+              form.append('chat_id', String(chatId));
+              if (caption) form.append('caption', caption);
+              form.append('photo', fs.createReadStream(cached.path), { filename, contentType: cached.contentType });
+              const headers = form.getHeaders();
+              const retryRes = await fetch(url, { method: 'POST', body: form, headers });
+              if (!retryRes.ok) {
+                const rtxt = await retryRes.text().catch(() => '');
+                console.error('Telegram sendPhoto (upload via proxy) failed', retryRes.status, rtxt.slice ? rtxt.slice(0,200) : rtxt);
+              } else {
+                console.info('Telegram sendPhoto upload fallback (proxy) succeeded');
+                try { telemetry.incCounter('upload_fallback_success'); } catch(e){}
+                return; // success
+              }
+            }
+          } catch (proxyErr) {
+            console.error('Image proxy fetch failed', proxyErr && proxyErr.message ? proxyErr.message : proxyErr);
+          }
+
+          // If proxy didn't return an image, fall back to previous strategy
+          const imgRes = await fetchWithSportradarSupport(photoUrl, { redirect: 'follow' });
           const ct = imgRes.headers && imgRes.headers.get ? imgRes.headers.get('content-type') : '';
 
-          // If the resource is directly an image, upload it
+          // If the resource is directly an image, upload it (non-proxy path)
           if (imgRes.ok && ct && ct.startsWith('image/')) {
             const buf = Buffer.from(await imgRes.arrayBuffer());
             const ext = (ct.split('/')[1] || 'jpg').split(';')[0];
@@ -65,8 +129,8 @@ export async function sendPhotoWithCaption({ chatId, photoUrl, caption, parse_mo
                 const rtxt = await retryRes.text().catch(() => '');
                 console.error('Telegram sendPhoto (upload) failed', retryRes.status, rtxt.slice ? rtxt.slice(0,200) : rtxt);
               } else {
-                      console.info('Telegram sendPhoto upload fallback succeeded');
-                      try { telemetry.incCounter('upload_fallback_success'); } catch(e){}
+                console.info('Telegram sendPhoto upload fallback succeeded');
+                try { telemetry.incCounter('upload_fallback_success'); } catch(e){}
                 return; // success
               }
             } finally {
@@ -91,7 +155,7 @@ export async function sendPhotoWithCaption({ chatId, photoUrl, caption, parse_mo
                 // Resolve relative URL
                 try { foundUrl = new URL(foundUrl, photoUrl).href; } catch(e) {}
                 console.info('Telegram sendPhoto: extracted image from page', foundUrl);
-                const artRes = await fetch(foundUrl, { redirect: 'follow' });
+                const artRes = await fetchWithSportradarSupport(foundUrl, { redirect: 'follow' });
                 const act = artRes.headers && artRes.headers.get ? artRes.headers.get('content-type') : '';
                 if (artRes.ok && act && act.startsWith('image/')) {
                   const buf2 = Buffer.from(await artRes.arrayBuffer());

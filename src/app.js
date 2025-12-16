@@ -9,6 +9,7 @@ import { createClient } from 'redis';
 
 import createAdminRouter from './routes/admin.js';
 import createWebhooksRouter from './routes/webhooks.js';
+import createImageProxyRouter from './routes/image-proxy.js';
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
@@ -152,6 +153,8 @@ async function initServices({ pgAttempts = 4, redisAttempts = 3, timeoutMs = 200
 // Mount routers
 app.use('/admin', createAdminRouter());
 app.use('/webhook', createWebhooksRouter());
+// Internal image proxy (signed requests)
+app.use('/internal', createImageProxyRouter());
 
 // Request-time debug middleware: logs incoming requests and route matching summary
 app.use((req, res, next) => {
