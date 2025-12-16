@@ -3,6 +3,7 @@ import os from 'os';
 import path from 'path';
 import crypto from 'crypto';
 import fetch from 'node-fetch';
+import { getSignedDownloadUrl } from '../data/images-sportradar-exchange.js';
 
 const CACHE_DIR = process.env.IMAGE_PROXY_CACHE_DIR || path.join(os.tmpdir(), 'betrix-image-cache');
 const CACHE_TTL_MS = Number(process.env.IMAGE_PROXY_TTL_MS || 1000 * 60 * 60); // 1 hour
@@ -79,6 +80,7 @@ export async function fetchAndCacheImage(url) {
         // Log details and try next strategy
         console.warn('[image-proxy] non-ok response', res.status, res.statusText, 'for', fetchUrl);
         // If 403, try next strategy
+        // if Sportradar and we got 403 we'll try a signed-url exchange below after strategies
         res = null;
         continue;
       }
@@ -87,11 +89,35 @@ export async function fetchAndCacheImage(url) {
     }
   }
   if (!res) {
+    // If this looks like a Sportradar asset and we have a signing endpoint, try exchange
+    if (isSportradar) {
+      try {
+        const signed = await getSignedDownloadUrl(fetchUrl);
+        if (signed) {
+          try {
+            const r2 = await fetch(signed, { redirect: 'follow', headers: { 'User-Agent': 'BetrixBot/1.0 (+https://betrix.example)', Accept: '*/*' }, timeout: 15000 });
+            if (r2 && r2.ok) {
+              res = r2;
+              // replace fetchUrl with signed for meta
+              fetchUrl = signed;
+            }
+          } catch (e) {
+            // ignore and fall through to write diag
+            console.warn('[image-proxy] signed-url fetch failed', e && e.message);
+          }
+        }
+      } catch (e) {
+        // ignore exchange errors
+        console.warn('[image-proxy] exchange attempt failed', e && e.message);
+      }
+    }
+  }
+  if (!res) {
     // final diagnostic log
     console.warn('[image-proxy] failed to fetch', fetchUrl, 'lastErr=', lastErr && lastErr.message);
     // write a diagnostic file to help provider debugging
     try {
-      const diag = { url: fetchUrl, lastErr: lastErr && lastErr.message, triedAt: Date.now() };
+      const diag = { url: fetchUrl, lastErr: lastErr && lastErr.message, triedAt: Date.now(), isSportradar };
       const diagPath = cue + '.diag.json';
       await fs.promises.writeFile(diagPath, JSON.stringify(diag, null, 2), 'utf8');
     } catch (e) {

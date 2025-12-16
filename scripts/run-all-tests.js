@@ -25,12 +25,17 @@ function containsNodeTest(filepath) {
     const fileName = filepath.toLowerCase();
     if (txt.includes('node:test')) return true;
     if (txt.includes("from 'node:assert'") || txt.includes('from "node:assert"')) return true;
+    // Detect plain 'assert' imports (common in node-script style tests)
+    if (/\bimport\s+assert\b/.test(txt) || txt.includes("from 'assert'") || txt.includes('from "assert"')) return true;
     // Treat files with an explicit top-level run() as script-style node tests
     if (/^\s*run\s*\(/m.test(txt)) return true;  // top-level run()
     if (/\.node\.(js|mjs)$/.test(fileName)) return true;
     if (/\.smoke\.node\.(js|mjs)$/.test(fileName)) return true;
     if (txt.includes('require.main === module') || txt.includes('import.meta.url')) return true;
     if (txt.includes('process.exit(') || txt.includes('runtests(') || txt.includes('runtests()') || txt.includes('runtests().catch')) return true;
+    // If the file uses top-level assert calls and does not contain Jest-style describe/test blocks,
+    // treat it as a node-style script test.
+    if ((/\bassert\s*\(/.test(txt) || /\bassert\./.test(txt)) && !(/\bdescribe\s*\(|\btest\s*\(/.test(txt))) return true;
     return false;
   } catch (e) { return false; }
 }

@@ -1440,6 +1440,62 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
 
     analysisText += `\n_Data from Football-Data & SportMonks_`;
 
+    // Build a simple structured suggestions JSON to surface betting markets
+    try {
+      // Basic heuristics for suggestions
+      const suggestions = [];
+      const avgGoalsHome = (recentFormHome && recentFormHome.length) ? recentFormHome.reduce((acc, m) => {
+        const s = m.score || m.result || '';
+        const parts = String(s).match(/(\d+)\D+(\d+)/);
+        if (parts) return acc + (Number(parts[1]) + Number(parts[2]));
+        return acc;
+      }, 0) / Math.max(1, recentFormHome.length) : null;
+
+      const avgGoalsAway = (recentFormAway && recentFormAway.length) ? recentFormAway.reduce((acc, m) => {
+        const s = m.score || m.result || '';
+        const parts = String(s).match(/(\d+)\D+(\d+)/);
+        if (parts) return acc + (Number(parts[1]) + Number(parts[2]));
+        return acc;
+      }, 0) / Math.max(1, recentFormAway.length) : null;
+
+      // Suggest Over 2.5 if both teams have had higher scoring recent matches (heuristic)
+      if ((avgGoalsHome && avgGoalsAway && (avgGoalsHome + avgGoalsAway) / 2 >= 2.4) || (odds && odds.some(o => String(o.market || '').toLowerCase().includes('total')))) {
+        suggestions.push({ market: 'Total Goals', selection: 'Over 2.5', confidence: 60, rationale: 'Recent matches suggest higher goal counts / market indicates lively totals' });
+      } else {
+        suggestions.push({ market: 'Total Goals', selection: 'Under 2.5', confidence: 45, rationale: 'Conservative pick based on mixed recent form' });
+      }
+
+      // HT/FT heuristic: if home stronger in standings or form
+      try {
+        const homeStrength = (standings && standings.find(t => t.team && (t.team.name === homeLabel || t.team.id === match.homeId)))?.position || null;
+        const awayStrength = (standings && standings.find(t => t.team && (t.team.name === awayLabel || t.team.id === match.awayId)))?.position || null;
+        if (homeStrength && awayStrength) {
+          if (homeStrength < awayStrength) {
+            suggestions.push({ market: 'HT/FT', selection: 'Draw/Home', confidence: 52, rationale: 'Home stronger in table; likely second-half improvement' });
+          } else if (awayStrength < homeStrength) {
+            suggestions.push({ market: 'HT/FT', selection: 'Draw/Away', confidence: 50, rationale: 'Away stronger in table; consider comeback' });
+          }
+        }
+      } catch (e) { /* ignore */ }
+
+      // Both teams to score heuristic from H2H/odds
+      if ((h2h && h2h.bothTeamsToScore && h2h.bothTeamsToScore.rate > 0.6) || (recentFormHome && recentFormAway && recentFormHome.some(m => (m.score || '').indexOf('-')>0) && recentFormAway.some(m => (m.score || '').indexOf('-')>0))) {
+        suggestions.push({ market: 'Both Teams To Score', selection: 'Yes', confidence: 55, rationale: 'Frequent scoring observed in recent matches / H2H' });
+      }
+
+      const structured = {
+        match: { home: homeLabel, away: awayLabel, competition: safeNameOf(match.competition || (match.raw && match.raw.competition), 'Unknown'), kickoff: match.time || match.kickoff || 'TBA' },
+        stats: { h2h: h2h || {}, recentForm: { home: recentFormHome || [], away: recentFormAway || [] }, standings: standings || [] },
+        odds_summary: { bookmakers: (odds && odds.length) || 0 },
+        suggestions
+      };
+
+      analysisText += `\n\n*Structured Betting Options (JSON):*\n`;
+      analysisText += '```json\n' + JSON.stringify(structured, null, 2) + '\n```\n';
+    } catch (e) {
+      // ignore structured block building errors
+    }
+
     return { method: 'editMessageText', chat_id: chatId, message_id: undefined, text: analysisText, parse_mode: 'Markdown' };
   } catch (e) {
     logger.error('handleAnalyzeMatch error', e);
