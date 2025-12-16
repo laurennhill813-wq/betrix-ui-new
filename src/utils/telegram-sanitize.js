@@ -25,4 +25,13 @@ function escapeAngleBrackets(text) {
   if (typeof text !== 'string' || text.length === 0) return text;
   return text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
-export { sanitizeTelegramHtml, escapeAngleBrackets };
+
+// Escape text for Telegram MarkdownV2 parse mode by backslash-escaping
+// all special characters per Telegram MarkdownV2 rules.
+function escapeMarkdownV2(text) {
+  if (typeof text !== 'string' || text.length === 0) return text;
+  // Characters to escape in MarkdownV2: _ * [ ] ( ) ~ ` > # + - = | { } . !
+  // We replace each of these with a backslash-prefixed version.
+  return text.replace(/([_\*\[\]\(\)~`>#\+\-=|{}\.!])/g, '\\$1');
+}
+export { sanitizeTelegramHtml, escapeAngleBrackets, escapeMarkdownV2 };

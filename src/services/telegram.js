@@ -20,17 +20,18 @@ class TelegramService {
     const chunks = chunkText(String(text || ''), this.safeChunkSize);
 
     // Choose parse mode: prefer explicit parse_mode, otherwise default to Markdown
-    const parseMode = options && options.parse_mode ? options.parse_mode : 'Markdown';
+    const parseMode = options && options.parse_mode ? options.parse_mode : 'MarkdownV2';
 
     for (let i = 0; i < chunks.length; i++) {
       const suffix = chunks.length > 1 ? `\n\nPage ${i + 1}/${chunks.length}` : '';
       let bodyText = chunks[i] + suffix;
 
-      // Sanitize based on parse mode
+      // Sanitize based on parse mode.
       if (String(parseMode).toLowerCase() === 'html') {
         bodyText = sanitize.sanitizeTelegramHtml(bodyText);
       } else {
-        bodyText = sanitize.escapeAngleBrackets(bodyText);
+        // For MarkdownV2 and other markdown modes, escape MarkdownV2 special chars
+        bodyText = sanitize.escapeMarkdownV2(bodyText);
       }
 
       const payload = {
@@ -56,15 +57,15 @@ class TelegramService {
 
   // editMessage with sanitization and safe fallback to sendMessage
   async editMessage(chatId, messageId, text, replyMarkup = null, options = {}) {
-    // Determine parse mode: prefer explicit options.parse_mode, then replyMarkup.parse_mode, otherwise Markdown
-    let parse = 'Markdown';
+    // Determine parse mode: prefer explicit options.parse_mode, then replyMarkup.parse_mode, otherwise MarkdownV2
+    let parse = 'MarkdownV2';
     if (options && options.parse_mode) parse = options.parse_mode;
     else if (replyMarkup && typeof replyMarkup === 'object' && replyMarkup.parse_mode) parse = replyMarkup.parse_mode;
 
     // Sanitize text according to chosen parse mode
     let safeText = String(text || '');
     if (String(parse).toLowerCase() === 'html') safeText = sanitize.sanitizeTelegramHtml(safeText);
-    else safeText = sanitize.escapeAngleBrackets(safeText);
+    else safeText = sanitize.escapeMarkdownV2(safeText);
 
     const payload = {
       chat_id: chatId,
@@ -84,7 +85,7 @@ class TelegramService {
     } catch (err) {
       const desc = (err && (err.description || err.message || String(err))) || '';
       if (/can't parse entities|Unsupported start tag|Bad Request: can't parse entities/i.test(desc)) {
-        // Try a safe fallback: remove parse_mode and send as plain text with angle brackets escaped
+        // Try a safe fallback: remove parse_mode and send as plain text with MarkdownV2-escaped text
         const sendOpts = { reply_markup: replyMarkup };
         if (options && options.parse_mode) sendOpts.parse_mode = options.parse_mode;
         try {
@@ -129,7 +130,13 @@ class TelegramService {
 
   // Send a photo by URL with optional caption
   async sendPhoto(chatId, photoUrl, caption = '', options = {}) {
-    const payload = Object.assign({ chat_id: chatId, photo: photoUrl, caption, parse_mode: options.parse_mode || 'Markdown' }, options);
+    // Sanitize caption according to parse mode (default to MarkdownV2)
+    const parseMode = options.parse_mode || 'MarkdownV2';
+    let safeCaption = String(caption || '');
+    if (String(parseMode).toLowerCase() === 'html') safeCaption = sanitize.sanitizeTelegramHtml(safeCaption);
+    else safeCaption = sanitize.escapeMarkdownV2(safeCaption);
+
+    const payload = Object.assign({ chat_id: chatId, photo: photoUrl, caption: safeCaption, parse_mode: parseMode }, options);
     try {
       return await HttpClient.fetch(`${this.baseUrl}/sendPhoto`, {
         method: 'POST',
