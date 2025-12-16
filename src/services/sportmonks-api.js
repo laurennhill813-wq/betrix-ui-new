@@ -1,3 +1,14 @@
+// Minimal SportMonksAPI stub to satisfy imports after removing full integration.
+export default class SportMonksAPI {
+  constructor() {
+    // no-op
+  }
+
+  async getLivescores() { return []; }
+  async getFixtures() { return []; }
+  async getLeagues() { return []; }
+  async getOdds() { return []; }
+}
 /**
  * SportMonks API Integration
  * Fetches live sports data from SportMonks API

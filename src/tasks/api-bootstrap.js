@@ -49,7 +49,7 @@ export class APIBootstrap {
       status.providers.SPORTSMONKS = {
         enabled: true,
         key: `${CONFIG.SPORTSMONKS.KEY.substring(0, 8)}...${CONFIG.SPORTSMONKS.KEY.substring(CONFIG.SPORTSMONKS.KEY.length - 4)}`,
-        base: CONFIG.SPORTSMONKS.BASE || 'https://api.sportsmonks.com/v3'
+        base: CONFIG.SPORTSMONKS.BASE || 'https://api.sportmonks.com/v3'
       };
       this.providers.sportMonks = true;
       logger.info('✅ SportMonks configured', status.providers.SPORTSMONKS);

@@ -1,6 +1,6 @@
 import Redis from 'ioredis';
 import { isports } from './isports.js';
-import { sportmonks } from './sportmonks.js';
+// SportMonks disabled — do not import or call provider
 import { sgo } from './sportsgameodds-client.js';
 
 const redis = new Redis(process.env.REDIS_URL);
@@ -54,9 +54,8 @@ async function prefetchFootball() {
   } catch (e) { console.warn('isports football livescores failed', e.message || e); }
 
   try {
-    // optimized SportMonks fixture selection
-    const params = '&select=id,starting_at,localteam_id,visitorteam_id' + '&include=localTeam:name;visitorTeam:name';
-    await safeFetchAndCache('Football fixtures (SportMonks)', () => sportmonks('/football/fixtures', params), 'football:fixtures:sportmonks', TTL_ODDS);
+    // SportMonks disabled — skip fetching fixtures from SportMonks
+    console.warn('Skipping SportMonks football fixtures fetch: SportMonks disabled');
   } catch (e) { console.warn('sportmonks football fixtures failed', e.message || e); }
 
   try {
@@ -72,8 +71,8 @@ async function prefetchBasketball() {
   } catch (e) { console.warn('isports basketball livescores failed', e.message || e); }
 
   try {
-    const params = '&select=id,starting_at,home_team_id,away_team_id' + '&include=homeTeam:name;awayTeam:name';
-    await safeFetchAndCache('Basketball fixtures (SportMonks)', () => sportmonks('/basketball/fixtures', params), 'basketball:fixtures:sportmonks', TTL_ODDS);
+    // SportMonks disabled — skip fetching basketball fixtures
+    console.warn('Skipping SportMonks basketball fixtures fetch: SportMonks disabled');
   } catch (e) { console.warn('sportmonks basketball fixtures failed', e.message || e); }
 
   try {

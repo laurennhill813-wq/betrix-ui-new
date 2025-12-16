@@ -20,7 +20,7 @@ const sportsdataVariants = [
 ];
 
 const sportmonksVariants = [
-  { name: 'sportsmonks-v3', base: process.env.SPORTSMONKS_BASE || 'https://api.sportsmonks.com/v3' },
+  { name: 'sportsmonks-v3', base: process.env.SPORTSMONKS_BASE || 'https://api.sportmonks.com/v3' },
   { name: 'sportsmonks-soccer-api', base: 'https://soccer.sportmonks.com/api/v2' },
   { name: 'sportmonks-alt', base: 'https://api.sportmonks.com/v3' }
 ];

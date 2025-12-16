@@ -8,7 +8,7 @@
 import tls from 'tls';
 import https from 'https';
 
-const HOST = 'api.sportsmonks.com';
+const HOST = 'api.sportmonks.com';
 const PORT = 443;
 const PATHS = [
   '/v3/football/livescores?api_token=' + (process.env.SPORTSMONKS_API || process.env.SPORTSMONKS_TOKEN || process.env.SPORTSMONKS_KEY || ''),

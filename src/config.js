@@ -55,11 +55,7 @@ const CONFIG = {
     ENABLED: false
   },
 
-  // SportsMonks
-  SPORTSMONKS: {
-    KEY: process.env.SPORTSMONKS_API || process.env.SPORTSMONKS_API_KEY,
-    BASE: process.env.SPORTSMONKS_BASE || 'https://api.sportsmonks.com/v3',
-  },
+  // SportMonks removed from this deployment (operator requested)
 
   // StatPal removed: no longer used in this deployment
   STATPAL: {
@@ -182,7 +178,7 @@ const CONFIG = {
   // SportMonks and Football-Data are ALWAYS enabled (trust Render env vars)
   PROVIDERS: {
     SPORTSDATA: { enabled: process.env.PROVIDER_SPORTSDATA_ENABLED === 'true', priority: 1 },
-    SPORTSMONKS: { enabled: true, priority: 2 },
+    // SPORTSMONKS removed: disabled by default
     API_SPORTS: { enabled: false, priority: 3 },
     FOOTBALLDATA: { enabled: true, priority: 4 },
     SOFASCORE: { enabled: false, priority: 5 },

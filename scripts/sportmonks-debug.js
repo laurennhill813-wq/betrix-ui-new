@@ -6,7 +6,7 @@ import 'dotenv/config';
 import fetch from 'node-fetch';
 import https from 'https';
 
-const base = process.env.SPORTSMONKS_HOST || 'https://api.sportsmonks.com/v3';
+const base = process.env.SPORTSMONKS_HOST || 'https://api.sportmonks.com/v3';
 const token = process.env.SPORTSMONKS_API || process.env.SPORTSMONKS_API_KEY || process.env.SPORTSMONKS_TOKEN;
 if (!token) {
   console.error('SPORTSMONKS_API not set in environment. Set it and rerun.');

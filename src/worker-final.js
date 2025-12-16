@@ -54,7 +54,7 @@ import { RateLimiter } from "./middleware/rate-limiter.js";
 import { ContextManager } from "./middleware/context-manager.js";
 import v2Handler from "./handlers/telegram-handler-v2-clean.js";
 import completeHandler from "./handlers/handler-complete.js";
-import SportMonksAPI from "./services/sportmonks-api.js";
+// SportMonks integration removed — stub out sportMonksAPI as null
 import SportsDataAPI from "./services/sportsdata-api.js";
 import { registerDataExposureAPI } from "./app_clean.js";
 import app from "./app_clean.js";
@@ -277,7 +277,7 @@ const scrapers = new Scrapers(redis);
 const sportsAggregator = new SportsAggregator(redis, { scorebat: scorebatService, rss: rssAggregator, openLiga, allowedProviders: ['SPORTSMONKS','FOOTBALLDATA'] });
 const oddsAnalyzer = new OddsAnalyzer(redis, sportsAggregator, null);
 const multiSportAnalyzer = new MultiSportAnalyzer(redis, sportsAggregator, null);
-const sportMonksAPI = new SportMonksAPI();
+const sportMonksAPI = null;
 const sportsDataAPI = new SportsDataAPI();
 
 // Claude (Anthropic) - prefer if enabled in config
@@ -823,7 +823,7 @@ async function handleUpdate(update) {
       }
 
       try {
-        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI, ai };
+        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportsData: sportsDataAPI, ai };
         const res = await completeHandler.handleCallbackQuery(callbackQuery, redis, services);
         if (!res) return;
 
@@ -945,7 +945,7 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
     const start = Date.now();
 
     // Basic commands - routed through complete handler for full menu system
-    const sharedServices = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI, redis, ai };
+    const sharedServices = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportsData: sportsDataAPI, redis, ai };
     const basicCommands = {
       "/start": async () => {
         try {
@@ -1000,7 +1000,7 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
       "/news": () => basicHandlers.news(chatId),
       "/highlights": () => basicHandlers.highlights(chatId),
       "/standings": async () => {
-        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI, ai };
+        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportsData: sportsDataAPI, ai };
         const text = '/standings ' + (args && args.length ? args.join(' ') : '');
         const msg = await v2Handler.handleCommand(text, chatId, userId, redis, services);
         if (msg && msg.chat_id) {
@@ -1010,7 +1010,7 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
       "/league": () => basicHandlers.league(chatId, args.join(" ")),
       "/predict": () => basicHandlers.predict(chatId, args.join(" ")),
       "/odds": async () => {
-        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI, ai };
+        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportsData: sportsDataAPI, ai };
         const text = '/odds ' + (args && args.length ? args.join(' ') : '');
         const msg = await v2Handler.handleCommand(text, chatId, userId, redis, services);
         if (msg && msg.chat_id) {

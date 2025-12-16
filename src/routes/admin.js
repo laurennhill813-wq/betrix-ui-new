@@ -8,6 +8,9 @@ import { adminAuth } from '../middleware/admin-auth.js';
 import mediaRouter from '../media/mediaRouter.js';
 import { broadcastPhoto, broadcastText } from '../telegram/broadcast.js';
 import { runMediaAiTick } from '../tickers/mediaAiTicker.js';
+import { probeSportradarCapabilities } from '../services/providers/sportradar.js';
+import tls from 'tls';
+import { URL } from 'url';
 
 export default function createAdminRouter() {
   const router = express.Router();
@@ -135,6 +138,56 @@ export default function createAdminRouter() {
         }
         return res.json({ ok: true, stdout: String(stdout || '').slice(0, 20000), stderr: String(stderr || '').slice(0, 20000) });
       });
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: e?.message || String(e) });
+    }
+  });
+
+  // Admin: inspect Sportradar endpoints + TLS peer certificate
+  // POST /admin/inspect-sportradar
+  router.post('/admin/inspect-sportradar', async (req, res) => {
+    try {
+      const base = process.env.SPORTRADAR_BASE || 'https://api.sportradar.com';
+      const date = (req.body && req.body.date) || null;
+
+      // Run the probe which will attempt candidate endpoints
+      const probe = await probeSportradarCapabilities('soccer', date, { base });
+
+      // Attempt a TLS peer certificate inspection against the base host
+      let certInfo = null;
+      try {
+        const u = new URL(base);
+        const host = u.hostname || 'api.sportradar.com';
+        const port = Number(u.port) || 443;
+        const socket = tls.connect({ host, port, servername: host, rejectUnauthorized: false, timeout: 8000 });
+
+        certInfo = await new Promise((resolve, reject) => {
+          socket.once('error', (err) => { try { socket.destroy(); } catch {} ; reject(err); });
+          socket.once('timeout', () => { try { socket.destroy(); } catch {} ; reject(new Error('TLS connect timeout')); });
+          socket.once('secureConnect', () => {
+            try {
+              const peer = socket.getPeerCertificate(true) || null;
+              const details = peer ? {
+                subject: peer.subject,
+                issuer: peer.issuer,
+                valid_from: peer.valid_from,
+                valid_to: peer.valid_to,
+                fingerprint: peer.fingerprint,
+                pem: peer.raw ? peer.raw.toString('base64') : undefined
+              } : null;
+              socket.end();
+              resolve(details);
+            } catch (e) {
+              try { socket.destroy(); } catch {};
+              reject(e);
+            }
+          });
+        });
+      } catch (e) {
+        certInfo = { error: String(e) };
+      }
+
+      return res.json({ ok: true, probe, cert: certInfo });
     } catch (e) {
       return res.status(500).json({ ok: false, error: e?.message || String(e) });
     }

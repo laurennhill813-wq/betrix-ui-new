@@ -1,6 +1,6 @@
 import Redis from 'ioredis';
 import { mapIsportsOdds } from './mappers/isports-mapper.js';
-import { mapSportmonksOdds } from './mappers/sportmonks-mapper.js';
+// SportMonks removed — do not import mapping
 import { mapSgoOdds } from './mappers/sgo-mapper.js';
 import { mapFootballDataFixtures } from './mappers/footballdata-mapper.js';
 import { mapOpenLigaMatches } from './mappers/openligadb-mapper.js';
@@ -9,22 +9,17 @@ import { computeConsensusForEvent } from './fair-odds-engine.js';
 const redis = new Redis(process.env.REDIS_URL);
 
 export async function getUnifiedOddsWithFair({ sport = 'football', league = 'nfl' } = {}) {
-  const [isportsRaw, sportmonksRaw, sgoRaw] = await Promise.all([
+  const [isportsRaw, sgoRaw] = await Promise.all([
     redis.get(`${sport}:livescores:isports`).catch(() => null),
-    redis.get(`${sport}:fixtures:sportmonks`).catch(() => null),
     redis.get(`${sport}:odds:sgo`).catch(() => null),
   ]);
 
   const isportsData = isportsRaw ? JSON.parse(isportsRaw) : null;
-  const sportmonksData = sportmonksRaw ? JSON.parse(sportmonksRaw) : null;
   const sgoData = sgoRaw ? JSON.parse(sgoRaw) : null;
-  console.log('raw presence:', { isportsRaw: !!isportsRaw, sportmonksRaw: !!sportmonksRaw, sgoRaw: !!sgoRaw });
+  console.log('raw presence:', { isportsRaw: !!isportsRaw, sgoRaw: !!sgoRaw });
   const fromIsports = isportsData ? mapIsportsOdds(isportsData, { sport, league }) : [];
-  const fromSportmonks = sportmonksData ? mapSportmonksOdds(sportmonksData, { sport, league }) : [];
+  const fromSportmonks = []; // SportMonks removed: no data
   const fromSgo = sgoData ? mapSgoOdds(sgoData, { sport, league }) : [];
-
-  // Determine if SportMonks payload actually contains fixtures; otherwise use fallback.
-  const sportmonksHasData = sportmonksData && (Array.isArray(sportmonksData.data) ? sportmonksData.data.length > 0 : Array.isArray(sportmonksData));
 
   // Fallback: load raw fixtures if SportMonks not available or payload invalid
   let fromFallback = [];
@@ -61,7 +56,7 @@ export async function getUnifiedOddsWithFair({ sport = 'football', league = 'nfl
   }
 
   const all = [...fromIsports, ...fromSportmonks, ...fromSgo, ...fromFallback];
-  console.log('aggregator counts:', { isports: fromIsports.length, sportmonks: fromSportmonks.length, sgo: fromSgo.length, fallback: fromFallback.length, total: all.length });
+  console.log('aggregator counts:', { isports: fromIsports.length, sgo: fromSgo.length, fallback: fromFallback.length, total: all.length });
 
   const grouped = new Map();
   for (const rec of all) {

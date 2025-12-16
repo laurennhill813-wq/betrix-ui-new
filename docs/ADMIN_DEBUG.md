@@ -51,7 +51,7 @@
   - When SportMonks TLS certificate errors are detected, the service will fire a best-effort POST with JSON containing `service`, `event`, `endpoint`, `cert` and `timestamp` fields.
   - Example webhook receiver (expects JSON):
     ```json
-    { "service":"sportmonks","event":"tls_certificate_invalid","endpoint":"https://api.sportsmonks.com/v3","cert":{...},"timestamp":"..." }
+    { "service":"sportmonks","event":"tls_certificate_invalid","endpoint":"https://api.sportmonks.com/v3","cert":{...},"timestamp":"..." }
     ```
 
 - Safety notes

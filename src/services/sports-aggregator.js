@@ -18,7 +18,6 @@ import { getLiveMatchesFromGoal } from './goal-scraper.js';
 import { getLiveMatchesFromFlashscore, getLiveMatchesByLeagueFromFlashscore } from './flashscore-scraper.js';
 import { ProviderHealth } from '../utils/provider-health.js';
 import { PROVIDERS } from './providers/index.js';
-import SportMonksService from './sportmonks-service.js';
 import ISportsService from './isports-service.js';
 import SportGameOddsService from './sportsgameodds.js';
 import { RawDataCache } from './raw-data-cache.js';
@@ -35,7 +34,6 @@ void getLiveMatchesFromFlashscore;
 void getLiveMatchesByLeagueFromFlashscore;
 
 const logger = new Logger('SportsAggregator');
-const SPORTSMONKS_BASE_URL = 'https://api.sportmonks.com/v3';
 
 const LEAGUE_MAPPINGS = {
   // Premier League
@@ -68,10 +66,10 @@ export class SportsAggregator {
       ? extras.allowedProviders.map(p => String(p).toUpperCase())
       : null;
 
-    // Initialize SportGameOdds if configured (preferred), otherwise SportMonks
+    // Initialize SportGameOdds if configured (preferred). SportMonks removed.
     this.sportsgameodds = (this._isAllowedSync('SPORTSGAMEODDS') && CONFIG.SPORTSGAMEODDS && CONFIG.SPORTSGAMEODDS.KEY) ? new SportGameOddsService(redis) : null;
-    // ONLY initialize SportMonks and Football-Data as legacy fallbacks
-    this.sportmonks = (this._isAllowedSync('SPORTSMONKS') && CONFIG.SPORTSMONKS && CONFIG.SPORTSMONKS.KEY) ? new SportMonksService(redis) : null;
+    // SportMonks integration has been removed per operator request — keep stub null
+    this.sportmonks = null;
     // ISports (API-Football) wrapper - used as an additional fallback for fixtures/live
     this.isports = (this._isAllowedSync('API_SPORTS') && CONFIG.API_FOOTBALL && CONFIG.API_FOOTBALL.KEY) ? new ISportsService(redis) : null;
     // Sportradar adapter (optional)

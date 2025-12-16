@@ -11,8 +11,8 @@ Required (for Telegram image posting):
 - `BOT_BROADCAST_CHAT_ID` = <target-chat-or-channel-id> (example: `-1001234567890`)
 
 SportMonks (provider) - quick ops:
-- `SPORTSMONKS_BASE` = https://api.sportsmonks.com/v3
-  - If you previously used a misspelled domain (e.g. `api.sportmonks.com`) the worker now normalises it automatically.
+- `SPORTSMONKS_BASE` = https://api.sportmonks.com/v3
+  - If you previously used a misspelled domain (e.g. `api.sportsmonks.com`) the worker now normalises it automatically.
 - `SPORTSMONKS_API_KEY` or `SPORTSMONKS_API` = <your-sportsmonks-api-key>
 - `SPORTSMONKS_INSECURE` = `true`  # optional short-term testing only; do NOT leave enabled in production
 - `SPORTSMONKS_TLS_PAUSE_SECONDS` = `300`  # how long to pause prefetch after TLS error (default 300)
@@ -36,7 +36,7 @@ Example copy/paste block for Render (PowerShell friendly):
 $envVars = @{
   TELEGRAM_BOT_TOKEN = 'replace-with-bot-token'
   BOT_BROADCAST_CHAT_ID = '-1001234567890'
-  SPORTSMONKS_BASE = 'https://api.sportsmonks.com/v3'
+  SPORTSMONKS_BASE = 'https://api.sportmonks.com/v3'
   SPORTSMONKS_API_KEY = 'replace-with-key'
   # SPORTSMONKS_INSECURE = 'true' # only enable for short-term testing
 }

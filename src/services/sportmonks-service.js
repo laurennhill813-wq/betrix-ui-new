@@ -1,3 +1,31 @@
+// Stub SportMonksService — removed full integration per operator request.
+// This minimal stub preserves imports but returns empty results so the
+// rest of the system can run without SportMonks data.
+
+export default class SportMonksService {
+  constructor() {
+    // no-op
+  }
+
+  async getLeagues() {
+    return [];
+  }
+
+  async getLivescores(leagueId) {
+    return [];
+  }
+
+  async getFixtures(options) {
+    return [];
+  }
+
+  async getOdds() {
+    return [];
+  }
+
+  // Generic fetch no-op for compatibility
+  async fetch() { return null; }
+}
 /**
  * SportMonks Service
  * Lightweight wrapper around the SportsMonks Football API used as a fallback
@@ -25,11 +53,13 @@ export default class SportMonksService {
     // the `/v3` path is present. This helps avoid operator mistakes that
     // otherwise surface as TLS/domain errors in logs.
     const rawEnvBase = (process.env.SPORTSMONKS_BASE || (CONFIG.SPORTSMONKS && CONFIG.SPORTSMONKS.BASE) || '').trim();
-    let preferredBase = rawEnvBase || 'https://api.sportsmonks.com/v3';
+    // Correct default to the canonical SportMonks host (no duplicated 's')
+    let preferredBase = rawEnvBase || 'https://api.sportmonks.com/v3';
     try {
-      // common typo: api.sportmonks.com (missing the 's') -> correct to api.sportsmonks.com
-      if (preferredBase.includes('api.sportmonks.com') && !preferredBase.includes('api.sportsmonks.com')) {
-        const corrected = preferredBase.replace(/api\.sportmonks\.com/gi, 'api.sportsmonks.com');
+      // Normalize common typo variants to the canonical host `api.sportmonks.com`.
+      // If someone configured the historical incorrect host `api.sportsmonks.com`, fix it.
+      if (preferredBase.includes('api.sportsmonks.com') && !preferredBase.includes('api.sportmonks.com')) {
+        const corrected = preferredBase.replace(/api\.sportsmonks\.com/gi, 'api.sportmonks.com');
         logger.warn('[SportMonksService] Normalising SPORTSMONKS base from', preferredBase, 'to', corrected);
         preferredBase = corrected;
       }
@@ -46,15 +76,12 @@ export default class SportMonksService {
       }
     } catch (normErr) {
       logger.debug('[SportMonksService] Failed to normalise SPORTSMONKS base', normErr?.message || String(normErr));
-      preferredBase = rawEnvBase || 'https://api.sportsmonks.com/v3';
+      preferredBase = rawEnvBase || 'https://api.sportmonks.com/v3';
     }
 
-    this.baseUrls = [
-      preferredBase,
-      'https://api.sportmonks.com/v3', // alternate spelling (without 's')
-      'https://www.api.sportsmonks.com/v3'
-    ];
-    this.base = this.baseUrls[0];
+    // Use a single authoritative base URL to avoid trying incorrect alternates
+    this.baseUrls = [ preferredBase ];
+    this.base = preferredBase;
     // Accept multiple possible env var names for the API token to be resilient
     this.key = (CONFIG.SPORTSMONKS && CONFIG.SPORTSMONKS.KEY) || process.env.SPORTSMONKS_API_KEY || process.env.SPORTSMONKS_API || process.env.SPORTSMONKS_TOKEN || null;
     

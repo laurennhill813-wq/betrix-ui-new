@@ -69,7 +69,7 @@ async function probeSportsData() {
 
 async function probeSportsMonks() {
   const key = process.env.SPORTSMONKS_API || process.env.SPORTSMONKS_API_KEY || process.env.SPORTSMONKS_KEY;
-  const bases = [process.env.SPORTSMONKS_BASE || 'https://api.sportsmonks.com/v3', process.env.SPORTSMONKS_HOST || 'https://soccer.sportmonks.com'];
+  const bases = [process.env.SPORTSMONKS_BASE || 'https://api.sportmonks.com/v3', process.env.SPORTSMONKS_HOST || 'https://soccer.sportmonks.com'];
 
   console.log('\n=== Probing SportsMonks ===');
   if (!key) {
