@@ -32,6 +32,13 @@ export function getToneInstructions(tone) {
 export function inferToneFromEvent(event = {}) {
   try {
     if (!event || typeof event !== 'object') return BETRIX_TONES.HYBRID;
+    // sport-specific overrides
+    const sport = (event.sport || '').toString().toLowerCase();
+    if (sport === 'nba') return BETRIX_TONES.HYPE;
+    if (sport === 'nfl') return BETRIX_TONES.HYBRID;
+    if (sport === 'mlb' || sport === 'nhl') return BETRIX_TONES.HYBRID;
+    if (sport === 'tennis' || sport === 'golf') return BETRIX_TONES.PRO;
+
     if (event.context && (event.context.isFinal || event.context.isElimination)) return BETRIX_TONES.HYBRID;
     if (event.context && event.context.category === 'news' && event.context.sensitivity === 'high') return BETRIX_TONES.PRO;
     if (event.importance === 'high' && String(event.status).toUpperCase() === 'LIVE') return BETRIX_TONES.HYBRID;
