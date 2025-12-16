@@ -19,11 +19,39 @@ export default class SportMonksService {
   constructor(redis = null) {
     this.redis = redis;
     // Try multiple possible SportMonks endpoints/IPs in order of preference
-    // Primary: official v3 API, Secondary: try without /v3, Tertiary: direct IP if known
+    // We accept an explicit env/config base and defensively normalise it to
+    // correct common typos (e.g. missing "s" in "sportsmonks") and ensure
+    // the `/v3` path is present. This helps avoid operator mistakes that
+    // otherwise surface as TLS/domain errors in logs.
+    const rawEnvBase = (process.env.SPORTSMONKS_BASE || (CONFIG.SPORTSMONKS && CONFIG.SPORTSMONKS.BASE) || '').trim();
+    let preferredBase = rawEnvBase || 'https://api.sportsmonks.com/v3';
+    try {
+      // common typo: api.sportmonks.com (missing the 's') -> correct to api.sportsmonks.com
+      if (preferredBase.includes('api.sportmonks.com') && !preferredBase.includes('api.sportsmonks.com')) {
+        const corrected = preferredBase.replace(/api\.sportmonks\.com/gi, 'api.sportsmonks.com');
+        logger.warn('[SportMonksService] Normalising SPORTSMONKS base from', preferredBase, 'to', corrected);
+        preferredBase = corrected;
+      }
+
+      // If a bare host was provided without scheme, add https://
+      if (!/^https?:\/\//i.test(preferredBase)) {
+        preferredBase = `https://${preferredBase}`;
+      }
+
+      // Ensure the v3 path is present
+      if (!/\/v3\/?$/i.test(preferredBase)) {
+        preferredBase = preferredBase.replace(/\/+$/,'') + '/v3';
+        logger.info('[SportMonksService] Appended /v3 to SPORTSMONKS base, using', preferredBase);
+      }
+    } catch (normErr) {
+      logger.debug('[SportMonksService] Failed to normalise SPORTSMONKS base', normErr?.message || String(normErr));
+      preferredBase = rawEnvBase || 'https://api.sportsmonks.com/v3';
+    }
+
     this.baseUrls = [
-      (CONFIG.SPORTSMONKS && CONFIG.SPORTSMONKS.BASE) || 'https://api.sportsmonks.com/v3',
+      preferredBase,
       'https://api.sportmonks.com/v3', // alternate spelling (without 's')
-      'https://www.api.sportsmonks.com/v3' // try www prefix
+      'https://www.api.sportsmonks.com/v3'
     ];
     this.base = this.baseUrls[0];
     // Accept multiple possible env var names for the API token to be resilient
