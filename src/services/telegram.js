@@ -20,19 +20,24 @@ class TelegramService {
     const chunks = chunkText(String(text || ''), this.safeChunkSize);
 
     // Choose parse mode: prefer explicit parse_mode, otherwise default to Markdown
-    const parseMode = options && options.parse_mode ? options.parse_mode : 'MarkdownV2';
+      const parseMode = options && options.parse_mode ? options.parse_mode : 'MarkdownV2';
 
     for (let i = 0; i < chunks.length; i++) {
       const suffix = chunks.length > 1 ? `\n\nPage ${i + 1}/${chunks.length}` : '';
       let bodyText = chunks[i] + suffix;
 
       // Sanitize based on parse mode.
-      if (String(parseMode).toLowerCase() === 'html') {
-        bodyText = sanitize.sanitizeTelegramHtml(bodyText);
-      } else {
-        // For MarkdownV2 and other markdown modes, escape MarkdownV2 special chars
-        bodyText = sanitize.escapeMarkdownV2(bodyText);
-      }
+        // If caller provided explicit parse_mode, assume they've sanitized dynamic fields
+        // themselves and don't auto-escape to preserve intended formatting. Otherwise
+        // perform a safe MarkdownV2 escape by default.
+        if (options && options.parse_mode) {
+          // leave bodyText as-is
+        } else if (String(parseMode).toLowerCase() === 'html') {
+          bodyText = sanitize.sanitizeTelegramHtml(bodyText);
+        } else {
+          // For MarkdownV2 (default), escape MarkdownV2 special chars
+          bodyText = sanitize.escapeMarkdownV2(bodyText);
+        }
 
       const payload = {
         chat_id: chatId,
@@ -63,9 +68,13 @@ class TelegramService {
     else if (replyMarkup && typeof replyMarkup === 'object' && replyMarkup.parse_mode) parse = replyMarkup.parse_mode;
 
     // Sanitize text according to chosen parse mode
-    let safeText = String(text || '');
-    if (String(parse).toLowerCase() === 'html') safeText = sanitize.sanitizeTelegramHtml(safeText);
-    else safeText = sanitize.escapeMarkdownV2(safeText);
+      let safeText = String(text || '');
+      // Sanitize text according to chosen parse mode. If caller provided parse_mode
+      // assume they've escaped dynamic fields; otherwise escape for MarkdownV2.
+      if (options && options.parse_mode) {
+        // keep as provided
+      } else if (String(parse).toLowerCase() === 'html') safeText = sanitize.sanitizeTelegramHtml(safeText);
+      else safeText = sanitize.escapeMarkdownV2(safeText);
 
     const payload = {
       chat_id: chatId,
