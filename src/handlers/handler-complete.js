@@ -68,14 +68,14 @@ function extractTextFromAi(aiRes) {
 }
 
 // Try AI analysis with simple retry/backoff on rate-limit errors
-async function tryAiAnalyze(services, matchData, prompt, maxAttempts = 3) {
+async function tryAiAnalyze(services, matchData, prompt, maxAttempts = 3, sport = 'football') {
   if (!services || !services.ai || typeof services.ai.analyzeSport !== 'function') return null;
   let attempt = 0;
   let lastErr = null;
   while (attempt < maxAttempts) {
     attempt += 1;
     try {
-      const res = await services.ai.analyzeSport('football', matchData, prompt);
+      const res = await services.ai.analyzeSport(sport || 'football', matchData, prompt);
       // If the AI returned a very short or clearly partial response, try the BETRIXX (Groq) analyser as a fallback
       try {
         const previewText = extractTextFromAi(res) || '';
@@ -253,6 +253,18 @@ export async function handleCallbackQuery(cq, redis, services) {
     // ========================================================================
 
     if (data === 'live_games') {
+      return {
+        method: 'editMessageText',
+        chat_id: chatId,
+        message_id: messageId,
+        text: completeMenus.sportsMenu.text,
+        reply_markup: completeMenus.sportsMenu.reply_markup,
+        parse_mode: 'Markdown'
+      };
+    }
+
+    // Show the sports selector (generic across all sports)
+    if (data === 'sports') {
       return {
         method: 'editMessageText',
         chat_id: chatId,
@@ -663,7 +675,9 @@ Respond primarily with a single JSON object only, parseable by a machine, with t
 Include only valid JSON in the response if possible. After the JSON, you may include a 2-3 line plain-text human summary separated by a newline. Use the match data to inform probabilities and rationale. Do not hallucinate exact market odds; if no market odds available, state that odds are not provided. Keep the JSON compact. Now analyze this match and return the JSON and a short text summary. MATCH_DATA: ` + JSON.stringify(matchData);
 
         // Try AI-first with retry/backoff on rate-limit errors
-        const aiResult = await tryAiAnalyze(services, matchData, detailedPrompt, 3);
+        // Detect sport from matchData where possible to allow multi-sport analysis
+        const detectedSport = (matchData && (matchData.sport || matchData.sportKey || matchData.sportName || matchData.sport_id || matchData.sportId)) || 'football';
+        const aiResult = await tryAiAnalyze(services, matchData, detailedPrompt, 3, detectedSport);
 
         // Log raw AI response shape for debugging in production
         try {

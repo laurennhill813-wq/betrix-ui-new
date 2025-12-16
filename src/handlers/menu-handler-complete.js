@@ -168,10 +168,10 @@ Get live odds, predictions, and analysis.
   
   reply_markup: {
     inline_keyboard: [
-      // Row 1: Live & Fixtures
+      // Row 1: Live & Sports selector
       [
-        { text: '⚽ Live Matches', callback_data: 'live_games' },
-        { text: '📅 Upcoming Fixtures', callback_data: 'menu_fixtures' }
+        { text: '▶ Live Matches', callback_data: 'live_games' },
+        { text: '📋 Sports', callback_data: 'sports' }
       ],
       // Row 2: Standings & News
       [
@@ -189,6 +189,7 @@ Get live odds, predictions, and analysis.
       ],
       // Row 5: Help
       [
+        { text: '📰 News', callback_data: 'news' },
         { text: '❓ Help & Support', callback_data: 'help' }
       ]
     ]
