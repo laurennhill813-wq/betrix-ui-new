@@ -126,6 +126,21 @@ class TelegramService {
   async getWebhookInfo() {
     return HttpClient.fetch(`${this.baseUrl}/getWebhookInfo`, { method: 'POST' }, 'getWebhookInfo');
   }
+
+  // Send a photo by URL with optional caption
+  async sendPhoto(chatId, photoUrl, caption = '', options = {}) {
+    const payload = Object.assign({ chat_id: chatId, photo: photoUrl, caption, parse_mode: options.parse_mode || 'Markdown' }, options);
+    try {
+      return await HttpClient.fetch(`${this.baseUrl}/sendPhoto`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }, `sendPhoto to ${chatId}`);
+    } catch (err) {
+      logger.error('sendPhoto failed', err);
+      throw err;
+    }
+  }
 }
 
 export { TelegramService };

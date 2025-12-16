@@ -56,6 +56,7 @@ import v2Handler from "./handlers/telegram-handler-v2-clean.js";
 import completeHandler from "./handlers/handler-complete.js";
 // SportMonks integration removed — stub out sportMonksAPI as null
 import SportsDataAPI from "./services/sportsdata-api.js";
+import ImageProvider from './services/image-provider.js';
 import { registerDataExposureAPI } from "./app_clean.js";
 import app from "./app_clean.js";
 import { runMediaAiTick } from './tickers/mediaAiTicker.js';
@@ -624,8 +625,15 @@ try {
     if (testChat) {
       (async () => {
         try {
-          // Use existing TelegramService instance to send a one-off verification message
-          await telegram.sendMessage(Number(testChat), "🚀 BETRIX TEST BROADCAST — If you see this, the channel wiring works.");
+          // Attempt to fetch a representative image and send as photo where possible
+          const caption = "🚀 BETRIX TEST BROADCAST — If you see this, the channel wiring works.";
+          const imageUrl = await ImageProvider.findImage({ q: 'betrix test broadcast' });
+          if (imageUrl) {
+            await telegram.sendPhoto(Number(testChat), imageUrl, caption, { disable_notification: true });
+          } else {
+            // Fallback to text-only broadcast
+            await telegram.sendMessage(Number(testChat), caption);
+          }
           logger.info('Startup test broadcast sent', { chat: testChat });
         } catch (err) {
           logger.error('Startup test broadcast failed', err && err.message ? err.message : String(err));
