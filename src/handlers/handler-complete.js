@@ -7,6 +7,7 @@
 import { Logger } from '../utils/logger.js';
 import { analyseFixtureWithBetrixx } from '../services/betrixx_analysis.js';
 import * as completeMenus from './menu-handler-complete.js';
+import { buildUpcomingFixtures } from '../utils/premium-ui-builder.js';
 import { createCustomPaymentOrder } from './payment-router.js';
 import lipana from '../lib/lipana-client.js';
 import { Pool } from 'pg';
@@ -346,7 +347,7 @@ export async function handleCallbackQuery(cq, redis, services) {
           // Determine page if provided: support callbacks like sport:football:upcoming:2
           const page = (parts.length >= 4) ? (parseInt(parts[3], 10) || 1) : 1;
           // Build a paginated upcoming fixtures view using the shared menu builder
-          const menu = completeMenus.buildUpcomingFixtures(upcoming, sport, 7, { showActions: true, userTier: 'FREE', page, pageSize: 20 });
+          const menu = buildUpcomingFixtures(upcoming, sport, 7, { showActions: true, userTier: 'FREE', page, pageSize: 20 });
 
           return {
             method: 'editMessageText',
