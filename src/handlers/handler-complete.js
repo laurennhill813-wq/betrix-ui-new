@@ -720,7 +720,9 @@ export async function handleCallbackQuery(cq, redis, services) {
         chat_id: chatId,
         message_id: messageId,
         text,
-        reply_markup: { inline_keyboard: [[{ text: '🔎 Analyse Fixture', callback_data: `analyseFixture:${fixture.id}` }, { text: '🔙 Back', callback_data: 'menu_fixtures' }]] },
+        // Provide a direct Analyze action that targets upcoming fixtures so
+        // the central `handleAnalyzeMatch` resolver can find scheduled matches.
+        reply_markup: { inline_keyboard: [[{ text: '🔎 Analyse Fixture', callback_data: `analyze_match_upcoming_${fixture.id}` }, { text: '🔙 Back', callback_data: 'menu_fixtures' }]] },
         parse_mode: 'Markdown'
       };
     }
