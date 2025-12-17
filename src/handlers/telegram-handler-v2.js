@@ -2,6 +2,8 @@
  * Minimal Telegram handler implementation
  */
 
+import { buildUpcomingFixtures } from '../utils/premium-ui-builder.js';
+
 // Note: temporary wide eslint-disable removed. We'll fix lint issues surgically below.
 /*
   Note: previous temporary file-scoped ESLint relaxations removed so we can
@@ -1023,6 +1025,34 @@ async function handleModCallback(data, chatId, userId, redis, services, callback
         return editPayload(text, keyboard);
       }
       case 'mod_fixtures': {
+        try {
+          // Try to fetch upcoming fixtures via services.sportsAggregator or prefetch cache
+          let fixtures = [];
+          if (services && services.sportsAggregator && typeof services.sportsAggregator.getFixtures === 'function') {
+            fixtures = await services.sportsAggregator.getFixtures().catch(() => []);
+          }
+
+          // fallback to prefetch cache
+          if ((!fixtures || fixtures.length === 0) && redis) {
+            try {
+              const cached = await redis.get('betrix:prefetch:upcoming:by-sport').catch(()=>null);
+              if (cached) {
+                const parsed = JSON.parse(cached);
+                fixtures = (parsed?.sports?.soccer?.samples) || [];
+              }
+            } catch (e) { /* ignore cache parse errors */ }
+          }
+
+          // Build display using premium UI helper (shows actions so users can Analyze/Odds/Fav)
+          const display = buildUpcomingFixtures(fixtures || [], 'All Leagues', 7, { showActions: true, userTier: 'FREE', page: 1, pageSize: 12 });
+          if (display && display.text) {
+            return editPayload(display.text, display.reply_markup || null, 'Markdown');
+          }
+        } catch (e) {
+          logger.warn('mod_fixtures handler failed', e?.message || e);
+        }
+
+        // Fallback UI if fetch/build fails
         const text = '📅 Upcoming Fixtures - choose a sport or view all upcoming matches.';
         const keyboard = { inline_keyboard: [ [ { text: 'Football - Upcoming', callback_data: 'sport:football:upcoming' } ], [ { text: '⬅️ Back', callback_data: 'back:start' } ] ] };
         return editPayload(text, keyboard);
