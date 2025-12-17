@@ -1298,8 +1298,31 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
       if (foundById) return foundById;
       // fuzzy match by home/away names
       const lower = String(token).toLowerCase();
-      return list.find(m => (String(m.home || m.homeTeam || m.home_name || (m.raw && (m.raw.home && m.raw.home.name)) || '').toLowerCase().includes(lower)) || (String(m.away || m.awayTeam || m.away_name || (m.raw && (m.raw.away && m.raw.away.name)) || '').toLowerCase().includes(lower)));
+      const fuzzy = list.find(m => (String(m.home || m.homeTeam || m.home_name || (m.raw && (m.raw.home && m.raw.home.name)) || '').toLowerCase().includes(lower)) || (String(m.away || m.awayTeam || m.away_name || (m.raw && (m.raw.away && m.raw.away.name)) || '').toLowerCase().includes(lower)));
+      if (fuzzy) return fuzzy;
+
+      // Handle underscore-joined tokens like 'Newcastle_Chelsea' or 'Home_Away'
+      try {
+        const decoded = decodeURIComponent(String(token));
+        const parts = decoded.split('_').map(p => p.trim()).filter(Boolean);
+        if (parts.length >= 2) {
+          const pair = list.find(m => {
+            const homeName = String(m.home || m.homeTeam || m.home_name || (m.raw && m.raw.home && m.raw.home.name) || '').toLowerCase();
+            const awayName = String(m.away || m.awayTeam || m.away_name || (m.raw && m.raw.away && m.raw.away.name) || '').toLowerCase();
+            const p0 = parts[0].toLowerCase();
+            const p1 = parts[1].toLowerCase();
+            // common case: first part matches home, second matches away
+            if ((homeName.includes(p0) && awayName.includes(p1)) || (homeName.includes(p1) && awayName.includes(p0))) return true;
+            // allow matching when all parts appear across the two names
+            return parts.every(p => homeName.includes(p.toLowerCase()) || awayName.includes(p.toLowerCase()));
+          });
+          if (pair) return pair;
+        }
+      } catch (e) { /* ignore decode errors */ }
+
+      return null;
     };
+
 
     // 1) If leagueToken indicates 'live' or omitted: try live matches first
     try {
