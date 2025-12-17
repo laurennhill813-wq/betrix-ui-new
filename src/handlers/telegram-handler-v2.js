@@ -785,6 +785,11 @@ export async function handleCallbackQuery(callbackQuery, redis, services) {
     }
 
     // Route callback
+    // New modular start-menu routing: handle mod_* callbacks from start menu
+    if (data && data.startsWith('mod_')) {
+      return handleModCallback(data, chatId, userId, redis, services, callbackQuery);
+    }
+
     if (data === 'menu_live') {
       // Special case: menu_live should show live matches, not sport selection
       return handleLiveMenuCallback(chatId, userId, redis, services);
@@ -987,6 +992,88 @@ async function handleMenuCallback(data, chatId, userId, redis) {
       reply_markup: menu.reply_markup,
       parse_mode: 'Markdown'
     };
+  }
+}
+
+/**
+ * Handle start-menu modular callbacks (mod_*)
+ * Returns a payload object similar to other handlers (editMessageText / sendMessage)
+ */
+async function handleModCallback(data, chatId, userId, redis, services, callbackQuery) {
+  try {
+    // simple helpers
+    const editPayload = (text, keyboard, parse_mode = 'Markdown') => ({ method: 'editMessageText', chat_id: chatId, message_id: undefined, text, reply_markup: keyboard, parse_mode });
+    const sendPayload = (text, keyboard, parse_mode = 'Markdown') => ({ method: 'sendMessage', chat_id: chatId, text, reply_markup: keyboard, parse_mode });
+
+    switch (data) {
+      case 'mod_sports_hub': {
+        const text = [
+          '⚽ BETRIX — Sports Hub',
+          '',
+          'Choose a sport:',
+          '',
+          '⚽ Football',
+          '🏀 Basketball',
+          '🏈 American Football',
+          '🎾 Tennis',
+          '🏒 Hockey',
+          '🎯 More Sports'
+        ].join('\n');
+        const keyboard = { inline_keyboard: [ [ { text: '⚽ Football', callback_data: 'sport:football' }, { text: '🏀 Basketball', callback_data: 'sport:basketball' } ], [ { text: '⬅️ Back', callback_data: 'back:start' } ] ] };
+        return editPayload(text, keyboard);
+      }
+      case 'mod_fixtures': {
+        const text = '📅 Upcoming Fixtures - choose a sport or view all upcoming matches.';
+        const keyboard = { inline_keyboard: [ [ { text: 'Football - Upcoming', callback_data: 'sport:football:upcoming' } ], [ { text: '⬅️ Back', callback_data: 'back:start' } ] ] };
+        return editPayload(text, keyboard);
+      }
+      case 'mod_live': {
+        const text = '📊 Live Center - showing live matches and quick actions.';
+        const keyboard = { inline_keyboard: [ [ { text: 'Show Live Football', callback_data: 'menu_live' } ], [ { text: '⬅️ Back', callback_data: 'back:start' } ] ] };
+        return editPayload(text, keyboard);
+      }
+      case 'mod_betting': {
+        const text = '📈 Betting Insights - value bets, market movers and daily picks.';
+        const keyboard = { inline_keyboard: [ [ { text: 'Value Bets', callback_data: 'betting:value' }, { text: 'Daily Picks', callback_data: 'betting:daily' } ], [ { text: '⬅️ Back', callback_data: 'back:start' } ] ] };
+        return editPayload(text, keyboard);
+      }
+      case 'mod_ai_chat': {
+        const text = '🤖 Talk to BETRIX AI - ask about matches, markets, or strategy. Type your question below.';
+        return editPayload(text, { inline_keyboard: [ [ { text: '⬅️ Back', callback_data: 'back:start' } ] ] });
+      }
+      case 'mod_news_tables': {
+        const text = '📰 News & Standings - latest headlines and league tables. Choose a league from the Sports Hub.';
+        return editPayload(text, { inline_keyboard: [ [ { text: '⬅️ Back', callback_data: 'back:start' } ] ] });
+      }
+      case 'mod_profile': {
+        const text = `👤 My Profile & Favorites\n\nUser: ${userId}`;
+        return editPayload(text, { inline_keyboard: [ [ { text: 'Manage Favorites', callback_data: 'profile_favorites' }, { text: 'Notifications', callback_data: 'profile_notifications' } ], [ { text: '⬅️ Back', callback_data: 'back:start' } ] ] });
+      }
+      case 'mod_vvip': {
+        const text = '💰 Upgrade to VVIP - unlock premium features, alerts and deeper analytics.';
+        return editPayload(text, { inline_keyboard: [ [ { text: 'View VVIP plans', callback_data: 'vvip_plans' } ], [ { text: '⬅️ Back', callback_data: 'back:start' } ] ] });
+      }
+      case 'mod_affiliate': {
+        const text = '🔗 Affiliate & Earnings - share BETRIX and earn rewards. Dashboard coming soon.';
+        return editPayload(text, { inline_keyboard: [ [ { text: 'View Dashboard', callback_data: 'affiliate_dashboard' } ], [ { text: '⬅️ Back', callback_data: 'back:start' } ] ] });
+      }
+      case 'mod_support': {
+        const text = '🆘 Help & Support - support channels, FAQs and contact options.';
+        return editPayload(text, { inline_keyboard: [ [ { text: 'Contact Support', callback_data: 'support_contact' } ], [ { text: '⬅️ Back', callback_data: 'back:start' } ] ] });
+      }
+      case 'back:start': {
+        // show start menu again
+        const text = buildStartMenuText();
+        return editPayload(text, startMenuKeyboard);
+      }
+      default: {
+        // fallback: send start menu
+        return editPayload(buildStartMenuText(), startMenuKeyboard);
+      }
+    }
+  } catch (e) {
+    logger.warn('handleModCallback failed', e?.message || e);
+    return { method: 'sendMessage', chat_id: chatId, text: '⚠️ Menu action failed. Try /start again.' };
   }
 }
 
