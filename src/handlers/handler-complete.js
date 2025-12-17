@@ -343,41 +343,17 @@ export async function handleCallbackQuery(cq, redis, services) {
             upcoming = [];
           }
 
-          // Build a simple upcoming fixtures view
-          let text = `🌀 *BETRIX* - Upcoming ${String(sport).toUpperCase()} Fixtures\n\n`;
-          if (!upcoming || upcoming.length === 0) {
-            text += `No upcoming ${sport} fixtures available. Try again later or ensure providers are configured.`;
-          } else {
-            const list = upcoming.slice(0, 12);
-            for (const f of list) {
-              const home = safeName(f.home);
-              const away = safeName(f.away);
-              let kickoff = 'TBA';
-              try { const d = f.kickoff || f.utcDate || f.date || f.time || f.starting_at; if (d) kickoff = (typeof d === 'number') ? new Date(d < 1e12 ? d * 1000 : d).toLocaleString() : new Date(d).toLocaleString(); } catch(e){}
-              text += `• ${home} vs ${away} — ${kickoff}\n`;
-            }
-          }
-
-          const keyboard = [];
-          if (Array.isArray(upcoming) && upcoming.length > 0) {
-            for (const f of upcoming.slice(0, 6)) {
-              const matchId = f.id || `${sport}_${String(Math.random()).slice(2,8)}`;
-              keyboard.push([{ text: `${safeName(f.home)} vs ${safeName(f.away)}`, callback_data: `match:${matchId}:${sport}` }]);
-            }
-          }
-
-          keyboard.push([
-            { text: '🔄 Refresh', callback_data: `sport:${sport}:upcoming` },
-            { text: '🏟 Pick Sport', callback_data: 'sports' }
-          ]);
-          keyboard.push([{ text: '🔙 Back', callback_data: 'menu_main' }]);
+          // Determine page if provided: support callbacks like sport:football:upcoming:2
+          const page = (parts.length >= 4) ? (parseInt(parts[3], 10) || 1) : 1;
+          // Build a paginated upcoming fixtures view using the shared menu builder
+          const menu = completeMenus.buildUpcomingFixtures(upcoming, sport, 7, { showActions: true, userTier: 'FREE', page, pageSize: 20 });
 
           return {
             method: 'editMessageText',
             chat_id: chatId,
             message_id: messageId,
-            text,
-            reply_markup: { inline_keyboard: keyboard },
+            text: menu.text,
+            reply_markup: menu.reply_markup,
             parse_mode: 'Markdown'
           };
         }

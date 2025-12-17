@@ -339,14 +339,13 @@ export function buildBetAnalysis(match, analysis = {}) {
 /**
  * Build fixtures/upcoming matches display
  */
-export function buildUpcomingFixtures(fixtures = [], league = '', daysBefore = 7, opts = { showActions: false, userTier: 'FREE' }) {
+export function buildUpcomingFixtures(fixtures = [], league = '', daysBefore = 7, opts = { showActions: false, userTier: 'FREE', page: 1, pageSize: 20 }) {
   if (!fixtures || fixtures.length === 0) {
     return { text: `📭 No upcoming fixtures in the next ${daysBefore} days.`, reply_markup: null };
   }
 
   // Ensure league header is a safe string (could be object from cache)
   const leagueLabel = safeName(league, 'All Leagues');
-  let display = `📅 *Upcoming Fixtures - ${leagueLabel}*\n\n`;
 
   const sorted = fixtures.sort((a, b) => {
     const timeA = new Date(a.date || a.time || 0).getTime();
@@ -354,11 +353,22 @@ export function buildUpcomingFixtures(fixtures = [], league = '', daysBefore = 7
     return timeA - timeB;
   });
 
+  const page = Number(opts.page || 1) || 1;
+  const pageSize = Number(opts.pageSize || 20) || 20;
+  const total = sorted.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+  const sliceStart = (currentPage - 1) * pageSize;
+  const pageMatches = sorted.slice(sliceStart, sliceStart + pageSize);
+
+  let display = `📅 *Upcoming Fixtures - ${leagueLabel}* — page ${currentPage}/${totalPages}\n\n`;
+
   const keyboard = [];
 
-  sorted.slice(0, 10).forEach((f, i) => {
-    let home = safeName(f.home || f.homeTeam || f.home_name || (f.raw && f.raw.home && f.raw.home.name), 'Home');
-    let away = safeName(f.away || f.awayTeam || f.away_name || (f.raw && f.raw.away && f.raw.away.name), 'Away');
+  pageMatches.forEach((f, i) => {
+    const idx = sliceStart + i + 1;
+    let home = safeName(f.home || f.homeTeam || f.home_name || (f.raw && f.raw.home && f.raw.home.name), 'TBA');
+    let away = safeName(f.away || f.awayTeam || f.away_name || (f.raw && f.raw.away && f.raw.away.name), 'TBA');
     if (!home) home = 'TBA';
     if (!away) away = 'TBA';
 
@@ -376,8 +386,7 @@ export function buildUpcomingFixtures(fixtures = [], league = '', daysBefore = 7
 
     if (opts.showActions) {
       // Build small action row for each fixture: Analyze (VVIP), Odds, Add to Fav
-      const matchId = f.id || f.fixtureId || encodeURIComponent(`${home.replace(/\s+/g,'_')}_${away.replace(/\s+/g,'_')}_${i+1}`);
-      const leagueId = league || (f.competition && (f.competition.id || f.competition)) || null;
+      const matchId = f.id || f.fixtureId || encodeURIComponent(`${home.replace(/\s+/g,'_')}_${away.replace(/\s+/g,'_')}_${idx}`);
       const actionRow = [];
       if (opts.userTier && opts.userTier !== 'FREE') {
         actionRow.push({ text: '🤖 Analyze', callback_data: `analyze_match_upcoming_${matchId}` });
@@ -388,7 +397,21 @@ export function buildUpcomingFixtures(fixtures = [], league = '', daysBefore = 7
     }
   });
 
-  return { text: display, reply_markup: opts.showActions ? { inline_keyboard: keyboard } : null };
+  // Navigation row
+  const navRow = [];
+  const sportKey = league || 'all';
+  if (currentPage > 1) navRow.push({ text: '◀ Prev', callback_data: `sport:${sportKey}:upcoming:${currentPage - 1}` });
+  navRow.push({ text: `🔄 Refresh`, callback_data: `sport:${sportKey}:upcoming:${currentPage}` });
+  if (currentPage < totalPages) navRow.push({ text: 'Next ▶', callback_data: `sport:${sportKey}:upcoming:${currentPage + 1}` });
+  if (navRow.length > 0) keyboard.push(navRow);
+
+  // Bottom actions
+  const bottomRow = [];
+  bottomRow.push({ text: '🏟 Pick Sport', callback_data: 'sports' });
+  bottomRow.push({ text: '🔙 Back', callback_data: 'menu_main' });
+  keyboard.push(bottomRow);
+
+  return { text: display, reply_markup: opts.showActions ? { inline_keyboard: keyboard } : { inline_keyboard: keyboard } };
 }
 
 /**
