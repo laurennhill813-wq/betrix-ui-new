@@ -230,6 +230,22 @@ export async function handleCallbackQuery(cq, redis, services) {
 
     logger.info(`Callback: ${data}`);
 
+    // Delegate analyze_match_ callbacks to the dedicated analyzer (telegram-handler-v2)
+    if (typeof data === 'string' && data.startsWith('analyze_match_')) {
+      try {
+        // dynamic import to avoid circular dependency at module load time
+        const mod = await import('./telegram-handler-v2.js');
+        if (mod && typeof mod.handleAnalyzeMatch === 'function') {
+          // user id of caller
+          const userId = cq.from && cq.from.id;
+          return await mod.handleAnalyzeMatch(data, chatId, userId, redis, services);
+        }
+      } catch (e) {
+        logger.warn('Delegating analyze_match_ to telegram-handler-v2 failed', e?.message || String(e));
+        return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Analysis unavailable', show_alert: false };
+      }
+    }
+
     // Normalize alias callbacks to the canonical analyseFixture handler
     // Some menus use `analysis:<id>` while the handler expects `analyseFixture:<id>`
     try {
