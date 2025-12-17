@@ -226,7 +226,7 @@ export async function handleCallbackQuery(cq, redis, services) {
 
     // Delegate modular start-menu callbacks and signup to the v2 handler
     try {
-      if (typeof data === 'string' && (data.startsWith('mod_') || data === 'signup_start' || data === 'mod_ai_chat')) {
+      if (typeof data === 'string' && (data.startsWith('mod_') || data === 'signup_start' || data === 'mod_ai_chat' || data.startsWith('signup_'))) {
         const mod = await import('./telegram-handler-v2.js');
         if (mod && typeof mod.handleCallbackQuery === 'function') {
           return await mod.handleCallbackQuery(cq, redis, services);
