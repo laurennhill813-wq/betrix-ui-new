@@ -1280,6 +1280,10 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
     try {
       logger.info('[handleAnalyzeMatch] tokens', { raw: String(data), leagueToken, matchToken, userId, chatId });
     } catch (e) { /* ignore logging failure */ }
+    // Always emit console-level telemetry so Render/host logs capture these events
+    try {
+      console.info('[handleAnalyzeMatch] tokens', JSON.stringify({ raw: String(data), leagueToken, matchToken, userId, chatId }));
+    } catch (e) { /* ignore */ }
 
     // Try multiple sources to locate the target match: live matches, upcoming fixtures
     let match = null;
@@ -1330,7 +1334,10 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
         const liveMatches = (typeof agg.getAllLiveMatches === 'function') ? await agg.getAllLiveMatches().catch(() => []) : [];
         logger.debug('[handleAnalyzeMatch] liveMatches count', { count: Array.isArray(liveMatches) ? liveMatches.length : 0 });
         match = resolveFromList(liveMatches, matchToken);
-        if (match) logger.info('[handleAnalyzeMatch] resolved from liveMatches', { id: match.id || match.fixtureId || null, home: safeNameOf(match.home), away: safeNameOf(match.away) });
+        if (match) {
+          logger.info('[handleAnalyzeMatch] resolved from liveMatches', { id: match.id || match.fixtureId || null, home: safeNameOf(match.home), away: safeNameOf(match.away) });
+          try { console.info('[handleAnalyzeMatch] resolved_from', JSON.stringify({ source: 'liveMatches', id: match.id || match.fixtureId || null, home: safeNameOf(match.home), away: safeNameOf(match.away) })); } catch (e) {}
+        }
       }
     } catch (e) {
       // continue to next fallback
@@ -1350,7 +1357,10 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
           logger.debug('[handleAnalyzeMatch] fixtures for league', { leagueId, count: Array.isArray(fixtures) ? fixtures.length : 0 });
         }
         match = resolveFromList(fixtures, matchToken);
-        if (match) logger.info('[handleAnalyzeMatch] resolved from league/fixtures', { token: leagueToken, id: match.id || match.fixtureId || null, home: safeNameOf(match.home), away: safeNameOf(match.away) });
+        if (match) {
+          logger.info('[handleAnalyzeMatch] resolved from league/fixtures', { token: leagueToken, id: match.id || match.fixtureId || null, home: safeNameOf(match.home), away: safeNameOf(match.away) });
+          try { console.info('[handleAnalyzeMatch] resolved_from', JSON.stringify({ source: 'league_fixtures', token: leagueToken, id: match.id || match.fixtureId || null, home: safeNameOf(match.home), away: safeNameOf(match.away) })); } catch (e) {}
+        }
       } catch (e) {
         // ignore and fallthrough
       }
@@ -1362,7 +1372,10 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
         const allFixtures = (typeof agg.getFixtures === 'function') ? await agg.getFixtures().catch(() => []) : [];
         logger.debug('[handleAnalyzeMatch] allFixtures count', { count: Array.isArray(allFixtures) ? allFixtures.length : 0 });
         match = resolveFromList(allFixtures, matchToken);
-        if (match) logger.info('[handleAnalyzeMatch] resolved from allFixtures', { id: match.id || match.fixtureId || null, home: safeNameOf(match.home), away: safeNameOf(match.away) });
+        if (match) {
+          logger.info('[handleAnalyzeMatch] resolved from allFixtures', { id: match.id || match.fixtureId || null, home: safeNameOf(match.home), away: safeNameOf(match.away) });
+          try { console.info('[handleAnalyzeMatch] resolved_from', JSON.stringify({ source: 'all_fixtures', id: match.id || match.fixtureId || null, home: safeNameOf(match.home), away: safeNameOf(match.away) })); } catch (e) {}
+        }
       } catch (e) {
         // ignore
       }
@@ -1376,7 +1389,10 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
         const localList = upcomingRes.items || [];
         logger.debug('[handleAnalyzeMatch] local staticList count', { count: Array.isArray(localList) ? localList.length : 0 });
         match = resolveFromList(localList, matchToken);
-        if (match) logger.info('[handleAnalyzeMatch] resolved from local static list', { id: match.id || match.fixtureId || null, home: safeNameOf(match.home), away: safeNameOf(match.away) });
+        if (match) {
+          logger.info('[handleAnalyzeMatch] resolved from local static list', { id: match.id || match.fixtureId || null, home: safeNameOf(match.home), away: safeNameOf(match.away) });
+          try { console.info('[handleAnalyzeMatch] resolved_from', JSON.stringify({ source: 'local_static', id: match.id || match.fixtureId || null, home: safeNameOf(match.home), away: safeNameOf(match.away) })); } catch (e) {}
+        }
       } catch (e) {
         // ignore
       }
@@ -1384,6 +1400,7 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
 
     if (!match) {
       logger.warn('[handleAnalyzeMatch] match not found', { token: matchToken, leagueToken });
+      try { console.info('[handleAnalyzeMatch] match_not_found', JSON.stringify({ token: matchToken, leagueToken })); } catch (e) {}
       return { method: 'sendMessage', chat_id: chatId, text: '⚠️ Match not found or not available for analysis.', parse_mode: 'Markdown' };
     }
 
@@ -1574,6 +1591,7 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
       // ignore structured block building errors
     }
 
+    try { console.info('[handleAnalyzeMatch] responding', JSON.stringify({ chatId, matchId: match.id || match.fixtureId || null, home: homeLabel, away: awayLabel })); } catch (e) {}
     return { method: 'editMessageText', chat_id: chatId, message_id: undefined, text: analysisText, parse_mode: 'Markdown' };
   } catch (e) {
     logger.error('handleAnalyzeMatch error', e);
