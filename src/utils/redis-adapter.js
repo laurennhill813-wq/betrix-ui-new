@@ -87,6 +87,13 @@ function createRedisAdapter(redis) {
         // fallback: load object, modify field, save
         const raw = await redis.get(k); const obj = raw ? JSON.parse(raw) : {}; obj[field] = (Number(obj[field] || 0) + Number(n)); await redis.set(k, JSON.stringify(obj)); return obj[field];
       },
+      // hincrby compatibility (many places call `hincrby` lowercase)
+      hincrby: async (k, field, n) => {
+        if (redis.hIncrBy) return redis.hIncrBy(k, field, n);
+        if (redis.hincrby) return redis.hincrby(k, field, n);
+        // fallback: load object, modify field, save
+        const raw = await redis.get(k); const obj = raw ? JSON.parse(raw) : {}; obj[field] = (Number(obj[field] || 0) + Number(n)); await redis.set(k, JSON.stringify(obj)); return obj[field];
+      },
       hget: async (k, field) => {
         if (redis.hGet) return redis.hGet(k, field);
         if (redis.hget) return redis.hget(k, field);
@@ -105,6 +112,44 @@ function createRedisAdapter(redis) {
     incr: (k) => (redis.incr ? redis.incr(k) : (async () => { const v = Number(await redis.get(k) || 0) + 1; await redis.set(k, String(v)); return v; })()),
     lpush: (k, v) => (redis.lPush ? redis.lPush(k, v) : (async () => { const raw = await redis.get(k); const arr = raw ? JSON.parse(raw) : []; arr.unshift(v); return redis.set(k, JSON.stringify(arr)); })()),
     lpop: (k) => (redis.lPop ? redis.lPop(k) : (redis.lpop ? redis.lpop(k) : (async () => { const raw = await redis.get(k); const arr = raw ? JSON.parse(raw) : []; const v = arr.shift(); await redis.set(k, JSON.stringify(arr)); return v === undefined ? null : v; })())),
+    // lrem compatibility
+    lrem: async (k, count, value) => {
+      if (redis.lRem) return redis.lRem(k, count, value);
+      if (redis.lrem) return redis.lrem(k, count, value);
+      // fallback: remove up to `count` occurrences (count behaviour similar to redis)
+      try {
+        const raw = await redis.get(k); const arr = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(arr)) return 0;
+        if (count === 0) {
+          const removed = arr.filter(x => x === value).length;
+          const kept = arr.filter(x => x !== value);
+          await redis.set(k, JSON.stringify(kept));
+          return removed;
+        }
+        let removed = 0;
+        const out = [];
+        if (count > 0) {
+          // remove first `count` occurrences
+          for (const item of arr) {
+            if (removed < count && item === value) { removed++; continue; }
+            out.push(item);
+          }
+        } else {
+          // count < 0: remove last `|count|` occurrences
+          const rev = arr.slice().reverse();
+          const keptRev = [];
+          for (const item of rev) {
+            if (removed < Math.abs(count) && item === value) { removed++; continue; }
+            keptRev.push(item);
+          }
+          out.push(...keptRev.reverse());
+        }
+        await redis.set(k, JSON.stringify(out));
+        return removed;
+      } catch (e) {
+        return 0;
+      }
+    },
     ltrim: (k, start, stop) => (redis.lTrim ? redis.lTrim(k, start, stop) : Promise.resolve('OK')),
     rpush: (k, v) => (redis.rPush ? redis.rPush(k, v) : (redis.rpush ? redis.rpush(k, v) : (async () => { const raw = await redis.get(k); const arr = raw ? JSON.parse(raw) : []; arr.push(v); return redis.set(k, JSON.stringify(arr)); })())),
     rPush: (k, v) => (redis.rPush ? redis.rPush(k, v) : (redis.rpush ? redis.rpush(k, v) : (async () => { const raw = await redis.get(k); const arr = raw ? JSON.parse(raw) : []; arr.push(v); return redis.set(k, JSON.stringify(arr)); })())),
