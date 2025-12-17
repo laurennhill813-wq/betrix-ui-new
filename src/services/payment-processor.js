@@ -1,8 +1,9 @@
 import { getRedis } from '../lib/redis-factory.js';
+import createRedisAdapter from '../utils/redis-adapter.js';
 import { Database } from './database.js';
 import { PayPalService } from './paypal.js';
 
-const redis = getRedis();
+const redis = createRedisAdapter(getRedis());
 
 export class PaymentProcessor {
   static async processPaymentJobs() {

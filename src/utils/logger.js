@@ -1,3 +1,29 @@
+function fmtLevel(level) {
+  return level.toUpperCase();
+}
+
+function safeSerial(obj) {
+  try { return typeof obj === 'string' ? obj : JSON.stringify(obj); } catch (e) { return String(obj); }
+}
+
+const logger = {
+  info: (msg, meta) => {
+    process.stdout.write(JSON.stringify({ ts: new Date().toISOString(), level: fmtLevel('info'), msg: String(msg), meta: meta ? JSON.parse(safeSerial(meta)) : undefined }) + '\n');
+  },
+  warn: (msg, meta) => {
+    process.stderr.write(JSON.stringify({ ts: new Date().toISOString(), level: fmtLevel('warn'), msg: String(msg), meta: meta ? JSON.parse(safeSerial(meta)) : undefined }) + '\n');
+  },
+  error: (msg, meta) => {
+    process.stderr.write(JSON.stringify({ ts: new Date().toISOString(), level: fmtLevel('error'), msg: String(msg), meta: meta ? JSON.parse(safeSerial(meta)) : undefined }) + '\n');
+  },
+  debug: (msg, meta) => {
+    if (process.env.DEBUG && process.env.DEBUG !== 'false') {
+      process.stdout.write(JSON.stringify({ ts: new Date().toISOString(), level: fmtLevel('debug'), msg: String(msg), meta: meta ? JSON.parse(safeSerial(meta)) : undefined }) + '\n');
+    }
+  }
+};
+
+export default logger;
 /**
  * Simple structured logger
  */

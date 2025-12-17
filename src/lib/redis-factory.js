@@ -186,3 +186,18 @@ export function getRedis(opts = {}) {
 
 // Export MockRedis so callers can explicitly create an in-memory fallback
 export { MockRedis };
+
+// Provide an adapter-wrapped client for application code that prefers a
+// stable, normalized Redis API surface. This uses the existing
+// utils/redis-adapter.js shim to adapt either MockRedis or a real client.
+import createRedisAdapter from '../utils/redis-adapter.js';
+
+export function getRedisAdapter(opts = {}) {
+  try {
+    const client = getRedis(opts);
+    return createRedisAdapter(client);
+  } catch (e) {
+    // If anything goes wrong, return an in-memory adapter fallback
+    return createRedisAdapter(null);
+  }
+}

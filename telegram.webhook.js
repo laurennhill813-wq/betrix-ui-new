@@ -6,7 +6,42 @@
 */
 const express = require('express');
 const bodyParser = require('body-parser');
-const { createClient } = require('redis');
+// Use centralized Redis adapter via dynamic ESM import for compatibility with CommonJS
+let redisClient = null;
+async function initRedisClient() {
+  try {
+    const mod = await import('./src/lib/redis-factory.js');
+    if (mod && typeof mod.getRedisAdapter === 'function') {
+      redisClient = mod.getRedisAdapter();
+      if (redisClient && typeof redisClient.connect === 'function') {
+        await redisClient.connect();
+      }
+      console.log('[telegram.webhook] Redis adapter initialized');
+      return;
+    }
+  } catch (e) {
+    console.warn('[telegram.webhook] Failed to load redis adapter, falling back to native client:', e && e.message);
+  }
+
+  // Last-resort: fall back to node-redis createClient
+  try {
+    const { createClient } = require('redis');
+    redisClient = createClient(parseRedisOptsFromEnv());
+    await redisClient.connect();
+  } catch (e) {
+    console.error('[telegram.webhook] Redis fallback failed', e && e.message);
+    redisClient = null;
+  }
+}
+
+// Minimal structured logger for CommonJS webhook file
+function wlog(level, msg, meta) {
+  const out = { ts: new Date().toISOString(), level, msg: typeof msg === 'string' ? msg : JSON.stringify(msg), meta };
+  const line = JSON.stringify(out);
+  if (level === 'ERROR' || level === 'WARN') process.stderr.write(line + '\n'); else process.stdout.write(line + '\n');
+}
+
+const logger = { info: (m, meta) => wlog('INFO', m, meta), warn: (m, meta) => wlog('WARN', m, meta), error: (m, meta) => wlog('ERROR', m, meta) };
 
 function parseRedisOptsFromEnv() {
   if (process.env.REDIS_URL) {
@@ -27,20 +62,19 @@ function parseRedisOptsFromEnv() {
 }
 
 const redisOpts = parseRedisOptsFromEnv();
-console.info('WEBHOOK_REDIS_OPTS', { host: redisOpts.socket.host, port: redisOpts.socket.port, tls: !!redisOpts.socket.tls, username: !!redisOpts.username, hasPassword: !!redisOpts.password });
-
-const redisClient = createClient(redisOpts);
-
-redisClient.on('error', (err) => {
-  console.error('WEBHOOK_REDIS_ERROR', err && err.message);
-});
+logger.info('WEBHOOK_REDIS_OPTS', { host: redisOpts.socket.host, port: redisOpts.socket.port, tls: !!redisOpts.socket.tls, username: !!redisOpts.username, hasPassword: !!redisOpts.password });
 
 (async () => {
   try {
-    await redisClient.connect();
-    console.info('WEBHOOK_REDIS_CONNECTED');
+    await initRedisClient();
+    if (!redisClient) {
+      logger.error('WEBHOOK_REDIS_CONNECT_FAILED', 'No redis client available');
+      // Crash so platform surfaces the failure
+      process.exit(1);
+    }
+    logger.info('WEBHOOK_REDIS_CONNECTED');
   } catch (err) {
-    console.error('WEBHOOK_REDIS_CONNECT_FAILED', err && err.message);
+    logger.error('WEBHOOK_REDIS_CONNECT_FAILED', err && err.message);
     // Crash so platform surfaces the failure
     process.exit(1);
   }
@@ -57,10 +91,10 @@ redisClient.on('error', (err) => {
       const incomingToken = req.params.token;
       const expected = process.env.TELEGRAM_TOKEN;
       if (!expected) {
-        console.warn('WEBHOOK_NO_TELEGRAM_TOKEN');
+        logger.warn('WEBHOOK_NO_TELEGRAM_TOKEN');
         // Accept but log; enqueue for inspection
       } else if (incomingToken !== expected) {
-        console.warn('WEBHOOK_TOKEN_MISMATCH', { received: !!incomingToken, expectedPresent: !!expected });
+        logger.warn('WEBHOOK_TOKEN_MISMATCH', { received: !!incomingToken, expectedPresent: !!expected });
         // Return 403 if token mismatches to avoid processing bad requests
         res.status(403).json({ ok: false, error: 'invalid token' });
         return;
@@ -80,20 +114,32 @@ redisClient.on('error', (err) => {
 
       // Non-blocking enqueue with safe logging
       try {
-        await redisClient.lPush('betrix-jobs', JSON.stringify(job));
-        console.info('WEBHOOK_ENQUEUED', { jobId: job.jobId, pendingHint: 'lPush' });
+        if (!redisClient) throw new Error('no redis client');
+        // Adapter may expose either `lPush` or `lpush`/`rpush` methods
+        if (typeof redisClient.lPush === 'function') {
+          await redisClient.lPush('betrix-jobs', JSON.stringify(job));
+        } else if (typeof redisClient.rpush === 'function') {
+          await redisClient.rpush('betrix-jobs', JSON.stringify(job));
+        } else if (typeof redisClient.rPush === 'function') {
+          await redisClient.rPush('betrix-jobs', JSON.stringify(job));
+        } else if (typeof redisClient.lpush === 'function') {
+          await redisClient.lpush('betrix-jobs', JSON.stringify(job));
+        } else {
+          throw new Error('redis client has no push method');
+        }
+        logger.info('WEBHOOK_ENQUEUED', { jobId: job.jobId, pendingHint: 'push' });
       } catch (err) {
-        console.error('WEBHOOK_ENQUEUE_FAILED', err && err.message, { jobId: job.jobId });
+        logger.error('WEBHOOK_ENQUEUE_FAILED', err && err.message, { jobId: job.jobId });
       }
     } catch (err) {
-      console.error('WEBHOOK_HANDLER_EXCEPTION', err && err.message);
+      logger.error('WEBHOOK_HANDLER_EXCEPTION', err && err.message);
       try { res.status(500).json({ ok: false }); } catch (_) { /* noop */ }
     }
   });
 
   const bindPort = Number(process.env.PORT) || 10000;
   app.listen(bindPort, () => {
-    console.info('WEBHOOK_LISTENING', { port: bindPort });
+    logger.info('WEBHOOK_LISTENING', { port: bindPort });
   });
 
 })();

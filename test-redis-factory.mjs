@@ -1,7 +1,7 @@
-import { getRedis, MockRedis } from './src/lib/redis-factory.js';
+import { getRedisAdapter, MockRedis } from './src/lib/redis-factory.js';
 async function test(){
   console.log('Creating fallback MockRedis via getRedis()...');
-  const r = getRedis({fallback:true});
+  const r = getRedisAdapter();
   console.log('Type:', typeof r);
   if (r instanceof MockRedis) console.log('Got MockRedis instance');
   console.log('Testing methods: set, get, expire, ttl, rpush, rpoplpush, brpoplpush, publish');

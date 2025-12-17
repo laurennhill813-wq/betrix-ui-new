@@ -7,6 +7,7 @@ import { upsertUser, createPayment, getUserById, getRecentPayments, getPaymentBy
 import { initiateStkPush, handleMpesaCallback } from './payments.js';
 import football, { setAggregator } from './football.js';
 import { getRedis } from '../../src/lib/redis-factory.js';
+import createRedisAdapter from '../utils/redis-adapter.js';
 import { SportsAggregator } from '../../src/services/sports-aggregator.js';
 import { handleFootballOdds } from './handlers/odds-football.js';
 import { handleBasketballOdds } from './handlers/odds-basketball.js';
@@ -14,7 +15,7 @@ import { handleDebugEvent } from './handlers/debug-event.js';
 import { handlePrefetchStatus } from './handlers/prefetch-status.js';
 
 // Initialize a SportsAggregator instance (shared Redis)
-const redisClient = getRedis();
+const redisClient = createRedisAdapter(getRedis());
 const sportsAgg = new SportsAggregator(redisClient);
 setAggregator(sportsAgg);
 

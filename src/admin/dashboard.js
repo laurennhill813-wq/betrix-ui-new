@@ -4,12 +4,14 @@
  */
 
 import { Logger } from "../utils/logger.js";
+import { getRedisAdapter } from '../lib/redis-factory.js';
 
 const logger = new Logger("AdminDashboard");
 
 class AdminDashboard {
   constructor(redis, telegram, analyticsService) {
-    this.redis = redis;
+    // Accept injected redis-like client or fall back to centralized adapter
+    this.redis = redis || getRedisAdapter();
     this.telegram = telegram;
     this.analytics = analyticsService;
   }

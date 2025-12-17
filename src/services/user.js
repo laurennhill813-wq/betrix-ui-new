@@ -5,12 +5,13 @@
 
 import { Logger } from "../utils/logger.js";
 import { CONFIG } from "../config.js";
+import createRedisAdapter from '../utils/redis-adapter.js';
 
 const logger = new Logger("UserService");
 
 class UserService {
   constructor(redis) {
-    this.redis = redis;
+    this.redis = createRedisAdapter(redis);
   }
 
   /**

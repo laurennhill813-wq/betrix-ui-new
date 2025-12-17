@@ -1,19 +1,14 @@
 import fetch from 'node-fetch';
-import Redis from 'ioredis';
+import { getRedisAdapter } from './src/lib/redis-factory.js';
 
-// Prefer explicit REDIS_URL env; fallback to localhost if not provided.
-const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-const redis = new Redis(redisUrl);
-
-// Attach an error handler so `ioredis` errors do not become unhandled events.
-redis.on('error', (err) => {
-  try {
-    const msg = err && err.message ? err.message : String(err);
-    console.error('[ioredis] Error event:', msg);
-  } catch (e) {
-    console.error('[ioredis] Error event (unable to stringify):', e);
-  }
-});
+// Use centralized Redis adapter (supports in-memory fallback for tests)
+const redis = getRedisAdapter();
+try { if (typeof redis.connect === 'function') await redis.connect(); } catch (_) {}
+if (redis && typeof redis.on === 'function') {
+  redis.on('error', err => {
+    try { const msg = err && err.message ? err.message : String(err); console.error('[redis] Error event:', msg); } catch (e) { console.error('[redis] Error event (stringify failed)', e); }
+  });
+}
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
 

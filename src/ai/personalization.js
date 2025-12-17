@@ -1,6 +1,7 @@
 import { getRedis } from '../lib/redis-factory.js';
+import createRedisAdapter from '../utils/redis-adapter.js';
 
-const redis = getRedis();
+const redis = createRedisAdapter(getRedis());
 
 export async function setFavoriteTeams(userId, teams = []) {
   try {

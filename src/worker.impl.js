@@ -1,12 +1,24 @@
 ﻿/* Minimal safe worker.impl.js - BRPOP loop and logging */
-const Redis = require('redis');
-
 async function main() {
   try {
-    const url = process.env.REDIS_URL || undefined;
-    const client = Redis.createClient({ url });
-    client.on('error', (e) => console.error('redis-err', e && (e.stack||e.message||String(e))));
-    await client.connect();
+    // Prefer centralized adapter when available
+    let client = null;
+    try {
+      const mod = await import('../src/lib/redis-factory.js');
+      if (mod && typeof mod.getRedisAdapter === 'function') {
+        client = mod.getRedisAdapter();
+        try { if (typeof client.connect === 'function') await client.connect(); } catch(_) {}
+      }
+    } catch (_) {}
+
+    if (!client) {
+      // fallback to node-redis
+      const Redis = require('redis');
+      const url = process.env.REDIS_URL || undefined;
+      client = Redis.createClient({ url });
+      client.on('error', (e) => console.error('redis-err', e && (e.stack||e.message||String(e))));
+      await client.connect();
+    }
     console.info('FALLBACK_WORKER_STARTED', { ts: new Date().toISOString(), redis: !!url });
 
     while (true) {

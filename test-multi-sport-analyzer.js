@@ -5,12 +5,13 @@
  * Tests all sports and betting markets
  */
 
-import Redis from 'ioredis';
+import { getRedisAdapter } from './src/lib/redis-factory.js';
 import { SportsAggregator } from './src/services/sports-aggregator.js';
 import { MultiSportAnalyzer } from './src/services/multi-sport-analyzer.js';
 import { CONFIG } from './src/config.js';
 
-const redis = new Redis(CONFIG.REDIS_URL || process.env.REDIS_URL || 'redis://localhost:6379');
+const redis = getRedisAdapter();
+try { if (typeof redis.connect === 'function') await redis.connect(); } catch (_) {}
 const sportsAggregator = new SportsAggregator(redis);
 const multiSportAnalyzer = new MultiSportAnalyzer(redis, sportsAggregator, null);
 

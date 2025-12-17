@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import { Pool } from 'pg';
 import DataExposureHandler from './handlers/data-exposure-handler.js';
 import { getRedis, MockRedis } from './lib/redis-factory.js';
+import createRedisAdapter from './utils/redis-adapter.js';
 import { register } from './utils/metrics.js';
 
 process.env.PGSSLMODE = process.env.PGSSLMODE || 'require';
@@ -54,9 +55,9 @@ const TELEGRAM_WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || null;
 
 let webhookRedis;
 try {
-  webhookRedis = getRedis();
+  webhookRedis = createRedisAdapter(getRedis());
 } catch (e) {
-  try { webhookRedis = new MockRedis(); } catch(_){ webhookRedis = null; }
+  try { webhookRedis = createRedisAdapter(new MockRedis()); } catch(_){ webhookRedis = null; }
 }
 
 app.post('/webhook', async (req, res) => {

@@ -4,12 +4,13 @@
  */
 
 import { Logger } from "../utils/logger.js";
+import createRedisAdapter from '../utils/redis-adapter.js';
 
 const logger = new Logger("Premium");
 
 class PremiumService {
   constructor(redis, gemini) {
-    this.redis = redis;
+    this.redis = createRedisAdapter(redis);
     this.gemini = gemini;
   }
 

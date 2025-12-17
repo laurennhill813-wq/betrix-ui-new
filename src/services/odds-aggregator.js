@@ -1,4 +1,4 @@
-import Redis from 'ioredis';
+import { getRedisAdapter } from '../lib/redis-factory.js';
 import { mapIsportsOdds } from './mappers/isports-mapper.js';
 // SportMonks removed — do not import mapping
 import { mapSgoOdds } from './mappers/sgo-mapper.js';
@@ -6,7 +6,8 @@ import { mapFootballDataFixtures } from './mappers/footballdata-mapper.js';
 import { mapOpenLigaMatches } from './mappers/openligadb-mapper.js';
 import { computeConsensusForEvent } from './fair-odds-engine.js';
 
-const redis = new Redis(process.env.REDIS_URL);
+const redis = getRedisAdapter();
+try { if (typeof redis.connect === 'function') await redis.connect(); } catch (_) {}
 
 export async function getUnifiedOddsWithFair({ sport = 'football', league = 'nfl' } = {}) {
   const [isportsRaw, sgoRaw] = await Promise.all([
@@ -24,8 +25,9 @@ export async function getUnifiedOddsWithFair({ sport = 'football', league = 'nfl
   // Fallback: load raw fixtures if SportMonks not available or payload invalid
   let fromFallback = [];
   if (!sportmonksHasData) {
-    // Use a fresh Redis client here to avoid any module-level connection issues
-    const localRedis = new Redis(process.env.REDIS_URL);
+    // Use a fresh Redis adapter here to avoid any module-level connection issues
+    const localRedis = getRedisAdapter();
+    try { if (typeof localRedis.connect === 'function') await localRedis.connect(); } catch (_) {}
     try {
       const fdKeys = await localRedis.keys('raw:fixtures:footballdata:*');
       console.log('found footballdata keys in aggregator (localRedis):', fdKeys.length);
@@ -52,7 +54,7 @@ export async function getUnifiedOddsWithFair({ sport = 'football', league = 'nfl
       }
     } catch (e) { console.warn('fallback openliga error', e && e.message); }
 
-    try { await localRedis.quit(); } catch (_) {}
+    try { if (typeof localRedis.quit === 'function') await localRedis.quit(); } catch (_) {}
   }
 
   const all = [...fromIsports, ...fromSportmonks, ...fromSgo, ...fromFallback];

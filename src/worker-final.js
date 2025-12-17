@@ -21,6 +21,7 @@ if (fs.existsSync(envLocalPath)) {
 
 import Redis from "ioredis";
 import { getRedis, MockRedis } from "./lib/redis-factory.js";
+import createRedisAdapter from './utils/redis-adapter.js';
 import { CONFIG, validateConfig } from "./config.js";
 import { Logger } from "./utils/logger.js";
 import { TelegramService } from "./services/telegram.js";
@@ -114,23 +115,23 @@ let redis;
 try {
   // getRedis will return a MockRedis when REDIS_URL is not set. If a REDIS_URL
   // is set but authentication fails (NOAUTH), we'll detect it via ping()
-  redis = getRedis();
+  redis = createRedisAdapter(getRedis());
   try {
     // test connectivity; if this throws (NOAUTH etc.) we fallback
     if (typeof redis.ping === 'function') await redis.ping();
     logger.info("✅ Redis connected (factory)");
-  } catch (err) {
+    } catch (err) {
     const msg = String(err?.message || err);
     if (msg.includes('NOAUTH')) {
       logger.warn('⚠️ Redis authentication failed (NOAUTH). Falling back to in-memory MockRedis for local dev');
     } else {
       logger.warn('⚠️ Redis ping failed, using in-memory MockRedis for local dev', msg);
     }
-    redis = new MockRedis();
+    redis = createRedisAdapter(new MockRedis());
   }
 } catch (e) {
   logger.warn('⚠️ Redis initialization failed, using in-memory MockRedis', e?.message || String(e));
-  redis = new MockRedis();
+  redis = createRedisAdapter(new MockRedis());
 }
 
 // attach a safe error handler to avoid unhandled errors

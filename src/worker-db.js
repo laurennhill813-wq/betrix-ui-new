@@ -5,7 +5,8 @@
  * Complete integration with PostgreSQL, Redis, Bull queues
  */
 
-import Redis from "ioredis";
+import createRedisAdapter from './utils/redis-adapter.js';
+import { getRedisAdapter } from './lib/redis-factory.js';
 import { CONFIG, validateConfig } from "./config.js";
 import { Logger } from "./utils/logger.js";
 import { db } from "./database/db.js";
@@ -39,10 +40,15 @@ try {
   process.exit(1);
 }
 
-// Initialize Redis
-const redis = new Redis(CONFIG.REDIS_URL);
-redis.on("connect", () => logger.info("✅ Redis connected"));
-redis.on("error", (err) => logger.error("Redis error", err));
+// Initialize Redis (central adapter)
+const redis = getRedisAdapter();
+if (redis && typeof redis.on === 'function') {
+  redis.on("connect", () => logger.info("✅ Redis connected"));
+  redis.on("error", (err) => logger.error("Redis error", err));
+} else {
+  logger.info('Redis adapter initialized for DB worker');
+}
+const redisAdapter = typeof createRedisAdapter === 'function' ? createRedisAdapter(redis) : redis;
 
 // Initialize services
 const telegram = new TelegramService(CONFIG.TELEGRAM_TOKEN);
@@ -74,7 +80,7 @@ async function main() {
 
   while (true) {
     try {
-      const update = await redis.lpop("telegram:updates");
+      const update = await redisAdapter.lpop("telegram:updates");
       if (!update) {
         await new Promise((r) => setTimeout(r, 100));
         continue;
@@ -132,7 +138,7 @@ function parseCommand(text) {
 async function startSignup(chatId, userId) {
   const text = I18n.get("welcome") + "\n\nWhat's your name?";
   await telegram.sendMessage(chatId, text);
-  await redis.setex(`signup:${userId}:state`, 300, "name");
+  await redisAdapter.setex(`signup:${userId}:state`, 300, "name");
 }
 
 async function handlePhoneVerification(chatId, userId, code) {

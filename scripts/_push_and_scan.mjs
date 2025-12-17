@@ -19,8 +19,8 @@ if (fs.existsSync(envPath)) {
   console.log('.env.local not found, relying on existing env');
 }
 
-import Redis from 'ioredis';
-const r = new Redis(process.env.REDIS_URL);
+import { getRedisAdapter } from '../src/lib/redis-factory.js';
+const r = getRedisAdapter();
 (async () => {
   try {
     const payload = { message: { text: '[auto-index test] ping', from: { id: 999999, username: 'testbot' }, chat: { id: 999999 } } };

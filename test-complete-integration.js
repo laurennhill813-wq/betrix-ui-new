@@ -5,7 +5,7 @@
  * Tests: Branding, Signup Flow, Payment System, Live Games, Odds, Tier Gating
  */
 
-import Redis from 'ioredis';
+import { getRedisAdapter } from './src/lib/redis-factory.js';
 import { Logger } from './src/utils/logger.js';
 import { TIERS, getUserSubscription } from './src/handlers/payment-handler.js';
 import { PAYMENT_PROVIDERS, getTierPrice, parseTransactionMessage } from './src/handlers/payment-router.js';
@@ -13,7 +13,8 @@ import * as v2Handler from './src/handlers/telegram-handler-v2.js';
 import { mainMenu, subscriptionMenu, welcomeNewUser, welcomeReturningUser } from './src/handlers/menu-handler.js';
 
 const logger = new Logger('IntegrationTest');
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const redis = getRedisAdapter();
+try { if (typeof redis.connect === 'function') await redis.connect(); } catch (_) {}
 
 let testsPassed = 0;
 let testsFailed = 0;
@@ -199,7 +200,7 @@ async function runTests() {
     logger.warn('Cleanup failed', e);
   }
 
-  await redis.quit();
+  try { if (typeof redis.quit === 'function') await redis.quit(); } catch(_) {}
 
   process.exit(testsFailed > 0 ? 1 : 0);
 }

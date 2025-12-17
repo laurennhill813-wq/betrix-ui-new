@@ -3,12 +3,13 @@
  */
 
 import { getRedditHeadlines } from './src/services/news-provider-enhanced.js';
-import Redis from 'ioredis';
+import { getRedisAdapter } from './src/lib/redis-factory.js';
 
 (async () => {
   console.log('=== Admin Toggle + Health Dashboard + Reddit Enhancements Tests ===\n');
 
-  const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+  const redis = getRedisAdapter();
+  try { if (typeof redis.connect === 'function') await redis.connect(); } catch (_) {}
 
   try {
     // Test 1: Provider toggle simulation

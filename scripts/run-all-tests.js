@@ -4,6 +4,41 @@ import { spawnSync } from 'child_process';
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
+// Diagnostic listeners to trace unexpected exits and rejections
+process.on('beforeExit', code => {
+  console.error('DBG beforeExit code=', code);
+});
+process.on('exit', code => {
+  try {
+    // show a small stack so we can see who's calling exit if any
+    const s = new Error('stack').stack;
+    console.error('DBG exit code=', code, '\nstack:\n', s);
+  } catch (e) {
+    console.error('DBG exit code=', code);
+  }
+});
+process.on('uncaughtException', err => {
+  console.error('DBG uncaughtException', err && err.stack ? err.stack : err);
+});
+process.on('unhandledRejection', (r) => {
+  console.error('DBG unhandledRejection', r);
+});
+
+// Intercept direct process.exit calls to log callsite
+try {
+  const _realExit = process.exit;
+  process.exit = function (code) {
+    try {
+      console.error('DBG process.exit called with code=', code, '\ncallstack:\n', new Error().stack);
+    } catch (e) {
+      console.error('DBG process.exit called with code=', code);
+    }
+    return _realExit.call(process, code);
+  };
+} catch (e) {
+  // ignore
+}
+
 function findTestFiles(dir) {
   const out = [];
   try {
@@ -89,8 +124,15 @@ async function main() {
     const args = ['--test', '--test-reporter=spec', ...nodeTestFiles];
     console.log('Debug: nodeFiles count:', nodeTestFiles.length);
     console.log('Debug: node args:', args);
-    const r = spawnSync('node', args, { stdio: 'inherit' });
+    let r = spawnSync('node', args, { stdio: 'inherit' });
     console.log('Node built-in process result:', { status: r.status, signal: r.signal, error: r.error ? String(r.error) : null });
+    // If the child failed, re-run it capturing output for diagnostics
+    if ((r.status !== 0) || r.error) {
+      console.error('Node built-in tests returned non-zero; capturing output for diagnosis...');
+      r = spawnSync('node', args, { stdio: 'pipe', encoding: 'utf8' });
+      console.error('--- Captured stdout ---\n', r.stdout || '(none)');
+      console.error('--- Captured stderr ---\n', r.stderr || '(none)');
+    }
     // Prefer explicit numeric status if available, otherwise treat errors as exit code 1
     nodeExit = (r.status !== null && r.status !== undefined) ? r.status : (r.error ? 1 : 0);
   } else {
@@ -103,8 +145,15 @@ async function main() {
     console.log('Debug: node script count:', nodeScriptFiles.length);
     for (const f of nodeScriptFiles) {
       console.log('Running script:', f);
-      const r = spawnSync(process.execPath, [f], { stdio: 'inherit' });
+      let r = spawnSync(process.execPath, [f], { stdio: 'inherit' });
       console.log('Script result for', f, ':', { status: r.status, signal: r.signal, error: r.error ? String(r.error) : null });
+      // Re-run with captured output if it failed
+      if ((r.status !== 0) || r.error) {
+        console.error('Script returned non-zero; capturing output for', f);
+        r = spawnSync(process.execPath, [f], { stdio: 'pipe', encoding: 'utf8' });
+        console.error('--- Captured stdout for', f, '---\n', r.stdout || '(none)');
+        console.error('--- Captured stderr for', f, '---\n', r.stderr || '(none)');
+      }
       const scriptExit = (r.status !== null && r.status !== undefined) ? r.status : (r.error ? 1 : 0);
       if (scriptExit !== 0) {
         nodeExit = scriptExit;
@@ -122,8 +171,14 @@ async function main() {
     // Ensure Jest runs with ESM support in CI
     const jestEnv = { ...process.env, NODE_OPTIONS: '--experimental-vm-modules' };
     console.log('Debug: NODE_OPTIONS for jest:', jestEnv.NODE_OPTIONS);
-    const r = spawnSync('npx', args, { stdio: 'inherit', env: jestEnv });
+    let r = spawnSync('npx', args, { stdio: 'inherit', env: jestEnv });
     console.log('Jest process result:', { status: r.status, signal: r.signal, error: r.error ? String(r.error) : null });
+    if ((r.status !== 0) || r.error) {
+      console.error('Jest returned non-zero; capturing output for diagnosis...');
+      r = spawnSync('npx', args, { stdio: 'pipe', encoding: 'utf8', env: jestEnv });
+      console.error('--- Captured stdout (jest) ---\n', r.stdout || '(none)');
+      console.error('--- Captured stderr (jest) ---\n', r.stderr || '(none)');
+    }
     jestExit = (r.status !== null && r.status !== undefined) ? r.status : (r.error ? 1 : 0);
   } else {
     console.log('No Jest-style files found.');

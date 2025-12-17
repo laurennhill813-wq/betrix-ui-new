@@ -5,6 +5,7 @@
 
 import { Logger } from '../utils/logger.js';
 import safeName from './safe-name.js';
+import { getRedisAdapter } from '../lib/redis-factory.js';
 
 const logger = new Logger('FixturesManager');
 
@@ -13,7 +14,8 @@ const logger = new Logger('FixturesManager');
  */
 export class FixturesManager {
   constructor(redis) {
-    this.redis = redis;
+    // Use provided redis-like client or fall back to centralized adapter
+    this.redis = redis || getRedisAdapter();
     this.fixtures = new Map();
     this.leagueCache = new Map();
   }

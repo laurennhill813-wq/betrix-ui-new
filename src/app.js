@@ -6,6 +6,7 @@ import path from 'path';
 import os from 'os';
 import { Pool } from 'pg';
 import { createClient } from 'redis';
+import createRedisAdapter from './utils/redis-adapter.js';
 
 import createAdminRouter from './routes/admin.js';
 import createWebhooksRouter from './routes/webhooks.js';
@@ -103,7 +104,9 @@ if (redisUrl) {
     redisClient.on('error', (err) => safeLog('Redis error:', err?.message || String(err)));
   } catch (e) { safeLog('Failed to create Redis client:', e?.message || String(e)); redisClient = null; }
 } else { safeLog('REDIS_URL not set; skipping Redis client initialization'); }
-app.locals.redis = redisClient;
+// Expose both the raw client for lifecycle ops and an adapter for application code
+app.locals.rawRedis = redisClient;
+app.locals.redis = createRedisAdapter(redisClient);
 
 // Helper to attempt async operation with retries
 async function withRetries(fn, { attempts = 3, delayMs = 500 } = {}) {
@@ -133,17 +136,18 @@ async function initServices({ pgAttempts = 4, redisAttempts = 3, timeoutMs = 200
   }
 
   // Test Redis connectivity if a client was created
-  if (app.locals.redis) {
+  if (app.locals.rawRedis) {
     try {
       await withRetries(async () => {
-        if (!app.locals.redis.isOpen) await app.locals.redis.connect();
-        const p = await app.locals.redis.ping();
+        if (!app.locals.rawRedis.isOpen) await app.locals.rawRedis.connect();
+        const p = await app.locals.rawRedis.ping();
         safeLog('Redis ping OK:', p);
       }, { attempts: redisAttempts, delayMs: 800 });
     } catch (e) {
       safeLog('Redis verification failed:', e?.message || String(e));
-      try { if (app.locals.redis && app.locals.redis.disconnect) await app.locals.redis.disconnect(); } catch (_) { /* ignore */ }
-      app.locals.redis = null;
+      try { if (app.locals.rawRedis && app.locals.rawRedis.disconnect) await app.locals.rawRedis.disconnect(); } catch (_) { /* ignore */ }
+      app.locals.rawRedis = null;
+      app.locals.redis = createRedisAdapter(null);
     }
   }
 

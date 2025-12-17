@@ -1,4 +1,5 @@
 import { createClient } from 'redis';
+import createRedisAdapter from '../utils/redis-adapter.js';
 
 let client = null;
 let fallbackStore = new Map();
@@ -105,5 +106,7 @@ export async function getRaw(key) {
 // non-cache operations such as pushing to lists. Returns `null` if no
 // `REDIS_URL` configured so callers can gracefully fall back.
 export function getRedisClient() {
-  return getClient();
+  const c = getClient();
+  if (!c) return null;
+  try { return createRedisAdapter(c); } catch (e) { return c; }
 }

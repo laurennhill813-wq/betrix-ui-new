@@ -5,7 +5,7 @@
  * Full integration with tier-aware handlers and UI
  */
 
-import Redis from "ioredis";
+import { getRedisAdapter } from './lib/redis-factory.js';
 import { CONFIG, validateConfig } from "./config.js";
 import { Logger } from "./utils/logger.js";
 import { TelegramService } from "./services/telegram.js";
@@ -35,9 +35,7 @@ try {
   process.exit(1);
 }
 
-const redis = new Redis(CONFIG.REDIS_URL);
-redis.on("error", err => logger.error("Redis error", err));
-redis.on("connect", () => logger.info("✅ Redis connected"));
+const redis = getRedisAdapter();
 
 // Initialize all services
 const telegram = new TelegramService(CONFIG.TELEGRAM_TOKEN, CONFIG.TELEGRAM.SAFE_CHUNK);

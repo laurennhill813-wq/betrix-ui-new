@@ -1,7 +1,8 @@
 import { getRedis } from '../lib/redis-factory.js';
+import createRedisAdapter from '../utils/redis-adapter.js';
 
 export class AdminService {
-  static redis = getRedis();
+  static redis = createRedisAdapter(getRedis());
   static ADMIN_IDS = (process.env.ADMIN_TELEGRAM_ID || '').split(',').map(id => parseInt(id.trim())).filter(Boolean);
 
   static isAdmin(telegramId) {

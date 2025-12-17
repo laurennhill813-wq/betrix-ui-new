@@ -1,4 +1,5 @@
 import { getRedis } from '../lib/redis-factory.js';
+import createRedisAdapter from '../utils/redis-adapter.js';
 import { Pool } from 'pg';
 import fetch from 'node-fetch';
 import { getNewsHeadlines } from './news-provider-enhanced.js';
@@ -12,7 +13,7 @@ const REDIS_KEY = 'news:latest';
 const REDIS_TTL = 60 * 60; // 1 hour
 
 export async function fetchAndStoreHeadlines({ query = 'football', max = 10 } = {}) {
-  const redis = getRedis();
+  const redis = createRedisAdapter(getRedis());
   const items = await getNewsHeadlines({ query, max });
 
   // Normalize items
@@ -65,7 +66,7 @@ export async function fetchAndStoreHeadlines({ query = 'football', max = 10 } = 
           if (String(last || '') !== String(top)) {
             const msg = { ts: new Date().toISOString(), type: 'news_headline', title: normalized[0].title, link: normalized[0].link };
             // push to outgoing telegram queue (bot consumes this)
-            try { await redis.rpush('outgoing:telegram', JSON.stringify(msg)); } catch(_) { /* ignore */ }
+            try { await redis.lpush('outgoing:telegram', JSON.stringify(msg)); } catch(_) { /* ignore */ }
             await redis.set('news:last-pushed', String(top));
           }
         } catch (e) { /* ignore publish failures */ }
@@ -79,7 +80,7 @@ export async function fetchAndStoreHeadlines({ query = 'football', max = 10 } = 
 }
 
 export async function getCachedHeadlines({ max = 10 } = {}) {
-  const redis = getRedis();
+  const redis = createRedisAdapter(getRedis());
   try {
     if (redis) {
       const txt = await redis.get(REDIS_KEY);

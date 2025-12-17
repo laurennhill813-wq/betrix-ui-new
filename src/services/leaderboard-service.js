@@ -4,12 +4,13 @@
  */
 
 import { Logger } from "../utils/logger.js";
+import createRedisAdapter from '../utils/redis-adapter.js';
 
 const logger = new Logger("Leaderboard");
 
 class LeaderboardService {
   constructor(redis) {
-    this.redis = redis;
+    this.redis = createRedisAdapter(redis);
   }
 
   /**

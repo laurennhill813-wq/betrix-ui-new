@@ -4,12 +4,14 @@
  */
 
 import { Logger } from '../utils/logger.js';
+import createRedisAdapter from './redis-adapter.js';
 
 const logger = new Logger('PerformanceOptimizer');
 
 export class PerformanceOptimizer {
   constructor(redis) {
     this.redis = redis;
+    this.redisAdapter = createRedisAdapter(redis);
     this.localCache = new Map();
     this.metrics = {
       cacheHits: 0,
@@ -59,8 +61,8 @@ export class PerformanceOptimizer {
 
       // Store in both caches
       this.localCache.set(key, { value, expiry: Date.now() + ttlSeconds * 1000 });
-      if (this.redis) {
-        await this.redis.setex(key, ttlSeconds, JSON.stringify(value)).catch(() => {});
+      if (this.redisAdapter) {
+        await this.redisAdapter.setex(key, ttlSeconds, JSON.stringify(value)).catch(() => {});
       }
 
       return value;
@@ -204,12 +206,12 @@ export class PerformanceOptimizer {
   async clearCaches() {
     try {
       this.localCache.clear();
-      if (this.redis) {
+      if (this.redisAdapter) {
         // Clear BETRIX-related keys
         const pattern = 'betrix:*';
-        const keys = await this.redis.keys(pattern).catch(() => []);
+        const keys = await this.redisAdapter.keys(pattern).catch(() => []);
         if (keys.length > 0) {
-          await this.redis.del(...keys).catch(() => {});
+          await this.redisAdapter.del(...keys).catch(() => {});
         }
       }
       logger.info('Caches cleared');

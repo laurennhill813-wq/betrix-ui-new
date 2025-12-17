@@ -1,4 +1,5 @@
 import { getRedis } from '../../lib/redis-factory.js';
+import createRedisAdapter from '../../utils/redis-adapter.js';
 
 const ADMIN_IDS = (process.env.TELEGRAM_ADMINS || '').split(',').filter(Boolean);
 
@@ -6,7 +7,7 @@ export async function handlePrefetchStatus(ctx) {
   const userId = String(ctx.from.id);
   if (!ADMIN_IDS.includes(userId)) return ctx.reply('Not authorized.');
 
-  const redis = getRedis();
+  const redis = createRedisAdapter(getRedis());
   try {
     const failures = await redis.keys('prefetch:failures:*');
     const oddsKeys = await redis.keys('*:odds:*');

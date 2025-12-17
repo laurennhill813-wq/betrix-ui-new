@@ -5,12 +5,13 @@
  * Test the odds analysis and prediction system
  */
 
-import Redis from 'ioredis';
+import { getRedisAdapter } from './src/lib/redis-factory.js';
 import { SportsAggregator } from './src/services/sports-aggregator.js';
 import { OddsAnalyzer } from './src/services/odds-analyzer.js';
 import { CONFIG } from './src/config.js';
 
-const redisClient = new Redis(CONFIG.REDIS_URL || process.env.REDIS_URL || 'redis://localhost:6379');
+const redisClient = getRedisAdapter();
+try { if (typeof redisClient.connect === 'function') await redisClient.connect(); } catch (_) {}
 
 const sportsAggregator = new SportsAggregator(redisClient);
 const oddsAnalyzer = new OddsAnalyzer(redisClient, sportsAggregator);
@@ -92,6 +93,7 @@ try {
 }
 
 console.log('\n' + '='.repeat(70));
-console.log('✅ Tests completed\n');
+  console.log('✅ Tests completed\n');
 
+try { if (typeof redisClient.quit === 'function') await redisClient.quit(); } catch(_) {}
 process.exit(0);

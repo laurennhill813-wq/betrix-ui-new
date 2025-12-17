@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import Redis from 'ioredis';
+import { getRedisAdapter } from './src/lib/redis-factory.js';
 import CacheService from './src/services/cache.js';
 import ScoreBatService from './src/services/scorebat.js';
 import RSSAggregator from './src/services/rss-aggregator.js';
@@ -13,10 +13,13 @@ async function run() {
     process.exit(1);
   }
 
-  console.log('Connecting to Redis at', url.replace(/:(?:.*)@/, ':***@'));
-  const redis = new Redis(url);
-  redis.on('error', (e) => console.error('Redis error', e.message));
-  await new Promise(r => setTimeout(r, 500));
+  console.log('Connecting to Redis adapter (using central factory)');
+  const redis = getRedisAdapter();
+  try {
+    if (typeof redis.connect === 'function') await redis.connect();
+  } catch (e) {
+    // adapter may be in-memory or already connected
+  }
 
   const cache = new CacheService(redis);
   const scorebat = new ScoreBatService(null);
@@ -33,10 +36,10 @@ async function run() {
   const keys = ['sportsdata','sportsmonks','api-sports','football-data','sofascore','allsports','espn','scorebat'];
   for (const k of keys) {
     const val = await redis.get(`betrix:provider:health:${k}`).catch(() => null);
-    console.log(k, val ? JSON.parse(val) : null);
+    try { console.log(k, val ? JSON.parse(val) : null); } catch (_) { console.log(k, val); }
   }
 
-  await redis.quit();
+  try { if (typeof redis.quit === 'function') await redis.quit(); } catch(_) {}
   console.log('Done');
 }
 

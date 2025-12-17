@@ -1,0 +1,263 @@
+Running Node built-in tests...
+Debug: nodeFiles count: 23
+Debug: node args: [
+  '--test',
+  '--test-reporter=spec',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\ai-provider-failover.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\ai.intent.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\ai.predictor.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\auto-media-ticker.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\azure-ai.smoke.node.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\cache-service.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\comprehensive-integration.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\liveliness.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\news-service.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\openligadb.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\payment-flow.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\payment-guides.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\payment-integration.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\payment-normalizer.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\rss-aggregator.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\sportradar.adapter.test.mjs',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\telegram-analyze-ai.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\telegram-analyze.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\telegram-bot.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\telegram-handler-v2.smoke.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\v3-handlers.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\webhook-auth.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\webhook-lipana-signature.test.js'
+]
+Γ£ö AI provider modules present (162.9989ms)
+Γû╢ AI Intent classifier (smoke)
+  Γ£ö recognizes command /start (1.6745ms)
+  Γ£ö detects odds intent from text (0.5511ms)
+Γ£ö AI Intent classifier (smoke) (4.5366ms)
+Γû╢ AI Predictor (smoke)
+  Γ£ö returns probabilities and rationale (2.0655ms)
+Γ£ö AI Predictor (smoke) (5.4588ms)
+Γ£ö D:\betrix-ui (1)\betrix-ui\tests\auto-media-ticker.test.js (135.7587ms)
+Γ£ö D:\betrix-ui (1)\betrix-ui\tests\azure-ai.smoke.node.js (123.1394ms)
+Γ£ö CacheService - basic get/set operations (3.306ms)
+Γ£ö CacheService - rate limiting within bounds (0.5995ms)
+Γ£ö CacheService - rate limiting exceeds bounds (1.62ms)
+Γ£ö CacheService - handles null/undefined values gracefully (0.3419ms)
+Γ£ö CacheService - serialization/deserialization (0.5858ms)
+
+ΓòöΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòù
+Γòæ         COMPREHENSIVE INTEGRATION TEST COMPLETE                Γòæ
+ΓòÜΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓò¥
+
+Γ£à NLP Tests: 90+ intent variations tested
+Γ£à Command Tests: 9 commands validated
+Γ£à Callback Tests: 10+ callback routes working
+Γ£à Betting Sites: Kenya bookmakers verified
+Γ£à UI/UX: All formatters checked
+Γ£à Data Models: Schemas validated
+Γ£à Edge Cases: 50+ scenarios tested
+Γ£à Error Handling: Graceful failures verified
+
+Total Test Coverage: 
+  ΓÇó 100+ natural language intents
+  ΓÇó 9 command handlers
+  ΓÇó 10+ callback routes
+  ΓÇó 6 Kenya betting sites
+  ΓÇó 50+ edge cases
+
+Status: ≡ƒÜÇ READY FOR PRODUCTION
+
+Γ£à Core intent classification tests: 19/19 core commands work
+Γ£à Edge case tests: 5/5 passed
+[2025-12-17T20:31:56.850Z] [INFO] [Commands] handleCommand { cmd: 'start', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.852Z] [INFO] [Commands] handleCommand { cmd: 'help', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.853Z] [INFO] [Commands] handleCommand { cmd: 'menu', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.853Z] [INFO] [Commands] handleCommand { cmd: 'odds', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.854Z] [INFO] [Commands] handleCommand { cmd: 'analyze', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.856Z] [INFO] [Commands] handleCommand { cmd: 'news', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.857Z] [INFO] [Commands] handleCommand { cmd: 'vvip', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.858Z] [INFO] [Commands] handleCommand { cmd: 'pay', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.858Z] [INFO] [Commands] handleCommand { cmd: 'signup', userId: 123, chatId: 456 }
+Γ£à All 9 command handlers working correctly
+[2025-12-17T20:31:56.859Z] [INFO] [Commands] handleCommand { cmd: 'start', userId: 123, chatId: 456 }
+Γ£à /start command formatted correctly
+[2025-12-17T20:31:56.860Z] [INFO] [Commands] handleCommand { cmd: 'help', userId: 123, chatId: 456 }
+Γ£à /help command working correctly
+[2025-12-17T20:31:56.861Z] [INFO] [Commands] handleCommand { cmd: 'menu', userId: 123, chatId: 456 }
+Γ£à /menu command working correctly
+[2025-12-17T20:31:56.862Z] [INFO] [Commands] handleCommand { cmd: 'unknown123', userId: 123, chatId: 456 }
+Γ£à Unknown command handled correctly
+Γ£à Kenya betting sites: 6 sites with complete info
+Γ£à Betting sites formatted with site details and bonuses
+[2025-12-17T20:31:56.865Z] [INFO] [Commands] handleCommand { cmd: 'odds', userId: 123, chatId: 456 }
+Γ£à Odds command returns structured response with buttons
+[2025-12-17T20:31:56.866Z] [INFO] [Commands] handleCommand { cmd: 'vvip', userId: 123, chatId: 456 }
+Γ£à VVIP response includes tier options and prices
+[2025-12-17T20:31:56.867Z] [INFO] [Commands] handleCommand { cmd: 'analyze', userId: 123, chatId: 456 }
+Γ£à Analysis response structured correctly
+Γ£à User profile structure valid
+Γ£à Currency formatting works (KES display)
+Γ£à VVIP expiry calculation works
+[2025-12-17T20:31:56.868Z] [INFO] [Commands] handleCommand { cmd: 'analyze', userId: 123, chatId: 456 }
+Γ£à Gracefully handles missing API responses
+[2025-12-17T20:31:56.869Z] [INFO] [Commands] handleCommand { cmd: 'menu', userId: null, chatId: 456 }
+Γ£à Handles null/undefined values gracefully
+[2025-12-17T20:31:56.869Z] [INFO] [Commands] handleCommand { cmd: 'analyze', userId: 123, chatId: 456 }
+Γ£à Handles extremely long input gracefully
+Γ£à Handles special characters and XSS attempts safely
+[2025-12-17T20:31:56.873Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'menu_main', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.873Z] [INFO] [Callbacks] handleMenuCallback { data: 'menu_main' }
+[2025-12-17T20:31:56.874Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'menu_odds', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.874Z] [INFO] [Callbacks] handleMenuCallback { data: 'menu_odds' }
+[2025-12-17T20:31:56.875Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'menu_analyze', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.875Z] [INFO] [Callbacks] handleMenuCallback { data: 'menu_analyze' }
+[2025-12-17T20:31:56.875Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'vvip_daily', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.875Z] [INFO] [Callbacks] handleVVIPCallback { data: 'vvip_daily' }
+[2025-12-17T20:31:56.876Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'pay_mpesa', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.982Z] [INFO] [Callbacks] handlePaymentCallback routed { data: 'pay_mpesa', userId: 123 }
+[2025-12-17T20:31:56.982Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'help_main', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.983Z] [INFO] [Callbacks] handleHelpCallback { data: 'help_main' }
+[2025-12-17T20:31:56.983Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'odds_live', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.984Z] [INFO] [Callbacks] handleOddsCallback { data: 'odds_live' }
+[2025-12-17T20:31:56.984Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'bet_fixture_12345', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.984Z] [INFO] [Callbacks] handleBettingCallback { data: 'bet_fixture_12345' }
+[2025-12-17T20:31:56.984Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'news_refresh', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.984Z] [INFO] [Callbacks] handleNewsCallback { data: 'news_refresh' }
+[2025-12-17T20:31:56.985Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'signup_start', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.985Z] [INFO] [Callbacks] handleSignupCallback { data: 'signup_start' }
+Γ£à All 10 callback types route correctly
+[2025-12-17T20:31:56.985Z] [INFO] [Commands] handleCommand { cmd: 'start', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.986Z] [INFO] [Commands] handleCommand { cmd: 'menu', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.986Z] [INFO] [Commands] handleCommand { cmd: 'help', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.986Z] [INFO] [Commands] handleCommand { cmd: 'odds', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.986Z] [INFO] [Commands] handleCommand { cmd: 'news', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.986Z] [INFO] [Commands] handleCommand { cmd: 'vvip', userId: 123, chatId: 456 }
+[2025-12-17T20:31:56.986Z] [INFO] [Commands] handleCommand { cmd: 'pay', userId: 123, chatId: 456 }
+Γ£à All response structures are valid and complete
+Γ£ö NLP - Intent classification works with core commands (7.9711ms)
+Γ£ö NLP - Edge cases and unknown intents (0.627ms)
+Γ£ö Command handlers - all commands exist and return valid responses (9.1916ms)
+Γ£ö Command handlers - /start shows welcome message with buttons (0.5915ms)
+Γ£ö Command handlers - /help returns comprehensive FAQs (0.5599ms)
+Γ£ö Command handlers - /menu shows main menu with categories (0.642ms)
+Γ£ö Command handlers - unknown command handled gracefully (0.6009ms)
+Γ£ö Betting sites - Kenya sites available with all info (0.6631ms)
+Γ£ö Betting sites formatting - creates clickable keyboard (1.1451ms)
+Γ£ö UI/UX - Odds response has structure and buttons (1.3813ms)
+Γ£ö UI/UX - VVIP response with tier info (0.6642ms)
+Γ£ö UI/UX - Analysis response has structure (0.6546ms)
+Γ£ö Data models - user profile creation and formatting (0.2104ms)
+Γ£ö Data models - currency formatting (KES) (0.2028ms)
+Γ£ö Data models - VVIP expiry calculation (0.1929ms)
+Γ£ö Edge cases - handling missing services gracefully (0.2434ms)
+Γ£ö Edge cases - handling nil/null values (0.241ms)
+Γ£ö Edge cases - very long fixture IDs (0.2412ms)
+Γ£ö Edge cases - special characters in input (1.3953ms)
+Γ£ö Callbacks - routing all callback types (114.5045ms)
+Γ£ö Response structure - all responses have required fields (1.5174ms)
+Γ£ö D:\betrix-ui (1)\betrix-ui\tests\liveliness.test.js (930.2304ms)
+Γ£ö fetchArticleHtmlByLink returns wrapped HTML for example.com (152.1128ms)
+Γ£ö OpenLigaDBService instantiates without cache (2.2348ms)
+Γ£ö OpenLigaDBService instantiates with CacheService (0.5766ms)
+{"ts":"2025-12-17T20:31:57.633Z","level":"WARN","msg":"No redis provided to adapter; falling back to in-memory store"}
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ΓÜÖ∩╕Å  suppress all logs with { quiet: true }
+[2025-12-17T20:31:59.604Z] [WARN] [PaymentRouter] Failed to persist order to Postgres (pending) Unexpected token 'U', "Unexpected"... is not valid JSON
+[2025-12-17T20:31:59.605Z] [INFO] [PaymentRouter] Payment order created {
+  orderId: 'ORD55551766003517639',
+  userId: 5555,
+  paymentMethod: 'SAFARICOM_TILL'
+}
+{"ts":"2025-12-17T20:31:59.607Z","level":"WARN","msg":"No redis provided to adapter; falling back to in-memory store"}
+[2025-12-17T20:31:59.609Z] [ERROR] [PaymentRouter] createPayPalOrder failed {
+  message: 'PayPal credentials not configured',
+  stack: 'Error: PayPal credentials not configured\n' +
+    '    at paypalClient (file:///D:/betrix-ui%20(1)/betrix-ui/src/handlers/payment-router.js:582:11)\n' +
+    '    at createPayPalOrder (file:///D:/betrix-ui%20(1)/betrix-ui/src/handlers/payment-router.js:596:16)\n' +
+    '    at createCustomPaymentOrder (file:///D:/betrix-ui%20(1)/betrix-ui/src/handlers/payment-router.js:488:36)\n' +
+    '    at TestContext.<anonymous> (file:///D:/betrix-ui%20(1)/betrix-ui/tests/payment-flow.test.js:14:23)\n' +
+    '    at Test.runInAsyncScope (node:async_hooks:214:14)\n' +
+    '    at Test.run (node:internal/test_runner/test:1047:25)\n' +
+    '    at Test.processPendingSubtests (node:internal/test_runner/test:744:18)\n' +
+    '    at Test.postRun (node:internal/test_runner/test:1173:19)\n' +
+    '    at Test.run (node:internal/test_runner/test:1101:12)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)'
+}
+Γ£ö payment flow: createPaymentOrder returns orderId (1974.2187ms)
+[2025-12-17T20:31:59.891Z] [WARN] [PaymentRouter] Failed to persist custom order to Postgres (pending) Unexpected token 'U', "Unexpected"... is not valid JSON
+[2025-12-17T20:31:59.891Z] [INFO] [PaymentRouter] Custom payment order created {
+  orderId: 'ORD66661766003519608',
+  userId: 6666,
+  paymentMethod: 'PAYPAL',
+  amount: 150
+}
+Γ£ö payment flow: createCustomPaymentOrder returns orderId (284.4496ms)
+
+≡ƒôÜ Payment Guides Test
+
+- Checking guide for MPESA: OK
+- Checking guide for SAFARICOM_TILL: OK
+- Checking guide for PAYPAL: OK
+- Checking guide for BINANCE: OK
+- Checking guide for SWIFT: OK
+- Checking guide for BITCOIN: OK
+
+Γ£à All payment guides present and non-empty
+
+Γ£ö D:\betrix-ui (1)\betrix-ui\tests\payment-guides.test.js (248.7292ms)
+≡ƒº¬ Payment Integration Tests
+
+≡ƒôî Test: normalizePaymentMethod is a function
+Γ£à PASS
+
+≡ƒôî Test: createPaymentOrder accepts various method formats
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ≡ƒöÉ prevent committing .env to code: https://dotenvx.com/precommit
+[2025-12-17T20:31:59.625Z] [WARN] [PaymentRouter] Failed to persist order to Postgres (pending) Unexpected token 'U', "Unexpected"... is not valid JSON
+[2025-12-17T20:31:59.628Z] [INFO] [PaymentRouter] Payment order created {
+  orderId: 'ORD1234561766003518064',
+  userId: 123456,
+  paymentMethod: 'SAFARICOM_TILL'
+}
+Γ£à PASS: Canonical key accepted
+[2025-12-17T20:31:59.906Z] [WARN] [PaymentRouter] Failed to persist order to Postgres (pending) Unexpected token 'U', "Unexpected"... is not valid JSON
+[2025-12-17T20:31:59.909Z] [INFO] [PaymentRouter] Payment order created {
+  orderId: 'ORD1234571766003519628',
+  userId: 123457,
+  paymentMethod: 'SAFARICOM_TILL'
+}
+Γ£à PASS: Common alias accepted and normalized
+[2025-12-17T20:32:00.188Z] [WARN] [PaymentRouter] Failed to persist order to Postgres (pending) Unexpected token 'U', "Unexpected"... is not valid JSON
+[2025-12-17T20:32:00.189Z] [INFO] [PaymentRouter] Payment order created {
+  orderId: 'ORD1234581766003519909',
+  userId: 123458,
+  paymentMethod: 'MPESA'
+}
+Γ£à PASS: M-Pesa STK alias accepted and normalized
+
+≡ƒôî Test: createCustomPaymentOrder accepts various method formats
+[2025-12-17T20:32:00.191Z] [ERROR] [PaymentRouter] createPayPalOrder failed {
+  message: 'PayPal credentials not configured',
+  stack: 'Error: PayPal credentials not configured\n' +
+    '    at paypalClient (file:///D:/betrix-ui%20(1)/betrix-ui/src/handlers/payment-router.js:582:11)\n' +
+    '    at createPayPalOrder (file:///D:/betrix-ui%20(1)/betrix-ui/src/handlers/payment-router.js:596:16)\n' +
+    '    at createCustomPaymentOrder (file:///D:/betrix-ui%20(1)/betrix-ui/src/handlers/payment-router.js:488:36)\n' +
+    '    at runTests (file:///D:/betrix-ui%20(1)/betrix-ui/tests/payment-integration.test.js:114:25)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)'
+}
+[2025-12-17T20:32:00.471Z] [WARN] [PaymentRouter] Failed to persist custom order to Postgres (pending) Unexpected token 'U', "Unexpected"... is not valid JSON
+[2025-12-17T20:32:00.472Z] [INFO] [PaymentRouter] Custom payment order created {
+  orderId: 'ORD1234661766003520190',
+  userId: 123466,
+  paymentMethod: 'PAYPAL',
+  amount: 150
+}
+Γ£à PASS: Alias normalized in custom order creation
+
+≡ƒôî Test: Callback data method extraction (simulates telegram handler)
+Γ£à PASS: Callback method extracted and normalized correctly
+
+≡ƒôî Test: Signup payment callback parsing
+Γ£à PASS: Signup callback method normalized correctly
+
+≡ƒôî Test: Provider ref mappings use normalized keys
+Γ£à PASS: Provider ref key format verified: payment:by_provider_ref:SAFARICOM_TILL:TEST_REF
+
+≡ƒÄë All integration tests passed!
+

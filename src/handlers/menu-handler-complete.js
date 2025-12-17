@@ -168,6 +168,11 @@ Get live odds, predictions, and analysis.
   
   reply_markup: {
     inline_keyboard: [
+      // Row 0: AI chat + Signup (added to ensure Start shows these primary actions)
+      [
+        { text: '🤖 Talk to BETRIX AI', callback_data: 'mod_ai_chat' },
+        { text: '✅ Sign up', callback_data: 'signup_start' }
+      ],
       // Row 1: Live & Sports selector
       [
         { text: '▶ Live Matches', callback_data: 'live_games' },

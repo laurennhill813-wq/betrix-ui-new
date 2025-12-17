@@ -4,11 +4,13 @@
  */
 
 import { Logger } from "../utils/logger.js";
+import createRedisAdapter from '../utils/redis-adapter.js';
+
 const logger = new Logger("Predictor");
 
 class PredictionEngine {
   constructor(redis, apiFootball, gemini) {
-    this.redis = redis;
+    this.redis = createRedisAdapter(redis);
     this.apiFootball = apiFootball;
     this.gemini = gemini;
   }

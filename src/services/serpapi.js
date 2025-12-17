@@ -1,42 +1,50 @@
 import fetch from 'node-fetch';
+import { getEnv } from '../utils/env.js';
+import { getCache, setCache } from '../utils/cache.js';
+import logger from '../utils/logger.js';
+import createRateLimiter from '../utils/rate-limiter.js';
+import { tryProviders } from '../utils/provider-fallback.js';
+
+const rateLimiter = createRateLimiter(null);
 
 const DEFAULT_LIMIT = 3;
-// Hardcoded SerpApi key (Option A) — replace if rotating key
-const HARDCODED_SERPAPI_KEY = 'b279670c15a9ca71c47e1415ec19715e0bde735e09dab05eba817978fa061d7b';
 
 function getKey() {
-  return HARDCODED_SERPAPI_KEY || process.env.SERPAPI_KEY || null;
-}
-
-// Simple in-memory cache with TTL to avoid hitting SerpApi rate limits
-const cache = new Map();
-function cacheSet(key, value, ttlMs = 60 * 1000) {
-  const expires = Date.now() + ttlMs;
-  cache.set(key, { value, expires });
-}
-function cacheGet(key) {
-  const rec = cache.get(key);
-  if (!rec) return null;
-  if (rec.expires < Date.now()) { cache.delete(key); return null; }
-  return rec.value;
+  const key = getEnv('SERPAPI_KEY', { required: false });
+  return key || null;
 }
 
 async function fetchTeamNews(team, limit = DEFAULT_LIMIT) {
   const key = getKey();
   if (!key) return { error: 'Missing SERPAPI_KEY' };
-  const cacheKey = `team:${team}:limit:${limit}`;
-  const cached = cacheGet(cacheKey);
+  // Rate limit per team to avoid provider quota abuse
+  const allowed = await rateLimiter.allow(`serpapi:team:${team}`, 5, 60);
+  if (!allowed) return { error: 'Rate limit exceeded, try again later' };
+  const cacheKey = `serpapi:team:${team}:limit:${limit}`;
+  const cached = getCache(cacheKey);
   if (cached) return cached;
   const q = `${team} football news`;
   const url = `https://serpapi.com/search.json?q=${encodeURIComponent(q)}&tbm=nws&api_key=${key}`;
+
+  // Use provider-fallback: primary is SerpApi; future providers can be added
+  const providers = [
+    async () => {
+      const res = await fetch(url, { timeout: 10000 });
+      const data = await res.json();
+      const articles = data.news_results || [];
+      const out = articles.slice(0, limit).map(a => ({ title: a.title, link: a.link, source: a.source, published: a.date }));
+      return out;
+    }
+  ];
+
   try {
-    const res = await fetch(url, { timeout: 10000 });
-    const data = await res.json();
-    const articles = data.news_results || [];
-    const out = articles.slice(0, limit).map(a => ({ title: a.title, link: a.link, source: a.source, published: a.date }));
-    cacheSet(cacheKey, out, 60 * 1000);
+    const pf = await tryProviders(providers, 10000);
+    if (!pf.success) return { error: pf.error };
+    const out = pf.data;
+    setCache(cacheKey, out, 60 * 1000);
     return out;
   } catch (err) {
+    logger.warn('SerpApi fetchTeamNews error', err?.message || String(err));
     return { error: String(err.message || err) };
   }
 }

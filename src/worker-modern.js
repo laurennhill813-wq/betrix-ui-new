@@ -5,7 +5,7 @@
  * Refactored with modular architecture, better error handling, and clean code
  */
 
-import Redis from "ioredis";
+import { getRedisAdapter } from './lib/redis-factory.js';
 import { CONFIG, validateConfig } from "./config.js";
 import { Logger } from "./utils/logger.js";
 import { TelegramService } from "./services/telegram.js";
@@ -23,10 +23,15 @@ try {
   process.exit(1);
 }
 
-// Initialize Redis
-const redis = new Redis(CONFIG.REDIS_URL);
-redis.on("error", err => logger.error("Redis error", err));
-redis.on("connect", () => logger.info("Redis connected"));
+// Initialize Redis (central adapter)
+const redis = getRedisAdapter();
+if (redis && typeof redis.on === 'function') {
+  redis.on("error", err => logger.error("Redis error", err));
+  // ioredis emits 'connect' but adapter/mock may not
+  if (typeof redis.on === 'function') redis.on("connect", () => logger.info("Redis connected"));
+} else {
+  logger.info('Redis adapter initialized (eventless adapter)');
+}
 
 // Initialize services
 const telegram = new TelegramService(CONFIG.TELEGRAM_TOKEN, CONFIG.TELEGRAM.SAFE_CHUNK);

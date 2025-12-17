@@ -1,9 +1,10 @@
-import Redis from 'ioredis';
+import { getRedisAdapter } from '../lib/redis-factory.js';
 import { isports } from './isports.js';
 // SportMonks disabled — do not import or call provider
 import { sgo } from './sportsgameodds-client.js';
 
-const redis = new Redis(process.env.REDIS_URL);
+const redis = getRedisAdapter();
+try { if (typeof redis.connect === 'function') await redis.connect(); } catch (_) {}
 
 // TTLs
 const TTL_ODDS = Number(process.env.TTL_ODDS || 600); // 10 minutes
@@ -16,20 +17,20 @@ async function safeFetchAndCache(label, fnFetch, redisKey, ttl = TTL_ODDS) {
     // if provider returns structured { ok, status, body } (SGO), handle it
     if (res && typeof res === 'object' && 'ok' in res && 'body' in res) {
       if (res.ok) {
-        await redis.set(redisKey, JSON.stringify(res.body), 'EX', ttl);
+        await (redis.setex ? redis.setex(redisKey, ttl, JSON.stringify(res.body)) : redis.set(redisKey, JSON.stringify(res.body)));
         return true;
       }
-      await redis.set(`prefetch:failures:${redisKey}`, JSON.stringify({ ts: Date.now(), status: res.status, body: res.body }), 'EX', 3600);
+      await (redis.setex ? redis.setex(`prefetch:failures:${redisKey}`, 3600, JSON.stringify({ ts: Date.now(), status: res.status, body: res.body })) : redis.set(`prefetch:failures:${redisKey}`, JSON.stringify({ ts: Date.now(), status: res.status, body: res.body })));
       console.warn(label, 'failed status', res.status);
       return false;
     }
 
     // otherwise assume JSON object
-    await redis.set(redisKey, JSON.stringify(res), 'EX', ttl);
+    await (redis.setex ? redis.setex(redisKey, ttl, JSON.stringify(res)) : redis.set(redisKey, JSON.stringify(res)));
     return true;
   } catch (e) {
     console.warn(label, 'failed', e.message || e);
-    try { await redis.set(`prefetch:failures:${redisKey}`, JSON.stringify({ ts: Date.now(), error: String(e) }), 'EX', 3600); } catch (_) {}
+    try { await (redis.setex ? redis.setex(`prefetch:failures:${redisKey}`, 3600, JSON.stringify({ ts: Date.now(), error: String(e) })) : redis.set(`prefetch:failures:${redisKey}`, JSON.stringify({ ts: Date.now(), error: String(e) }))); } catch (_) {}
     return false;
   }
 }

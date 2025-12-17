@@ -6,13 +6,14 @@ import { SportsAggregator } from './src/services/sports-aggregator.js';
 import ScoreBatService from './src/services/scorebat-enhanced.js';
 import CacheService from './src/services/cache.js';
 import OpenLigaDBService from './src/services/openligadb.js';
-import Redis from 'ioredis';
+import { getRedisAdapter } from './src/lib/redis-factory.js';
 
 (async () => {
   console.log('=== OpenLiga + ScoreBat Enhancement Tests ===\n');
 
   // Mock Redis for cache
-  const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+  const redis = getRedisAdapter();
+  try { if (typeof redis.connect === 'function') await redis.connect(); } catch (_) {}
   const cache = new CacheService(redis);
 
   try {
@@ -83,6 +84,6 @@ import Redis from 'ioredis';
   } catch (err) {
     console.error('Test error:', err);
   } finally {
-    await redis.quit();
+    try { if (typeof redis.quit === 'function') await redis.quit(); } catch(_) {}
   }
 })();

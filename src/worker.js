@@ -7,7 +7,7 @@
  * Verbose implementation with extensive logging and documentation
  */
 
-import { getRedis } from './lib/redis-factory.js';
+import { getRedisAdapter } from './lib/redis-factory.js';
 import fetch from "node-fetch";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import express from "express";
@@ -322,7 +322,7 @@ console.log("[CONSTANTS] ✅ All constants initialized successfully\n - worker.j
 
 console.log("[REDIS] 🔗 Initializing Redis connection pool...\n - worker.js:322");
 
-const redis = getRedis({
+const redis = createRedisAdapter(getRedis({
   retryStrategy: (times) => {
     const delay = Math.min(times * 50, 2000);
     console.log(`[REDIS] Reconnection attempt ${times}, waiting ${delay}ms... - worker.js:327`);
@@ -332,7 +332,7 @@ const redis = getRedis({
   enableReadyCheck: true,
   enableOfflineQueue: true,
   lazyConnect: false
-});
+}));
 
 // Event handlers for Redis connection (some instances may be MockRedis which may not emit)
 if (redis && typeof redis.on === 'function') {
@@ -410,7 +410,7 @@ if (GEMINI_API_KEY) {
 
         try {
           // Delegate to new handler which takes (update, redis, services)
-          await newHandleMessage(update, mainRedis || getRedis(), services);
+          await newHandleMessage(update, mainRedis || createRedisAdapter(getRedis()), services);
         } catch (err) {
           console.error(`[WEBHOOK] New handler error: - worker.js:413`, err && err.message ? err.message : err);
           await sendTelegram(chatId, `${ICONS.error} Error`);
@@ -1216,10 +1216,17 @@ const paymentEngine = {
       // the stored order and quick mapping to providerRef.
       try {
         order.providerRef = paypalOrderId;
-        await redis.setex(`payment:order:${order.orderId}`, 900, JSON.stringify(order));
-        await redis.setex(`payment:by_provider_ref:PAYPAL:${paypalOrderId}`, 900, order.orderId);
+        // Use adapter for consistent API across environments
+        const adapter = getRedisAdapter();
+        // Avoid overwriting an existing canonical order if created by the router
+        const existing = await (adapter.get ? adapter.get(`payment:order:${order.orderId}`) : adapter.get(`payment:order:${order.orderId}`)).catch ? await adapter.get(`payment:order:${order.orderId}`).catch(() => null) : null;
+        if (!existing) await (adapter.setex ? adapter.setex(`payment:order:${order.orderId}`, 900, JSON.stringify(order)) : adapter.setex(`payment:order:${order.orderId}`, 900, JSON.stringify(order)));
+        if (order.providerRef) {
+          await (adapter.setex ? adapter.setex(`payment:by_provider_ref:PAYPAL:${paypalOrderId}`, 900, order.orderId) : adapter.setex(`payment:by_provider_ref:PAYPAL:${paypalOrderId}`, 900, order.orderId));
+          if (order.dbId) await (adapter.setex ? adapter.setex(`payment:by_provider_ref:PAYPAL:${paypalOrderId}:meta`, 30 * 24 * 60 * 60, JSON.stringify({ orderId: order.orderId, dbId: order.dbId })) : adapter.setex(`payment:by_provider_ref:PAYPAL:${paypalOrderId}:meta`, 30 * 24 * 60 * 60, JSON.stringify({ orderId: order.orderId, dbId: order.dbId })));
+        }
       } catch (e) {
-        console.warn('[PAYMENT] Warning: failed to persist paypal provider mappings - worker.js:1220', e.message);
+        console.warn('[PAYMENT] Warning: failed to persist paypal provider mappings - worker.js:1220', e && e.message ? e.message : e);
       }
 
       // Return instructions (checkout URL) so the caller can present the user
@@ -2224,7 +2231,7 @@ async function handleUpdate(update) {
         };
         if (typeof newHandleCallback === 'function') {
           // pass the actual callback_query object (cbq) to the v2 handler
-          await newHandleCallback(cbq, mainRedis || getRedis(), services);
+          await newHandleCallback(cbq, mainRedis || createRedisAdapter(getRedis()), services);
         } else {
           if (action === "CMD") {
             const cmd = parts[0];
@@ -2257,27 +2264,34 @@ app.use(express.json());
 
 console.log("[EXPRESS] ✓ JSON middleware added - worker.js:2248");
 
-// Telegram webhook secret for verification
-const TELEGRAM_WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "hnGfJ4OWycM2IL5KYFeXF9uwf8c2WHcPdhrQrrHMxCU";
+// Telegram webhook secret for verification — require explicit configuration for strict mode
+const TELEGRAM_WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET || null;
 
 // Handle both /webhook and /webhook/telegram endpoints
 app.post("/webhook", (req, res) => {
   console.log("[EXPRESS] POST /webhook - worker.js:2255");
   console.log("[WEBHOOK] 🔔 Update received - worker.js:2256", JSON.stringify(req.body).substring(0, 200));
   
-  // Verify Telegram secret token if present
+  // Verify Telegram secret token if present. If no secret is configured, accept but log once.
   const telegramSecret = req.headers["x-telegram-bot-api-secret-token"];
-  console.log(`[WEBHOOK] Secret token present: ${!!telegramSecret} - worker.js:2260`);
-  
-  if (telegramSecret && telegramSecret !== TELEGRAM_WEBHOOK_SECRET) {
-    console.warn("[WEBHOOK] ⚠️ Invalid secret token received - worker.js:2263");
-    return res.sendStatus(403);
+  console.log(`[WEBHOOK] Secret token present: ${!!telegramSecret}`);
+  if (TELEGRAM_WEBHOOK_SECRET) {
+    if (!telegramSecret || telegramSecret !== TELEGRAM_WEBHOOK_SECRET) {
+      console.warn("[WEBHOOK] ⚠️ Invalid or missing secret token received");
+      return res.sendStatus(403);
+    }
+  } else {
+    // No secret configured — log a warning for operators (do not reject), but only once per process
+    if (!global.__BETRIX_WARNED_NO_WEBHOOK_SECRET) {
+      console.warn('[WEBHOOK] No TELEGRAM_WEBHOOK_SECRET configured — requests will be accepted without token verification. Configure WEBHOOK_SECRET in production.');
+      global.__BETRIX_WARNED_NO_WEBHOOK_SECRET = true;
+    }
   }
   
   (async () => {
     try {
-      // enqueue update for worker processing to avoid synchronous handling in the HTTP thread
-      await redis.rpush('telegram:updates', JSON.stringify(req.body));
+      const adapter = getRedisAdapter();
+      await (adapter.rPush ? adapter.rPush('telegram:updates', JSON.stringify(req.body)) : adapter.rpush('telegram:updates', JSON.stringify(req.body)));
       console.log('[WEBHOOK] ✅ Enqueued Telegram update (webhook) - worker.js:2270');
       res.sendStatus(200);
     } catch (err) {
@@ -2291,18 +2305,19 @@ app.post("/webhook/telegram", (req, res) => {
   console.log("[EXPRESS] POST /webhook/telegram - worker.js:2274");
   console.log("[WEBHOOK] 🔔 Update received - worker.js:2275", JSON.stringify(req.body).substring(0, 200));
   
-  // Verify Telegram secret token if present
   const telegramSecret = req.headers["x-telegram-bot-api-secret-token"];
-  console.log(`[WEBHOOK] Secret token present: ${!!telegramSecret} - worker.js:2279`);
-  
-  if (telegramSecret && telegramSecret !== TELEGRAM_WEBHOOK_SECRET) {
-    console.warn("[WEBHOOK] ⚠️ Invalid secret token received - worker.js:2282");
-    return res.sendStatus(403);
+  console.log(`[WEBHOOK] Secret token present: ${!!telegramSecret}`);
+  if (TELEGRAM_WEBHOOK_SECRET) {
+    if (!telegramSecret || telegramSecret !== TELEGRAM_WEBHOOK_SECRET) {
+      console.warn('[WEBHOOK] ⚠️ Invalid or missing secret token received');
+      return res.sendStatus(403);
+    }
   }
   
   (async () => {
     try {
-      await redis.rpush('telegram:updates', JSON.stringify(req.body));
+      const adapter = getRedisAdapter();
+      await (adapter.rPush ? adapter.rPush('telegram:updates', JSON.stringify(req.body)) : adapter.rpush('telegram:updates', JSON.stringify(req.body)));
       console.log('[WEBHOOK] ✅ Enqueued Telegram update (webhook/telegram) - worker.js:2289');
       res.sendStatus(200);
     } catch (err) {
@@ -2545,7 +2560,7 @@ app.post('/pay/capture', express.json(), async (req, res) => {
     const { provider = 'PAYPAL', providerRef } = req.body || {};
     if (!providerRef) return res.status(400).json({ ok: false, message: 'missing providerRef' });
 
-    const redisClient = getRedis();
+    const redisClient = createRedisAdapter(getRedis());
     const orderId = await redisClient.get(`payment:by_provider_ref:${provider}:${providerRef}`);
     if (!orderId) return res.status(404).json({ ok: false, message: 'order_not_found' });
 
@@ -2726,9 +2741,9 @@ app.listen(safePort, "0.0.0.0", async () => {
   // Register Telegram webhook at startup
   try {
     const webhookUrl = process.env.WEBHOOK_URL || "https://betrix-ui.onrender.com/webhook/telegram";
-    const webhookSecret = process.env.WEBHOOK_SECRET || "hnGfJ4OWycM2IL5KYFeXF9uwf8c2WHcPdhrQrrHMxCU";
+    const webhookSecret = process.env.WEBHOOK_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET || null;
     
-    console.log(`[TELEGRAM] Registering webhook: ${webhookUrl} - worker.js:2708`);
+    console.log(`[TELEGRAM] Registering webhook: ${webhookUrl}`);
     
     const webhookResponse = await safeFetch(
       `https://api.telegram.org/bot${TELEGRAM_TOKEN}/setWebhook`,
@@ -2737,7 +2752,7 @@ app.listen(safePort, "0.0.0.0", async () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           url: webhookUrl,
-          secret_token: webhookSecret,
+          ...(webhookSecret ? { secret_token: webhookSecret } : {}),
           allowed_updates: ["message", "callback_query"]
         })
       },
