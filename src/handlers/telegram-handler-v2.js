@@ -1591,7 +1591,19 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
       // ignore structured block building errors
     }
 
-    try { console.info('[handleAnalyzeMatch] responding', JSON.stringify({ chatId, matchId: match.id || match.fixtureId || null, home: homeLabel, away: awayLabel })); } catch (e) {}
+    try { console.info('[handleAnalyzeMatch] responding', JSON.stringify({ chatId, matchId: match.id || match.fixtureId || null, home: homeLabel, away: awayLabel, length: (analysisText||'').length })); } catch (e) {}
+
+    // Telegram has message length limits and editMessageText may fail with MESSAGE_TOO_LONG.
+    // If analysis is large, send as a new message instead of editing the menu message.
+    try {
+      const MAX_TG_MSG = 3900; // leave headroom from Telegram 4096 limit
+      if (analysisText && analysisText.length > MAX_TG_MSG) {
+        try { console.info('[handleAnalyzeMatch] analysis_too_long; sending as new message', JSON.stringify({ chatId, matchId: match.id || match.fixtureId || null, length: analysisText.length })); } catch (e) {}
+        const truncated = analysisText.slice(0, MAX_TG_MSG) + '\n\n... (truncated)';
+        return { method: 'sendMessage', chat_id: chatId, text: truncated, parse_mode: 'Markdown' };
+      }
+    } catch (e) { /* ignore and fallback to edit */ }
+
     return { method: 'editMessageText', chat_id: chatId, message_id: undefined, text: analysisText, parse_mode: 'Markdown' };
   } catch (e) {
     logger.error('handleAnalyzeMatch error', e);
