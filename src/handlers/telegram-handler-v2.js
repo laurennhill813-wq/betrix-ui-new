@@ -2,7 +2,11 @@
  * Minimal Telegram handler implementation
  */
 
-import { buildUpcomingFixtures } from '../utils/premium-ui-builder.js';
+import premiumUI, { buildUpcomingFixtures } from '../utils/premium-ui-builder.js';
+import logger from '../utils/logger.js';
+import createRedisAdapter from '../utils/redis-adapter.js';
+import IntelligentMenuBuilder from '../utils/intelligent-menu-builder.js';
+import FixturesManager from '../utils/fixtures-manager.js';
 
 // Note: temporary wide eslint-disable removed. We'll fix lint issues surgically below.
 /*
@@ -17,13 +21,6 @@ import { buildUpcomingFixtures } from '../utils/premium-ui-builder.js';
 // that return reasonable defaults.
 const tryParseJson = (s) => {
   try { return s ? JSON.parse(s) : null; } catch (e) { return null; }
-};
-
-const logger = {
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-  debug: () => {}
 };
 
 const validateCallbackData = (d) => (typeof d === 'string' ? d : String(d));
@@ -119,6 +116,9 @@ const startMenuKeyboard = {
       { text: '🤖 Talk to BETRIX AI', callback_data: 'mod_ai_chat' }
     ],
     [
+      { text: '✅ Sign up', callback_data: 'signup_start' }
+    ],
+    [
       { text: '📰 News & Standings', callback_data: 'mod_news_tables' }
     ],
     [
@@ -190,10 +190,7 @@ function buildMatchAnalysisPrompt(structured) {
   return `You are BETRIX, a premium AI-powered sports betting assistant.\n\nYou are given structured JSON describing a football match, including match info, stats, odds, ai_analysis, and suggested_bets.\n\nJSON:\n${shortJson}\n\nGenerate a TELEGRAM-FRIENDLY analysis message.\n\nRules and structure:\n1) Start with: "⚽ BETRIX Match Analysis: {home} vs {away}"\n2) Next lines: "🏆 {competition}", "⏰ Kickoff: {readable_kickoff}", "📍 Venue: {venue or 'TBA'}", "📊 Status: {status label}"\n3) Then "📈 AI Insights:" with 2–5 concise bullet points derived from ai_analysis.keyAngles and stats. Do NOT repeat the same sentence or phrase more than once.\n4) Then "🎯 Suggested Bets:" listing up to 2–3 bets from suggested_bets: each line "{market}: {selection} (line: X if present) — Confidence: Y%" with ONE short bullet rationale under each. Avoid repeating wording.\n5) Then "🧠 BETRIX Summary:" a single 1–2 sentence projection in neutral probabilistic language.\n6) End with "Powered by BETRIX".\n\nCritical: do NOT use words like 'lock', 'guaranteed', 'sure win'. If data is sparse, state that and rely on standings/context. Return ONLY the final Telegram message text.`;
 }
 
-// Minimal placeholders for classes assumed to exist elsewhere in the codebase.
-class intelligentMenus { constructor(){} buildContextualMainMenu(){ return null; } buildMatchDetailMenu(){ return null; } }
-class fixturesManager { constructor(){} getLeagueFixtures(){ return []; } }
-const premiumUI = { buildMatchCard: (m) => `${teamNameOf(m.home)} vs ${teamNameOf(m.away)}` , buildSubscriptionComparison: () => 'Subscription comparison' };
+// Use real menu, fixtures and UI builders from utils
 
 // Small utility placeholders
 const safeGetUserData = async (redis, key) => {
@@ -389,47 +386,55 @@ export async function handleMessage(update, redis, services) {
 
     // Signup state handling: if user is in awaiting_name, capture their reply as name
     try {
-      if (fromId && redis && typeof redis.get === 'function') {
-        const s = await redis.get(`signup:${fromId}:state`).catch(() => null);
+      if (fromId) {
+        const r = createRedisAdapter(redis);
+        const s = await r.get(`signup:${fromId}:state`).catch(() => null);
         if (s === 'awaiting_name') {
-          // save simple user profile to Redis
+          // save simple user profile to Redis (canonical JSON storage)
           try {
-            const raw = await redis.get(`user:${fromId}`).catch(() => null);
+            const raw = await r.get(`user:${fromId}`);
             const user = raw ? JSON.parse(raw) : {};
             user.telegram_id = fromId;
             user.name = String(text || '').substring(0, 80);
             user.favorites = user.favorites || [];
             user.created_at = user.created_at || (new Date()).toISOString();
-            await redis.set(`user:${fromId}`, JSON.stringify(user));
-            await redis.del(`signup:${fromId}:state`).catch(() => null);
-          } catch (e) { /* ignore save errors */ }
+            await r.set(`user:${fromId}`, JSON.stringify(user));
+            await r.del(`signup:${fromId}:state`);
+          } catch (e) {
+            logger.error('Failed to save signup name', e?.message || String(e));
+            return { method: 'sendMessage', chat_id: chatId, text: `Sorry, there was an error saving your name. Try again later.` };
+          }
 
-          return { method: 'sendMessage', chat_id: chatId, text: `Great, ${text}. You're now registered.`, parse_mode: 'Markdown' };
+          return { method: 'sendMessage', chat_id: chatId, text: `Great, ${escapeHtml(String(text || ''))}. You're now registered.`, parse_mode: 'Markdown' };
         }
       }
-    } catch (e) { /* ignore signup checks */ }
+    } catch (e) { logger.warn('Signup state check failed', e?.message || String(e)); }
 
       // Favorites state handling: awaiting_add — user sent a team to add
       try {
-        if (fromId && redis && typeof redis.get === 'function') {
-          const favState = await redis.get(`favorites:${fromId}:state`).catch(() => null);
+        if (fromId) {
+          const r = createRedisAdapter(redis);
+          const favState = await r.get(`favorites:${fromId}:state`).catch(() => null);
           if (favState === 'awaiting_add') {
             const team = String(text || '').trim();
             if (!team) return { method: 'sendMessage', chat_id: chatId, text: 'Please send a valid team name.' };
             try {
-              const raw = await redis.get(`user:${fromId}`).catch(() => null);
+              const raw = await r.get(`user:${fromId}`);
               const user = raw ? JSON.parse(raw) : {};
-              const favs = Array.isArray(user.favorites) ? user.favorites : (user.favorites ? String(user.favorites).split(',').map(s=>s.trim()).filter(Boolean) : []);
+              const favs = Array.isArray(user.favorites) ? user.favorites : (user.favorites ? String(user.favorites).split(',').map(s => s.trim()).filter(Boolean) : []);
               if (!favs.find(f => String(f).toLowerCase() === team.toLowerCase())) favs.push(team);
               user.favorites = favs;
               user.updated_at = new Date().toISOString();
-              await redis.set(`user:${fromId}`, JSON.stringify(user));
-              await redis.del(`favorites:${fromId}:state`).catch(() => null);
-            } catch (e) { /* ignore save errors */ }
-            return { method: 'sendMessage', chat_id: chatId, text: `Added *${team}* to your favorites.`, parse_mode: 'Markdown' };
+              await r.set(`user:${fromId}`, JSON.stringify(user));
+              await r.del(`favorites:${fromId}:state`);
+            } catch (e) {
+              logger.error('Failed to add favorite', e?.message || String(e));
+              return { method: 'sendMessage', chat_id: chatId, text: 'Failed to add favorite. Try again later.' };
+            }
+            return { method: 'sendMessage', chat_id: chatId, text: `Added *${escapeHtml(team)}* to your favorites.`, parse_mode: 'Markdown' };
           }
         }
-      } catch (e) { /* ignore favorites checks */ }
+      } catch (e) { logger.warn('Favorites awaiting_add check failed', e?.message || String(e)); }
 
     if (text && text.startsWith('/live')) {
       const games = await getLiveMatchesBySport('soccer', redis, services && services.sportsAggregator);
@@ -753,6 +758,8 @@ async function _handleProfile(chatId, userId, redis, services) {
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
+          [{ text: '✏️ Edit Name', callback_data: 'profile_edit_name' }],
+          [{ text: '⭐ Favorites', callback_data: 'profile_manage_favs' }],
           [{ text: '👑 Upgrade', callback_data: 'sub_upgrade_vvip' }],
           [{ text: '🔙 Main Menu', callback_data: 'menu_main' }]
         ]
@@ -981,7 +988,7 @@ async function handleMenuCallback(data, chatId, userId, redis) {
     const tier = userSubscription.tier || 'FREE';
     
     // Instantiate intelligent menu builder
-    const menuBuilder = new intelligentMenus(redis);
+    const menuBuilder = new IntelligentMenuBuilder(redis);
     
     // Build contextual menu based on data type
     let menu = mainMenu; // Default fallback
@@ -1312,7 +1319,7 @@ async function handleLeagueCallback(data, chatId, userId, redis, services) {
     // 🎯 USE INTELLIGENT MENU BUILDER FOR LEAGUE MENU
     const subscription = await getUserSubscription(redis, userId).catch(() => ({ tier: 'FREE' }));
     // IntelligentMenuBuilder is exported as a class - instantiate with Redis
-    const menuBuilder = new intelligentMenus(redis);
+    const menuBuilder = new IntelligentMenuBuilder(redis);
     const leagueMenu = await menuBuilder.buildMatchDetailMenu(leagueName, subscription.tier, leagueId);
 
     return {
@@ -1354,7 +1361,7 @@ async function handleLeagueLiveCallback(data, chatId, userId, redis, services) {
       try {
         // 🎯 USE FIXTURES MANAGER TO GET LEAGUE FIXTURES
         try {
-          const fm = new fixturesManager(redis);
+          const fm = new FixturesManager(redis);
           matches = await fm.getLeagueFixtures(leagueId);
         } catch (e) {
           logger.warn('Fixtures manager failed, using aggregator', e.message);
@@ -2671,7 +2678,7 @@ async function handleSportCallback(data, chatId, userId, redis, services) {
     let leagues = [];
     try {
       // FixturesManager is a class (default export) - instantiate with Redis
-      const fm = new fixturesManager(redis);
+      const fm = new FixturesManager(redis);
       leagues = await fm.getLeagueFixtures(sportKey);
       if (leagues && leagues.length > 0) {
         leagues = leagues.slice(0, 8).map(l => ({
@@ -2973,6 +2980,31 @@ async function handleProfileCallback(data, chatId, userId, redis) {
         parse_mode: 'Markdown',
         reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_profile' }]] }
       };
+    }
+
+    if (data === 'profile_manage_favs') {
+      const r = createRedisAdapter(redis);
+      const favs = await r.smembers(`user:${userId}:favorites`) || [];
+      const keyboard = (favs.length ? favs.map(f => ([ { text: `${f}`, callback_data: `fav_view_${encodeURIComponent(f)}` }, { text: '❌ Remove', callback_data: `fav_remove_${encodeURIComponent(f)}` } ])) : [[{ text: '➕ Add Favorite', callback_data: 'favorites:add' }]]);
+      keyboard.push([{ text: '🔙 Back', callback_data: 'menu_profile' }]);
+      const header = brandingUtils.generateBetrixHeader('FREE');
+      return {
+        method: 'editMessageText',
+        chat_id: chatId,
+        message_id: undefined,
+        text: `${header}\n\n⭐ *Manage Favorites*\n\n${favs.length ? 'Tap a team to view or remove it.' : 'No favorites yet.'}`,
+        parse_mode: 'Markdown',
+        reply_markup: { inline_keyboard: keyboard }
+      };
+    }
+
+    if (data === 'profile_edit_name') {
+      try {
+        const r = createRedisAdapter(redis);
+        await r.set(`signup:${userId}:state`, 'awaiting_name');
+        await r.expire && r.expire(`signup:${userId}:state`, 600);
+      } catch (e) { logger.warn('Failed to set awaiting_name state', e?.message || String(e)); }
+      return { method: 'answerCallbackQuery', callback_query_id: undefined, text: 'Please send your new display name as a message. It will be saved to your profile.', show_alert: true };
     }
 
     if (data === 'profile_settings') {

@@ -3,12 +3,12 @@
  * Comprehensive formatting and interactive elements for superior UX
  */
 
-import { Logger } from '../utils/logger.js';
+import logger from '../utils/logger.js';
 import safeName from './safe-name.js';
 import * as sanitize from './telegram-sanitize.js';
 
-const logger = new Logger('PremiumUIBuilder');
-void logger; // Silence unused logger warning
+// Use shared structured logger
+void logger;
 
 // BETRIX Brand Constants
 export const BETRIX_BRAND = {
@@ -557,6 +557,36 @@ export function buildNotificationAlert(type, data) {
   return alerts[type] || `📡 *Notification*\n${JSON.stringify(data)}`;
 }
 
+  /**
+   * Build main action keyboard used across premium UI and handlers
+   * Ensures consistent placement of Sign up and Talk to BETRIX actions
+   */
+  export function buildMainKeyboard(tier = 'FREE') {
+    const kb = {
+      inline_keyboard: [
+        [
+          { text: '🤖 Talk to BETRIX AI', callback_data: 'mod_ai_chat' },
+          { text: '✅ Sign up', callback_data: 'signup_start' }
+        ],
+        [
+          { text: '⚽ Live Games', callback_data: 'menu_live' },
+          { text: '📊 Odds & Analysis', callback_data: 'menu_odds' }
+        ],
+        [
+          { text: '⭐ Favorites', callback_data: 'profile_favorites' },
+          { text: '👤 My Profile', callback_data: 'menu_profile' }
+        ],
+        [
+          { text: '💰 Subscribe to VVIP', callback_data: 'menu_vvip' },
+          { text: '❓ Help', callback_data: 'menu_help' }
+        ]
+      ]
+    };
+    // Tier-based adjustments can be applied here in future
+    void tier;
+    return kb;
+  }
+
 export default {
   BETRIX_BRAND,
   buildBetrixHeader,
@@ -568,6 +598,7 @@ export default {
   buildLeagueSelectorKeyboard,
   buildBetAnalysis,
   buildUpcomingFixtures,
+  buildMainKeyboard,
   buildSubscriptionComparison,
   buildErrorMessage,
   buildLiveMatchTicker,
