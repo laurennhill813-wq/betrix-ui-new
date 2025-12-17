@@ -1461,42 +1461,42 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
     const homeLabel = safeNameOf(match.home || match.raw?.homeTeam || match.homeTeam, 'Home');
     const awayLabel = safeNameOf(match.away || match.raw?.awayTeam || match.awayTeam, 'Away');
 
-    let analysisText = `<b>⚽ Match Analysis: ${escapeHtml(homeLabel)} vs ${escapeHtml(awayLabel)}</b><br/><br/>`;
-    analysisText += `📍 <b>Status:</b> ${escapeHtml(String(match.status || ''))}<br/>`;
-    analysisText += `📊 <b>Score:</b> ${escapeHtml(String((match.homeScore ?? '-') + '-' + (match.awayScore ?? '-')))}<br/>`;
-    analysisText += `🏆 <b>Competition:</b> ${escapeHtml(safeNameOf(match.competition || (match.raw && match.raw.competition), 'Unknown'))}<br/>`;
-    analysisText += `⏰ <b>Kickoff:</b> ${escapeHtml(String(match.time || match.kickoff || 'TBA'))}<br/>`;
-    analysisText += `🏟️ <b>Venue:</b> ${escapeHtml(String(match.venue || 'TBA'))}<br/><br/>`;
+    let analysisText = `<b>⚽ Match Analysis: ${escapeHtml(homeLabel)} vs ${escapeHtml(awayLabel)}</b>\n\n`;
+    analysisText += `📍 <b>Status:</b> ${escapeHtml(String(match.status || ''))}\n`;
+    analysisText += `📊 <b>Score:</b> ${escapeHtml(String((match.homeScore ?? '-') + '-' + (match.awayScore ?? '-')))}\n`;
+    analysisText += `🏆 <b>Competition:</b> ${escapeHtml(safeNameOf(match.competition || (match.raw && match.raw.competition), 'Unknown'))}\n`;
+    analysisText += `⏰ <b>Kickoff:</b> ${escapeHtml(String(match.time || match.kickoff || 'TBA'))}\n`;
+    analysisText += `🏟️ <b>Venue:</b> ${escapeHtml(String(match.venue || 'TBA'))}\n\n`;
 
     if (h2h && h2h.totalMatches !== undefined) {
-      analysisText += `<b>Head-to-Head:</b><br/>`;
-      analysisText += `Total: ${escapeHtml(String(h2h.totalMatches))} | Home wins: ${escapeHtml(String(h2h.homeWins))} | Away wins: ${escapeHtml(String(h2h.awayWins))} | Draws: ${escapeHtml(String(h2h.draws))}<br/><br/>`;
+      analysisText += `<b>Head-to-Head:</b>\n`;
+      analysisText += `Total: ${escapeHtml(String(h2h.totalMatches))} | Home wins: ${escapeHtml(String(h2h.homeWins))} | Away wins: ${escapeHtml(String(h2h.awayWins))} | Draws: ${escapeHtml(String(h2h.draws))}\n\n`;
     }
 
     if (recentFormHome && recentFormHome.length > 0) {
-      analysisText += `<b>Recent Form (${escapeHtml(homeLabel)}):</b><br/>`;
-      analysisText += recentFormHome.slice(0, 5).map(m => `${escapeHtml(m.starting_at || m.date || m.date_time || m.utcDate || 'N/A')}: ${escapeHtml(m.result || (m.score ? JSON.stringify(m.score) : 'N/A'))}`).join('<br/>') + '<br/><br/>';
+      analysisText += `<b>Recent Form (${escapeHtml(homeLabel)}):</b>\n`;
+      analysisText += recentFormHome.slice(0, 5).map(m => `${escapeHtml(m.starting_at || m.date || m.date_time || m.utcDate || 'N/A')}: ${escapeHtml(m.result || (m.score ? JSON.stringify(m.score) : 'N/A'))}`).join('\n') + '\n\n';
     }
 
     if (recentFormAway && recentFormAway.length > 0) {
-      analysisText += `<b>Recent Form (${escapeHtml(awayLabel)}):</b><br/>`;
-      analysisText += recentFormAway.slice(0, 5).map(m => `${escapeHtml(m.starting_at || m.date || m.date_time || m.utcDate || 'N/A')}: ${escapeHtml(m.result || (m.score ? JSON.stringify(m.score) : 'N/A'))}`).join('<br/>') + '<br/><br/>';
+      analysisText += `<b>Recent Form (${escapeHtml(awayLabel)}):</b>\n`;
+      analysisText += recentFormAway.slice(0, 5).map(m => `${escapeHtml(m.starting_at || m.date || m.date_time || m.utcDate || 'N/A')}: ${escapeHtml(m.result || (m.score ? JSON.stringify(m.score) : 'N/A'))}`).join('\n') + '\n\n';
     }
 
     if (standings && standings.length > 0) {
       const homeStanding = standings.find(t => t.team && (t.team.name === homeLabel || t.team.id === match.homeId || t.team.id === match.raw?.homeTeam?.id));
       const awayStanding = standings.find(t => t.team && (t.team.name === awayLabel || t.team.id === match.awayId || t.team.id === match.raw?.awayTeam?.id));
       if (homeStanding || awayStanding) {
-        analysisText += `<b>League Standings:</b><br/>`;
-        if (homeStanding) analysisText += `${escapeHtml(homeLabel)}: #${escapeHtml(String(homeStanding.position || 'N/A'))} (${escapeHtml(String(homeStanding.points || 0))} pts)<br/>`;
-        if (awayStanding) analysisText += `${escapeHtml(awayLabel)}: #${escapeHtml(String(awayStanding.position || 'N/A'))} (${escapeHtml(String(awayStanding.points || 0))} pts)<br/>`;
-        analysisText += '<br/>';
+        analysisText += `<b>League Standings:</b>\n`;
+        if (homeStanding) analysisText += `${escapeHtml(homeLabel)}: #${escapeHtml(String(homeStanding.position || 'N/A'))} (${escapeHtml(String(homeStanding.points || 0))} pts)\n`;
+        if (awayStanding) analysisText += `${escapeHtml(awayLabel)}: #${escapeHtml(String(awayStanding.position || 'N/A'))} (${escapeHtml(String(awayStanding.points || 0))} pts)\n`;
+        analysisText += '\n';
       }
     }
 
     if (odds && odds.length > 0) {
-      analysisText += `<b>Odds Available:</b><br/>`;
-      analysisText += `${escapeHtml(String(odds.length))} bookmakers with odds for this match<br/>`;
+      analysisText += `<b>Odds Available:</b>\n`;
+      analysisText += `${escapeHtml(String(odds.length))} bookmakers with odds for this match\n`;
     }
 
     analysisText += `<i>Data from Football-Data & SportMonks</i>`;
@@ -1602,34 +1602,34 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
           const ai = s.ai_analysis || {};
           const bets = s.suggested_bets || [];
 
-          let out = `<b>⚽ BETRIX Match Analysis: ${escapeHtml(m.home)} vs ${escapeHtml(m.away)}</b><br/><br/>`;
-          out += `🏆 ${escapeHtml(m.competition || 'Unknown')}<br/>`;
-          out += `⏰ Kickoff: ${escapeHtml(m.kickoff || 'TBA')}<br/>`;
-          out += `📍 Venue: ${escapeHtml(m.venue || 'TBA')}<br/>`;
-          out += `📊 Status: ${escapeHtml(m.status || 'TIMED')}<br/><br/>`;
+          let out = `<b>⚽ BETRIX Match Analysis: ${escapeHtml(m.home)} vs ${escapeHtml(m.away)}</b>\n\n`;
+          out += `🏆 ${escapeHtml(m.competition || 'Unknown')}\n`;
+          out += `⏰ Kickoff: ${escapeHtml(m.kickoff || 'TBA')}\n`;
+          out += `📍 Venue: ${escapeHtml(m.venue || 'TBA')}\n`;
+          out += `📊 Status: ${escapeHtml(m.status || 'TIMED')}\n\n`;
 
           // AI Insights (if available)
-          out += `<b>📈 AI Insights:</b><br/>`;
-          if (ai.summary) out += `${escapeHtml(ai.summary)}<br/><br/>`;
+          out += `<b>📈 AI Insights:</b>\n`;
+          if (ai.summary) out += `${escapeHtml(ai.summary)}\n\n`;
           if (ai.keyAngles && ai.keyAngles.length) {
-            ai.keyAngles.slice(0,5).forEach(k => { out += `• ${escapeHtml(k)}<br/>`; });
-            out += '<br/>';
+            ai.keyAngles.slice(0,5).forEach(k => { out += `• ${escapeHtml(k)}\n`; });
+            out += '\n';
           }
 
           // Suggested bets
           if (bets && bets.length) {
-            out += `<b>🎯 Suggested Bets:</b><br/>`;
+            out += `<b>🎯 Suggested Bets:</b>\n`;
             bets.slice(0,6).forEach((b, i) => {
               const conf = (typeof b.confidence === 'number') ? `${Math.round(b.confidence)}%` : (b.confidence || 'N/A');
               const ve = (b.valueEdge !== undefined && b.valueEdge !== null) ? ` — Value Edge: +${escapeHtml(String(b.valueEdge))}%` : '';
               const line = (b.line !== undefined && b.line !== null) ? ` (line: ${escapeHtml(String(b.line))})` : '';
-              out += `${i+1}) ${escapeHtml(b.market)}: <b>${escapeHtml(b.selection)}</b>${line} — Confidence: ${escapeHtml(conf)}${ve}<br/>   • ${escapeHtml(b.rationale || '')}<br/>`;
+              out += `${i+1}) ${escapeHtml(b.market)}: <b>${escapeHtml(b.selection)}</b>${line} — Confidence: ${escapeHtml(conf)}${ve}\n   • ${escapeHtml(b.rationale || '')}\n`;
             });
-            out += `<br/>`;
+            out += `\n`;
           }
 
-          out += `<b>🧠 BETRIX Summary:</b><br/>`;
-          if (ai.summary) out += `${escapeHtml(ai.summary)}<br/><br/>`; else out += `A concise data-driven summary is provided above.<br/><br/>`;
+          out += `<b>🧠 BETRIX Summary:</b>\n`;
+          if (ai.summary) out += `${escapeHtml(ai.summary)}\n\n`; else out += `A concise data-driven summary is provided above.\n\n`;
           out += `<i>Powered by BETRIX</i>`;
           return out;
         } catch (e) { return `BETRIX Analysis for ${escapeHtml(homeLabel)} vs ${escapeHtml(awayLabel)}`; }
@@ -1644,9 +1644,9 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
       const prettyJsonBlock = JSON.stringify(betrixStructured, null, 2);
       // Attach structured JSON as an escaped preformatted block (HTML) to avoid entity parsing errors
       const escapedJson = escapeHtml(prettyJsonBlock);
-      const telegramPremiumText = formatBetrixTelegram(betrixStructured) + '<br/><br/><b>Structured (machine):</b><br/><pre><code>' + escapedJson + '</code></pre>';
+      const telegramPremiumText = formatBetrixTelegram(betrixStructured) + '\n\n<b>Structured (machine):</b>\n<pre><code>' + escapedJson + '</code></pre>';
 
-      analysisText += '<br/><br/>' + telegramPremiumText;
+      analysisText += '\n\n' + telegramPremiumText;
 
       // If an AI service is available, ask it to produce a constrained JSON
       // response with explicit suggested bets (Over/Under, HT/FT, BTTS, etc.).
