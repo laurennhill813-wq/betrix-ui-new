@@ -114,14 +114,16 @@ export async function buildFixturesMenu(redis, page = 1) {
       };
     }
 
-    // Pagination
-    const totalPages = Math.ceil(fixtures.length / pageSize);
-    const currentPage = Math.min(Math.max(1, page), totalPages);
-    const start = (currentPage - 1) * pageSize;
-    const pageFixtures = fixtures.slice(start, start + pageSize);
+      // Pagination: treat page <= 0 as 'show all'
+      const totalPages = Math.max(1, Math.ceil(fixtures.length / pageSize));
+      const showAll = Number(page) <= 0;
+      const currentPage = showAll ? 1 : Math.min(Math.max(1, page), totalPages);
+      const start = (currentPage - 1) * pageSize;
+      const pageFixtures = showAll ? fixtures.slice() : fixtures.slice(start, start + pageSize);
 
     // Build text with fixture list
-    let text = `🌀 *BETRIX* - Upcoming Fixtures\n\n📅 *NEXT 7 DAYS* (${fixtures.length} total)\n\n`;
+      const headerCountLabel = showAll ? `${fixtures.length} total (All)` : `${fixtures.length} total`;
+      let text = `🌀 *BETRIX* - Upcoming Fixtures\n\n📅 *${showAll ? 'ALL' : 'NEXT 7 DAYS'}* (${headerCountLabel})\n\n`;
     pageFixtures.forEach((fixture, idx) => {
       const num = start + idx + 1;
       const kickoffDate = new Date(fixture.kickoff);
