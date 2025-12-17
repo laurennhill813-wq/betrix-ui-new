@@ -780,24 +780,29 @@ async function handleUpdate(update) {
           if (onboardRaw) {
             const payload = await handleOnboardingMessage(text, chatId, userId, redis, { telegram, userService, analytics });
             if (payload) {
-            // payload may be an array of actions or a single action
-            const actions = Array.isArray(payload) ? payload : [payload];
-            for (const act of actions) {
-              try {
-                if (!act || !act.method) continue;
-                if (act.method === 'sendMessage') {
-                  await telegram.sendMessage(act.chat_id || chatId, act.text || '', { reply_markup: act.reply_markup, parse_mode: act.parse_mode }).catch(()=>{});
-                } else if (act.method === 'editMessageText') {
-                  await telegram.editMessageText(act.chat_id || chatId, act.message_id || null, act.text || '', { reply_markup: act.reply_markup, parse_mode: act.parse_mode }).catch(()=>{});
-                } else if (act.method === 'answerCallbackQuery') {
-                  await telegram.answerCallback(act.callback_query_id || act.callbackId, act.text || '', { show_alert: act.show_alert }).catch(()=>{});
+              // payload may be an array of actions or a single action
+              const actions = Array.isArray(payload) ? payload : [payload];
+              for (const act of actions) {
+                try {
+                  if (!act || !act.method) continue;
+                  if (act.method === 'sendMessage') {
+                    await telegram.sendMessage(act.chat_id || chatId, act.text || '', { reply_markup: act.reply_markup, parse_mode: act.parse_mode }).catch(()=>{});
+                  } else if (act.method === 'editMessageText') {
+                    await telegram.editMessageText(act.chat_id || chatId, act.message_id || null, act.text || '', { reply_markup: act.reply_markup, parse_mode: act.parse_mode }).catch(()=>{});
+                  } else if (act.method === 'answerCallbackQuery') {
+                    await telegram.answerCallback(act.callback_query_id || act.callbackId, act.text || '', { show_alert: act.show_alert }).catch(()=>{});
+                  }
+                } catch (errAct) {
+                  logger.warn('Applying onboarding action failed', errAct && errAct.message ? errAct.message : errAct);
                 }
-              } catch (e) { logger.warn('Applying onboarding action failed', e && e.message ? e.message : e); }
+              }
+              return;
             }
-            return;
           }
         }
-      } catch (e) { logger.warn('Onboarding dispatch failed', e?.message || String(e)); }
+      } catch (e) {
+        logger.warn('Onboarding dispatch failed', e?.message || String(e));
+      }
 
       // Check legacy signup flow
       const signupState = await redis.get(`signup:${userId}:state`);
