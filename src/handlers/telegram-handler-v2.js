@@ -383,32 +383,28 @@ export async function handleMessage(update, redis, services) {
     const chatId = message.chat.id;
     const text = message.text || '';
     const fromId = message.from && message.from.id;
-
-    // Signup state handling: if user is in awaiting_name, capture their reply as name
+    // Onboarding: if user has an active onboarding flow, delegate to handler
     try {
       if (fromId) {
         const r = createRedisAdapter(redis);
-        const s = await r.get(`signup:${fromId}:state`).catch(() => null);
-        if (s === 'awaiting_name') {
-          // save simple user profile to Redis (canonical JSON storage)
-          try {
-            const raw = await r.get(`user:${fromId}`);
-            const user = raw ? JSON.parse(raw) : {};
-            user.telegram_id = fromId;
-            user.name = String(text || '').substring(0, 80);
-            user.favorites = user.favorites || [];
-            user.created_at = user.created_at || (new Date()).toISOString();
-            await r.set(`user:${fromId}`, JSON.stringify(user));
-            await r.del(`signup:${fromId}:state`);
-          } catch (e) {
-            logger.error('Failed to save signup name', e?.message || String(e));
-            return { method: 'sendMessage', chat_id: chatId, text: `Sorry, there was an error saving your name. Try again later.` };
-          }
+        // If legacy signup state exists, migrate it into the structured onboarding flow
+        const legacy = await r.get(`signup:${fromId}:state`).catch(() => null);
+        if (legacy === 'awaiting_name') {
+          await r.setex(`user:${fromId}:onboarding`, 1800, JSON.stringify({ step: 'name', createdAt: Date.now() }));
+          await r.del(`signup:${fromId}:state`).catch(() => {});
+        }
 
-          return { method: 'sendMessage', chat_id: chatId, text: `Great, ${escapeHtml(String(text || ''))}. You're now registered.`, parse_mode: 'Markdown' };
+        const onboardRaw = await r.get(`user:${fromId}:onboarding`).catch(() => null);
+        if (onboardRaw) {
+          // delegate message into the onboarding state machine
+          const res = await handleOnboardingMessage(text, chatId, fromId, r, services).catch(e => {
+            logger.warn('handleOnboardingMessage failed', e?.message || String(e));
+            return null;
+          });
+          if (res) return res;
         }
       }
-    } catch (e) { logger.warn('Signup state check failed', e?.message || String(e)); }
+    } catch (e) { logger.warn('Onboarding state check failed', e?.message || String(e)); }
 
       // Favorites state handling: awaiting_add — user sent a team to add
       try {
