@@ -110,6 +110,97 @@ function createRedisAdapter(redis) {
     rPush: (k, v) => (redis.rPush ? redis.rPush(k, v) : (redis.rpush ? redis.rpush(k, v) : (async () => { const raw = await redis.get(k); const arr = raw ? JSON.parse(raw) : []; arr.push(v); return redis.set(k, JSON.stringify(arr)); })())),
     keys: (pattern) => (redis.keys ? redis.keys(pattern) : (async () => { try { const raw = await redis.get('*'); return []; } catch (e) { return []; } })()),
     ttl: (k) => (redis.ttl ? redis.ttl(k) : Promise.resolve(-1))
+    ,
+    // Blocking rpoplpush compatibility: try modern names then fall back to non-blocking emulation
+    brpoplpush: async (source, dest, timeoutSec = 0) => {
+      // node-redis v4 may expose brPopLPush or brpoplpush; try those first
+      if (redis.brPopLPush) return redis.brPopLPush(source, dest, timeoutSec);
+      if (redis.brpoplpush) return redis.brpoplpush(source, dest, timeoutSec);
+      // Some clients expose brPop which returns { key, element }
+      if (redis.brPop) {
+        const res = await redis.brPop(source, timeoutSec);
+        if (!res) return null;
+        const value = res.element || (Array.isArray(res) ? res[1] : null);
+        if (value == null) return null;
+        if (redis.lPush) await redis.lPush(dest, value);
+        else if (redis.rpush) await redis.rpush(dest, value);
+        else await redis.set(dest, JSON.stringify([value]));
+        return value;
+      }
+
+      // Best-effort non-blocking fallback: try rPop or rpop then lPush
+      try {
+        let val = null;
+        if (redis.rPop) val = await redis.rPop(source);
+        else if (redis.rpop) val = await redis.rpop(source);
+        else {
+          // emulate via get/parse
+          const raw = await redis.get(source);
+          const arr = raw ? JSON.parse(raw) : [];
+          val = arr.pop();
+          await redis.set(source, JSON.stringify(arr));
+        }
+
+        if (val == null) return null;
+        if (redis.lPush) await redis.lPush(dest, val);
+        else if (redis.rpush) await redis.rpush(dest, val);
+        else {
+          const rawDest = await redis.get(dest);
+          const darr = rawDest ? JSON.parse(rawDest) : [];
+          darr.push(val);
+          await redis.set(dest, JSON.stringify(darr));
+        }
+        return val;
+      } catch (e) {
+        // last resort: return null but do not crash
+        return null;
+      }
+    },
+    // rpoplpush alias
+    rpoplpush: async (source, dest) => {
+      if (redis.rPopLPush) return redis.rPopLPush(source, dest);
+      if (redis.rpoplpush) return redis.rpoplpush(source, dest);
+      // non-blocking fallback using rPop + lPush
+      try {
+        let val = null;
+        if (redis.rPop) val = await redis.rPop(source);
+        else if (redis.rpop) val = await redis.rpop(source);
+        else {
+          const raw = await redis.get(source);
+          const arr = raw ? JSON.parse(raw) : [];
+          val = arr.pop();
+          await redis.set(source, JSON.stringify(arr));
+        }
+        if (val == null) return null;
+        if (redis.lPush) await redis.lPush(dest, val);
+        else if (redis.rpush) await redis.rpush(dest, val);
+        else {
+          const rawDest = await redis.get(dest);
+          const darr = rawDest ? JSON.parse(rawDest) : [];
+          darr.push(val);
+          await redis.set(dest, JSON.stringify(darr));
+        }
+        return val;
+      } catch (e) {
+        return null;
+      }
+    },
+    // publish compatibility shim
+    publish: async (channel, message) => {
+      if (!redis) return 0;
+      if (redis.publish) return redis.publish(channel, message);
+      if (redis.PUBLISH) return redis.PUBLISH(channel, message);
+      if (redis.pub) return redis.pub(channel, message);
+      // best-effort: if client supports client.sendCommand, attempt PUBLISH
+      try {
+        if (typeof redis.sendCommand === 'function') {
+          return await redis.sendCommand(['PUBLISH', channel, String(message)]);
+        }
+      } catch (e) { /* ignore */ }
+      // no-op fallback
+      try { logger && logger.warn && logger.warn('redis.publish not available; publish is a no-op'); } catch (e) { /* ignore */ }
+      return 0;
+    }
   };
 }
 
