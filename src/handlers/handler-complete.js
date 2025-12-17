@@ -221,14 +221,35 @@ export async function handleCallbackQuery(cq, redis, services) {
 
     if (!chatId || !messageId) {
       return {
-        method: 'answerCallbackQuery',
-        callback_query_id: cq.id,
-        text: '❌ Error: Invalid message',
-        show_alert: true
-      };
-    }
-
+    const keyboard = {
+      inline_keyboard: [
+        [ { text: 'Sign Up', callback_data: 'signup' }, { text: 'Talk to BETRIX', url: 'https://t.me/BETRIXXXXX_bot' } ],
+        [ { text: 'Latest News', callback_data: 'news' }, { text: 'Live Matches', callback_data: 'live' } ],
+        [ { text: 'Standings', callback_data: 'standings' }, { text: 'Odds & Analysis', callback_data: 'odds' } ],
+        [ { text: 'Favorites', callback_data: 'favorites' }, { text: 'Profile', callback_data: 'profile' } ],
+        [ { text: 'Upgrade', callback_data: 'upgrade' }, { text: 'Help & Support', callback_data: 'help' } ]
+      ]
+    };
     logger.info(`Callback: ${data}`);
+
+    // Signup flow trigger
+    if (data === 'signup') {
+      try {
+        const userId = cq.from && cq.from.id;
+        if (!userId) return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Unable to identify you.', show_alert: true };
+        // mark signup state in Redis
+        try { await redis.set(`signup:${userId}:state`, 'awaiting_name'); await redis.expire(`signup:${userId}:state`, 900); } catch (e) { void e; }
+        return {
+          method: 'sendMessage',
+          chat_id: chatId,
+          text: "Welcome to BETRIX! What name should I call you?",
+          parse_mode: 'Markdown'
+        };
+      } catch (e) {
+        logger.warn('signup callback failed', e?.message || String(e));
+        return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Signup failed', show_alert: false };
+      }
+    }
 
     // Delegate analyze_match_ callbacks to the dedicated analyzer (telegram-handler-v2)
     if (typeof data === 'string' && data.startsWith('analyze_match_')) {

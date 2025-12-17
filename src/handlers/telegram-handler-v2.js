@@ -385,6 +385,29 @@ export async function handleMessage(update, redis, services) {
     if (!message) return null;
     const chatId = message.chat.id;
     const text = message.text || '';
+    const fromId = message.from && message.from.id;
+
+    // Signup state handling: if user is in awaiting_name, capture their reply as name
+    try {
+      if (fromId && redis && typeof redis.get === 'function') {
+        const s = await redis.get(`signup:${fromId}:state`).catch(() => null);
+        if (s === 'awaiting_name') {
+          // save simple user profile to Redis
+          try {
+            const raw = await redis.get(`user:${fromId}`).catch(() => null);
+            const user = raw ? JSON.parse(raw) : {};
+            user.telegram_id = fromId;
+            user.name = String(text || '').substring(0, 80);
+            user.favorites = user.favorites || [];
+            user.created_at = user.created_at || (new Date()).toISOString();
+            await redis.set(`user:${fromId}`, JSON.stringify(user));
+            await redis.del(`signup:${fromId}:state`).catch(() => null);
+          } catch (e) { /* ignore save errors */ }
+
+          return { method: 'sendMessage', chat_id: chatId, text: `Great, ${text}. You're now registered.`, parse_mode: 'Markdown' };
+        }
+      }
+    } catch (e) { /* ignore signup checks */ }
 
     if (text && text.startsWith('/live')) {
       const games = await getLiveMatchesBySport('soccer', redis, services && services.sportsAggregator);
