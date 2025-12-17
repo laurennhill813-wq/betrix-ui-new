@@ -744,6 +744,7 @@ export function buildMatchDetailsMenu(match = {}) {
     inline_keyboard: [
       [
         { text: '⭐ Add to Favorites', callback_data: `fav:${match.id}` },
+        { text: '🤖 Analyze', callback_data: `analyze_match_upcoming_${match.id}` },
         { text: '📊 Full Analysis', callback_data: `analysis:${match.id}` }
       ],
       [
