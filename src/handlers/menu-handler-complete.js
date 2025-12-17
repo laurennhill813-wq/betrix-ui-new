@@ -726,21 +726,45 @@ export function buildHelpMenu() {
 // ============================================================================
 
 export function buildMatchDetailsMenu(match = {}) {
+  // Derive readable team names from many possible fields present in various providers
+  const deriveTeamName = (m, side) => {
+    if (!m) return side === 'home' ? 'Home' : 'Away';
+    const candidates = [];
+    if (side === 'home') {
+      candidates.push(m.home, m.homeTeam, m.home_name, m.home_team, m.home_short, (m.raw && m.raw.home && m.raw.home.name), (m.raw && m.raw.teams && m.raw.teams.home && m.raw.teams.home.name), (m.raw && m.raw.teams && m.raw.teams[0] && m.raw.teams[0].name));
+      candidates.push((m.raw && m.raw.homeTeam && (m.raw.homeTeam.name || m.raw.homeTeam)));
+    } else {
+      candidates.push(m.away, m.awayTeam, m.away_name, m.away_team, m.away_short, (m.raw && m.raw.away && m.raw.away.name), (m.raw && m.raw.teams && m.raw.teams.away && m.raw.teams.away.name), (m.raw && m.raw.teams && m.raw.teams[1] && m.raw.teams[1].name));
+      candidates.push((m.raw && m.raw.awayTeam && (m.raw.awayTeam.name || m.raw.awayTeam)));
+    }
+    for (const c of candidates) {
+      if (c && typeof c === 'string' && c.trim().length > 0) return c.trim();
+      if (c && typeof c === 'object' && (c.name || c.title)) return (c.name || c.title).toString();
+    }
+    return side === 'home' ? 'Home' : 'Away';
+  };
+
+  const home = deriveTeamName(match, 'home');
+  const away = deriveTeamName(match, 'away');
+  const competition = match.league || match.competition || (match.raw && (match.raw.competition && (match.raw.competition.name || match.raw.competition))) || 'Unknown';
+  const time = match.time || match.kickoff || match.date || 'TBA';
+  const venue = match.venue || (match.raw && match.raw.venue) || 'TBA';
+
   const text = `🌀 *BETRIX* - Match Details\n\n` +
-    `*${match.home || 'Home'}* vs *${match.away || 'Away'}*\n\n` +
-    `📊 Competition: ${match.league || 'Unknown'}\n` +
-    `⏰ Time: ${match.time || 'TBA'}\n` +
-    `📍 Venue: ${match.venue || 'TBA'}\n\n` +
+    `*${home}* vs *${away}*\n\n` +
+    `📊 Competition: ${competition}\n` +
+    `⏰ Time: ${time}\n` +
+    `📍 Venue: ${venue}\n\n` +
     `📈 *Live Stats:*\n` +
     `Shots: ${match.homeShots || '0'} - ${match.awayShots || '0'}\n` +
     `Possession: ${match.homePossession || '0'}% - ${match.awayPossession || '0'}%\n` +
     `Cards: 🟡${match.homeCards || '0'} 🟥${match.homeRed || '0'} | 🟡${match.awayCards || '0'} 🟥${match.awayRed || '0'}\n\n` +
     `💰 *Odds:*\n` +
-    `${match.home || 'Home'}: ${match.homeOdds || 'N/A'} | Draw: ${match.drawOdds || 'N/A'} | ${match.away || 'Away'}: ${match.awayOdds || 'N/A'}\n\n` +
+    `${home}: ${match.homeOdds || 'N/A'} | Draw: ${match.drawOdds || 'N/A'} | ${away}: ${match.awayOdds || 'N/A'}\n\n` +
     `🤖 *Prediction:*\n` +
     `${match.prediction || 'Analysis coming soon...'}`;
 
-  const safeId = match.id || match.fixtureId || match.match_id || encodeURIComponent(`${(match.home||'home').replace(/\s+/g,'_')}_${(match.away||'away').replace(/\s+/g,'_')}`);
+  const safeId = match.id || match.fixtureId || match.match_id || encodeURIComponent(`${home.replace(/\s+/g,'_')}_${away.replace(/\s+/g,'_')}`);
   const reply_markup = {
     inline_keyboard: [
       [
