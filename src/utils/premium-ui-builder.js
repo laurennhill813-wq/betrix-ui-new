@@ -3,11 +3,17 @@
  * Comprehensive formatting and interactive elements for superior UX
  */
 
-import logger from '../utils/logger.js';
+import * as loggerModule from '../utils/logger.js';
 import safeName from './safe-name.js';
 import * as sanitize from './telegram-sanitize.js';
 
-// Use shared structured logger
+// Use shared structured logger with resilient fallback to console
+const logger = (loggerModule && loggerModule.default) ? loggerModule.default : {
+  info: (...args) => console.log(...args),
+  warn: (...args) => console.warn(...args),
+  error: (...args) => console.error(...args),
+  debug: (...args) => console.debug(...args)
+};
 void logger;
 
 // BETRIX Brand Constants
