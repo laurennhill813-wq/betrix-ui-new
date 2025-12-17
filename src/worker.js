@@ -19,6 +19,7 @@ import paypalSdk from '@paypal/checkout-server-sdk';
 // New telegram handler (v2) and app-level services
 import { handleMessage as newHandleMessage, handleCallbackQuery as newHandleCallback } from './handlers/telegram-handler-v2.js';
 import { openLiga, rssAggregator, footballData, scorebat, scrapers, redis as mainRedis } from './app.js';
+import * as serpapi from './services/serpapi.js';
 import { sportsAggregator } from './app.js';
 
 console.log("\n - worker.js:22" + "=".repeat(130));
@@ -403,7 +404,8 @@ if (GEMINI_API_KEY) {
           footballData,
           scorebat,
           scrapers,
-          apiFootball: global.apiFootball || null
+          apiFootball: global.apiFootball || null,
+          serpapi
         };
 
         try {

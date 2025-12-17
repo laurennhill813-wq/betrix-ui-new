@@ -463,38 +463,45 @@ export async function handleNews(chatId, userId, redis, services) {
   logger.info('handleNews', { userId });
   
   try {
-    // Try to fetch articles from provided services (if available)
-    let articles = [];
+    // Prefer SerpApi favorites-based news when available
+    let formatted;
     try {
-      if (services && services.api) {
-        if (typeof services.api.fetchNews === 'function') {
-          articles = await services.api.fetchNews();
-        } else if (typeof services.api.get === 'function') {
-          const res = await services.api.get('/news');
-          articles = res?.data || res || [];
+      const user = await redis.hgetall(`user:${userId}`) .catch(() => ({}));
+      let favorites = null;
+      if (user) {
+        if (user.favorites) {
+          try { favorites = JSON.parse(user.favorites); } catch (e) { favorites = String(user.favorites).split(',').map(s=>s.trim()).filter(Boolean); }
         }
       }
-    } catch (e) {
-      logger.warn('Failed to fetch news from services.api', e);
-    }
 
-    // Fallback to empty list; formatNews will handle empty case
-    const formatted = formatNews(articles);
+      if (services && services.serpapi && typeof services.serpapi.fetchFavoritesNews === 'function') {
+        const r = await services.serpapi.fetchFavoritesNews(favorites || []);
+        if (r && r.text) formatted = r.text;
+        else formatted = formatNews(r || []);
+      } else if (services && services.api) {
+        // Legacy api handler
+        let articles = [];
+        try {
+          if (typeof services.api.fetchNews === 'function') {
+            articles = await services.api.fetchNews();
+          } else if (typeof services.api.get === 'function') {
+            const res = await services.api.get('/news');
+            articles = res?.data || res || [];
+          }
+        } catch (e) { logger.warn('Failed to fetch news from services.api', e); }
+        formatted = formatNews(articles);
+      } else {
+        // No news services available
+        formatted = 'No news provider available. Configure SerpApi with SERPAPI_KEY.';
+      }
+    } catch (e) {
+      logger.warn('Failed to fetch news', e);
+      formatted = '⚠️ Unable to fetch news right now.';
+    }
 
     // Build inline keyboard to allow reading articles when available
     const keyboard = { inline_keyboard: [] };
-    if (Array.isArray(articles) && articles.length > 0) {
-      // Add up to 5 article buttons
-      for (let i = 0; i < Math.min(5, articles.length); i++) {
-        const a = articles[i];
-        keyboard.inline_keyboard.push([
-          { text: `📄 Read: ${a.title?.slice(0, 30) || 'Article'}`, callback_data: `news_${i}` }
-        ]);
-      }
-      keyboard.inline_keyboard.push([{ text: '🔙 Back', callback_data: 'menu_main' }]);
-    } else {
-      keyboard.inline_keyboard.push([{ text: '🔙 Back', callback_data: 'menu_main' }]);
-    }
+    keyboard.inline_keyboard.push([{ text: '🔙 Back', callback_data: 'menu_main' }]);
 
     return {
       chat_id: chatId,
