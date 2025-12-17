@@ -409,6 +409,28 @@ export async function handleMessage(update, redis, services) {
       }
     } catch (e) { /* ignore signup checks */ }
 
+      // Favorites state handling: awaiting_add — user sent a team to add
+      try {
+        if (fromId && redis && typeof redis.get === 'function') {
+          const favState = await redis.get(`favorites:${fromId}:state`).catch(() => null);
+          if (favState === 'awaiting_add') {
+            const team = String(text || '').trim();
+            if (!team) return { method: 'sendMessage', chat_id: chatId, text: 'Please send a valid team name.' };
+            try {
+              const raw = await redis.get(`user:${fromId}`).catch(() => null);
+              const user = raw ? JSON.parse(raw) : {};
+              const favs = Array.isArray(user.favorites) ? user.favorites : (user.favorites ? String(user.favorites).split(',').map(s=>s.trim()).filter(Boolean) : []);
+              if (!favs.find(f => String(f).toLowerCase() === team.toLowerCase())) favs.push(team);
+              user.favorites = favs;
+              user.updated_at = new Date().toISOString();
+              await redis.set(`user:${fromId}`, JSON.stringify(user));
+              await redis.del(`favorites:${fromId}:state`).catch(() => null);
+            } catch (e) { /* ignore save errors */ }
+            return { method: 'sendMessage', chat_id: chatId, text: `Added *${team}* to your favorites.`, parse_mode: 'Markdown' };
+          }
+        }
+      } catch (e) { /* ignore favorites checks */ }
+
     if (text && text.startsWith('/live')) {
       const games = await getLiveMatchesBySport('soccer', redis, services && services.sportsAggregator);
       const payload = buildLiveMenuPayload(games, 'Soccer', 'FREE', 1, 6);

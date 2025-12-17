@@ -220,16 +220,8 @@ export async function handleCallbackQuery(cq, redis, services) {
     const messageId = cq.message?.message_id;
 
     if (!chatId || !messageId) {
-      return {
-    const keyboard = {
-      inline_keyboard: [
-        [ { text: 'Sign Up', callback_data: 'signup' }, { text: 'Talk to BETRIX', url: 'https://t.me/BETRIXXXXX_bot' } ],
-        [ { text: 'Latest News', callback_data: 'news' }, { text: 'Live Matches', callback_data: 'live' } ],
-        [ { text: 'Standings', callback_data: 'standings' }, { text: 'Odds & Analysis', callback_data: 'odds' } ],
-        [ { text: 'Favorites', callback_data: 'favorites' }, { text: 'Profile', callback_data: 'profile' } ],
-        [ { text: 'Upgrade', callback_data: 'upgrade' }, { text: 'Help & Support', callback_data: 'help' } ]
-      ]
-    };
+      return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Invalid callback', show_alert: false };
+    }
     logger.info(`Callback: ${data}`);
 
     // Signup flow trigger
@@ -578,6 +570,44 @@ export async function handleCallbackQuery(cq, redis, services) {
         reply_markup: menu.reply_markup,
         parse_mode: 'Markdown'
       };
+    }
+
+    // ========================================================================
+    // FAVORITES (add/remove/list)
+    // ========================================================================
+    if (data === 'favorites') {
+      try {
+        const userId = cq.from && cq.from.id;
+        if (!userId) return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Unable to identify you.', show_alert: true };
+        // read favorites from Redis hash `user:${userId}` stored as JSON
+        let userRaw = {};
+        try { const raw = await redis.get(`user:${userId}`); userRaw = raw ? JSON.parse(raw) : {}; } catch (e) { userRaw = {}; }
+        const favs = Array.isArray(userRaw.favorites) ? userRaw.favorites : (userRaw.favorites ? String(userRaw.favorites).split(',').map(s=>s.trim()).filter(Boolean) : []);
+        const text = `👤 *Your Favorites*\n\n${favs.length ? favs.map((f,i)=>`${i+1}. ${f}`).join('\n') : '_No favorites set yet._'}`;
+        const kb = { inline_keyboard: [ [ { text: '➕ Add Favorite', callback_data: 'favorites_add_prompt' }, { text: '🔙 Back', callback_data: 'menu_main' } ] ] };
+        return { method: 'editMessageText', chat_id: chatId, message_id: messageId, text, reply_markup: kb, parse_mode: 'Markdown' };
+      } catch (e) { logger.warn('favorites handler failed', e?.message || String(e)); return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Favorites unavailable', show_alert: false }; }
+    }
+
+    if (data === 'favorites_add_prompt') {
+      // ask user to send team name in chat; set interim redis flag
+      const userId = cq.from && cq.from.id;
+      if (!userId) return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Unable to identify you.', show_alert: true };
+      try { await redis.set(`favorites:${userId}:state`, 'awaiting_add'); await redis.expire(`favorites:${userId}:state`, 600); } catch (e){void e}
+      return { method: 'sendMessage', chat_id: chatId, text: 'Send the team name you want to add to your Favorites.' };
+    }
+
+    if (data.startsWith('favorites_remove:')) {
+      const team = decodeURIComponent(data.split(':').slice(1).join(':'));
+      const userId = cq.from && cq.from.id;
+      if (!userId) return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Unable to identify you.', show_alert: true };
+      try {
+        const raw = await redis.get(`user:${userId}`); const userObj = raw ? JSON.parse(raw) : {};
+        const favs = Array.isArray(userObj.favorites) ? userObj.favorites : (userObj.favorites?String(userObj.favorites).split(',').map(s=>s.trim()).filter(Boolean):[]);
+        const next = favs.filter(f=>String(f).toLowerCase() !== String(team).toLowerCase());
+        userObj.favorites = next; userObj.updated_at = new Date().toISOString(); await redis.set(`user:${userId}`, JSON.stringify(userObj));
+        return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: `Removed ${team} from favorites.`, show_alert: false };
+      } catch (e) { logger.warn('favorites remove failed', e?.message || String(e)); return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Could not remove favorite', show_alert: false }; }
     }
 
     // ========================================================================
