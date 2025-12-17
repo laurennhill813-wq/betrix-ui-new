@@ -396,9 +396,45 @@ export async function handleCallbackQuery(cq, redis, services) {
     if (data.startsWith('match:')) {
       const parts = data.split(':');
       const matchId = parts[1];
-      // Fetch match details from SportMonks
-      const matches = await getLiveMatches(services, 'football');
-      const match = matches.find(m => String(m.id) === matchId) || matches[0] || {};
+      const sport = parts[2] || 'football';
+
+      // Try to resolve the match from upcoming fixtures first (supports scheduled matches)
+      let match = null;
+      try {
+        let fixtures = [];
+        if (services && services.sportsAggregator && typeof services.sportsAggregator.getFixtures === 'function') {
+          try {
+            // Ask for sport-scoped fixtures when available
+            fixtures = await services.sportsAggregator.getFixtures(sport).catch(() => []);
+          } catch (e) {
+            fixtures = [];
+          }
+
+          // If sport-scoped call returned nothing and sport === 'football', try global fixtures
+          if ((!fixtures || fixtures.length === 0) && String(sport).toLowerCase() === 'football') {
+            try { fixtures = await services.sportsAggregator.getFixtures().catch(() => []); } catch (e) { fixtures = []; }
+          }
+        }
+
+        if (Array.isArray(fixtures) && fixtures.length > 0) {
+          match = fixtures.find(f => String(f.id) === String(matchId) || String(f.fixtureId) === String(matchId) || String(f.match_id) === String(matchId));
+        }
+
+        // Fallback: try live matches (in case the match is live rather than upcoming)
+        if (!match && services && services.sportsAggregator && typeof services.sportsAggregator.getAllLiveMatches === 'function') {
+          try {
+            const live = await services.sportsAggregator.getAllLiveMatches(sport).catch(() => []);
+            match = (live || []).find(m => String(m.id) === String(matchId) || String(m.fixtureId) === String(matchId) || String(m.match_id) === String(matchId));
+          } catch (e) { /* ignore */ }
+        }
+      } catch (e) {
+        logger.debug('match: resolver failed', e?.message || String(e));
+      }
+
+      if (!match) {
+        return { method: 'answerCallbackQuery', callback_query_id: cq.id, text: '⚠️ Match not found', show_alert: false };
+      }
+
       const menu = completeMenus.buildMatchDetailsMenu(match);
 
       return {
