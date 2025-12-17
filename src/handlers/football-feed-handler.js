@@ -165,6 +165,11 @@ export async function buildFixturesMenu(redis, page = 1) {
       { text: '🔙 Menu', callback_data: 'menu_main' }
     ]);
 
+    // Show all fixtures quick action
+    keyboard.push([
+      { text: `📋 Show All (${fixtures.length})`, callback_data: 'football_fixtures_all' }
+    ]);
+
     return {
       text,
       reply_markup: { inline_keyboard: keyboard }
@@ -209,6 +214,8 @@ export async function buildMatchAnalysisMenu(matchId, isLive = true, redis) {
       text,
       reply_markup: {
         inline_keyboard: [
+          // Provide Analyze for scheduled fixtures (not live)
+          ...(isLive ? [] : [[{ text: '🤖 Analyze', callback_data: `analyze_match_upcoming_${matchId}` }]]),
           [{ text: '📊 Full Stats', callback_data: `football_stats:${matchId}` }],
           [{ text: '⬅️ Back', callback_data: isLive ? 'football_live:1' : 'football_fixtures:1' }]
         ]
@@ -243,6 +250,12 @@ export async function handleFootballCallback(data, redis) {
   if (data === 'football_fixtures' || data.startsWith('football_fixtures:')) {
     const page = parseInt(data.split(':')[1], 10) || 1;
     return await buildFixturesMenu(redis, page);
+  }
+
+  // Show all upcoming fixtures
+  if (data === 'football_fixtures_all') {
+    // Build full fixtures view (no pagination)
+    return await buildFixturesMenu(redis, 0);
   }
 
   // Football match analysis
