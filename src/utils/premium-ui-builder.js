@@ -173,8 +173,8 @@ export function buildMatchActionButtons(matchId, leagueId = null, userTier = 'FR
   if (userTier !== 'FREE') {
     buttons.push({
       text: '🤖 AI Analyze',
-      // Default to 'upcoming' when no leagueId is supplied so analysis can look up fixtures
-      callback_data: `analyze_match_${leagueId || 'upcoming'}_${matchId}`
+      // Use upcoming token so handler resolves scheduled fixtures reliably
+      callback_data: `analyze_match_upcoming_${matchId}`
     });
   }
 
@@ -380,7 +380,7 @@ export function buildUpcomingFixtures(fixtures = [], league = '', daysBefore = 7
       const leagueId = league || (f.competition && (f.competition.id || f.competition)) || null;
       const actionRow = [];
       if (opts.userTier && opts.userTier !== 'FREE') {
-        actionRow.push({ text: '🤖 Analyze', callback_data: `analyze_match_${leagueId || 'upcoming'}_${matchId}` });
+        actionRow.push({ text: '🤖 Analyze', callback_data: `analyze_match_upcoming_${matchId}` });
       }
       actionRow.push({ text: '💰 Odds', callback_data: `odds_compare_${matchId}` });
       actionRow.push({ text: '⭐ Fav', callback_data: `fav_add_${matchId}` });

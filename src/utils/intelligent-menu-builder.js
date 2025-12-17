@@ -182,10 +182,8 @@ export class IntelligentMenuBuilder {
     // AI Analysis (VVIP only)
     if (userTier !== 'FREE') {
       actions.push([
-        // Default to 'upcoming' when no leagueId is supplied so analysis
-        // can resolve fixtures from the upcoming fixtures list rather
-        // than attempting to treat them as live matches.
-        { text: '🤖 AI Analysis', callback_data: `analyze_match_${leagueId || 'upcoming'}_${matchId}` }
+        // Use upcoming token so analysis resolves scheduled fixtures reliably
+        { text: '🤖 AI Analysis', callback_data: `analyze_match_upcoming_${matchId}` }
       ]);
     }
 
