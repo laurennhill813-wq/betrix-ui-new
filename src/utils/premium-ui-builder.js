@@ -384,13 +384,15 @@ export function buildUpcomingFixtures(fixtures = [], league = '', daysBefore = 7
 
     display += `• ${home} vs ${away} — ${dateStr}${timeStr ? ' ' + timeStr : ''}\n`;
 
+    // Primary selector row: opens match details so user can then Analyze
+    const matchId = f.id || f.fixtureId || encodeURIComponent(`${home.replace(/\s+/g,'_')}_${away.replace(/\s+/g,'_')}_${idx}`);
+    const sportKey = league || 'football';
+    keyboard.push([{ text: `🔎 ${home} vs ${away}`, callback_data: `match:${matchId}:${sportKey}` }]);
+
     if (opts.showActions) {
-      // Build small action row for each fixture: Analyze (VVIP), Odds, Add to Fav
-      const matchId = f.id || f.fixtureId || encodeURIComponent(`${home.replace(/\s+/g,'_')}_${away.replace(/\s+/g,'_')}_${idx}`);
+      // Secondary action row: Analyze, Odds, Fav — Analyze available to all users
       const actionRow = [];
-      if (opts.userTier && opts.userTier !== 'FREE') {
-        actionRow.push({ text: '🤖 Analyze', callback_data: `analyze_match_upcoming_${matchId}` });
-      }
+      actionRow.push({ text: '🤖 Analyze', callback_data: `analyze_match_upcoming_${matchId}` });
       actionRow.push({ text: '💰 Odds', callback_data: `odds_compare_${matchId}` });
       actionRow.push({ text: '⭐ Fav', callback_data: `fav_add_${matchId}` });
       keyboard.push(actionRow);
