@@ -23,24 +23,58 @@ module.exports = function commandRouter(app) {
         const chatId = update.message?.chat?.id;
         if (!chatId) return;
         const token = process.env.TELEGRAM_BOT_TOKEN;
-        const reply = { chat_id: chatId, text: "I am live. Try /PING", parse_mode: "HTML" };
 
+        // Minimal main menu payload to respond directly from the webhook (compatibility fallback).
+        const mainMenuPayload = {
+          chat_id: chatId,
+          text: `🌀 *BETRIX* - Premium Sports Analytics\n\nYour AI-powered sports betting companion.\nGet live odds, predictions, and analysis.\n\n*What would you like to do?*`,
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '🤖 Talk to BETRIX AI', callback_data: 'mod_ai_chat' },
+                { text: '✅ Sign up', callback_data: 'signup_start' }
+              ],
+              [
+                { text: '▶ Live Matches', callback_data: 'live_games' },
+                { text: '📋 Sports', callback_data: 'sports' }
+              ],
+              [
+                { text: '🏆 Standings', callback_data: 'standings' },
+                { text: '📊 Odds & Analysis', callback_data: 'odds_analysis' }
+              ],
+              [
+                { text: '👤 My Profile', callback_data: 'profile' },
+                { text: '⭐ Favorites', callback_data: 'favorites' }
+              ],
+              [ { text: '👑 Subscribe/Upgrade', callback_data: 'subscription' } ],
+              [
+                { text: '📰 News', callback_data: 'news' },
+                { text: '❓ Help & Support', callback_data: 'help' }
+              ]
+            ]
+          }
+        };
+
+        // If specific commands match, override the mainMenuPayload text accordingly
         if (/^\/PING\b/i.test(text)) {
-          reply.text = "PONG";
+          mainMenuPayload.text = 'PONG';
+          delete mainMenuPayload.reply_markup;
         } else if (/^\/HELP\b/i.test(text)) {
-          reply.text = "BETRIX commands: /PING, /HELP, /BET <stake> <selection>";
+          mainMenuPayload.text = 'BETRIX commands: /PING, /HELP, /BET <stake> <selection>';
+          delete mainMenuPayload.reply_markup;
         } else if (/^\/BET\b/i.test(text)) {
-          // placeholder: send back structured acknowledgement and enqueue to retry worker if needed
-          reply.text = "Received bet request. Processing... (this is a placeholder)";
+          mainMenuPayload.text = 'Received bet request. Processing... (this is a placeholder)';
+          delete mainMenuPayload.reply_markup;
         }
 
         const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(reply)
+          body: JSON.stringify(mainMenuPayload)
         });
         const data = await resp.json();
-        console.log("OUTGOING-RESPONSE", JSON.stringify({ ok: data.ok, description: data.description || null, payload: reply }));
+        console.log("OUTGOING-RESPONSE", JSON.stringify({ ok: data.ok, description: data.description || null, payload: mainMenuPayload }));
       } catch (err) {
         console.error("COMMAND-PROCESS-ERR", err && (err.stack || err.message));
       }
