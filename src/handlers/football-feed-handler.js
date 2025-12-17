@@ -135,11 +135,18 @@ export async function buildFixturesMenu(redis, page = 1) {
 
     // Build keyboard with fixture buttons + navigation
     const keyboard = [];
-    pageFixtures.forEach((fixture) => {
-      keyboard.push([
-        { text: `📅 ${fixture.home} vs ${fixture.away}`, callback_data: `football_match:${fixture.id}:fixture` }
-      ]);
-    });
+      pageFixtures.forEach((fixture) => {
+        // Primary label row (opens fixture details)
+        keyboard.push([
+          { text: `📅 ${fixture.home} vs ${fixture.away}`, callback_data: `football_match:${fixture.id}:fixture` }
+        ]);
+        // Action row: Analyze (targets upcoming fixtures), Odds, Favourite
+        keyboard.push([
+          { text: '🤖 Analyze', callback_data: `analyze_match_upcoming_${fixture.id}` },
+          { text: '💰 Odds', callback_data: `odds_compare_${fixture.id}` },
+          { text: '⭐ Fav', callback_data: `fav_add_${fixture.id}` }
+        ]);
+      });
 
     // Navigation row
     const navRow = [];
