@@ -1517,6 +1517,36 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
 
       analysisText += `\n\n*Structured Betting Options (JSON):*\n`;
       analysisText += '```json\n' + JSON.stringify(structured, null, 2) + '\n```\n';
+
+      // If an AI service is available, ask it to produce a constrained JSON
+      // response with explicit suggested bets (Over/Under, HT/FT, BTTS, etc.).
+      let aiParsed = null;
+      try {
+        if (services && services.azureAI && typeof services.azureAI.chat === 'function' && services.azureAI.isHealthy && services.azureAI.isHealthy()) {
+          const prompt = `You are an expert sports betting assistant. Given the following match context JSON, produce a JSON object ONLY with a top-level key \"suggested_bets\" which is an array of bet objects. Each bet object must have: {"type":"market type","market":"market name","selection":"readable selection (e.g. Over 2.5)","line":number|null,"confidence":number (0-100),"rationale":"short reason"}. Provide 3-6 suggestions where relevant. Do not include any other keys.\n\nContext JSON:\n${JSON.stringify(structured)}\n\nReturn only valid JSON.`;
+          const aiResp = await services.azureAI.chat(prompt, { temperature: 0.2, max_tokens: 800 });
+          if (aiResp && typeof aiResp === 'string') {
+            // try to extract JSON substring from response
+            const firstBrace = aiResp.indexOf('{');
+            const lastBrace = aiResp.lastIndexOf('}');
+            const jsonText = (firstBrace >= 0 && lastBrace >= 0) ? aiResp.slice(firstBrace, lastBrace + 1) : aiResp;
+            try { aiParsed = JSON.parse(jsonText); } catch (e) { aiParsed = null; }
+          }
+        }
+      } catch (e) {
+        // ignore AI failures and continue with structured heuristics
+        aiParsed = null;
+      }
+
+      // If AI returned structured suggestions, render them in a friendly format
+      if (aiParsed && Array.isArray(aiParsed.suggested_bets) && aiParsed.suggested_bets.length > 0) {
+        analysisText += `\n*AI Suggested Bets:*\n`;
+        aiParsed.suggested_bets.forEach((b, i) => {
+          const conf = (typeof b.confidence === 'number') ? `${Math.round(b.confidence)}%` : (b.confidence ? String(b.confidence) : 'N/A');
+          const line = (b.line !== undefined && b.line !== null) ? ` (line: ${b.line})` : '';
+          analysisText += `${i + 1}. ${b.market} — ${b.selection}${line} | Confidence: ${conf}\n   • ${b.rationale || ''}\n`;
+        });
+      }
     } catch (e) {
       // ignore structured block building errors
     }
