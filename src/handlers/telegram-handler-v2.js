@@ -80,6 +80,114 @@ const formatProfile = (data) => `*Profile*\nName: ${data.name}\nTier: ${data.tie
 const formatSubscriptionDetails = (sub) => `Tier: ${sub && sub.tier || 'FREE'}`;
 const formatNaturalResponse = (s) => (s && typeof s === 'string') ? s : JSON.stringify(s || {});
 
+// --- Start menu utilities (BETRIX OS) ---
+function buildStartMenuText() {
+  return [
+    '🌀 BETRIX — The Sports Intelligence OS',
+    '',
+    'Your AI-powered sports betting companion.',
+    'Live scores, odds, xG, predictions, and sharp insights across all major leagues.',
+    '',
+    'What would you like to do?',
+    '',
+    '⚽ Sports Hub',
+    '📅 Upcoming Fixtures',
+    '📊 Live Matches',
+    '📈 Betting Insights',
+    '🤖 Talk to BETRIX AI',
+    '📰 News & Standings',
+    '👤 My Profile & Favorites',
+    '💰 Upgrade to VVIP',
+    '🔗 Affiliate & Earnings',
+    '🆘 Help & Support'
+  ].join('\n');
+}
+
+const startMenuKeyboard = {
+  inline_keyboard: [
+    [
+      { text: '⚽ Sports Hub', callback_data: 'mod_sports_hub' },
+      { text: '📅 Fixtures', callback_data: 'mod_fixtures' }
+    ],
+    [
+      { text: '📊 Live Matches', callback_data: 'mod_live' },
+      { text: '📈 Betting Insights', callback_data: 'mod_betting' }
+    ],
+    [
+      { text: '🤖 Talk to BETRIX AI', callback_data: 'mod_ai_chat' }
+    ],
+    [
+      { text: '📰 News & Standings', callback_data: 'mod_news_tables' }
+    ],
+    [
+      { text: '👤 Profile & Favorites', callback_data: 'mod_profile' },
+      { text: '💰 Upgrade to VVIP', callback_data: 'mod_vvip' }
+    ],
+    [
+      { text: '🔗 Affiliate & Earnings', callback_data: 'mod_affiliate' },
+      { text: '🆘 Help & Support', callback_data: 'mod_support' }
+    ]
+  ]
+};
+
+async function sendStartMenu(chatId, telegramService) {
+  // telegramService is optional; if not present return the payload
+  const text = buildStartMenuText();
+  const payload = { method: 'sendMessage', chat_id: chatId, text, reply_markup: startMenuKeyboard };
+  if (!telegramService) return payload;
+  try {
+    await telegramService.sendMessage(chatId, text, { reply_markup: startMenuKeyboard });
+  } catch (e) {
+    // fall back to returning payload for upstream handling
+    return payload;
+  }
+}
+
+// --- AI angle derivation and prompt builder ---
+function deriveAiAngles(structured) {
+  try {
+    const angles = [];
+    const { match, stats, suggested_bets } = structured || {};
+
+    const findStanding = (name) => (stats && Array.isArray(stats.standings)) ? stats.standings.find(t => t.team && (String(t.team.name) === String(name) || String(t.team.id) === String(name))) : null;
+    const homeStanding = findStanding(match && match.home);
+    const awayStanding = findStanding(match && match.away);
+
+    if (homeStanding && awayStanding) {
+      if (Number(homeStanding.position) < Number(awayStanding.position)) {
+        angles.push(`${match.home} sit higher in the table (#${homeStanding.position}) than ${match.away} (#${awayStanding.position}).`);
+      } else if (Number(awayStanding.position) < Number(homeStanding.position)) {
+        angles.push(`${match.away} sit higher in the table (#${awayStanding.position}) than ${match.home} (#${homeStanding.position}).`);
+      }
+    }
+
+    if (stats && stats.h2h && Number(stats.h2h.totalMatches) === 0) {
+      angles.push('No head-to-head history in our dataset; projections rely on form and table.');
+    }
+
+    const styleHome = stats && stats.teamProfiles && stats.teamProfiles.home && stats.teamProfiles.home.style;
+    const styleAway = stats && stats.teamProfiles && stats.teamProfiles.away && stats.teamProfiles.away.style;
+    if (styleHome || styleAway) {
+      angles.push(`Playing styles: ${match.home} (${styleHome || 'unknown'}) vs ${match.away} (${styleAway || 'unknown'}).`);
+    }
+
+    const primary = (suggested_bets && suggested_bets[0]) || null;
+    if (primary) {
+      angles.push(`Market focus: ${primary.market} — ${primary.selection}${primary.line ? ` (line ${primary.line})` : ''}, confidence ${primary.confidence}%.`);
+    }
+
+    structured.ai_analysis = structured.ai_analysis || {};
+    structured.ai_analysis.keyAngles = angles;
+    structured.ai_analysis.summary = angles.length ? angles[0] : (structured.ai_analysis.summary || 'Limited data available; projecting from standings and profiles.');
+  } catch (e) { /* ignore and leave structured as-is */ }
+  return structured;
+}
+
+function buildMatchAnalysisPrompt(structured) {
+  const shortJson = JSON.stringify(structured || {}, null, 2);
+  return `You are BETRIX, a premium AI-powered sports betting assistant.\n\nYou are given structured JSON describing a football match, including match info, stats, odds, ai_analysis, and suggested_bets.\n\nJSON:\n${shortJson}\n\nGenerate a TELEGRAM-FRIENDLY analysis message.\n\nRules and structure:\n1) Start with: "⚽ BETRIX Match Analysis: {home} vs {away}"\n2) Next lines: "🏆 {competition}", "⏰ Kickoff: {readable_kickoff}", "📍 Venue: {venue or 'TBA'}", "📊 Status: {status label}"\n3) Then "📈 AI Insights:" with 2–5 concise bullet points derived from ai_analysis.keyAngles and stats. Do NOT repeat the same sentence or phrase more than once.\n4) Then "🎯 Suggested Bets:" listing up to 2–3 bets from suggested_bets: each line "{market}: {selection} (line: X if present) — Confidence: Y%" with ONE short bullet rationale under each. Avoid repeating wording.\n5) Then "🧠 BETRIX Summary:" a single 1–2 sentence projection in neutral probabilistic language.\n6) End with "Powered by BETRIX".\n\nCritical: do NOT use words like 'lock', 'guaranteed', 'sure win'. If data is sparse, state that and rely on standings/context. Return ONLY the final Telegram message text.`;
+}
+
 // Minimal placeholders for classes assumed to exist elsewhere in the codebase.
 class intelligentMenus { constructor(){} buildContextualMainMenu(){ return null; } buildMatchDetailMenu(){ return null; } }
 class fixturesManager { constructor(){} getLeagueFixtures(){ return []; } }
@@ -280,7 +388,13 @@ export async function handleMessage(update, redis, services) {
       const games = await getLiveMatchesBySport('soccer', redis, services && services.sportsAggregator);
       const payload = buildLiveMenuPayload(games, 'Soccer', 'FREE', 1, 6);
       return { method: 'sendMessage', chat_id: chatId, text: payload.text, reply_markup: payload.reply_markup, parse_mode: 'Markdown' };
+    // Start menu: show BETRIX OS instead of jumping straight to fixtures
+    if (text && text.startsWith('/start')) {
+      await sendStartMenu(chatId, services && services.telegramService);
+      return null;
     }
+
+    if (text && text.startsWith('/live')) {
 
     return { method: 'sendMessage', chat_id: chatId, text: 'Send /live to view live soccer matches.' };
   } catch (e) {
@@ -1641,12 +1755,31 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
         betrixStructured.ai_analysis.keyAngles = suggestions && suggestions.length ? suggestions.map(s => s.rationale || s.market) : [];
       } catch (e) { /* ignore */ }
 
-      const prettyJsonBlock = JSON.stringify(betrixStructured, null, 2);
-      // Attach structured JSON as an escaped preformatted block (HTML) to avoid entity parsing errors
-      const escapedJson = escapeHtml(prettyJsonBlock);
-      const telegramPremiumText = formatBetrixTelegram(betrixStructured) + '\n\n<b>Structured (machine):</b>\n<pre><code>' + escapedJson + '</code></pre>';
+      // derive richer AI angles deterministically before calling any LLM
+      const structured = deriveAiAngles(betrixStructured);
 
-      analysisText += '\n\n' + telegramPremiumText;
+      // Build a premium human-friendly message. Prefer AI-rendered text when available.
+      let premiumText = formatBetrixTelegram(structured);
+      try {
+        if (services && services.azureAI && typeof services.azureAI.chat === 'function' && services.azureAI.isHealthy && services.azureAI.isHealthy()) {
+          const prompt = buildMatchAnalysisPrompt(structured);
+          const aiResp = await services.azureAI.chat(prompt, { temperature: 0.2, max_tokens: 800 });
+          if (aiResp && typeof aiResp === 'string' && aiResp.trim().length > 0) {
+            premiumText = aiResp.trim();
+          }
+        }
+      } catch (e) { /* ignore AI failures and use fallback premiumText */ }
+
+      // Optionally attach structured JSON for devs / debug mode only
+      const devList = (process.env.BETRIX_DEV_USERIDS || '');
+      const isDev = (process.env.BETRIX_DEBUG_JSON === 'true') || (devList.split(',').map(s=>s.trim()).filter(Boolean).includes(String(userId)));
+      if (isDev) {
+        const prettyJsonBlock = JSON.stringify(structured, null, 2);
+        const escapedJson = escapeHtml(prettyJsonBlock);
+        premiumText += '\n\n<b>Structured (machine):</b>\n<pre><code>' + escapedJson + '</code></pre>';
+      }
+
+      analysisText += '\n\n' + premiumText;
 
       // If an AI service is available, ask it to produce a constrained JSON
       // response with explicit suggested bets (Over/Under, HT/FT, BTTS, etc.).
