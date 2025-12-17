@@ -740,16 +740,17 @@ export function buildMatchDetailsMenu(match = {}) {
     `🤖 *Prediction:*\n` +
     `${match.prediction || 'Analysis coming soon...'}`;
 
+  const safeId = match.id || match.fixtureId || match.match_id || encodeURIComponent(`${(match.home||'home').replace(/\s+/g,'_')}_${(match.away||'away').replace(/\s+/g,'_')}`);
   const reply_markup = {
     inline_keyboard: [
       [
-        { text: '⭐ Add to Favorites', callback_data: `fav:${match.id}` },
-        { text: '🤖 Analyze', callback_data: `analyze_match_upcoming_${match.id}` },
-        { text: '📊 Full Analysis', callback_data: `analysis:${match.id}` }
+        { text: '⭐ Add to Favorites', callback_data: `fav:${safeId}` },
+        { text: '🤖 Analyze', callback_data: `analyze_match_upcoming_${safeId}` },
+        { text: '📊 Full Analysis', callback_data: `analysis:${safeId}` }
       ],
       [
-        { text: '💰 Place Bet', callback_data: `bet:${match.id}` },
-        { text: '🔄 Refresh', callback_data: `match:${match.id}` }
+        { text: '💰 Place Bet', callback_data: `bet:${safeId}` },
+        { text: '🔄 Refresh', callback_data: `match:${safeId}` }
       ],
       [
         { text: '🔙 Back', callback_data: 'live_games' }

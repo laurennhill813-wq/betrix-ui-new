@@ -673,11 +673,12 @@ export async function handleCallbackQuery(cq, redis, services) {
           // Primary label row (opens fixture details)
           keyboard.push([{ text: `${home} vs ${away}`, callback_data: `fixture:${f.id}` }]);
           // Action row: Analyze (targets upcoming fixtures), Odds, Favourite
-          const analyzeCb = `analyze_match_${'upcoming'}_${f.id}`;
+          const safeFixtureId = f.id || f.fixtureId || f.match_id || encodeURIComponent(`${home.replace(/\s+/g,'_')}_${away.replace(/\s+/g,'_')}_${num}`);
+          const analyzeCb = `analyze_match_upcoming_${safeFixtureId}`;
           keyboard.push([
             { text: '🤖 Analyze', callback_data: analyzeCb },
-            { text: '💰 Odds', callback_data: `odds_compare_${f.id}` },
-            { text: '⭐ Fav', callback_data: `fav_add_${f.id}` }
+            { text: '💰 Odds', callback_data: `odds_compare_${safeFixtureId}` },
+            { text: '⭐ Fav', callback_data: `fav_add_${safeFixtureId}` }
           ]);
         });
         text += `\n`;
