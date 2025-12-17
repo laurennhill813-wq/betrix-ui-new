@@ -390,15 +390,18 @@ export async function handleMessage(update, redis, services) {
       const games = await getLiveMatchesBySport('soccer', redis, services && services.sportsAggregator);
       const payload = buildLiveMenuPayload(games, 'Soccer', 'FREE', 1, 6);
       return { method: 'sendMessage', chat_id: chatId, text: payload.text, reply_markup: payload.reply_markup, parse_mode: 'Markdown' };
+    }
+
     // Start menu: show BETRIX OS instead of jumping straight to fixtures
     if (text && text.startsWith('/start')) {
       await sendStartMenu(chatId, services && services.telegramService);
       return null;
     }
 
-    if (text && text.startsWith('/live')) {
-
-    return { method: 'sendMessage', chat_id: chatId, text: 'Send /live to view live soccer matches.' };
+    // Default help/fallback
+    if (text && text.startsWith('/live') === false) {
+      return { method: 'sendMessage', chat_id: chatId, text: 'Send /live to view live soccer matches.' };
+    }
   } catch (e) {
     logger.warn('handleMessage error', e?.message || String(e));
     return null;
