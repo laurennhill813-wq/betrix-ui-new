@@ -54,6 +54,7 @@ import { AnalyticsService } from "./services/analytics.js";
 import { RateLimiter } from "./middleware/rate-limiter.js";
 import { ContextManager } from "./middleware/context-manager.js";
 import v2Handler from "./handlers/telegram-handler-v2-clean.js";
+import { handleOnboardingMessage } from './handlers/telegram-handler-v2.js';
 import completeHandler from "./handlers/handler-complete.js";
 // SportMonks integration removed — stub out sportMonksAPI as null
 import SportsDataAPI from "./services/sportsdata-api.js";
@@ -771,7 +772,32 @@ async function handleUpdate(update) {
         return;
       }
 
-      // Check signup flow
+      // Check structured onboarding flow first (new flow)
+      try {
+        const onboardRaw = await redis.get(`user:${userId}:onboarding`);
+        if (onboardRaw) {
+          const payload = await handleOnboardingMessage(text, chatId, userId, redis, { telegram, userService, analytics });
+          if (payload) {
+            // payload may be an array of actions or a single action
+            const actions = Array.isArray(payload) ? payload : [payload];
+            for (const act of actions) {
+              try {
+                if (!act || !act.method) continue;
+                if (act.method === 'sendMessage') {
+                  await telegram.sendMessage(act.chat_id || chatId, act.text || '', { reply_markup: act.reply_markup, parse_mode: act.parse_mode }).catch(()=>{});
+                } else if (act.method === 'editMessageText') {
+                  await telegram.editMessageText(act.chat_id || chatId, act.message_id || null, act.text || '', { reply_markup: act.reply_markup, parse_mode: act.parse_mode }).catch(()=>{});
+                } else if (act.method === 'answerCallbackQuery') {
+                  await telegram.answerCallback(act.callback_query_id || act.callbackId, act.text || '', { show_alert: act.show_alert }).catch(()=>{});
+                }
+              } catch (e) { logger.warn('Applying onboarding action failed', e && e.message ? e.message : e); }
+            }
+            return;
+          }
+        }
+      } catch (e) { logger.warn('Onboarding dispatch failed', e?.message || String(e)); }
+
+      // Check legacy signup flow
       const signupState = await redis.get(`signup:${userId}:state`);
       if (signupState) {
         return await handleSignupFlow(chatId, userId, text, signupState);
