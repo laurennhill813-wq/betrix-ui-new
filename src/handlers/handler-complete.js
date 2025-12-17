@@ -224,6 +224,18 @@ export async function handleCallbackQuery(cq, redis, services) {
     }
     logger.info(`Callback: ${data}`);
 
+    // Delegate modular start-menu callbacks and signup to the v2 handler
+    try {
+      if (typeof data === 'string' && (data.startsWith('mod_') || data === 'signup_start' || data === 'mod_ai_chat')) {
+        const mod = await import('./telegram-handler-v2.js');
+        if (mod && typeof mod.handleCallbackQuery === 'function') {
+          return await mod.handleCallbackQuery(cq, redis, services);
+        }
+      }
+    } catch (e) {
+      logger.warn('Delegation to telegram-handler-v2 failed', e?.message || String(e));
+    }
+
     // Signup flow trigger
     if (data === 'signup') {
       try {
