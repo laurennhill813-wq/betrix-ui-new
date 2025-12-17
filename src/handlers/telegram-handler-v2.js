@@ -40,6 +40,20 @@ const safeNameOf = (v, fallback = '') => {
   return String(v);
 };
 
+// Simple HTML escaper for safe inclusion in Telegram HTML parse_mode
+const escapeHtml = (str) => {
+  if (str === undefined || str === null) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+};
+
+// Strip minimal HTML to plain text for safe truncation fallback
+const stripHtmlToPlain = (s) => {
+  if (!s) return '';
+  let t = String(s).replace(/<br\s*\/?\s*>/gi, '\n');
+  t = t.replace(/<[^>]+>/g, '');
+  return t.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+};
+
 const buildLiveMenuPayload = (games, title = 'Live', _tier = 'FREE', page = 1, perPage = 6) => {
   const list = (games || []).slice((page - 1) * perPage, page * perPage).map((g, i) => `${i + 1}. ${teamNameOf(g.home)} vs ${teamNameOf(g.away)}`).join('\n');
   return { text: `*${title}* — ${String(_tier || 'FREE')}\n\n${list || '_No live matches currently_'}`, reply_markup: { inline_keyboard: [] } };
@@ -1271,7 +1285,7 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
 
     if (!services || !services.sportsAggregator) {
       const errorText = '❌ Analysis service unavailable';
-      return { method: 'sendMessage', chat_id: chatId, text: errorText, parse_mode: 'Markdown' };
+      return { method: 'sendMessage', chat_id: chatId, text: errorText, parse_mode: 'HTML' };
     }
 
     const agg = services.sportsAggregator;
@@ -1401,7 +1415,7 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
     if (!match) {
       logger.warn('[handleAnalyzeMatch] match not found', { token: matchToken, leagueToken });
       try { console.info('[handleAnalyzeMatch] match_not_found', JSON.stringify({ token: matchToken, leagueToken })); } catch (e) {}
-      return { method: 'sendMessage', chat_id: chatId, text: '⚠️ Match not found or not available for analysis.', parse_mode: 'Markdown' };
+      return { method: 'sendMessage', chat_id: chatId, text: '⚠️ Match not found or not available for analysis.', parse_mode: 'HTML' };
     }
 
     // Derive team identifiers for SportMonks where possible
@@ -1443,49 +1457,49 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
       logger.warn('Odds fetch failed:', e?.message || e);
     }
 
-    // Format analysis text (use safeNameOf to avoid object interpolation)
+    // Format analysis text using HTML to avoid Markdown parsing issues in Telegram
     const homeLabel = safeNameOf(match.home || match.raw?.homeTeam || match.homeTeam, 'Home');
     const awayLabel = safeNameOf(match.away || match.raw?.awayTeam || match.awayTeam, 'Away');
 
-    let analysisText = `*⚽ Match Analysis: ${homeLabel} vs ${awayLabel}*\n\n`;
-    analysisText += `📍 Status: ${match.status}\n`;
-    analysisText += `📊 Score: ${match.homeScore ?? '-'}-${match.awayScore ?? '-'}\n`;
-    analysisText += `🏆 Competition: ${safeNameOf(match.competition || (match.raw && match.raw.competition), 'Unknown')}\n`;
-    analysisText += `⏰ Kickoff: ${match.time || match.kickoff || 'TBA'}\n`;
-    analysisText += `🏟️ Venue: ${match.venue || 'TBA'}\n\n`;
+    let analysisText = `<b>⚽ Match Analysis: ${escapeHtml(homeLabel)} vs ${escapeHtml(awayLabel)}</b><br/><br/>`;
+    analysisText += `📍 <b>Status:</b> ${escapeHtml(String(match.status || ''))}<br/>`;
+    analysisText += `📊 <b>Score:</b> ${escapeHtml(String((match.homeScore ?? '-') + '-' + (match.awayScore ?? '-')))}<br/>`;
+    analysisText += `🏆 <b>Competition:</b> ${escapeHtml(safeNameOf(match.competition || (match.raw && match.raw.competition), 'Unknown'))}<br/>`;
+    analysisText += `⏰ <b>Kickoff:</b> ${escapeHtml(String(match.time || match.kickoff || 'TBA'))}<br/>`;
+    analysisText += `🏟️ <b>Venue:</b> ${escapeHtml(String(match.venue || 'TBA'))}<br/><br/>`;
 
     if (h2h && h2h.totalMatches !== undefined) {
-      analysisText += `*Head-to-Head:*\n`;
-      analysisText += `Total: ${h2h.totalMatches} | Home wins: ${h2h.homeWins} | Away wins: ${h2h.awayWins} | Draws: ${h2h.draws}\n\n`;
+      analysisText += `<b>Head-to-Head:</b><br/>`;
+      analysisText += `Total: ${escapeHtml(String(h2h.totalMatches))} | Home wins: ${escapeHtml(String(h2h.homeWins))} | Away wins: ${escapeHtml(String(h2h.awayWins))} | Draws: ${escapeHtml(String(h2h.draws))}<br/><br/>`;
     }
 
     if (recentFormHome && recentFormHome.length > 0) {
-      analysisText += `*Recent Form (${homeLabel}):*\n`;
-      analysisText += recentFormHome.slice(0, 5).map(m => `${m.starting_at || m.date || m.date_time || m.utcDate || 'N/A'}: ${m.result || (m.score ? JSON.stringify(m.score) : 'N/A')}`).join('\n') + '\n\n';
+      analysisText += `<b>Recent Form (${escapeHtml(homeLabel)}):</b><br/>`;
+      analysisText += recentFormHome.slice(0, 5).map(m => `${escapeHtml(m.starting_at || m.date || m.date_time || m.utcDate || 'N/A')}: ${escapeHtml(m.result || (m.score ? JSON.stringify(m.score) : 'N/A'))}`).join('<br/>') + '<br/><br/>';
     }
 
     if (recentFormAway && recentFormAway.length > 0) {
-      analysisText += `*Recent Form (${awayLabel}):*\n`;
-      analysisText += recentFormAway.slice(0, 5).map(m => `${m.starting_at || m.date || m.date_time || m.utcDate || 'N/A'}: ${m.result || (m.score ? JSON.stringify(m.score) : 'N/A')}`).join('\n') + '\n\n';
+      analysisText += `<b>Recent Form (${escapeHtml(awayLabel)}):</b><br/>`;
+      analysisText += recentFormAway.slice(0, 5).map(m => `${escapeHtml(m.starting_at || m.date || m.date_time || m.utcDate || 'N/A')}: ${escapeHtml(m.result || (m.score ? JSON.stringify(m.score) : 'N/A'))}`).join('<br/>') + '<br/><br/>';
     }
 
     if (standings && standings.length > 0) {
       const homeStanding = standings.find(t => t.team && (t.team.name === homeLabel || t.team.id === match.homeId || t.team.id === match.raw?.homeTeam?.id));
       const awayStanding = standings.find(t => t.team && (t.team.name === awayLabel || t.team.id === match.awayId || t.team.id === match.raw?.awayTeam?.id));
       if (homeStanding || awayStanding) {
-        analysisText += `*League Standings:*\n`;
-        if (homeStanding) analysisText += `${homeLabel}: #${homeStanding.position || 'N/A'} (${homeStanding.points || 0} pts)\n`;
-        if (awayStanding) analysisText += `${awayLabel}: #${awayStanding.position || 'N/A'} (${awayStanding.points || 0} pts)\n`;
-        analysisText += '\n';
+        analysisText += `<b>League Standings:</b><br/>`;
+        if (homeStanding) analysisText += `${escapeHtml(homeLabel)}: #${escapeHtml(String(homeStanding.position || 'N/A'))} (${escapeHtml(String(homeStanding.points || 0))} pts)<br/>`;
+        if (awayStanding) analysisText += `${escapeHtml(awayLabel)}: #${escapeHtml(String(awayStanding.position || 'N/A'))} (${escapeHtml(String(awayStanding.points || 0))} pts)<br/>`;
+        analysisText += '<br/>';
       }
     }
 
     if (odds && odds.length > 0) {
-      analysisText += `*Odds Available:*\n`;
-      analysisText += `${odds.length} bookmakers with odds for this match\n`;
+      analysisText += `<b>Odds Available:</b><br/>`;
+      analysisText += `${escapeHtml(String(odds.length))} bookmakers with odds for this match<br/>`;
     }
 
-    analysisText += `\n_Data from Football-Data & SportMonks_`;
+    analysisText += `<i>Data from Football-Data & SportMonks</i>`;
 
     // Build a simple structured suggestions JSON to surface betting markets
     try {
@@ -1530,33 +1544,109 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
         suggestions.push({ market: 'Both Teams To Score', selection: 'Yes', confidence: 55, rationale: 'Frequent scoring observed in recent matches / H2H' });
       }
 
-      // Normalize suggestions into an explicit suggested_bets schema so
-      // downstream parsers (and the AI prompt) get a predictable shape.
+      // Normalize suggestions into an explicit suggested_bets schema so downstream parsers get a predictable shape.
       const suggested_bets = (suggestions || []).map(s => {
-        // try to extract numeric line from selection like 'Over 2.5'
         let line = null;
         const sel = String(s.selection || '');
         const m = sel.match(/([Oo]ver|[Uu]nder)\s*(\d+(?:\.\d+)?)/);
         if (m) line = Number(m[2]);
         return {
-          type: s.market || 'market',
-          market: s.market || 'Unknown',
+          market: s.market || 'market',
           selection: s.selection || '',
           line: line,
-          confidence: typeof s.confidence === 'number' ? s.confidence : (s.confidence ? Number(s.confidence) : null),
+          confidence: typeof s.confidence === 'number' ? Math.round(s.confidence) : (s.confidence ? Number(s.confidence) : null),
+          valueEdge: s.valueEdge || s.value_edge || null,
           rationale: s.rationale || ''
         };
       });
 
-      const structured = {
-        match: { home: homeLabel, away: awayLabel, competition: safeNameOf(match.competition || (match.raw && match.raw.competition), 'Unknown'), kickoff: match.time || match.kickoff || 'TBA' },
-        stats: { h2h: h2h || {}, recentForm: { home: recentFormHome || [], away: recentFormAway || [] }, standings: standings || [] },
-        odds_summary: { bookmakers: (odds && odds.length) || 0 },
+      // Build BETRIX-grade structured JSON schema
+      const betrixStructured = {
+        match: {
+          home: homeLabel,
+          away: awayLabel,
+          competition: safeNameOf(match.competition || (match.raw && match.raw.competition), 'Unknown'),
+          kickoff: (match.time || match.kickoff || match.utcDate || null) || null,
+          venue: match.venue || null,
+          status: match.status || 'TIMED'
+        },
+        stats: {
+          h2h: h2h || { totalMatches: 0, homeWins: 0, awayWins: 0, draws: 0 },
+          recentForm: { home: (recentFormHome || []).slice(0,5), away: (recentFormAway || []).slice(0,5) },
+          standings: standings || [],
+          xg: { home: (match.xg && match.xg.home) || null, away: (match.xg && match.xg.away) || null },
+          teamProfiles: {
+            home: { style: (match.homeProfile && match.homeProfile.style) || (match.homeStyle) || null, avgGoals: null, avgConceded: null },
+            away: { style: (match.awayProfile && match.awayProfile.style) || (match.awayStyle) || null, avgGoals: null, avgConceded: null }
+          }
+        },
+        odds: {
+          "1x2": { home: null, draw: null, away: null },
+          totals: { line: 2.5, over: null, under: null },
+          bothTeamsToScore: null,
+          asianHandicap: null,
+          bookmakers: (odds && odds.length) || 0
+        },
+        ai_analysis: {
+          summary: null,
+          keyAngles: []
+        },
         suggested_bets
       };
 
-      analysisText += `\n\n*Structured Betting Options (JSON):*\n`;
-      analysisText += '```json\n' + JSON.stringify(structured, null, 2) + '\n```\n';
+      // Format a premium Telegram message from the structured data
+      const formatBetrixTelegram = (s) => {
+        try {
+          const m = s.match;
+          const stats = s.stats || {};
+          const ai = s.ai_analysis || {};
+          const bets = s.suggested_bets || [];
+
+          let out = `<b>⚽ BETRIX Match Analysis: ${escapeHtml(m.home)} vs ${escapeHtml(m.away)}</b><br/><br/>`;
+          out += `🏆 ${escapeHtml(m.competition || 'Unknown')}<br/>`;
+          out += `⏰ Kickoff: ${escapeHtml(m.kickoff || 'TBA')}<br/>`;
+          out += `📍 Venue: ${escapeHtml(m.venue || 'TBA')}<br/>`;
+          out += `📊 Status: ${escapeHtml(m.status || 'TIMED')}<br/><br/>`;
+
+          // AI Insights (if available)
+          out += `<b>📈 AI Insights:</b><br/>`;
+          if (ai.summary) out += `${escapeHtml(ai.summary)}<br/><br/>`;
+          if (ai.keyAngles && ai.keyAngles.length) {
+            ai.keyAngles.slice(0,5).forEach(k => { out += `• ${escapeHtml(k)}<br/>`; });
+            out += '<br/>';
+          }
+
+          // Suggested bets
+          if (bets && bets.length) {
+            out += `<b>🎯 Suggested Bets:</b><br/>`;
+            bets.slice(0,6).forEach((b, i) => {
+              const conf = (typeof b.confidence === 'number') ? `${Math.round(b.confidence)}%` : (b.confidence || 'N/A');
+              const ve = (b.valueEdge !== undefined && b.valueEdge !== null) ? ` — Value Edge: +${escapeHtml(String(b.valueEdge))}%` : '';
+              const line = (b.line !== undefined && b.line !== null) ? ` (line: ${escapeHtml(String(b.line))})` : '';
+              out += `${i+1}) ${escapeHtml(b.market)}: <b>${escapeHtml(b.selection)}</b>${line} — Confidence: ${escapeHtml(conf)}${ve}<br/>   • ${escapeHtml(b.rationale || '')}<br/>`;
+            });
+            out += `<br/>`;
+          }
+
+          out += `<b>🧠 BETRIX Summary:</b><br/>`;
+          if (ai.summary) out += `${escapeHtml(ai.summary)}<br/><br/>`; else out += `A concise data-driven summary is provided above.<br/><br/>`;
+          out += `<i>Powered by BETRIX</i>`;
+          return out;
+        } catch (e) { return `BETRIX Analysis for ${escapeHtml(homeLabel)} vs ${escapeHtml(awayLabel)}`; }
+      };
+
+      // attach basic ai_analysis summary from heuristics
+      try {
+        betrixStructured.ai_analysis.summary = suggestions && suggestions.length ? suggestions[0].rationale || '' : null;
+        betrixStructured.ai_analysis.keyAngles = suggestions && suggestions.length ? suggestions.map(s => s.rationale || s.market) : [];
+      } catch (e) { /* ignore */ }
+
+      const prettyJsonBlock = JSON.stringify(betrixStructured, null, 2);
+      // Attach structured JSON as an escaped preformatted block (HTML) to avoid entity parsing errors
+      const escapedJson = escapeHtml(prettyJsonBlock);
+      const telegramPremiumText = formatBetrixTelegram(betrixStructured) + '<br/><br/><b>Structured (machine):</b><br/><pre><code>' + escapedJson + '</code></pre>';
+
+      analysisText += '<br/><br/>' + telegramPremiumText;
 
       // If an AI service is available, ask it to produce a constrained JSON
       // response with explicit suggested bets (Over/Under, HT/FT, BTTS, etc.).
@@ -1599,15 +1689,17 @@ export async function handleAnalyzeMatch(data, chatId, userId, redis, services) 
       const MAX_TG_MSG = 3900; // leave headroom from Telegram 4096 limit
       if (analysisText && analysisText.length > MAX_TG_MSG) {
         try { console.info('[handleAnalyzeMatch] analysis_too_long; sending as new message', JSON.stringify({ chatId, matchId: match.id || match.fixtureId || null, length: analysisText.length })); } catch (e) {}
-        const truncated = analysisText.slice(0, MAX_TG_MSG) + '\n\n... (truncated)';
-        return { method: 'sendMessage', chat_id: chatId, text: truncated, parse_mode: 'Markdown' };
+        // Truncate safely by stripping HTML to plain text and sending a plain fallback
+        const plain = stripHtmlToPlain(analysisText);
+        const truncated = plain.slice(0, MAX_TG_MSG) + '\n\n... (truncated)';
+        return { method: 'sendMessage', chat_id: chatId, text: truncated }; // let TelegramService choose default parse/escape
       }
     } catch (e) { /* ignore and fallback to edit */ }
 
-    return { method: 'editMessageText', chat_id: chatId, message_id: undefined, text: analysisText, parse_mode: 'Markdown' };
+    return { method: 'editMessageText', chat_id: chatId, message_id: undefined, text: analysisText, parse_mode: 'HTML' };
   } catch (e) {
     logger.error('handleAnalyzeMatch error', e);
-    return { method: 'sendMessage', chat_id: chatId, text: '❌ Analysis failed. Please try again.', parse_mode: 'Markdown' };
+    return { method: 'sendMessage', chat_id: chatId, text: '❌ Analysis failed. Please try again.', parse_mode: 'HTML' };
   }
 }
 
