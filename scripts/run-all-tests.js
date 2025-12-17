@@ -90,7 +90,9 @@ async function main() {
     console.log('Debug: nodeFiles count:', nodeTestFiles.length);
     console.log('Debug: node args:', args);
     const r = spawnSync('node', args, { stdio: 'inherit' });
-    nodeExit = r.status || 0;
+    console.log('Node built-in process result:', { status: r.status, signal: r.signal, error: r.error ? String(r.error) : null });
+    // Prefer explicit numeric status if available, otherwise treat errors as exit code 1
+    nodeExit = (r.status !== null && r.status !== undefined) ? r.status : (r.error ? 1 : 0);
   } else {
     console.log('No node:test files found.');
   }
@@ -102,7 +104,12 @@ async function main() {
     for (const f of nodeScriptFiles) {
       console.log('Running script:', f);
       const r = spawnSync(process.execPath, [f], { stdio: 'inherit' });
-      if ((r.status || 0) !== 0) nodeExit = r.status || 1;
+      console.log('Script result for', f, ':', { status: r.status, signal: r.signal, error: r.error ? String(r.error) : null });
+      const scriptExit = (r.status !== null && r.status !== undefined) ? r.status : (r.error ? 1 : 0);
+      if (scriptExit !== 0) {
+        nodeExit = scriptExit;
+        console.error('Script failed:', f, 'exit code:', scriptExit);
+      }
     }
   }
 
@@ -116,7 +123,8 @@ async function main() {
     const jestEnv = { ...process.env, NODE_OPTIONS: '--experimental-vm-modules' };
     console.log('Debug: NODE_OPTIONS for jest:', jestEnv.NODE_OPTIONS);
     const r = spawnSync('npx', args, { stdio: 'inherit', env: jestEnv });
-    jestExit = r.status || 0;
+    console.log('Jest process result:', { status: r.status, signal: r.signal, error: r.error ? String(r.error) : null });
+    jestExit = (r.status !== null && r.status !== undefined) ? r.status : (r.error ? 1 : 0);
   } else {
     console.log('No Jest-style files found.');
   }
@@ -124,7 +132,11 @@ async function main() {
   console.log('\n=== Combined Test Summary ===');
   console.log('Node exit code:', nodeExit);
   console.log('Jest exit code:', jestExit);
-  process.exit(nodeExit !== 0 || jestExit !== 0 ? 1 : 0);
+  // Propagate child exit codes so CI fails on actual test failures.
+  // Use logical OR so any non-zero exit from node or jest results in failure.
+  const finalExit = nodeExit || jestExit;
+  console.log('Final exit code:', finalExit);
+  process.exit(finalExit);
 }
 
 main().catch(err => {
