@@ -371,6 +371,31 @@ export async function createPaymentOrder(redis, userId, tier, paymentMethod, use
       }
     }
 
+    // Persist order to Postgres as a pending payment when possible (transitional)
+    try {
+      const initDb = (await import('../db/client.js')).default;
+      const dbClient = await initDb();
+      try {
+        const paymentsSvc = await import('../services/payments.js');
+        const payload = Object.assign({}, orderData, { status: 'pending', providerRef: orderData.providerRef });
+        try {
+          const inserted = await paymentsSvc.createPaymentRecord(dbClient, redis, payload);
+          if (inserted && inserted.id) orderData.dbId = inserted.id;
+        } catch (innerErr) {
+          // Log the full payload (safely) to help diagnose malformed fields
+          let payloadStr = '';
+          try { payloadStr = JSON.stringify(payload); } catch (se) { payloadStr = String(payload); }
+          logger.warn('Failed to persist order to Postgres (pending)', innerErr?.message || String(innerErr), { payload: payloadStr });
+        }
+      } catch (e) {
+        logger.warn('Failed to import payments service for Postgres persistence', e?.message || String(e));
+      }
+      try { if (dbClient && dbClient.pool && typeof dbClient.pool.end === 'function') await dbClient.pool.end(); } catch(e){ void e; }
+    } catch (e) {
+      // ignore db init failures
+      logger.debug('DB not available for order persistence', e?.message || String(e));
+    }
+
     // Store order in Redis (15 min TTL)
     await redis.setex(`payment:order:${orderId}`, 900, JSON.stringify(orderData));
 
@@ -379,9 +404,13 @@ export async function createPaymentOrder(redis, userId, tier, paymentMethod, use
       // Map by user pending order
       await redis.setex(`payment:by_user:${userId}:pending`, 900, orderId);
 
-      // Map by providerRef if present
+      // Map by providerRef if present (keep mapping to orderId for existing flows)
       if (orderData.providerRef) {
         await redis.setex(`payment:by_provider_ref:${paymentMethod}:${orderData.providerRef}`, 900, orderId);
+        // Also store transitional mapping with DB id when available
+        if (orderData.dbId) {
+          await redis.setex(`payment:by_provider_ref:${paymentMethod}:${orderData.providerRef}:meta`, 30 * 24 * 60 * 60, JSON.stringify({ orderId, dbId: orderData.dbId }));
+        }
       }
 
       // Map by phone if provided in metadata
@@ -469,10 +498,35 @@ export async function createCustomPaymentOrder(redis, userId, amount, paymentMet
     }
 
     // Store order
+
+    // Persist order to Postgres as pending if available
+    try {
+      const initDb = (await import('../db/client.js')).default;
+      const dbClient = await initDb();
+      try {
+        const paymentsSvc = await import('../services/payments.js');
+        const payload = Object.assign({}, orderData, { status: 'pending' });
+        try {
+          const inserted = await paymentsSvc.createPaymentRecord(dbClient, redis, payload);
+          if (inserted && inserted.id) orderData.dbId = inserted.id;
+        } catch (innerErr) {
+          let payloadStr = '';
+          try { payloadStr = JSON.stringify(payload); } catch (se) { payloadStr = String(payload); }
+          logger.warn('Failed to persist custom order to Postgres (pending)', innerErr?.message || String(innerErr), { payload: payloadStr });
+        }
+      } catch (e) { logger.warn('Failed to import payments service for custom order persistence', e?.message || String(e)); }
+      try { if (dbClient && dbClient.pool && typeof dbClient.pool.end === 'function') await dbClient.pool.end(); } catch(e){ void e; }
+    } catch (e) {
+      logger.debug('DB not available for custom order persistence', e?.message || String(e));
+    }
+
     await redis.setex(`payment:order:${orderId}`, 900, JSON.stringify(orderData));
     try {
       await redis.setex(`payment:by_user:${userId}:pending`, 900, orderId);
-      if (orderData.providerRef) await redis.setex(`payment:by_provider_ref:${paymentMethod}:${orderData.providerRef}`, 900, orderId);
+      if (orderData.providerRef) {
+        await redis.setex(`payment:by_provider_ref:${paymentMethod}:${orderData.providerRef}`, 900, orderId);
+        if (orderData.dbId) await redis.setex(`payment:by_provider_ref:${paymentMethod}:${orderData.providerRef}:meta`, 30 * 24 * 60 * 60, JSON.stringify({ orderId, dbId: orderData.dbId }));
+      }
     } catch (e) { logger.warn('Failed to write quick lookup for custom order', e); }
 
     logger.info('Custom payment order created', { orderId, userId, paymentMethod, amount });
@@ -758,14 +812,57 @@ export async function verifyAndActivatePayment(redis, orderId, transactionId) {
     }
 
     // Store transaction
-    await redis.setex(
-      `transaction:${transactionId}`,
-      30 * 24 * 60 * 60,
-      JSON.stringify(orderData)
-    );
+    try { await redis.setex(`transaction:${transactionId}`, 30 * 24 * 60 * 60, JSON.stringify(orderData)); } catch(e) { logger.warn('redis.setex transaction failed', e?.message || String(e)); }
 
     // Store order completion
-    await redis.setex(`payment:order:${orderId}`, 86400, JSON.stringify(orderData));
+    try { await redis.setex(`payment:order:${orderId}`, 86400, JSON.stringify(orderData)); } catch(e) { logger.warn('redis.setex payment:order failed', e?.message || String(e)); }
+
+    // Persist to Postgres (drizzle/pg) if available and create transitional mappings
+    try {
+      const initDb = (await import('../db/client.js')).default;
+      const dbClient = await initDb();
+      try {
+        const paymentsSvc = await import('../services/payments.js');
+        // If order was previously inserted (dbId present), update it; otherwise create or insert completed record
+        if (orderData.dbId) {
+          try {
+            await paymentsSvc.updatePaymentRecord(dbClient, { id: orderData.dbId }, { status: 'completed', transaction_id: transactionId, metadata: orderData.metadata || {} });
+          } catch (e) {
+            // fallback to inserting a completed record
+            const payload = Object.assign({}, orderData, { transactionId, status: 'completed' });
+            try {
+              await paymentsSvc.createPaymentRecord(dbClient, redis, payload);
+            } catch (innerErr) {
+              let payloadStr = '';
+              try { payloadStr = JSON.stringify(payload); } catch (se) { payloadStr = String(payload); }
+              logger.warn('Failed to create completed payment record as fallback', innerErr?.message || String(innerErr), { payload: payloadStr });
+            }
+          }
+        } else if (orderData.providerRef) {
+          // try to update by provider_ref
+          try {
+            await paymentsSvc.updatePaymentRecord(dbClient, { provider: orderData.paymentMethod || orderData.provider || null, provider_ref: orderData.providerRef }, { status: 'completed', transaction_id: transactionId, metadata: orderData.metadata || {} });
+          } catch (e) {
+            const payload = Object.assign({}, orderData, { transactionId, status: 'completed' });
+            try {
+              await paymentsSvc.createPaymentRecord(dbClient, redis, payload);
+            } catch (innerErr) {
+              let payloadStr = '';
+              try { payloadStr = JSON.stringify(payload); } catch (se) { payloadStr = String(payload); }
+              logger.warn('Failed to create completed payment record (provider_ref path)', innerErr?.message || String(innerErr), { payload: payloadStr });
+            }
+          }
+        } else {
+          await paymentsSvc.createPaymentRecord(dbClient, redis, Object.assign({}, orderData, { transactionId, status: 'completed' }));
+        }
+      } catch (e) {
+        logger.warn('Failed to persist payment to Postgres', e?.message || String(e));
+      }
+      // close pool if provided
+      try { if (dbClient && dbClient.pool && typeof dbClient.pool.end === 'function') await dbClient.pool.end(); } catch(e){ void e; }
+    } catch (e) {
+      logger.debug('DB client not initialized; skipping payment persistence', e?.message || String(e));
+    }
 
     logger.info('Payment verified and activated', { orderId, userId, tier });
 
