@@ -61,6 +61,49 @@ export async function sendPhotoWithCaption({ chatId, photoUrl, caption, parse_mo
 
   const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`;
   const body = { chat_id: chatId, photo: photoUrl, caption, parse_mode };
+  // Preflight: try to detect if the provided URL is actually an image or an HTML page.
+  // If it's HTML, attempt to extract an embedded image (og:image / twitter:image / first <img>),
+  // or attempt the image proxy before sending to Telegram to avoid "wrong type of the web page content".
+  try {
+    let headRes = null;
+    try {
+      headRes = await fetchWithSportradarSupport(photoUrl, { method: 'HEAD', redirect: 'follow' });
+    } catch (e) {
+      // Some servers don't support HEAD; we'll fall back to a light GET
+      try { headRes = await fetchWithSportradarSupport(photoUrl, { method: 'GET', redirect: 'follow' }); } catch (e2) { headRes = null; }
+    }
+
+    if (headRes && headRes.ok) {
+      const ct = headRes.headers && headRes.headers.get ? headRes.headers.get('content-type') : '';
+      if (ct && ct.indexOf('html') !== -1) {
+        // attempt to extract an image embedded in the HTML before sending
+        try {
+          const html = await headRes.text();
+          let match = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
+          if (!match) match = html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
+          let foundUrl = match ? match[1] : null;
+          if (!foundUrl) {
+            const imgMatch = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+            if (imgMatch) foundUrl = imgMatch[1];
+          }
+          if (foundUrl) {
+            try { foundUrl = new URL(foundUrl, photoUrl).href; } catch (e) {}
+            // replace the original photoUrl so the normal send uses the embedded image
+            photoUrl = foundUrl;
+            body.photo = photoUrl;
+          }
+        } catch (parseErr) {
+          // ignore and continue; later fallback will handle it
+        }
+      }
+      // if content-type indicates an image, proceed normally
+      if (ct && ct.startsWith && ct.startsWith('image/')) {
+        // nothing to change
+      }
+    }
+  } catch (preflightErr) {
+    // ignore preflight errors — we'll try the normal send and then the fallback logic below
+  }
 
   try {
     const res = await fetch(url, {
