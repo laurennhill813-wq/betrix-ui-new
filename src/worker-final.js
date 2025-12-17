@@ -773,11 +773,13 @@ async function handleUpdate(update) {
       }
 
       // Check structured onboarding flow first (new flow)
+      // Skip onboarding dispatch for slash commands (e.g., '/start', '/menu') so commands show menus.
       try {
-        const onboardRaw = await redis.get(`user:${userId}:onboarding`);
-        if (onboardRaw) {
-          const payload = await handleOnboardingMessage(text, chatId, userId, redis, { telegram, userService, analytics });
-          if (payload) {
+        if (!(text && String(text).startsWith('/'))) {
+          const onboardRaw = await redis.get(`user:${userId}:onboarding`);
+          if (onboardRaw) {
+            const payload = await handleOnboardingMessage(text, chatId, userId, redis, { telegram, userService, analytics });
+            if (payload) {
             // payload may be an array of actions or a single action
             const actions = Array.isArray(payload) ? payload : [payload];
             for (const act of actions) {
