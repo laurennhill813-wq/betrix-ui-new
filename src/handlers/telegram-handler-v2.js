@@ -384,27 +384,30 @@ export async function handleMessage(update, redis, services) {
     const text = message.text || '';
     const fromId = message.from && message.from.id;
     // Onboarding: if user has an active onboarding flow, delegate to handler
-    try {
-      if (fromId) {
-        const r = createRedisAdapter(redis);
-        // If legacy signup state exists, migrate it into the structured onboarding flow
-        const legacy = await r.get(`signup:${fromId}:state`).catch(() => null);
-        if (legacy === 'awaiting_name') {
-          await r.setex(`user:${fromId}:onboarding`, 1800, JSON.stringify({ step: 'name', createdAt: Date.now() }));
-          await r.del(`signup:${fromId}:state`).catch(() => {});
-        }
+    // Skip onboarding delegation for slash commands (e.g., '/start') so commands always show menus.
+    if (!String(text || '').startsWith('/')) {
+      try {
+        if (fromId) {
+          const r = createRedisAdapter(redis);
+          // If legacy signup state exists, migrate it into the structured onboarding flow
+          const legacy = await r.get(`signup:${fromId}:state`).catch(() => null);
+          if (legacy === 'awaiting_name') {
+            await r.setex(`user:${fromId}:onboarding`, 1800, JSON.stringify({ step: 'name', createdAt: Date.now() }));
+            await r.del(`signup:${fromId}:state`).catch(() => {});
+          }
 
-        const onboardRaw = await r.get(`user:${fromId}:onboarding`).catch(() => null);
-        if (onboardRaw) {
-          // delegate message into the onboarding state machine
-          const res = await handleOnboardingMessage(text, chatId, fromId, r, services).catch(e => {
-            logger.warn('handleOnboardingMessage failed', e?.message || String(e));
-            return null;
-          });
-          if (res) return res;
+          const onboardRaw = await r.get(`user:${fromId}:onboarding`).catch(() => null);
+          if (onboardRaw) {
+            // delegate message into the onboarding state machine
+            const res = await handleOnboardingMessage(text, chatId, fromId, r, services).catch(e => {
+              logger.warn('handleOnboardingMessage failed', e?.message || String(e));
+              return null;
+            });
+            if (res) return res;
+          }
         }
-      }
-    } catch (e) { logger.warn('Onboarding state check failed', e?.message || String(e)); }
+      } catch (e) { logger.warn('Onboarding state check failed', e?.message || String(e)); }
+    }
 
       // Favorites state handling: awaiting_add — user sent a team to add
       try {
