@@ -3390,6 +3390,8 @@ export async function handleNaturalLanguage(text, chatId, userId, redis, service
   }
 
 }
+// Export onboarding helpers for worker to import directly
+export { handleOnboardingMessage, startOnboarding };
 export default {
   handleMessage,
   handleCallbackQuery,
