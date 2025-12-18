@@ -80,6 +80,7 @@
   "homepage": "https://github.com/maryreaky/betrix-ui-replit-#readme",
   "devDependencies": {
     "eslint": "8.44.0",
+    "eslint-plugin-import": "^2.32.0",
     "jest": "30.2.0"
   }
 }

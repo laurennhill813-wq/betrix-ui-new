@@ -12,6 +12,7 @@
 ## 📋 Pre-Deployment Checklist
 
 ### Code Implementation
+
 - [x] **StatPal Service Created** (`src/services/statpal-service.js`)
   - [x] 12 main methods (live, odds, fixtures, standings, stats, injuries, etc.)
   - [x] Circuit-breaker health tracking
@@ -38,6 +39,7 @@
   - [x] Version support (v1, v2)
 
 ### Documentation
+
 - [x] **Integration Guide** (`STATPAL_INTEGRATION_GUIDE.md`)
   - [x] Feature overview
   - [x] 13 supported sports
@@ -67,6 +69,7 @@
   - [x] Deployment readiness
 
 ### Files Summary
+
 - [x] 5 new files created
 - [x] 2 existing files modified
 - [x] ~60 KB new code
@@ -82,6 +85,7 @@
 **Location**: https://dashboard.render.com
 
 **Steps**:
+
 1. [ ] Go to Betrix service
 2. [ ] Click "Settings"
 3. [ ] Go to "Environment Variables" section
@@ -93,6 +97,7 @@
 7. [ ] Watch for auto-redeploy notification
 
 ### Verification
+
 - [ ] Wait 2-3 minutes for Render to redeploy
 - [ ] Check "Deployments" tab for green checkmark
 - [ ] Check "Logs" for no errors mentioning StatPal
@@ -104,11 +109,13 @@
 ### Step 1: Set Environment Variable
 
 **PowerShell**:
+
 ```powershell
 $env:STATPAL_API_KEY = "4c9cee6b-cf19-4b68-a122-48120fe855b5"
 ```
 
 **Bash**:
+
 ```bash
 export STATPAL_API_KEY="4c9cee6b-cf19-4b68-a122-48120fe855b5"
 ```
@@ -120,6 +127,7 @@ node validate-statpal-integration.js
 ```
 
 **Expected Output**:
+
 ```
 ✅ Configuration Check - PASS
 ✅ Service Instantiation - PASS
@@ -133,6 +141,7 @@ node validate-statpal-integration.js
 ```
 
 **Checklist**:
+
 - [ ] Configuration check passed
 - [ ] All services instantiate
 - [ ] 13 sports listed
@@ -144,21 +153,25 @@ node validate-statpal-integration.js
 ### Step 3: Manual API Tests
 
 **Test 1: Soccer Live Scores**
+
 ```bash
 node -e "const S = require('./src/services/statpal-service'); new S().getLiveScores('soccer', 'v1').then(d => console.log(d ? d.length + ' matches' : 'NO DATA')).catch(e => console.error(e.message))"
 ```
 
 **Test 2: NFL Live Games**
+
 ```bash
 node -e "const S = require('./src/services/statpal-service'); new S().getLiveScores('nfl', 'v1').then(d => console.log(d ? d.length + ' games' : 'NO DATA')).catch(e => console.error(e.message))"
 ```
 
 **Test 3: Multi-Sport Handler**
+
 ```bash
 node -e "const M = require('./src/services/multi-sport-handler'); new M().getAllSportsLive({sports: ['soccer'], limit: 3}).then(d => console.log(JSON.stringify(d, null, 2))).catch(e => console.error(e.message))"
 ```
 
 **Checklist**:
+
 - [ ] Soccer returns data or "NO DATA" (not error)
 - [ ] NFL returns data or "NO DATA" (not error)
 - [ ] Multi-sport handler returns JSON
@@ -197,6 +210,7 @@ git log --oneline | head -1
 ```
 
 **Checklist**:
+
 - [ ] All changes staged (`git add -A`)
 - [ ] Commit message descriptive
 - [ ] No uncommitted changes remain
@@ -214,6 +228,7 @@ git push origin main
 ```
 
 **Checklist**:
+
 - [ ] Push successful
 - [ ] No merge conflicts
 - [ ] No authentication errors
@@ -224,6 +239,7 @@ git push origin main
 **Dashboard**: https://dashboard.render.com
 
 **What to watch**:
+
 1. [ ] Service shows "Deploying" status
 2. [ ] Build log updates in real-time
 3. [ ] No build errors
@@ -231,6 +247,7 @@ git push origin main
 5. [ ] Last deployment shows green checkmark
 
 **Expected Timeline**:
+
 - 0-30s: Build starts
 - 30-60s: Dependencies install
 - 60-120s: Code builds
@@ -238,8 +255,9 @@ git push origin main
 - Total: 3-5 minutes
 
 **Check Logs** for:
+
 - [x] No "ERROR" messages
-- [x] No "FATAL" messages  
+- [x] No "FATAL" messages
 - [x] No "Cannot find module" errors
 - [x] Service starts successfully
 - [x] Web server listening on port 3000
@@ -262,6 +280,7 @@ node validate-statpal-integration.js
 ```
 
 **Checklist**:
+
 - [ ] Environment variable confirmed
 - [ ] Module loads without error
 - [ ] Validation script passes
@@ -275,6 +294,7 @@ node validate-statpal-integration.js
 ### Test Commands
 
 **Send to Bot**:
+
 1. [ ] `/live` → Should return live football scores
 2. [ ] `/nfl` → Should return NFL games
 3. [ ] `/nba` → Should return NBA games
@@ -283,6 +303,7 @@ node validate-statpal-integration.js
 6. [ ] `/health` → Should return API health status
 
 **Expected Responses**:
+
 - [ ] `/live`: 5-20 football matches with teams/status
 - [ ] `/nfl`: 2-10 NFL games
 - [ ] `/nba`: 5-15 NBA games
@@ -291,6 +312,7 @@ node validate-statpal-integration.js
 - [ ] `/health`: Green checkmark, all providers listed
 
 **Checklist**:
+
 - [ ] Each command responds (no timeout)
 - [ ] Responses include real data (not demo data)
 - [ ] Formatting correct (no errors)
@@ -311,6 +333,7 @@ node validate-statpal-integration.js
 - [ ] **Hour 24**: Confirm no memory leaks, normal CPU
 
 **Key Metrics**:
+
 - [ ] Error rate: < 1%
 - [ ] Response time: < 1000ms p95
 - [ ] Availability: > 99%
@@ -322,6 +345,7 @@ node validate-statpal-integration.js
 **Render Dashboard** → **Logs**:
 
 Look for:
+
 - [x] No repeated "ERROR" messages
 - [x] No "FATAL" errors
 - [x] No "Cannot find module"
@@ -409,15 +433,15 @@ If issues occur:
 
 After successful deployment:
 
-| Metric | Target | Status |
-|--------|--------|--------|
-| Validation passes | 100% | ✅ |
-| Telegram commands work | All 6 | ✅ |
-| Response time | < 1s | ✅ |
-| Error rate | < 1% | ✅ |
-| Availability | > 99% | ✅ |
-| Rate limits | Not hit | ✅ |
-| Data freshness | < 1min | ✅ |
+| Metric                 | Target  | Status |
+| ---------------------- | ------- | ------ |
+| Validation passes      | 100%    | ✅     |
+| Telegram commands work | All 6   | ✅     |
+| Response time          | < 1s    | ✅     |
+| Error rate             | < 1%    | ✅     |
+| Availability           | > 99%   | ✅     |
+| Rate limits            | Not hit | ✅     |
+| Data freshness         | < 1min  | ✅     |
 
 ---
 
@@ -452,6 +476,7 @@ After successful deployment:
 **Good luck! 🚀**
 
 For any issues, refer to:
+
 - STATPAL_INTEGRATION_GUIDE.md (comprehensive)
 - STATPAL_IMPLEMENTATION_SUMMARY.md (technical)
 - STATPAL_QUICKSTART.md (quick reference)

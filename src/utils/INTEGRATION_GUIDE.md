@@ -16,7 +16,7 @@ This document describes integrating the premium BETRIX modules into the main cod
 1. Initialize `PerformanceOptimizer` in `src/worker-final.js` and call `prefetchData` on a schedule.
 
 ```js
-import PerformanceOptimizer from './utils/performance-optimizer.js';
+import PerformanceOptimizer from "./utils/performance-optimizer.js";
 const perfOptimizer = new PerformanceOptimizer(redis);
 // perfOptimizer.prefetchData(...)
 ```
@@ -24,34 +24,42 @@ const perfOptimizer = new PerformanceOptimizer(redis);
 2. Use `BetrixBranding` helpers to build consistent headers and footers.
 
 ```js
-import { generateBetrixHeader, formatMatchDisplay, generateBetrixFooter } from './utils/betrix-branding.js';
+import {
+  generateBetrixHeader,
+  formatMatchDisplay,
+  generateBetrixFooter,
+} from "./utils/betrix-branding.js";
 ```
 
 3. Instantiate `IntelligentMenuBuilder` in menu callbacks and call `buildContextualMainMenu`.
 
 ```js
-import IntelligentMenuBuilder from './utils/intelligent-menu-builder.js';
+import IntelligentMenuBuilder from "./utils/intelligent-menu-builder.js";
 const menuBuilder = new IntelligentMenuBuilder(redis);
 ```
 
 4. Use `FixturesManager` for league fixtures and the fixture browser keyboard.
 
 ```js
-import FixturesManager from './utils/fixtures-manager.js';
+import FixturesManager from "./utils/fixtures-manager.js";
 const fixturesManager = new FixturesManager(redis);
 ```
 
 5. Use `analyzeMatch` from `advanced-match-analysis.js` for AI-driven predictions.
 
 ```js
-import advancedAnalysis from './utils/advanced-match-analysis.js';
-const analysis = await advancedAnalysis.analyzeMatch(match, historicalData, oddsData);
+import advancedAnalysis from "./utils/advanced-match-analysis.js";
+const analysis = await advancedAnalysis.analyzeMatch(
+  match,
+  historicalData,
+  oddsData,
+);
 ```
 
 6. Use `PremiumUIBuilder` for rich match cards and action buttons.
 
 ```js
-import premiumUI from './utils/premium-ui-builder.js';
+import premiumUI from "./utils/premium-ui-builder.js";
 const card = premiumUI.buildMatchCard(match);
 ```
 
@@ -82,4 +90,5 @@ node -e "import('./src/utils/fixtures-manager.js').then(m => console.log('Fixtur
 - Keep `type: "module"` in `package.json` and align entrypoints (`worker-final.js`).
 
 ---
+
 Generated from previous JS guide; moved to Markdown to avoid accidental parsing.

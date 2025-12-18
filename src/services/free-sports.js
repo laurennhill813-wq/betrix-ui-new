@@ -4,11 +4,11 @@
  * - No API keys required
  */
 
-import fetch from 'node-fetch';
-import { load as loadCheerio } from 'cheerio';
-import { Logger } from '../utils/logger.js';
+import fetch from "node-fetch";
+import { load as loadCheerio } from "cheerio";
+import { Logger } from "../utils/logger.js";
 
-const logger = new Logger('FreeSports');
+const logger = new Logger("FreeSports");
 
 class FreeSportsService {
   constructor(redis = null) {
@@ -28,7 +28,9 @@ class FreeSportsService {
 
       const q = encodeURIComponent(title);
       const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${q}&format=json&srlimit=5`;
-      const res = await fetch(url, { headers: { 'User-Agent': 'BETRIX/1.0 (bot)' } });
+      const res = await fetch(url, {
+        headers: { "User-Agent": "BETRIX/1.0 (bot)" },
+      });
       const j = await res.json();
       const first = j?.query?.search?.[0];
       const result = first?.title || null;
@@ -38,7 +40,7 @@ class FreeSportsService {
       }
       return result;
     } catch (err) {
-      logger.warn('Wiki search failed', err?.message || String(err));
+      logger.warn("Wiki search failed", err?.message || String(err));
       return null;
     }
   }
@@ -53,15 +55,19 @@ class FreeSportsService {
         if (cached) return JSON.parse(cached);
       }
 
-      const encoded = encodeURIComponent(title.replace(/ /g, '_'));
+      const encoded = encodeURIComponent(title.replace(/ /g, "_"));
       const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encoded}`;
-      const res = await fetch(url, { headers: { 'User-Agent': 'BETRIX/1.0 (bot)' } });
+      const res = await fetch(url, {
+        headers: { "User-Agent": "BETRIX/1.0 (bot)" },
+      });
       if (!res.ok) return null;
       const j = await res.json();
       const out = {
         title: j.title,
         extract: j.extract,
-        url: j.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encoded}`,
+        url:
+          j.content_urls?.desktop?.page ||
+          `https://en.wikipedia.org/wiki/${encoded}`,
       };
       if (this.redis) {
         await this.redis.set(key, JSON.stringify(out)).catch(() => {});
@@ -69,7 +75,7 @@ class FreeSportsService {
       }
       return out;
     } catch (err) {
-      logger.warn('getLeagueSummary failed', err?.message || String(err));
+      logger.warn("getLeagueSummary failed", err?.message || String(err));
       return null;
     }
   }
@@ -85,22 +91,33 @@ class FreeSportsService {
       }
 
       const url = `https://en.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(pageTitle)}&prop=text&format=json`;
-      const res = await fetch(url, { headers: { 'User-Agent': 'BETRIX/1.0 (bot)' } });
+      const res = await fetch(url, {
+        headers: { "User-Agent": "BETRIX/1.0 (bot)" },
+      });
       if (!res.ok) return null;
       const j = await res.json();
-      const html = j?.parse?.text?.['*'];
+      const html = j?.parse?.text?.["*"];
       if (!html) return null;
 
       const $ = loadCheerio(html);
 
       // Look for the first table that looks like a standings table
-      const tables = $('table.wikitable, table.sortable');
+      const tables = $("table.wikitable, table.sortable");
       let chosen = null;
       tables.each((i, t) => {
         if (chosen) return;
-        const headers = $(t).find('th').map((i, h) => $(h).text().toLowerCase()).get().join('|');
+        const headers = $(t)
+          .find("th")
+          .map((i, h) => $(h).text().toLowerCase())
+          .get()
+          .join("|");
         // crude check: headers contain 'pos' or 'p' and 'pts'
-        if (headers.includes('pos') || headers.includes('p') || headers.includes('pts') || headers.includes('points')) {
+        if (
+          headers.includes("pos") ||
+          headers.includes("p") ||
+          headers.includes("pts") ||
+          headers.includes("points")
+        ) {
           chosen = t;
         }
       });
@@ -114,11 +131,11 @@ class FreeSportsService {
 
       const rows = [];
       $(chosen)
-        .find('tr')
+        .find("tr")
         .each((i, tr) => {
           if (i === 0) return; // skip header
           const cols = $(tr)
-            .find('td, th')
+            .find("td, th")
             .map((j, td) => $(td).text().trim())
             .get()
             .filter(Boolean);
@@ -152,7 +169,7 @@ class FreeSportsService {
       }
       return out;
     } catch (err) {
-      logger.warn('getStandings failed', err?.message || String(err));
+      logger.warn("getStandings failed", err?.message || String(err));
       return null;
     }
   }

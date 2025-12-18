@@ -7,8 +7,7 @@ import { Logger } from "../utils/logger.js";
 
 const logger = new Logger("SportTrivia");
 
-class Svoid logger;
-portsTriviaService {
+class SportsTriviaService {
   static QUOTES = [
     "The game is not about how hard you hit. It's about how hard you can get hit and keep moving. - Rocky",
     "Success is no accident. It is hard work, perseverance, learning, studying, sacrifice and most of all, love. - Pelé",
@@ -57,7 +56,9 @@ portsTriviaService {
   }
 
   static getRandomBettingFact() {
-    return this.BETTING_FACTS[Math.floor(Math.random() * this.BETTING_FACTS.length)];
+    return this.BETTING_FACTS[
+      Math.floor(Math.random() * this.BETTING_FACTS.length)
+    ];
   }
 
   static formatQuote() {

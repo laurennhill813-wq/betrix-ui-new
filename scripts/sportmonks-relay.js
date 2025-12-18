@@ -8,14 +8,17 @@
  * Usage: SPORTSMONKS_API=<token> node scripts/sportmonks-relay.js
  */
 
-import http from 'http';
-import { exec } from 'child_process';
+import http from "http";
+import { exec } from "child_process";
 
 const PORT = process.env.SPORTSMONKS_RELAY_PORT || 3001;
-const API = process.env.SPORTSMONKS_API || process.env.SPORTSMONKS_KEY || process.env.SPORTSMONKS_TOKEN;
+const API =
+  process.env.SPORTSMONKS_API ||
+  process.env.SPORTSMONKS_KEY ||
+  process.env.SPORTSMONKS_TOKEN;
 
 if (!API) {
-  console.error('SPORTSMONKS API token not set in env (SPORTSMONKS_API)');
+  console.error("SPORTSMONKS API token not set in env (SPORTSMONKS_API)");
   process.exit(1);
 }
 
@@ -32,30 +35,40 @@ function fetchLivescoresViaPowershell() {
         const data = JSON.parse(stdout);
         resolve(data);
       } catch (e) {
-        return reject(new Error('Failed to parse JSON from PowerShell output: ' + e.message + '\n' + stdout.substring(0, 2000)));
+        return reject(
+          new Error(
+            "Failed to parse JSON from PowerShell output: " +
+              e.message +
+              "\n" +
+              stdout.substring(0, 2000),
+          ),
+        );
       }
     });
   });
 }
 
 const server = http.createServer(async (req, res) => {
-  if (req.url.startsWith('/v3/football/livescores')) {
+  if (req.url.startsWith("/v3/football/livescores")) {
     try {
       const data = await fetchLivescoresViaPowershell();
       const body = JSON.stringify(data);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { "Content-Type": "application/json" });
       res.end(body);
     } catch (e) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: e.message }));
     }
   } else {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('Not found');
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end("Not found");
   }
 });
 
-server.listen(PORT, '127.0.0.1', () => {
+server.listen(PORT, "127.0.0.1", () => {
   console.log(`SportMonks relay listening on http://127.0.0.1:${PORT}`);
-  console.log('Proxying:', `http://127.0.0.1:${PORT}/v3/football/livescores?api_token=<TOKEN>`);
+  console.log(
+    "Proxying:",
+    `http://127.0.0.1:${PORT}/v3/football/livescores?api_token=<TOKEN>`,
+  );
 });

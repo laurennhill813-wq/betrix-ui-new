@@ -8,23 +8,25 @@ A comprehensive **odds analysis and prediction system** for the Betrix betting b
 
 ## 📊 Quick Stats
 
-| Metric | Value |
-|--------|-------|
-| **Lines of Code** | 590+ |
-| **Test Coverage** | 5 scenarios, 100% pass rate |
-| **Analysis Time** | <500ms (cached) |
-| **Recommendation Tiers** | 4 levels |
-| **APIs Supported** | 6 sports data sources |
-| **Cache TTL** | 2-30 minutes |
-| **Documentation** | 700+ lines |
-| **Status** | ✅ Production Ready |
+| Metric                   | Value                       |
+| ------------------------ | --------------------------- |
+| **Lines of Code**        | 590+                        |
+| **Test Coverage**        | 5 scenarios, 100% pass rate |
+| **Analysis Time**        | <500ms (cached)             |
+| **Recommendation Tiers** | 4 levels                    |
+| **APIs Supported**       | 6 sports data sources       |
+| **Cache TTL**            | 2-30 minutes                |
+| **Documentation**        | 700+ lines                  |
+| **Status**               | ✅ Production Ready         |
 
 ---
 
 ## 🚀 User Commands
 
 ### `/odds`
+
 Shows today's best value plays:
+
 ```
 🎯 *Today's Best Plays*
 
@@ -38,7 +40,9 @@ Shows today's best value plays:
 ```
 
 ### `/analyze Team A vs Team B`
+
 Detailed match analysis:
+
 ```
 🔍 *Odds Analysis*
 
@@ -60,6 +64,7 @@ Recommendation: ❌ No clear value
 ## 🧮 How It Works
 
 ### 1. Get Odds
+
 ```javascript
 SportsAggregator fetches odds from 6 APIs:
 1. API-Sports (5-10 sec updates)
@@ -71,6 +76,7 @@ SportsAggregator fetches odds from 6 APIs:
 ```
 
 ### 2. Calculate Probabilities
+
 ```javascript
 Implied Probability = 1 / Decimal Odds
 
@@ -78,6 +84,7 @@ Example: 2.1 odds = 47.6% implied probability
 ```
 
 ### 3. Predict Outcome
+
 ```javascript
 Compare all three outcomes (home/draw/away)
 Select the one with highest probability
@@ -85,6 +92,7 @@ Calculate confidence based on probability spread
 ```
 
 ### 4. Detect Value
+
 ```javascript
 Edge = (True Probability - Implied Probability) × 100%
 
@@ -93,6 +101,7 @@ If edge < 0%: Skip the bet (bookmaker advantage)
 ```
 
 ### 5. Recommend Action
+
 ```javascript
 🟢 STRONG BET:     Confidence >70% AND Edge >10%
 🟡 MODERATE BET:   Confidence >60% AND Edge >5%
@@ -128,7 +137,9 @@ Docs/
 ## 🔧 OddsAnalyzer Methods
 
 ### `analyzeMatch(homeTeam, awayTeam, leagueId)`
+
 Analyzes a specific match and returns comprehensive analysis.
+
 ```javascript
 {
   prediction: { outcome, confidence, odds },
@@ -139,18 +150,23 @@ Analyzes a specific match and returns comprehensive analysis.
 ```
 
 ### `getQuickTips(leagueId)`
+
 Returns formatted string with best plays today.
+
 ```javascript
-"🎯 *Today's Best Plays*\n\n1. Team A vs Team B..."
+"🎯 *Today's Best Plays*\n\n1. Team A vs Team B...";
 ```
 
 ### `compareOdds(homeTeam, awayTeam, leagueId)`
+
 Compares odds across multiple bookmakers.
+
 ```javascript
-"💰 *Odds Comparison*\n\nBet365: 1: 2.1✅ X: 3.4 2: 3.2..."
+"💰 *Odds Comparison*\n\nBet365: 1: 2.1✅ X: 3.4 2: 3.2...";
 ```
 
 ### `formatForTelegram(analysis)`
+
 Formats analysis for Telegram display with emojis.
 
 ---
@@ -178,11 +194,13 @@ Output: User-friendly message with confidence & action
 ## 💡 Example: Manchester United vs Liverpool
 
 ### Input
+
 ```
 Odds: Home 2.1 | Draw 3.4 | Away 3.2
 ```
 
 ### Analysis
+
 ```
 Implied Probabilities:
   Home: 47.6%
@@ -204,12 +222,14 @@ Recommendation: ❌ SKIP
 ## ⚙️ Configuration
 
 ### Analysis Thresholds
+
 - **Minimum Confidence**: 50%
 - **Value Edge Threshold**: 5%
 - **Strong Bet**: Confidence >70% AND Edge >10%
 - **Bankroll Rule**: 2% max per bet
 
 ### Caching
+
 - **Odds**: 10 minutes
 - **Live Matches**: 2 minutes
 - **Standings**: 30 minutes
@@ -219,11 +239,13 @@ Recommendation: ❌ SKIP
 ## 🧪 Testing
 
 ### Run Tests
+
 ```bash
 node test-odds-analyzer.js
 ```
 
 ### Test Results
+
 ```
 ✅ TEST 1: Analyzing Live Matches - PASS
 ✅ TEST 2: Specific Match Analysis - PASS
@@ -267,19 +289,20 @@ node test-odds-analyzer.js
 
 ## 📊 Performance Metrics
 
-| Metric | Value |
-|--------|-------|
-| Analysis time (cached) | <500ms |
-| Cold start | 2-3 seconds |
-| Cache hit rate | >80% |
-| Memory usage | ~5MB |
-| Data freshness | 5-10 sec to 30 min |
+| Metric                 | Value              |
+| ---------------------- | ------------------ |
+| Analysis time (cached) | <500ms             |
+| Cold start             | 2-3 seconds        |
+| Cache hit rate         | >80%               |
+| Memory usage           | ~5MB               |
+| Data freshness         | 5-10 sec to 30 min |
 
 ---
 
 ## 🎓 Educational Value
 
 Users learn:
+
 1. **Implied Probability**: Converting odds to probability
 2. **Value Betting**: Finding +EV opportunities
 3. **Confidence Scoring**: Understanding prediction reliability

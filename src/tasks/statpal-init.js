@@ -5,43 +5,43 @@
  * GET https://statpal.io/api/{version}/{sport}/livescores?access_key={key}
  */
 
-import { Logger } from '../utils/logger.js';
-import { HttpClient } from '../services/http-client.js';
+import { Logger } from "../utils/logger.js";
+import { HttpClient } from "../services/http-client.js";
 
-const logger = new Logger('StatPalInit');
+const logger = new Logger("StatPalInit");
 
 // All supported sports per StatPal documentation
 const STATPAL_SPORTS = [
-  'soccer',
-  'nfl',
-  'nba',
-  'nhl',
-  'mlb',
-  'esports',
-  'cricket',
-  'f1',
-  'handball',
-  'golf',
-  'horse-racing',
-  'volleyball',
-  'tennis',
-  'rugby',
-  'australian-football'
+  "soccer",
+  "nfl",
+  "nba",
+  "nhl",
+  "mlb",
+  "esports",
+  "cricket",
+  "f1",
+  "handball",
+  "golf",
+  "horse-racing",
+  "volleyball",
+  "tennis",
+  "rugby",
+  "australian-football",
 ];
 
 // All endpoints per StatPal documentation
 const STATPAL_ENDPOINTS = {
-  'livescores': '/livescores',
-  'upcoming-schedule': '/upcoming-schedule',
-  'standings': '/standings',
-  'player-stats': '/player-stats',
-  'team-stats': '/team-stats',
-  'results': '/results',
-  'live-match-stats': '/live-match-stats',
-  'live-plays': '/live-plays',
-  'injuries': '/injuries',
-  'scoring-leaders': '/scoring-leaders',
-  'rosters': '/rosters'
+  livescores: "/livescores",
+  "upcoming-schedule": "/upcoming-schedule",
+  standings: "/standings",
+  "player-stats": "/player-stats",
+  "team-stats": "/team-stats",
+  results: "/results",
+  "live-match-stats": "/live-match-stats",
+  "live-plays": "/live-plays",
+  injuries: "/injuries",
+  "scoring-leaders": "/scoring-leaders",
+  rosters: "/rosters",
 };
 
 export class StatPalInit {
@@ -49,14 +49,16 @@ export class StatPalInit {
     this.redis = redis;
     this.accessKey = accessKey;
     this.httpClient = new HttpClient();
-    this.baseUrl = 'https://statpal.io/api/v1';
+    this.baseUrl = "https://statpal.io/api/v1";
     this.results = {
       timestamp: new Date().toISOString(),
-      apiKey: this.accessKey ? `${this.accessKey.substring(0, 8)}...${this.accessKey.substring(this.accessKey.length - 4)}` : 'MISSING',
+      apiKey: this.accessKey
+        ? `${this.accessKey.substring(0, 8)}...${this.accessKey.substring(this.accessKey.length - 4)}`
+        : "MISSING",
       sports: {},
       endpoints: {},
       totalDataPoints: 0,
-      errors: []
+      errors: [],
     };
   }
 
@@ -65,13 +67,13 @@ export class StatPalInit {
    */
   validateApiKey() {
     if (!this.accessKey || this.accessKey.length === 0) {
-      const err = '❌ STATPAL_API environment variable is NOT set!';
+      const err = "❌ STATPAL_API environment variable is NOT set!";
       logger.error(err);
       this.results.errors.push(err);
       return false;
     }
 
-    logger.info('✅ STATPAL_API key is configured');
+    logger.info("✅ STATPAL_API key is configured");
     return true;
   }
 
@@ -79,20 +81,22 @@ export class StatPalInit {
    * Test a single sport endpoint with proper URL format
    * GET https://statpal.io/api/v1/{sport}/livescores?access_key={key}
    */
-  async testSportEndpoint(sport, endpoint = 'livescores') {
+  async testSportEndpoint(sport, endpoint = "livescores") {
     try {
-      const url = `${this.baseUrl}/${sport}${STATPAL_ENDPOINTS[endpoint] || '/livescores'}`;
+      const url = `${this.baseUrl}/${sport}${STATPAL_ENDPOINTS[endpoint] || "/livescores"}`;
       const fullUrl = `${url}?access_key=${this.accessKey}`;
 
-      logger.debug(`📡 Testing ${sport} ${endpoint}: GET ${url.substring(0, 50)}...`);
+      logger.debug(
+        `📡 Testing ${sport} ${endpoint}: GET ${url.substring(0, 50)}...`,
+      );
 
       const response = await this.httpClient.fetch(fullUrl, {
         headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'BETRIX-StatPal-Init/1.0'
+          Accept: "application/json",
+          "User-Agent": "BETRIX-StatPal-Init/1.0",
         },
         timeout: 10000,
-        retries: 2
+        retries: 2,
       });
 
       if (!response) {
@@ -101,17 +105,28 @@ export class StatPalInit {
       }
 
       // Check if response is valid JSON (not HTML error page)
-      if (typeof response === 'string' && (response.includes('<!DOCTYPE') || response.includes('<html'))) {
-        logger.warn(`⚠️  ${sport} ${endpoint} returned HTML (likely 404 or 403)`);
+      if (
+        typeof response === "string" &&
+        (response.includes("<!DOCTYPE") || response.includes("<html"))
+      ) {
+        logger.warn(
+          `⚠️  ${sport} ${endpoint} returned HTML (likely 404 or 403)`,
+        );
         return null;
       }
 
-      logger.debug(`🔍 ${sport.toUpperCase()} ${endpoint} RAW RESPONSE TYPE: ${typeof response}, is array: ${Array.isArray(response)}`);
-      if (typeof response === 'object' && !Array.isArray(response)) {
-        logger.debug(`    Response keys: ${Object.keys(response).slice(0, 10).join(', ')}`);
+      logger.debug(
+        `🔍 ${sport.toUpperCase()} ${endpoint} RAW RESPONSE TYPE: ${typeof response}, is array: ${Array.isArray(response)}`,
+      );
+      if (typeof response === "object" && !Array.isArray(response)) {
+        logger.debug(
+          `    Response keys: ${Object.keys(response).slice(0, 10).join(", ")}`,
+        );
       }
 
-      logger.info(`✅ ${sport.toUpperCase()} ${endpoint}: ${Array.isArray(response) ? response.length : (typeof response === 'object' ? 'object' : 'string')} items`);
+      logger.info(
+        `✅ ${sport.toUpperCase()} ${endpoint}: ${Array.isArray(response) ? response.length : typeof response === "object" ? "object" : "string"} items`,
+      );
 
       return response;
     } catch (e) {
@@ -125,13 +140,16 @@ export class StatPalInit {
    */
   async fetchAndCacheSportLiveScores(sport) {
     try {
-      const data = await this.testSportEndpoint(sport, 'livescores');
+      const data = await this.testSportEndpoint(sport, "livescores");
 
       if (!data) {
         if (!this.results.sports[sport]) {
           this.results.sports[sport] = { endpoints: {} };
         }
-        this.results.sports[sport].endpoints.livescores = { status: 'failed', error: 'No data returned' };
+        this.results.sports[sport].endpoints.livescores = {
+          status: "failed",
+          error: "No data returned",
+        };
         return { sport, count: 0, data: [] };
       }
 
@@ -139,18 +157,28 @@ export class StatPalInit {
       let matches = [];
       if (Array.isArray(data)) {
         matches = data;
-        logger.info(`    ✅ Extracted from top-level array: ${matches.length} items`);
+        logger.info(
+          `    ✅ Extracted from top-level array: ${matches.length} items`,
+        );
       } else if (data.data && Array.isArray(data.data)) {
         matches = data.data;
-        logger.info(`    ✅ Extracted from .data array: ${matches.length} items`);
+        logger.info(
+          `    ✅ Extracted from .data array: ${matches.length} items`,
+        );
       } else if (data.matches && Array.isArray(data.matches)) {
         matches = data.matches;
-        logger.info(`    ✅ Extracted from .matches array: ${matches.length} items`);
+        logger.info(
+          `    ✅ Extracted from .matches array: ${matches.length} items`,
+        );
       } else if (data.results && Array.isArray(data.results)) {
         matches = data.results;
-        logger.info(`    ✅ Extracted from .results array: ${matches.length} items`);
+        logger.info(
+          `    ✅ Extracted from .results array: ${matches.length} items`,
+        );
       } else {
-        logger.warn(`    ⚠️  Could not extract array from StatPal ${sport} response. Available keys: ${Object.keys(data || {}).join(', ')}`);
+        logger.warn(
+          `    ⚠️  Could not extract array from StatPal ${sport} response. Available keys: ${Object.keys(data || {}).join(", ")}`,
+        );
       }
 
       const count = Array.isArray(matches) ? matches.length : 0;
@@ -159,25 +187,29 @@ export class StatPalInit {
       // LOG RAW PAYLOAD STRUCTURE FOR DEBUGGING
       if (count > 0 && samples.length > 0) {
         const firstMatch = samples[0];
-        logger.info(`🔍 ${sport.toUpperCase()} RAW MATCH STRUCTURE (first match):`);
-        logger.info(`    Keys: ${Object.keys(firstMatch).join(', ')}`);
-        
+        logger.info(
+          `🔍 ${sport.toUpperCase()} RAW MATCH STRUCTURE (first match):`,
+        );
+        logger.info(`    Keys: ${Object.keys(firstMatch).join(", ")}`);
+
         // Log specific field values that might contain team names
-        const teamFields = Object.keys(firstMatch).filter(k => 
-          k.toLowerCase().includes('team') || 
-          k.toLowerCase().includes('home') || 
-          k.toLowerCase().includes('away') ||
-          k.toLowerCase().includes('visitor') ||
-          k.toLowerCase().includes('local') ||
-          k === 'team1' || k === 'team2'
+        const teamFields = Object.keys(firstMatch).filter(
+          (k) =>
+            k.toLowerCase().includes("team") ||
+            k.toLowerCase().includes("home") ||
+            k.toLowerCase().includes("away") ||
+            k.toLowerCase().includes("visitor") ||
+            k.toLowerCase().includes("local") ||
+            k === "team1" ||
+            k === "team2",
         );
         if (teamFields.length > 0) {
-          logger.info(`    Team-related fields: ${teamFields.join(', ')}`);
-          teamFields.forEach(f => {
+          logger.info(`    Team-related fields: ${teamFields.join(", ")}`);
+          teamFields.forEach((f) => {
             logger.info(`      ${f}: ${JSON.stringify(firstMatch[f])}`);
           });
         }
-        
+
         // Log the entire first match as JSON for inspection
         logger.info(`    Full first match: ${JSON.stringify(firstMatch)}`);
       }
@@ -188,11 +220,18 @@ export class StatPalInit {
         try {
           await this.redis.set(
             cacheKey,
-            JSON.stringify({ sport, count, timestamp: Date.now(), data: samples }),
-            'EX',
-            300 // 5 min cache
+            JSON.stringify({
+              sport,
+              count,
+              timestamp: Date.now(),
+              data: samples,
+            }),
+            "EX",
+            300, // 5 min cache
           );
-          logger.info(`💾 Cached ${sport} livescores: ${count} items → Redis key: ${cacheKey}`);
+          logger.info(
+            `💾 Cached ${sport} livescores: ${count} items → Redis key: ${cacheKey}`,
+          );
         } catch (e) {
           logger.warn(`Failed to cache ${sport} livescores`, e?.message);
         }
@@ -202,9 +241,9 @@ export class StatPalInit {
         this.results.sports[sport] = { endpoints: {} };
       }
       this.results.sports[sport].endpoints.livescores = {
-        status: count > 0 ? 'success' : 'empty',
+        status: count > 0 ? "success" : "empty",
         count,
-        samples
+        samples,
       };
 
       this.results.totalDataPoints += count;
@@ -215,7 +254,10 @@ export class StatPalInit {
       if (!this.results.sports[sport]) {
         this.results.sports[sport] = { endpoints: {} };
       }
-      this.results.sports[sport].endpoints.livescores = { status: 'error', error: e.message };
+      this.results.sports[sport].endpoints.livescores = {
+        status: "error",
+        error: e.message,
+      };
       return { sport, count: 0, data: [] };
     }
   }
@@ -225,7 +267,7 @@ export class StatPalInit {
    */
   async fetchAndCacheSportStandings(sport) {
     try {
-      const data = await this.testSportEndpoint(sport, 'standings');
+      const data = await this.testSportEndpoint(sport, "standings");
 
       if (!data) {
         return { sport, count: 0 };
@@ -248,8 +290,8 @@ export class StatPalInit {
           await this.redis.set(
             cacheKey,
             JSON.stringify({ sport, count, timestamp: Date.now() }),
-            'EX',
-            600 // 10 min cache
+            "EX",
+            600, // 10 min cache
           );
         } catch (e) {
           logger.warn(`Failed to cache ${sport} standings`, e?.message);
@@ -260,8 +302,8 @@ export class StatPalInit {
         this.results.sports[sport] = { endpoints: {} };
       }
       this.results.sports[sport].endpoints.standings = {
-        status: count > 0 ? 'success' : 'empty',
-        count
+        status: count > 0 ? "success" : "empty",
+        count,
       };
 
       this.results.totalDataPoints += count;
@@ -277,7 +319,7 @@ export class StatPalInit {
    */
   async fetchAndCacheSportResults(sport) {
     try {
-      const data = await this.testSportEndpoint(sport, 'results');
+      const data = await this.testSportEndpoint(sport, "results");
 
       if (!data) {
         return { sport, count: 0 };
@@ -300,8 +342,8 @@ export class StatPalInit {
           await this.redis.set(
             cacheKey,
             JSON.stringify({ sport, count, timestamp: Date.now() }),
-            'EX',
-            600
+            "EX",
+            600,
           );
         } catch (e) {
           logger.warn(`Failed to cache ${sport} results`, e?.message);
@@ -312,8 +354,8 @@ export class StatPalInit {
         this.results.sports[sport] = { endpoints: {} };
       }
       this.results.sports[sport].endpoints.results = {
-        status: count > 0 ? 'success' : 'empty',
-        count
+        status: count > 0 ? "success" : "empty",
+        count,
       };
 
       this.results.totalDataPoints += count;
@@ -328,63 +370,69 @@ export class StatPalInit {
    * Run full initialization: validate key, test all sports, prefetch all endpoints
    */
   async initialize() {
-    logger.info('🚀 StatPal Initialization Starting...');
+    logger.info("🚀 StatPal Initialization Starting...");
 
     // Step 1: Validate API key
     if (!this.validateApiKey()) {
-      logger.error('❌ StatPal API key validation failed - initialization aborted');
+      logger.error(
+        "❌ StatPal API key validation failed - initialization aborted",
+      );
       return { success: false, results: this.results };
     }
 
     // Step 2: Fetch data for each sport
-    logger.info(`🔄 Prefetching live scores for ${STATPAL_SPORTS.length} sports...`);
-
-    const sportResults = await Promise.all(
-      STATPAL_SPORTS.map(sport => this.fetchAndCacheSportLiveScores(sport))
+    logger.info(
+      `🔄 Prefetching live scores for ${STATPAL_SPORTS.length} sports...`,
     );
 
-    const sportsWithData = sportResults.filter(r => r.count > 0);
-    logger.info(`✅ Prefetched live scores: ${sportsWithData.length}/${STATPAL_SPORTS.length} sports have data`);
+    const sportResults = await Promise.all(
+      STATPAL_SPORTS.map((sport) => this.fetchAndCacheSportLiveScores(sport)),
+    );
+
+    const sportsWithData = sportResults.filter((r) => r.count > 0);
+    logger.info(
+      `✅ Prefetched live scores: ${sportsWithData.length}/${STATPAL_SPORTS.length} sports have data`,
+    );
 
     // Step 3: Fetch standings for major sports
-    logger.info('🔄 Prefetching standings...');
+    logger.info("🔄 Prefetching standings...");
     await Promise.all([
-      this.fetchAndCacheSportStandings('soccer'),
-      this.fetchAndCacheSportStandings('nfl'),
-      this.fetchAndCacheSportStandings('nba'),
-      this.fetchAndCacheSportStandings('nhl'),
-      this.fetchAndCacheSportStandings('mlb')
+      this.fetchAndCacheSportStandings("soccer"),
+      this.fetchAndCacheSportStandings("nfl"),
+      this.fetchAndCacheSportStandings("nba"),
+      this.fetchAndCacheSportStandings("nhl"),
+      this.fetchAndCacheSportStandings("mlb"),
     ]);
 
     // Step 4: Fetch recent results
-    logger.info('🔄 Prefetching results...');
+    logger.info("🔄 Prefetching results...");
     await Promise.all([
-      this.fetchAndCacheSportResults('soccer'),
-      this.fetchAndCacheSportResults('nfl'),
-      this.fetchAndCacheSportResults('nba'),
-      this.fetchAndCacheSportResults('nhl'),
-      this.fetchAndCacheSportResults('mlb')
+      this.fetchAndCacheSportResults("soccer"),
+      this.fetchAndCacheSportResults("nfl"),
+      this.fetchAndCacheSportResults("nba"),
+      this.fetchAndCacheSportResults("nhl"),
+      this.fetchAndCacheSportResults("mlb"),
     ]);
 
     // Store results in Redis for monitoring
     if (this.redis) {
       try {
         await this.redis.set(
-          'betrix:statpal:init:latest',
+          "betrix:statpal:init:latest",
           JSON.stringify(this.results),
-          'EX',
-          3600
+          "EX",
+          3600,
         );
       } catch (e) {
-        logger.warn('Failed to store init results', e?.message);
+        logger.warn("Failed to store init results", e?.message);
       }
     }
 
-    logger.info('✅ StatPal Initialization Complete!', {
+    logger.info("✅ StatPal Initialization Complete!", {
       apiKey: this.results.apiKey,
       sportsWithData: sportsWithData.length,
       totalDataPoints: this.results.totalDataPoints,
-      cachePrefix: 'betrix:statpal:*'
+      cachePrefix: "betrix:statpal:*",
     });
 
     return { success: true, results: this.results };

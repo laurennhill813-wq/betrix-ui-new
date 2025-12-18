@@ -5,25 +5,30 @@
 Your BETRIX bot is configured to run **completely autonomously** with:
 
 ### 1. **Automatic Error Recovery**
+
 - Auto-restarts on crash
 - Exponential backoff (2s → 4s → 8s → 16s → 32s)
 - Max 5 restart attempts before manual intervention
 - Logs all errors for debugging
 
 ### 2. **Signal Handling**
+
 - SIGTERM (graceful shutdown) → Clean exit
 - SIGINT (Ctrl+C) → Clean exit
 - Uncaught exceptions → Logged + restarted
 - Unhandled rejections → Logged + restarted
 
 ### 3. **Health Monitoring**
+
 - Health checks every 30 seconds
 - Redis connectivity checks
 - Worker status verification
 - Automatic alerts if issues detected
 
 ### 4. **Autonomous Message Processing**
+
 The bot runs 24/7 and:
+
 - ✅ Listens for Telegram webhooks
 - ✅ Processes messages from Redis queue
 - ✅ Handles commands autonomously
@@ -35,6 +40,7 @@ The bot runs 24/7 and:
 ## 🎯 How It Works
 
 ### Architecture
+
 ```
 Telegram User
     ↓
@@ -56,6 +62,7 @@ Back to User
 ```
 
 ### Flow
+
 1. User sends message to bot
 2. Telegram webhook calls `POST /telegram`
 3. Message queued to Redis
@@ -69,11 +76,13 @@ Back to User
 ## ⚙️ Startup Process
 
 ### Starting the Bot
+
 ```bash
 bash start.sh
 ```
 
 ### What Happens
+
 1. Validates environment (Gemini, Telegram, Redis)
 2. Imports all services (25+ modules)
 3. Initializes workers
@@ -87,6 +96,7 @@ bash start.sh
 ## 🔄 Error Recovery Flow
 
 ### If Worker Crashes
+
 ```
 Crash Detected
     ↓
@@ -121,12 +131,14 @@ If max reached → Exit (alert required)
 ## 🚨 If Issues Occur
 
 ### Check Logs
+
 ```bash
 # View current logs
 tail -f /tmp/logs/BETRIX_Server_*.log
 ```
 
 ### Restart Manually
+
 ```bash
 # Stop current process
 pkill -f "node src/worker-db.js"
@@ -136,6 +148,7 @@ bash start.sh
 ```
 
 ### Debug Issues
+
 ```bash
 # Check Redis connection
 redis-cli -u $REDIS_URL ping
@@ -153,12 +166,14 @@ node -c src/worker-db.js
 ## 🎯 Production Deployment
 
 ### Replit Deployment
+
 1. Click "Publish" in Replit
 2. Gets live URL
 3. Update `WEBHOOK_URL` environment variable
 4. Telegram receives webhooks at `/telegram`
 
 ### Keep Running 24/7
+
 - Replit keep-alive: Use `curl` to ping every 5 minutes
 - Set up monitoring: Track logs for errors
 - Manual restarts: Only if max recovery attempts exceeded
@@ -168,6 +183,7 @@ node -c src/worker-db.js
 ## ✅ Verification
 
 ### Is Bot Running Autonomously?
+
 ```
 1. Start bot: bash start.sh
 2. Send message to bot on Telegram
@@ -179,6 +195,7 @@ node -c src/worker-db.js
 ```
 
 ### Production Ready?
+
 - ✅ All 17 secrets configured
 - ✅ All 25+ services initialized
 - ✅ Error handlers in place
@@ -191,6 +208,7 @@ node -c src/worker-db.js
 ## 🎊 Your Bot is Fully Autonomous!
 
 BETRIX runs completely independently:
+
 - No manual message handling required
 - Auto-recovers from any crash
 - Handles 100s of concurrent users

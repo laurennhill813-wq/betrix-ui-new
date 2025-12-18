@@ -2,4 +2,4 @@
 // that run node from the repo root (like Render). This simply imports the real worker
 // implementation located in ./src/worker-final.js which contains the main() invocation.
 
-import './src/worker-final.js';
+import "./src/worker-final.js";

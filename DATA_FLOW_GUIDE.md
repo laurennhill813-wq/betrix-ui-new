@@ -123,6 +123,7 @@ Every 60 seconds (configurable):
 ## Storage Strategy
 
 ### Memory Cache (SportsAggregator)
+
 ```
 Purpose: Speed (in-process, sub-ms access)
 TTL: 5 minutes for live, 5+ minutes for upcoming
@@ -135,6 +136,7 @@ Example keys:
 ```
 
 ### Raw Data Cache
+
 ```
 Purpose: Preserve complete API responses
 TTL: 2 min (live) to 24 hours (leagues)
@@ -150,6 +152,7 @@ Example keys:
 ```
 
 ### Database Cache (optional)
+
 ```
 Purpose: Long-term data retention
 TTL: 24+ hours
@@ -160,6 +163,7 @@ Use case: Historical analysis, reporting
 ## Data Access Patterns
 
 ### Pattern 1: Direct API Access
+
 ```
 Client Request
     ↓
@@ -173,6 +177,7 @@ Return JSON response
 ```
 
 ### Pattern 2: Telegram Bot Command
+
 ```
 Telegram /live
     ↓
@@ -188,6 +193,7 @@ Send formatted Telegram message
 ```
 
 ### Pattern 3: Scheduled Prefetch
+
 ```
 Prefetch Scheduler (60s tick)
     ↓
@@ -203,6 +209,7 @@ Log completion stats
 ## Example: Complete Request/Response Cycle
 
 ### Request 1: Get Premier League Fixtures
+
 ```
 GET /api/data/fixtures?source=sportsmonks&league=39
 
@@ -236,6 +243,7 @@ Behind the scenes:
 ```
 
 ### Request 2: Get Match Details
+
 ```
 GET /api/data/match/match_1
 
@@ -272,6 +280,7 @@ Behind the scenes:
 ```
 
 ### Request 3: Export All Data
+
 ```
 GET /api/data/export
 
@@ -307,11 +316,13 @@ Behind the scenes:
 ## Data Consistency
 
 ### Guarantee 1: Single Source of Truth
+
 - SportMonks = Primary source (preferred)
 - Football-Data = Secondary source (fallback)
 - No conflicting versions in cache
 
 ### Guarantee 2: Time-Based Freshness
+
 ```
 Live Matches:    2 min   (updated every prefetch cycle: 60s)
 Fixtures:        5 min   (updated every prefetch cycle: 60s)
@@ -320,6 +331,7 @@ Leagues:        24 hours (rarely changes)
 ```
 
 ### Guarantee 3: Automatic Refresh
+
 ```
 Prefetch Scheduler
 ├─→ Runs every 60 seconds
@@ -348,6 +360,7 @@ Speedup: 30-100x faster with cache
 ## Monitoring and Debugging
 
 ### Check What's Cached
+
 ```
 GET /api/data/cache-info
 
@@ -369,6 +382,7 @@ Returns:
 ```
 
 ### Clean Up Expired Cache
+
 ```
 POST /api/data/cache-cleanup
 
@@ -380,6 +394,7 @@ Normally happens automatically, but manual cleanup useful for:
 ```
 
 ### View API Documentation
+
 ```
 GET /api/data/schema
 
@@ -393,6 +408,7 @@ Returns complete API schema with:
 ## Common Operations
 
 ### Get Live Scores
+
 ```bash
 # Telegram
 /live
@@ -402,12 +418,14 @@ curl https://betrix.example.com/api/data/live
 ```
 
 ### Get Upcoming Matches for Specific League
+
 ```bash
 # HTTP API
 curl "https://betrix.example.com/api/data/fixtures?source=sportsmonks&league=39"
 ```
 
 ### Get Standings
+
 ```bash
 # Telegram
 /standings 39
@@ -417,6 +435,7 @@ curl "https://betrix.example.com/api/data/standings/39"
 ```
 
 ### Export All Data
+
 ```bash
 curl https://betrix.example.com/api/data/export > sports-data.json
 ```
@@ -424,31 +443,36 @@ curl https://betrix.example.com/api/data/export > sports-data.json
 ## Architecture Benefits
 
 ✅ **Separation of Concerns**
-  - Raw data caching (RawDataCache)
-  - Business logic (SportsAggregator)
-  - HTTP endpoints (DataExposureHandler)
+
+- Raw data caching (RawDataCache)
+- Business logic (SportsAggregator)
+- HTTP endpoints (DataExposureHandler)
 
 ✅ **Flexibility**
-  - Same cached data accessible via Telegram or HTTP
-  - Easy to add new endpoints
-  - Easy to change data sources
+
+- Same cached data accessible via Telegram or HTTP
+- Easy to add new endpoints
+- Easy to change data sources
 
 ✅ **Performance**
-  - Multi-level caching
-  - Automatic prefetch
-  - Sub-millisecond response times
+
+- Multi-level caching
+- Automatic prefetch
+- Sub-millisecond response times
 
 ✅ **Observability**
-  - Complete cache visibility
-  - Detailed logging
-  - Export for analysis
+
+- Complete cache visibility
+- Detailed logging
+- Export for analysis
 
 ✅ **Reliability**
-  - Fallback to Football-Data if SportMonks unavailable
-  - Automatic cache cleanup
-  - Graceful error handling
+
+- Fallback to Football-Data if SportMonks unavailable
+- Automatic cache cleanup
+- Graceful error handling
 
 ---
 
 **BETRIX Data Flow Architecture**  
-*Last Updated: 2024-12-19*
+_Last Updated: 2024-12-19_

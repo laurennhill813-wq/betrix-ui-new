@@ -9,17 +9,21 @@
 ## 📚 Choose Your Path
 
 ### 🚀 **I Want to Deploy NOW** (15-30 min)
+
 → Start here: **[QUICKSTART_DEPLOY.md](QUICKSTART_DEPLOY.md)**
 
 Quick walkthrough with copy-paste commands. Perfect if you:
+
 - Have Telegram token, SportMonks token, and Redis credentials ready
 - Are comfortable with command line
 - Want to be live in 30 minutes
 
 ### 📖 **I Want to Understand Everything** (30-45 min)
+
 → Read this: **[PRODUCTION_SETUP.md](PRODUCTION_SETUP.md)**
 
 Detailed setup guide with explanations. Covers:
+
 - TLS certificate verification (with multiple options)
 - Environment configuration (detailed walkthrough)
 - Worker deployment and validation
@@ -27,9 +31,11 @@ Detailed setup guide with explanations. Covers:
 - Troubleshooting for each step
 
 ### 🏢 **I'm Deploying to Production Enterprise**
+
 → Use this: **[DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md)**
 
 Comprehensive enterprise checklist with:
+
 - Pre-deployment validation
 - Deployment to Heroku, Railway, Render, or self-hosted
 - Systemd service setup (Linux)
@@ -39,9 +45,11 @@ Comprehensive enterprise checklist with:
 - Support escalation
 
 ### 🎯 **I Want a Summary Before Starting**
+
 → Check this: **[DEPLOYMENT_SUMMARY.md](DEPLOYMENT_SUMMARY.md)**
 
 One-page reference with:
+
 - What you get (features)
 - Common issues & quick fixes
 - Environment variables reference
@@ -49,9 +57,11 @@ One-page reference with:
 - Next steps
 
 ### 🏗️ **I Want to See the Architecture**
+
 → Visualize this: **[ARCHITECTURE_DEPLOYMENT.md](ARCHITECTURE_DEPLOYMENT.md)**
 
 System diagrams and flows:
+
 - Overall system architecture
 - Request flow (`/live` command)
 - TLS resolution options
@@ -65,6 +75,7 @@ System diagrams and flows:
 If you want to **skip the reading** and just get it running:
 
 ### Step 1: Install Proxy CA (if behind proxy)
+
 ```powershell
 # Get .cer from IT team, then:
 .\docs\dev-scripts\install-proxy-ca.ps1 -CertPath 'C:\path\to\proxy-ca.cer'
@@ -74,18 +85,21 @@ node scripts/inspect-sportmonks-cert.js
 ```
 
 ### Step 2: Configure Environment
+
 ```powershell
 .\scripts\setup-production-env.ps1
 # Then fill in: TELEGRAM_TOKEN, REDIS_URL, SPORTSMONKS_API
 ```
 
 ### Step 3: Start Worker
+
 ```bash
 node src/worker-final.js
 # Keep this terminal open
 ```
 
 ### Step 4: Validate
+
 ```bash
 # In new terminal:
 node scripts/validate-telegram-live.js
@@ -101,15 +115,15 @@ node scripts/validate-telegram-live.js
 
 ## 📋 All Documentation Files
 
-| File | Purpose | Read Time | For Whom |
-|------|---------|-----------|----------|
-| **[QUICKSTART_DEPLOY.md](QUICKSTART_DEPLOY.md)** | Fast 15-30 min deployment | 15 min | Everyone (start here) |
-| **[PRODUCTION_SETUP.md](PRODUCTION_SETUP.md)** | Detailed step-by-step setup | 30-45 min | Those who want full details |
-| **[DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md)** | Enterprise checklist & procedures | Reference | Operations/DevOps teams |
-| **[DEPLOYMENT_SUMMARY.md](DEPLOYMENT_SUMMARY.md)** | One-page quick reference | 5 min | Quick lookup |
-| **[ARCHITECTURE_DEPLOYMENT.md](ARCHITECTURE_DEPLOYMENT.md)** | System diagrams and flows | 10-15 min | Technical leads/architects |
-| **[README.md](README.md)** | Project overview & features | 10 min | New team members |
-| **[CHANGELOG.md](CHANGELOG.md)** | What changed in this version | 5 min | Version tracking |
+| File                                                         | Purpose                           | Read Time | For Whom                    |
+| ------------------------------------------------------------ | --------------------------------- | --------- | --------------------------- |
+| **[QUICKSTART_DEPLOY.md](QUICKSTART_DEPLOY.md)**             | Fast 15-30 min deployment         | 15 min    | Everyone (start here)       |
+| **[PRODUCTION_SETUP.md](PRODUCTION_SETUP.md)**               | Detailed step-by-step setup       | 30-45 min | Those who want full details |
+| **[DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md)**           | Enterprise checklist & procedures | Reference | Operations/DevOps teams     |
+| **[DEPLOYMENT_SUMMARY.md](DEPLOYMENT_SUMMARY.md)**           | One-page quick reference          | 5 min     | Quick lookup                |
+| **[ARCHITECTURE_DEPLOYMENT.md](ARCHITECTURE_DEPLOYMENT.md)** | System diagrams and flows         | 10-15 min | Technical leads/architects  |
+| **[README.md](README.md)**                                   | Project overview & features       | 10 min    | New team members            |
+| **[CHANGELOG.md](CHANGELOG.md)**                             | What changed in this version      | 5 min     | Version tracking            |
 
 ---
 
@@ -176,6 +190,7 @@ Before starting **any** deployment guide:
 **Root cause**: SportMonks API not returning data
 
 **Fix**:
+
 1. Verify `SPORTSMONKS_API` token is correct
 2. Run: `node scripts/test-sportmonks-axios.js`
 3. Check worker logs for errors
@@ -186,6 +201,7 @@ Before starting **any** deployment guide:
 **Root cause**: Worker not running or Redis issue
 
 **Fix**:
+
 1. Check worker is running: `redis-cli GET worker:heartbeat`
 2. Verify `TELEGRAM_TOKEN` is set
 3. Start worker: `node src/worker-final.js`
@@ -196,6 +212,7 @@ Before starting **any** deployment guide:
 **Root cause**: Wrong Redis password
 
 **Fix**:
+
 1. Check `REDIS_URL` format: `redis://default:PASSWORD@HOST:PORT`
 2. Verify password (no typos)
 3. Test: `redis-cli -u "$REDIS_URL" PING`
@@ -207,6 +224,7 @@ Before starting **any** deployment guide:
 **Root cause**: Behind proxy that re-signs certificates
 
 **Fix**:
+
 1. Check: `node scripts/inspect-sportmonks-cert.js`
 2. If shows proxy CA:
    - Get .cer from IT team
@@ -218,17 +236,17 @@ Before starting **any** deployment guide:
 
 ## 📞 Getting Help
 
-| Issue Type | Where to Look |
-|------------|----------------|
-| "How do I get started?" | [QUICKSTART_DEPLOY.md](QUICKSTART_DEPLOY.md) |
-| "How do I set up the database/environment?" | [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md) Section 2 |
-| "How do I deploy to production?" | [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md) |
-| "How do I troubleshoot [X] error?" | [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md) Troubleshooting |
-| "What does the system architecture look like?" | [ARCHITECTURE_DEPLOYMENT.md](ARCHITECTURE_DEPLOYMENT.md) |
-| "What are the environment variables?" | [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md) Section 2 or [DEPLOYMENT_SUMMARY.md](DEPLOYMENT_SUMMARY.md) |
-| "Is TLS/certificate stuff important?" | [ARCHITECTURE_DEPLOYMENT.md](ARCHITECTURE_DEPLOYMENT.md) TLS section |
-| "What's the quick reference?" | [DEPLOYMENT_SUMMARY.md](DEPLOYMENT_SUMMARY.md) |
-| "I'm stuck, what do I do?" | 1) Check [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md) Troubleshooting<br>2) Run validation script: `node scripts/validate-telegram-live.js`<br>3) Check worker logs |
+| Issue Type                                     | Where to Look                                                                                                                                                         |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "How do I get started?"                        | [QUICKSTART_DEPLOY.md](QUICKSTART_DEPLOY.md)                                                                                                                          |
+| "How do I set up the database/environment?"    | [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md) Section 2                                                                                                                  |
+| "How do I deploy to production?"               | [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md)                                                                                                                        |
+| "How do I troubleshoot [X] error?"             | [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md) Troubleshooting                                                                                                        |
+| "What does the system architecture look like?" | [ARCHITECTURE_DEPLOYMENT.md](ARCHITECTURE_DEPLOYMENT.md)                                                                                                              |
+| "What are the environment variables?"          | [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md) Section 2 or [DEPLOYMENT_SUMMARY.md](DEPLOYMENT_SUMMARY.md)                                                                |
+| "Is TLS/certificate stuff important?"          | [ARCHITECTURE_DEPLOYMENT.md](ARCHITECTURE_DEPLOYMENT.md) TLS section                                                                                                  |
+| "What's the quick reference?"                  | [DEPLOYMENT_SUMMARY.md](DEPLOYMENT_SUMMARY.md)                                                                                                                        |
+| "I'm stuck, what do I do?"                     | 1) Check [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md) Troubleshooting<br>2) Run validation script: `node scripts/validate-telegram-live.js`<br>3) Check worker logs |
 
 ---
 
@@ -264,7 +282,7 @@ After deployment, you should see:
 ✅ Match details update when clicked  
 ✅ No Redis authentication errors in logs  
 ✅ No TLS certificate errors  
-✅ Worker heartbeat visible: `redis-cli GET worker:heartbeat` → timestamp  
+✅ Worker heartbeat visible: `redis-cli GET worker:heartbeat` → timestamp
 
 ---
 
@@ -281,15 +299,15 @@ After deployment, you should see:
 
 ## 📝 Document Status
 
-| Document | Status | Last Updated | Applies To |
-|----------|--------|--------------|-----------|
-| QUICKSTART_DEPLOY.md | ✅ Ready | 2025-11-29 | All users |
-| PRODUCTION_SETUP.md | ✅ Ready | 2025-11-29 | Detailed setup |
-| DEPLOYMENT_RUNBOOK.md | ✅ Ready | 2025-11-29 | Enterprise |
-| DEPLOYMENT_SUMMARY.md | ✅ Ready | 2025-11-29 | Quick reference |
-| ARCHITECTURE_DEPLOYMENT.md | ✅ Ready | 2025-11-29 | Technical |
-| README.md | ✅ Updated | 2025-11-29 | Project overview |
-| CHANGELOG.md | ✅ New | 2025-11-29 | Version tracking |
+| Document                   | Status     | Last Updated | Applies To       |
+| -------------------------- | ---------- | ------------ | ---------------- |
+| QUICKSTART_DEPLOY.md       | ✅ Ready   | 2025-11-29   | All users        |
+| PRODUCTION_SETUP.md        | ✅ Ready   | 2025-11-29   | Detailed setup   |
+| DEPLOYMENT_RUNBOOK.md      | ✅ Ready   | 2025-11-29   | Enterprise       |
+| DEPLOYMENT_SUMMARY.md      | ✅ Ready   | 2025-11-29   | Quick reference  |
+| ARCHITECTURE_DEPLOYMENT.md | ✅ Ready   | 2025-11-29   | Technical        |
+| README.md                  | ✅ Updated | 2025-11-29   | Project overview |
+| CHANGELOG.md               | ✅ New     | 2025-11-29   | Version tracking |
 
 ---
 

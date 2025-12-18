@@ -3,6 +3,7 @@
 This document shows quick, copy/paste steps to create an environment group and add secrets for staging on common platforms.
 
 ## Principles
+
 - Never commit secrets to the repository.
 - Use the provider's secrets manager or GitHub Actions secrets.
 - Use `REDIS_URL`, `TELEGRAM_TOKEN`, and payment sandbox keys for staging.
@@ -10,11 +11,13 @@ This document shows quick, copy/paste steps to create an environment group and a
 ---
 
 ## Render (example)
+
 1. In Render dashboard, go to your service -> Environment -> Environment Variables.
 2. Click **Add Environment Variable** and add keys from `.env.example` (use real values).
 3. Deploy the service (Render will use the new env vars on next deploy).
 
 Render CLI (optional):
+
 ```powershell
 # example: set an env var for a service
 render services update-env --service-id srv-xxxxx --env-vars "REDIS_URL=redis://:password@host:6379"
@@ -33,6 +36,7 @@ render services update-env --service-id srv-xxxxx --env-vars "SPORTSDATA_API_KEY
 ---
 
 ## Heroku (example)
+
 ```powershell
 # set config vars
 heroku config:set REDIS_URL="redis://:password@host:6379" --app your-app-name
@@ -42,10 +46,12 @@ heroku config:set TELEGRAM_TOKEN="<token>" --app your-app-name
 ---
 
 ## GitHub Actions (example)
+
 1. Go to repository -> Settings -> Secrets -> Actions -> New repository secret.
 2. Add secrets named exactly as keys used in code (e.g., `REDIS_URL`, `TELEGRAM_TOKEN`, `PAYPAL_CLIENT_ID`, etc.).
 
 Workflow snippet to expose secrets to a deploy step:
+
 ```yaml
 jobs:
   deploy:
@@ -64,6 +70,7 @@ jobs:
 ---
 
 ## Local safe testing
+
 - Use `.env` on your machine (do not commit). The `.env.example` file lists required keys.
 - You can run the e2e simulation locally without a real Redis (the script falls back to an in-memory mock):
 

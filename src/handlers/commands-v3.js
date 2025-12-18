@@ -4,45 +4,52 @@
  * All commands return structured responses with inline keyboards and parse_mode
  */
 
-import { Logger } from '../utils/logger.js';
-const logger = new Logger('Commands');
+import { Logger } from "../utils/logger.js";
+const logger = new Logger("Commands");
 
 // ============================================================================
 // COMMAND ROUTER
 // ============================================================================
 
-export async function handleCommand(cmd, params, userId, chatId, redis, services) {
-  logger.info('handleCommand', { cmd, userId, chatId });
-  
+export async function handleCommand(
+  cmd,
+  params,
+  userId,
+  chatId,
+  redis,
+  services,
+) {
+  logger.info("handleCommand", { cmd, userId, chatId });
+
   try {
     switch (cmd.toLowerCase()) {
-      case 'start':
+      case "start":
         return handleStart(userId, chatId);
-      case 'signup':
+      case "signup":
         return handleSignup(userId, chatId, redis);
-      case 'pay':
+      case "pay":
         return handlePay(userId, chatId, redis);
-      case 'menu':
+      case "menu":
         return handleMenu(userId, chatId, redis);
-      case 'odds':
+      case "odds":
         return handleOdds(userId, chatId, redis, services, params);
-      case 'analyze':
+      case "analyze":
         return handleAnalyze(userId, chatId, redis, services, params);
-      case 'news':
+      case "news":
         return handleNews(userId, chatId, redis, services);
-      case 'vvip':
+      case "vvip":
         return handleVVIP(userId, chatId, redis);
-      case 'help':
+      case "help":
         return handleHelp(chatId);
       default:
         return handleUnknown(chatId);
     }
   } catch (err) {
-    logger.error('handleCommand error', err);
+    logger.error("handleCommand error", err);
     return {
       chat_id: chatId,
-      text: '❌ Command error. Try again or type /help.',
-      parse_mode: 'Markdown'
+      text: "❌ Command error. Try again or type /help.",
+      parse_mode: "Markdown",
     };
   }
 }
@@ -68,14 +75,14 @@ Ready to join? Tap *Sign up* below or type /signup.`;
   return {
     chat_id: chatId,
     text,
-    parse_mode: 'Markdown',
+    parse_mode: "Markdown",
     reply_markup: {
       inline_keyboard: [
-        [{ text: '✅ Sign up', callback_data: 'signup_start' }],
-        [{ text: '📖 Learn more', callback_data: 'help_main' }],
-        [{ text: '❓ Help', callback_data: 'help_main' }]
-      ]
-    }
+        [{ text: "✅ Sign up", callback_data: "signup_start" }],
+        [{ text: "📖 Learn more", callback_data: "help_main" }],
+        [{ text: "❓ Help", callback_data: "help_main" }],
+      ],
+    },
   };
 }
 
@@ -86,29 +93,31 @@ Ready to join? Tap *Sign up* below or type /signup.`;
 async function handleSignup(userId, chatId, redis) {
   // Check if user exists and has paid signup fee
   const user = await redis.hgetall(`user:${userId}`);
-  const hasSignupPaid = user && user.signup_paid === 'true';
+  const hasSignupPaid = user && user.signup_paid === "true";
 
   if (hasSignupPaid) {
     return {
       chat_id: chatId,
-      text: '✅ *You\'re already signed up!*\n\nEnjoy BETRIX features. Type /menu to start.',
-      parse_mode: 'Markdown',
+      text: "✅ *You're already signed up!*\n\nEnjoy BETRIX features. Type /menu to start.",
+      parse_mode: "Markdown",
       reply_markup: {
-        inline_keyboard: [[{ text: '🏠 Main Menu', callback_data: 'menu_main' }]]
-      }
+        inline_keyboard: [
+          [{ text: "🏠 Main Menu", callback_data: "menu_main" }],
+        ],
+      },
     };
   }
 
   // Initiate signup flow: collect name, country, age
   const signupState = await redis.get(`signup_state:${userId}`);
-  
+
   if (!signupState) {
     // Step 1: Ask for name
-    await redis.set(`signup_state:${userId}`, 'awaiting_name', 'EX', 3600);
+    await redis.set(`signup_state:${userId}`, "awaiting_name", "EX", 3600);
     return {
       chat_id: chatId,
-      text: '📝 *Let\'s get you set up!*\n\nWhat\'s your full name?',
-      parse_mode: 'Markdown'
+      text: "📝 *Let's get you set up!*\n\nWhat's your full name?",
+      parse_mode: "Markdown",
     };
   }
 
@@ -119,23 +128,23 @@ async function handleSignup(userId, chatId, redis) {
     return {
       chat_id: chatId,
       text: `✨ *Almost there, ${signupData.name}!*\n\nTo complete signup, pay a one-time fee of *150 KES* or *$1 USD*.\n\nChoose your payment method:`,
-      parse_mode: 'Markdown',
+      parse_mode: "Markdown",
       reply_markup: {
         inline_keyboard: [
-          [{ text: '📱 M-Pesa STK Push', callback_data: 'pay_mpesa_signup' }],
-          [{ text: '🔵 PayPal', callback_data: 'pay_paypal_signup' }],
-          [{ text: '🟡 Binance USDT', callback_data: 'pay_binance_signup' }],
-          [{ text: '💳 Card', callback_data: 'pay_card_signup' }],
-          [{ text: '⬅️ Back', callback_data: 'menu_main' }]
-        ]
-      }
+          [{ text: "📱 M-Pesa STK Push", callback_data: "pay_mpesa_signup" }],
+          [{ text: "🔵 PayPal", callback_data: "pay_paypal_signup" }],
+          [{ text: "🟡 Binance USDT", callback_data: "pay_binance_signup" }],
+          [{ text: "💳 Card", callback_data: "pay_card_signup" }],
+          [{ text: "⬅️ Back", callback_data: "menu_main" }],
+        ],
+      },
     };
   }
 
   return {
     chat_id: chatId,
-    text: '🔄 Signup in progress. Please complete all fields.',
-    parse_mode: 'Markdown'
+    text: "🔄 Signup in progress. Please complete all fields.",
+    parse_mode: "Markdown",
   };
 }
 
@@ -145,29 +154,39 @@ async function handleSignup(userId, chatId, redis) {
 
 async function handlePay(userId, chatId, redis) {
   const user = await redis.hgetall(`user:${userId}`);
-  const hasSignupPaid = user && user.signup_paid === 'true';
-  const vvipStatus = user?.vvip_tier || 'inactive';
+  const hasSignupPaid = user && user.signup_paid === "true";
+  const vvipStatus = user?.vvip_tier || "inactive";
   const vvipExpiry = user?.vvip_expiry || null;
 
-  let statusText = '💳 *Payment Hub*\n\n📋 *Your Status:*\n';
-  statusText += hasSignupPaid ? '✅ Signup Fee: Paid\n' : '⏳ Signup Fee: Not paid\n';
-  statusText += vvipStatus === 'inactive' 
-    ? '⏳ VVIP: Inactive\n' 
-    : `✅ VVIP: ${vvipStatus} (expires ${vvipExpiry})\n`;
+  let statusText = "💳 *Payment Hub*\n\n📋 *Your Status:*\n";
+  statusText += hasSignupPaid
+    ? "✅ Signup Fee: Paid\n"
+    : "⏳ Signup Fee: Not paid\n";
+  statusText +=
+    vvipStatus === "inactive"
+      ? "⏳ VVIP: Inactive\n"
+      : `✅ VVIP: ${vvipStatus} (expires ${vvipExpiry})\n`;
 
   return {
     chat_id: chatId,
-    text: statusText + '\n📌 *What would you like to do?*',
-    parse_mode: 'Markdown',
+    text: statusText + "\n📌 *What would you like to do?*",
+    parse_mode: "Markdown",
     reply_markup: {
       inline_keyboard: [
-        !hasSignupPaid ? [{ text: '💰 Pay Signup Fee (150 KES/$1)', callback_data: 'pay_signup_select' }] : null,
-        [{ text: '👑 Subscribe VVIP', callback_data: 'vvip_main' }],
-        [{ text: '🔄 Manage Subscription', callback_data: 'pay_manage' }],
-        [{ text: '📜 Payment History', callback_data: 'pay_receipts' }],
-        [{ text: '⬅️ Back', callback_data: 'menu_main' }]
-      ].filter(Boolean)
-    }
+        !hasSignupPaid
+          ? [
+              {
+                text: "💰 Pay Signup Fee (150 KES/$1)",
+                callback_data: "pay_signup_select",
+              },
+            ]
+          : null,
+        [{ text: "👑 Subscribe VVIP", callback_data: "vvip_main" }],
+        [{ text: "🔄 Manage Subscription", callback_data: "pay_manage" }],
+        [{ text: "📜 Payment History", callback_data: "pay_receipts" }],
+        [{ text: "⬅️ Back", callback_data: "menu_main" }],
+      ].filter(Boolean),
+    },
   };
 }
 
@@ -177,39 +196,39 @@ async function handlePay(userId, chatId, redis) {
 
 async function handleMenu(userId, chatId, redis) {
   const user = await redis.hgetall(`user:${userId}`);
-  const userName = user?.name || 'there';
-  const vvipStatus = user?.vvip_tier || 'inactive';
+  const userName = user?.name || "there";
+  const vvipStatus = user?.vvip_tier || "inactive";
 
   let greeting = `🏠 *Main Menu*\n\nHey ${userName}! 👋`;
-  if (vvipStatus !== 'inactive') {
+  if (vvipStatus !== "inactive") {
     greeting += ` (👑 ${vvipStatus.toUpperCase()})`;
   }
-  greeting += '\n\n🎯 *Choose what you want to do:*';
+  greeting += "\n\n🎯 *Choose what you want to do:*";
 
   return {
     chat_id: chatId,
     text: greeting,
-    parse_mode: 'Markdown',
+    parse_mode: "Markdown",
     reply_markup: {
       inline_keyboard: [
         [
-          { text: '🎯 Odds', callback_data: 'menu_odds' },
-          { text: '🧠 Analyze', callback_data: 'menu_analyze' }
+          { text: "🎯 Odds", callback_data: "menu_odds" },
+          { text: "🧠 Analyze", callback_data: "menu_analyze" },
         ],
         [
-          { text: '🗞️ News', callback_data: 'menu_news' },
-          { text: '🔗 Betting Sites', callback_data: 'menu_sites' }
+          { text: "🗞️ News", callback_data: "menu_news" },
+          { text: "🔗 Betting Sites", callback_data: "menu_sites" },
         ],
         [
-          { text: '👑 VVIP', callback_data: 'vvip_main' },
-          { text: '💳 Pay', callback_data: 'pay_main' }
+          { text: "👑 VVIP", callback_data: "vvip_main" },
+          { text: "💳 Pay", callback_data: "pay_main" },
         ],
         [
-          { text: '❓ Help', callback_data: 'help_main' },
-          { text: '👤 Profile', callback_data: 'menu_profile' }
-        ]
-      ]
-    }
+          { text: "❓ Help", callback_data: "help_main" },
+          { text: "👤 Profile", callback_data: "menu_profile" },
+        ],
+      ],
+    },
   };
 }
 
@@ -219,55 +238,61 @@ async function handleMenu(userId, chatId, redis) {
 
 async function handleOdds(userId, chatId, redis, services, params) {
   try {
-    const league = params?.[0] || 'all';
+    const league = params?.[0] || "all";
 
     // Use OddsAnalyzer to get quick tips (best plays)
     if (services.oddsAnalyzer) {
-      const tips = await services.oddsAnalyzer.getQuickTips(league !== 'all' ? league : null);
-      
+      const tips = await services.oddsAnalyzer.getQuickTips(
+        league !== "all" ? league : null,
+      );
+
       return {
         chat_id: chatId,
         text: tips,
-        parse_mode: 'Markdown',
+        parse_mode: "Markdown",
         reply_markup: {
           inline_keyboard: [
-            [{ text: '🏆 By League', callback_data: 'odds_filter_league' }],
-            [{ text: '⏰ By Time', callback_data: 'odds_filter_time' }],
-            [{ text: '🔥 Live Now', callback_data: 'odds_live' }],
-            [{ text: '⭐ Analyze Match', callback_data: 'odds_analyze' }],
-            [{ text: '🔄 Refresh', callback_data: 'odds_refresh' }],
-            [{ text: '⬅️ Back', callback_data: 'menu_main' }]
-          ]
-        }
+            [{ text: "🏆 By League", callback_data: "odds_filter_league" }],
+            [{ text: "⏰ By Time", callback_data: "odds_filter_time" }],
+            [{ text: "🔥 Live Now", callback_data: "odds_live" }],
+            [{ text: "⭐ Analyze Match", callback_data: "odds_analyze" }],
+            [{ text: "🔄 Refresh", callback_data: "odds_refresh" }],
+            [{ text: "⬅️ Back", callback_data: "menu_main" }],
+          ],
+        },
       };
     }
 
     // Fallback to basic fixtures display
-    const fixtures = await services.apiFootball?.getFixtures({ league, date: 'today' }) || 
-                     await services.openLiga?.getMatches({ league }) || [];
+    const fixtures =
+      (await services.apiFootball?.getFixtures({ league, date: "today" })) ||
+      (await services.openLiga?.getMatches({ league })) ||
+      [];
 
     if (!fixtures || fixtures.length === 0) {
       return {
         chat_id: chatId,
-        text: '⚽ *Today\'s Fixtures*\n\n📭 No matches found for today.',
-        parse_mode: 'Markdown',
+        text: "⚽ *Today's Fixtures*\n\n📭 No matches found for today.",
+        parse_mode: "Markdown",
         reply_markup: {
           inline_keyboard: [
-            [{ text: '🔄 Refresh', callback_data: 'odds_refresh' }],
-            [{ text: '⬅️ Back', callback_data: 'menu_main' }]
-          ]
-        }
+            [{ text: "🔄 Refresh", callback_data: "odds_refresh" }],
+            [{ text: "⬅️ Back", callback_data: "menu_main" }],
+          ],
+        },
       };
     }
 
     // Format fixtures with odds
     let text = `🎯 *Today's Fixtures & Live Odds*\n\n`;
     fixtures.slice(0, 8).forEach((fixture, idx) => {
-      const homeTeam = fixture.home?.name || fixture.homeTeam?.name || 'Team A';
-      const awayTeam = fixture.away?.name || fixture.awayTeam?.name || 'Team B';
-      const kickoff = new Date(fixture.event_timestamp || fixture.utcDate).toLocaleTimeString('en-KE', {
-        hour: '2-digit',
-        minute: '2-digit'
+      const homeTeam = fixture.home?.name || fixture.homeTeam?.name || "Team A";
+      const awayTeam = fixture.away?.name || fixture.awayTeam?.name || "Team B";
+      const kickoff = new Date(
+        fixture.event_timestamp || fixture.utcDate,
+      ).toLocaleTimeString("en-KE", {
+        hour: "2-digit",
+        minute: "2-digit",
       });
 
       const homeOdds = (1.8 + Math.random() * 0.5).toFixed(2);
@@ -284,24 +309,24 @@ async function handleOdds(userId, chatId, redis, services, params) {
     return {
       chat_id: chatId,
       text,
-      parse_mode: 'Markdown',
+      parse_mode: "Markdown",
       reply_markup: {
         inline_keyboard: [
-          [{ text: '🏆 By League', callback_data: 'odds_filter_league' }],
-          [{ text: '⏰ By Time', callback_data: 'odds_filter_time' }],
-          [{ text: '🔥 Live Now', callback_data: 'odds_live' }],
-          [{ text: '⭐ Top Picks', callback_data: 'odds_toppicks' }],
-          [{ text: '🔄 Refresh', callback_data: 'odds_refresh' }],
-          [{ text: '⬅️ Back', callback_data: 'menu_main' }]
-        ]
-      }
+          [{ text: "🏆 By League", callback_data: "odds_filter_league" }],
+          [{ text: "⏰ By Time", callback_data: "odds_filter_time" }],
+          [{ text: "🔥 Live Now", callback_data: "odds_live" }],
+          [{ text: "⭐ Top Picks", callback_data: "odds_toppicks" }],
+          [{ text: "🔄 Refresh", callback_data: "odds_refresh" }],
+          [{ text: "⬅️ Back", callback_data: "menu_main" }],
+        ],
+      },
     };
   } catch (err) {
-    logger.error('handleOdds error', err);
+    logger.error("handleOdds error", err);
     return {
       chat_id: chatId,
-      text: '❌ Failed to fetch odds. Try again later.',
-      parse_mode: 'Markdown'
+      text: "❌ Failed to fetch odds. Try again later.",
+      parse_mode: "Markdown",
     };
   }
 }
@@ -311,25 +336,33 @@ async function handleOdds(userId, chatId, redis, services, params) {
 // ============================================================================
 
 async function handleAnalyze(userId, chatId, redis, services, params) {
-  const query = params?.join(' ') || '';
+  const query = params?.join(" ") || "";
 
   if (!query) {
     return {
       chat_id: chatId,
       text: `🧠 *AI Match Analysis*\n\nProvide a match to analyze.\n\n*Example:* /analyze Manchester United vs Liverpool\n\nI'll analyze odds, calculate probabilities, and give you a betting recommendation.`,
-      parse_mode: 'Markdown',
+      parse_mode: "Markdown",
       reply_markup: {
-        inline_keyboard: [[{ text: '🎯 View live matches', callback_data: 'menu_odds' }]]
-      }
+        inline_keyboard: [
+          [{ text: "🎯 View live matches", callback_data: "menu_odds" }],
+        ],
+      },
     };
   }
 
   // If no analysis services available, and user requested an analysis, return a clear error message
-  if (!services || (!services.oddsAnalyzer && !services.apiFootball && !services.openLiga && !services.multiSportAnalyzer)) {
+  if (
+    !services ||
+    (!services.oddsAnalyzer &&
+      !services.apiFootball &&
+      !services.openLiga &&
+      !services.multiSportAnalyzer)
+  ) {
     return {
       chat_id: chatId,
-      text: '❌ Failed to analyze: required analysis services are not available. Please try again later.',
-      parse_mode: 'Markdown'
+      text: "❌ Failed to analyze: required analysis services are not available. Please try again later.",
+      parse_mode: "Markdown",
     };
   }
 
@@ -340,7 +373,7 @@ async function handleAnalyze(userId, chatId, redis, services, params) {
       return {
         chat_id: chatId,
         text: `❌ Please provide teams in format: *Team1 vs Team2*\n\nExample: /analyze Manchester United vs Liverpool`,
-        parse_mode: 'Markdown'
+        parse_mode: "Markdown",
       };
     }
 
@@ -348,23 +381,32 @@ async function handleAnalyze(userId, chatId, redis, services, params) {
     const awayTeam = teams[1].trim();
 
     // If no analysis services available, return a clear error message
-    if (!services || (!services.oddsAnalyzer && !services.apiFootball && !services.openLiga && !services.multiSportAnalyzer)) {
+    if (
+      !services ||
+      (!services.oddsAnalyzer &&
+        !services.apiFootball &&
+        !services.openLiga &&
+        !services.multiSportAnalyzer)
+    ) {
       return {
         chat_id: chatId,
-        text: '❌ Failed to analyze: required analysis services are not available. Please try again later.',
-        parse_mode: 'Markdown'
+        text: "❌ Failed to analyze: required analysis services are not available. Please try again later.",
+        parse_mode: "Markdown",
       };
     }
 
     // Use OddsAnalyzer for comprehensive match analysis
     if (services.oddsAnalyzer) {
-      const analysis = await services.oddsAnalyzer.analyzeMatch(homeTeam, awayTeam);
+      const analysis = await services.oddsAnalyzer.analyzeMatch(
+        homeTeam,
+        awayTeam,
+      );
 
-      if (analysis.status === 'error') {
+      if (analysis.status === "error") {
         return {
           chat_id: chatId,
           text: `❌ ${analysis.message}`,
-          parse_mode: 'Markdown'
+          parse_mode: "Markdown",
         };
       }
 
@@ -374,15 +416,30 @@ async function handleAnalyze(userId, chatId, redis, services, params) {
       return {
         chat_id: chatId,
         text: formatted,
-        parse_mode: 'Markdown',
+        parse_mode: "Markdown",
         reply_markup: {
           inline_keyboard: [
-            [{ text: '💰 Place bet', callback_data: `bet_${homeTeam}_${awayTeam}` }],
-            [{ text: '📊 Compare odds', callback_data: `compare_${homeTeam}_${awayTeam}` }],
-            [{ text: '🔄 Refresh', callback_data: `analyze_refresh_${homeTeam}_${awayTeam}` }],
-            [{ text: '⬅️ Back', callback_data: 'menu_main' }]
-          ]
-        }
+            [
+              {
+                text: "💰 Place bet",
+                callback_data: `bet_${homeTeam}_${awayTeam}`,
+              },
+            ],
+            [
+              {
+                text: "📊 Compare odds",
+                callback_data: `compare_${homeTeam}_${awayTeam}`,
+              },
+            ],
+            [
+              {
+                text: "🔄 Refresh",
+                callback_data: `analyze_refresh_${homeTeam}_${awayTeam}`,
+              },
+            ],
+            [{ text: "⬅️ Back", callback_data: "menu_main" }],
+          ],
+        },
       };
     }
 
@@ -406,22 +463,37 @@ async function handleAnalyze(userId, chatId, redis, services, params) {
     return {
       chat_id: chatId,
       text,
-      parse_mode: 'Markdown',
+      parse_mode: "Markdown",
       reply_markup: {
         inline_keyboard: [
-          [{ text: '💰 Place bet', callback_data: `bet_${homeTeam}_${awayTeam}` }],
-          [{ text: '📊 Show odds', callback_data: `odds_${homeTeam}_${awayTeam}` }],
-          [{ text: '🤔 Why this pick?', callback_data: `analyze_why_${homeTeam}_${awayTeam}` }],
-          [{ text: '⬅️ Back', callback_data: 'menu_main' }]
-        ]
-      }
+          [
+            {
+              text: "💰 Place bet",
+              callback_data: `bet_${homeTeam}_${awayTeam}`,
+            },
+          ],
+          [
+            {
+              text: "📊 Show odds",
+              callback_data: `odds_${homeTeam}_${awayTeam}`,
+            },
+          ],
+          [
+            {
+              text: "🤔 Why this pick?",
+              callback_data: `analyze_why_${homeTeam}_${awayTeam}`,
+            },
+          ],
+          [{ text: "⬅️ Back", callback_data: "menu_main" }],
+        ],
+      },
     };
   } catch (err) {
-    logger.error('handleAnalyze error', err);
+    logger.error("handleAnalyze error", err);
     return {
       chat_id: chatId,
-      text: '❌ Analysis failed. Try again later.',
-      parse_mode: 'Markdown'
+      text: "❌ Analysis failed. Try again later.",
+      parse_mode: "Markdown",
     };
   }
 }
@@ -433,21 +505,22 @@ async function handleAnalyze(userId, chatId, redis, services, params) {
 async function handleNews(userId, chatId, redis, services) {
   try {
     // Fetch news from RSS aggregator
-    const news = await services.rssAggregator?.getLatestNews({ limit: 5 }) || [];
+    const news =
+      (await services.rssAggregator?.getLatestNews({ limit: 5 })) || [];
 
     if (!news || news.length === 0) {
       return {
         chat_id: chatId,
-        text: '🗞️ *Sports News*\n\n📭 No news available at this moment.',
-        parse_mode: 'Markdown'
+        text: "🗞️ *Sports News*\n\n📭 No news available at this moment.",
+        parse_mode: "Markdown",
       };
     }
 
     let text = `🗞️ *Sports News & Updates*\n\n`;
     news.slice(0, 5).forEach((item, idx) => {
-      const headline = item.title || 'Update';
-      const summary = item.description?.substring(0, 80) || 'Breaking news';
-      const source = item.source || 'Sports News';
+      const headline = item.title || "Update";
+      const summary = item.description?.substring(0, 80) || "Breaking news";
+      const source = item.source || "Sports News";
       text += `\n*${idx + 1}. ${headline}*\n`;
       text += `${summary}...\n`;
       text += `_${source}_\n`;
@@ -456,24 +529,24 @@ async function handleNews(userId, chatId, redis, services) {
     return {
       chat_id: chatId,
       text,
-      parse_mode: 'Markdown',
+      parse_mode: "Markdown",
       reply_markup: {
         inline_keyboard: [
-          [{ text: '🔥 Breaking', callback_data: 'news_breaking' }],
-          [{ text: '🏥 Injuries', callback_data: 'news_injuries' }],
-          [{ text: '👥 Lineups', callback_data: 'news_lineups' }],
-          [{ text: '🔄 Transfers', callback_data: 'news_transfers' }],
-          [{ text: '📈 Form Trends', callback_data: 'news_trends' }],
-          [{ text: '⬅️ Back', callback_data: 'menu_main' }]
-        ]
-      }
+          [{ text: "🔥 Breaking", callback_data: "news_breaking" }],
+          [{ text: "🏥 Injuries", callback_data: "news_injuries" }],
+          [{ text: "👥 Lineups", callback_data: "news_lineups" }],
+          [{ text: "🔄 Transfers", callback_data: "news_transfers" }],
+          [{ text: "📈 Form Trends", callback_data: "news_trends" }],
+          [{ text: "⬅️ Back", callback_data: "menu_main" }],
+        ],
+      },
     };
   } catch (err) {
-    logger.error('handleNews error', err);
+    logger.error("handleNews error", err);
     return {
       chat_id: chatId,
-      text: '❌ Failed to fetch news. Try again later.',
-      parse_mode: 'Markdown'
+      text: "❌ Failed to fetch news. Try again later.",
+      parse_mode: "Markdown",
     };
   }
 }
@@ -484,7 +557,7 @@ async function handleNews(userId, chatId, redis, services) {
 
 async function handleVVIP(userId, chatId, redis) {
   const user = await redis.hgetall(`user:${userId}`);
-  const vvipStatus = user?.vvip_tier || 'inactive';
+  const vvipStatus = user?.vvip_tier || "inactive";
 
   let text = `👑 *BETRIX VVIP*\n\n`;
   text += `_Unlock premium insights, early picks, and exclusive feeds._\n\n`;
@@ -496,32 +569,45 @@ async function handleVVIP(userId, chatId, redis) {
   text += `✓ Faster responses & concierge support\n`;
   text += `✓ Deep dives & post-match autopsies\n\n`;
 
-  if (vvipStatus === 'inactive') {
+  if (vvipStatus === "inactive") {
     text += `*💰 Pricing:*\n`;
     text += `Daily: 200 KES / $2\n`;
     text += `Weekly: 1,000 KES / $8\n`;
     text += `Monthly: 3,000 KES / $20\n`;
   } else {
     text += `*✅ Your Status: ${vvipStatus.toUpperCase()}*\n`;
-    text += `Expires: ${user?.vvip_expiry || 'TBD'}\n`;
+    text += `Expires: ${user?.vvip_expiry || "TBD"}\n`;
   }
 
   return {
     chat_id: chatId,
     text,
-    parse_mode: 'Markdown',
+    parse_mode: "Markdown",
     reply_markup: {
-      inline_keyboard: vvipStatus === 'inactive' ? [
-        [{ text: '📅 Daily (200 KES)', callback_data: 'pay_vvip_daily' }],
-        [{ text: '📆 Weekly (1,000 KES)', callback_data: 'pay_vvip_weekly' }],
-        [{ text: '📅 Monthly (3,000 KES)', callback_data: 'pay_vvip_monthly' }],
-        [{ text: '⬅️ Back', callback_data: 'menu_main' }]
-      ] : [
-        [{ text: '🔄 Renew', callback_data: 'pay_vvip_renew' }],
-        [{ text: '❌ Cancel', callback_data: 'pay_vvip_cancel' }],
-        [{ text: '⬅️ Back', callback_data: 'menu_main' }]
-      ]
-    }
+      inline_keyboard:
+        vvipStatus === "inactive"
+          ? [
+              [{ text: "📅 Daily (200 KES)", callback_data: "pay_vvip_daily" }],
+              [
+                {
+                  text: "📆 Weekly (1,000 KES)",
+                  callback_data: "pay_vvip_weekly",
+                },
+              ],
+              [
+                {
+                  text: "📅 Monthly (3,000 KES)",
+                  callback_data: "pay_vvip_monthly",
+                },
+              ],
+              [{ text: "⬅️ Back", callback_data: "menu_main" }],
+            ]
+          : [
+              [{ text: "🔄 Renew", callback_data: "pay_vvip_renew" }],
+              [{ text: "❌ Cancel", callback_data: "pay_vvip_cancel" }],
+              [{ text: "⬅️ Back", callback_data: "menu_main" }],
+            ],
+    },
   };
 }
 
@@ -563,14 +649,14 @@ A: Email support@betrix.app or reply here.`;
   return {
     chat_id: chatId,
     text,
-    parse_mode: 'Markdown',
+    parse_mode: "Markdown",
     reply_markup: {
       inline_keyboard: [
-        [{ text: '📧 Contact Support', url: 'mailto:support@betrix.app' }],
-        [{ text: '🔗 Privacy Policy', url: 'https://betrix.app/privacy' }],
-        [{ text: '⬅️ Back', callback_data: 'menu_main' }]
-      ]
-    }
+        [{ text: "📧 Contact Support", url: "mailto:support@betrix.app" }],
+        [{ text: "🔗 Privacy Policy", url: "https://betrix.app/privacy" }],
+        [{ text: "⬅️ Back", callback_data: "menu_main" }],
+      ],
+    },
   };
 }
 
@@ -581,12 +667,22 @@ A: Email support@betrix.app or reply here.`;
 function handleUnknown(chatId) {
   return {
     chat_id: chatId,
-    text: '❌ Unknown command.\n\nTry /menu, /help, or /start.',
-    parse_mode: 'Markdown',
+    text: "❌ Unknown command.\n\nTry /menu, /help, or /start.",
+    parse_mode: "Markdown",
     reply_markup: {
-      inline_keyboard: [[{ text: '🏠 Main Menu', callback_data: 'menu_main' }]]
-    }
+      inline_keyboard: [[{ text: "🏠 Main Menu", callback_data: "menu_main" }]],
+    },
   };
 }
 
-export { handleStart, handleSignup, handlePay, handleMenu, handleOdds, handleAnalyze, handleNews, handleVVIP, handleHelp };
+export {
+  handleStart,
+  handleSignup,
+  handlePay,
+  handleMenu,
+  handleOdds,
+  handleAnalyze,
+  handleNews,
+  handleVVIP,
+  handleHelp,
+};

@@ -402,5 +402,5 @@ Typical Response Times:
 ---
 
 **BETRIX Data Exposure System - Visual Architecture**  
-*All diagrams illustrate production architecture and data flow*  
-*Last Updated: 2024-12-19*
+_All diagrams illustrate production architecture and data flow_  
+_Last Updated: 2024-12-19_

@@ -3,7 +3,7 @@ name: Mapping Miss Monitor
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: '0 * * * *' # hourly
+    - cron: "0 * * * *" # hourly
 
 jobs:
   monitor:
@@ -13,7 +13,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: "18"
       - name: Install deps
         run: npm ci
       - name: Run mapping-miss monitor

@@ -5,7 +5,7 @@
  * Full integration with tier-aware handlers and UI
  */
 
-import { getRedisAdapter } from './lib/redis-factory.js';
+import { getRedisAdapter } from "./lib/redis-factory.js";
 import { CONFIG, validateConfig } from "./config.js";
 import { Logger } from "./utils/logger.js";
 import { TelegramService } from "./services/telegram.js";
@@ -38,17 +38,36 @@ try {
 const redis = getRedisAdapter();
 
 // Initialize all services
-const telegram = new TelegramService(CONFIG.TELEGRAM_TOKEN, CONFIG.TELEGRAM.SAFE_CHUNK);
+const telegram = new TelegramService(
+  CONFIG.TELEGRAM_TOKEN,
+  CONFIG.TELEGRAM.SAFE_CHUNK,
+);
 const userService = new UserService(redis);
 const apiFootball = new APIFootballService(redis);
 const gemini = new GeminiService(CONFIG.GEMINI.API_KEY);
 const analytics = new AnalyticsService(redis);
 const gatekeeper = new SubscriptionGatekeeper(userService, telegram);
-const basicHandlers = new BotHandlers(telegram, userService, apiFootball, gemini, redis);
-const advancedHandler = new AdvancedHandler(basicHandlers, redis, telegram, userService, gemini);
+const basicHandlers = new BotHandlers(
+  telegram,
+  userService,
+  apiFootball,
+  gemini,
+  redis,
+);
+const advancedHandler = new AdvancedHandler(
+  basicHandlers,
+  redis,
+  telegram,
+  userService,
+  gemini,
+);
 const premiumService = new PremiumService(redis, gemini);
 const adminDashboard = new AdminDashboard(redis, telegram, analytics);
-const tierHandlers = new TierAwareHandlers(basicHandlers, gatekeeper, userService);
+const tierHandlers = new TierAwareHandlers(
+  basicHandlers,
+  gatekeeper,
+  userService,
+);
 
 logger.info("🚀 BETRIX Complete Worker - All Services Initialized");
 
@@ -59,7 +78,7 @@ async function main() {
     try {
       const update = await redis.lpop("telegram:updates");
       if (!update) {
-        await new Promise(r => setTimeout(r, 100));
+        await new Promise((r) => setTimeout(r, 100));
         continue;
       }
 
@@ -67,7 +86,7 @@ async function main() {
       await handleUpdate(data);
     } catch (err) {
       logger.error("Worker error", err);
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 1000));
     }
   }
 }
@@ -81,7 +100,10 @@ async function handleUpdate(update) {
 
       // Check suspension
       if (await adminDashboard.isUserSuspended(userId)) {
-        return await telegram.sendMessage(chatId, "⛔ Your account has been suspended.");
+        return await telegram.sendMessage(
+          chatId,
+          "⛔ Your account has been suspended.",
+        );
       }
 
       // Track engagement
@@ -129,7 +151,7 @@ function parseCommand(text) {
 
 async function handleCommand(chatId, userId, cmd, args, fullText) {
   try {
-    const user = await userService.getUser(userId) || {};
+    const user = (await userService.getUser(userId)) || {};
     const tier = await gatekeeper.getUserTier(userId);
     const isAdmin = userId === parseInt(CONFIG.TELEGRAM.ADMIN_ID);
 
@@ -138,11 +160,14 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
       "/start": () => basicHandlers.start(chatId, userId),
       "/menu": async () => {
         const kb = UIBuilder.buildMainMenu(tier);
-        return telegram.sendMessage(chatId, `🧭 <b>BETRIX Menu</b>`, { reply_markup: kb });
+        return telegram.sendMessage(chatId, `🧭 <b>BETRIX Menu</b>`, {
+          reply_markup: kb,
+        });
       },
       "/help": () => basicHandlers.help(chatId),
       "/live": () => tierHandlers.liveWithTier(chatId, userId),
-      "/standings": () => tierHandlers.standingsWithTier(chatId, userId, args[0]),
+      "/standings": () =>
+        tierHandlers.standingsWithTier(chatId, userId, args[0]),
       "/odds": () => tierHandlers.oddsWithTier(chatId, userId, args[0]),
       "/tips": () => basicHandlers.tips(chatId),
       "/pricing": async () => {
@@ -159,12 +184,15 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
 
     // Tier-restricted commands
     const tierCommands = {
-      "/analyze": () => tierHandlers.analysisWithTier(chatId, userId, args.join(" ")),
-      "/predict": () => tierHandlers.predictionsWithTier(chatId, userId, args.join(" ")),
+      "/analyze": () =>
+        tierHandlers.analysisWithTier(chatId, userId, args.join(" ")),
+      "/predict": () =>
+        tierHandlers.predictionsWithTier(chatId, userId, args.join(" ")),
       "/stats": () => advancedHandler.handleStats(chatId, userId),
       "/insights": () => advancedHandler.handleInsights(chatId, userId),
       "/compete": () => advancedHandler.handleCompete(chatId, userId),
-      "/dossier": () => tierHandlers.dossierWithTier(chatId, userId, args.join(" ")),
+      "/dossier": () =>
+        tierHandlers.dossierWithTier(chatId, userId, args.join(" ")),
       "/coach": () => tierHandlers.coachWithTier(chatId, userId),
       "/trends": () => tierHandlers.trendsWithTier(chatId, userId, args[0]),
     };
@@ -172,13 +200,17 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
     // Admin commands
     const adminCommands = {
       "/admin_health": () => adminDashboard.sendHealthReport(chatId),
-      "/admin_broadcast": () => adminDashboard.broadcastMessage(args.join(" ")).then(sent =>
-        telegram.sendMessage(chatId, `📢 Broadcast sent to ${sent} users`)
-      ),
+      "/admin_broadcast": () =>
+        adminDashboard
+          .broadcastMessage(args.join(" "))
+          .then((sent) =>
+            telegram.sendMessage(chatId, `📢 Broadcast sent to ${sent} users`),
+          ),
       "/admin_users": async () => {
         const stats = await adminDashboard.getUserStats();
-        return telegram.sendMessage(chatId, 
-          `👥 Total: ${stats.total}, Active: ${stats.active}, Paid: ${stats.paid}`
+        return telegram.sendMessage(
+          chatId,
+          `👥 Total: ${stats.total}, Active: ${stats.active}, Paid: ${stats.paid}`,
         );
       },
     };
@@ -199,7 +231,10 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
     await analytics.trackCommand(cmd, userId, duration);
   } catch (err) {
     logger.error(`Command ${cmd} failed`, err);
-    await telegram.sendMessage(chatId, "❌ Error processing command. Try /menu");
+    await telegram.sendMessage(
+      chatId,
+      "❌ Error processing command. Try /menu",
+    );
   }
 }
 
@@ -214,7 +249,8 @@ async function handleCallback(chatId, userId, data) {
       "menu:odds": () => tierHandlers.oddsWithTier(chatId, userId, ""),
       "menu:tips": () => basicHandlers.tips(chatId),
       "menu:analysis": () => tierHandlers.analysisWithTier(chatId, userId, ""),
-      "menu:predict": () => tierHandlers.predictionsWithTier(chatId, userId, ""),
+      "menu:predict": () =>
+        tierHandlers.predictionsWithTier(chatId, userId, ""),
       "menu:premium": () => tierHandlers.showFeatures(chatId, userId),
       "menu:account": () => tierHandlers.showTierMenu(chatId, userId),
       "menu:settings": () => tierHandlers.showFeatures(chatId, userId),
@@ -237,7 +273,10 @@ async function handleSignupFlow(chatId, userId, text, state) {
     if (state === "name") {
       await userService.saveUser(userId, { name: text });
       await redis.set(`signup:${userId}:state`, "country", "EX", 300);
-      return await telegram.sendMessage(chatId, `Nice to meet you, ${text}! 👋\n\nWhich country are you from?`);
+      return await telegram.sendMessage(
+        chatId,
+        `Nice to meet you, ${text}! 👋\n\nWhich country are you from?`,
+      );
     }
 
     if (state === "country") {
@@ -247,7 +286,8 @@ async function handleSignupFlow(chatId, userId, text, state) {
       await redis.del(`signup:${userId}:state`);
       await analytics.trackEngagement(userId, "signup");
 
-      const welcome = `✅ Welcome to BETRIX, ${user.name}!\n\n` +
+      const welcome =
+        `✅ Welcome to BETRIX, ${user.name}!\n\n` +
         `You're all set. Here's what's next:\n\n` +
         `💬 /menu - Explore all features\n` +
         `💵 /pricing - View our plans\n` +
@@ -277,7 +317,7 @@ process.on("uncaughtException", (err) => {
   process.exit(1);
 });
 
-main().catch(err => {
+main().catch((err) => {
   logger.error("Fatal", err);
   process.exit(1);
 });
@@ -288,15 +328,18 @@ async function handleTillPayment(chatId, userId, tier, amount) {
     const till = new SafaricomTillService(redis, CONFIG);
     const instructions = till.getTillPaymentInstructions(amount, tier);
     const ref = await till.recordTillPayment(userId, amount, tier);
-    
+
     await telegram.sendMessage(chatId, instructions);
-    
+
     setTimeout(() => {
       const confirmation = till.formatPaymentConfirmation(amount, tier, ref);
       telegram.sendMessage(chatId, confirmation).catch(() => {});
     }, 1000);
   } catch (err) {
     logger.error("Till payment error", err);
-    await telegram.sendMessage(chatId, "Till payment setup failed. Try another method.");
+    await telegram.sendMessage(
+      chatId,
+      "Till payment setup failed. Try another method.",
+    );
   }
 }

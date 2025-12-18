@@ -14,12 +14,14 @@ The BETRIX Data Exposure System provides comprehensive access to all cached spor
 ### 1. Core Services
 
 #### RawDataCache Service (`src/services/raw-data-cache.js`)
+
 - Preserves all raw API responses with full structure
 - Supports TTL-based automatic expiration (2min-24hrs)
 - Dual storage: Redis (primary) + Memory fallback
 - ~400 lines of production-grade code
 
 #### DataExposureHandler (`src/handlers/data-exposure-handler.js`)
+
 - Registers 10 RESTful API endpoints
 - Handles request validation and response formatting
 - Includes error handling and logging
@@ -28,16 +30,19 @@ The BETRIX Data Exposure System provides comprehensive access to all cached spor
 ### 2. Integration Points
 
 #### SportsAggregator Integration
+
 - Modified `getAllLiveMatches()` to store raw data
 - Modified `getUpcomingMatches()` to store raw fixtures
 - Automatic caching without changing method signatures
 
 #### Express Server Integration
+
 - Added `registerDataExposureAPI()` function in `app.js`
 - Called from `worker-final.js` after SportsAggregator initialization
 - Seamlessly integrated into existing Express app
 
 #### Worker Integration
+
 - Import added: `import { registerDataExposureAPI } from "./app.js";`
 - Registration call after APIBootstrap and prefetch scheduler
 - Proper logging and error handling
@@ -90,29 +95,34 @@ betrix-ui/
 ## Key Features
 
 ### ✅ Multi-Source Data Access
+
 - Primary: SportMonks (comprehensive, real-time)
 - Secondary: Football-Data (fallback, structured)
 - Automatic fallback if primary unavailable
 
 ### ✅ Automatic Data Management
+
 - Prefetch scheduler updates cache every 60 seconds
 - Automatic TTL-based expiration
 - No manual intervention required
 - Background refresh with pub/sub notifications
 
 ### ✅ Comprehensive Debugging
+
 - Cache status endpoint shows exact size and entry count
 - Manual cleanup for testing and troubleshooting
 - Export all data for offline analysis
 - Complete schema documentation
 
 ### ✅ High Performance
+
 - In-memory cache for sub-millisecond access
 - 30-100x faster subsequent requests
 - Automatic deduplication
 - Efficient Redis serialization
 
 ### ✅ Production Ready
+
 - Graceful error handling
 - Comprehensive logging
 - Rate limiting compatible
@@ -121,6 +131,7 @@ betrix-ui/
 ## Usage Examples
 
 ### Get Live Matches
+
 ```bash
 curl https://api.betrix.example.com/api/data/live?source=sportsmonks
 
@@ -128,6 +139,7 @@ curl https://api.betrix.example.com/api/data/live?source=sportsmonks
 ```
 
 ### Get Premier League Fixtures
+
 ```bash
 curl https://api.betrix.example.com/api/data/fixtures?source=sportsmonks&league=39
 
@@ -135,6 +147,7 @@ curl https://api.betrix.example.com/api/data/fixtures?source=sportsmonks&league=
 ```
 
 ### Export All Data
+
 ```bash
 curl https://api.betrix.example.com/api/data/export > sports-data.json
 
@@ -142,6 +155,7 @@ curl https://api.betrix.example.com/api/data/export > sports-data.json
 ```
 
 ### Check Cache Status
+
 ```bash
 curl https://api.betrix.example.com/api/data/cache-info
 
@@ -168,13 +182,13 @@ JSON API Responses + Telegram Bot Messages
 
 ## Performance Metrics
 
-| Operation | Time | Notes |
-|-----------|------|-------|
-| API Response (cache hit) | <10ms | Sub-millisecond memory access |
-| API Response (cache miss) | 300-800ms | Includes API call + formatting |
-| Prefetch Cycle | <2s | 120+ fixtures cached every 60s |
-| Memory Usage | <10MB | All cached data for major leagues |
-| Cache Hit Rate | >95% | After first request |
+| Operation                 | Time      | Notes                             |
+| ------------------------- | --------- | --------------------------------- |
+| API Response (cache hit)  | <10ms     | Sub-millisecond memory access     |
+| API Response (cache miss) | 300-800ms | Includes API call + formatting    |
+| Prefetch Cycle            | <2s       | 120+ fixtures cached every 60s    |
+| Memory Usage              | <10MB     | All cached data for major leagues |
+| Cache Hit Rate            | >95%      | After first request               |
 
 ## Integration Checklist
 
@@ -194,6 +208,7 @@ JSON API Responses + Telegram Bot Messages
 ## What You Can Do Now
 
 ### 1. Access Raw API Data via HTTP
+
 ```bash
 # Get live matches with all original fields
 curl /api/data/live?source=sportsmonks
@@ -206,6 +221,7 @@ curl /api/data/standings/39?source=sportsmonks
 ```
 
 ### 2. Monitor Data Availability
+
 ```bash
 # Check what data is cached
 curl /api/data/cache-info
@@ -218,6 +234,7 @@ curl -X POST /api/data/cache-cleanup
 ```
 
 ### 3. Export for Analysis
+
 ```bash
 # Download complete snapshot of cached data
 curl /api/data/export > data.json
@@ -227,6 +244,7 @@ jq '.data.sportsmonks.live | length' data.json  # Count live matches
 ```
 
 ### 4. Debug and Troubleshoot
+
 ```bash
 # Check API schema and available leagues
 curl /api/data/schema
@@ -241,24 +259,28 @@ curl /api/data/cache-info | jq '.estimatedSizeKb'
 ## Technical Highlights
 
 ### Error Handling
+
 - Graceful fallbacks for missing data
 - Detailed error messages for debugging
 - No uncaught exceptions
 - Proper HTTP status codes
 
 ### Logging
+
 - Color-coded console output
 - Structured Redis logging
 - Module-based log organization
 - Configurable verbosity
 
 ### Type Safety
+
 - Input validation for all parameters
 - Output format validation
 - No undefined/null in responses
 - Consistent response structure
 
 ### Scalability
+
 - Memory-efficient caching
 - Redis support for distributed systems
 - No database queries required
@@ -302,22 +324,26 @@ curl /api/data/cache-info | jq '.estimatedSizeKb'
 ## Support & Troubleshooting
 
 ### API Not Responding
+
 1. Check if worker is running: `curl /health`
 2. Verify endpoint registered: `curl /api/data/schema`
 3. Check logs for errors: `tail -f logs/worker.log`
 
 ### No Data in Cache
+
 1. Wait 60 seconds for prefetch cycle
 2. Check SportsMonks API connectivity
 3. Verify Football-Data API key configured
 4. Check cache info: `curl /api/data/cache-info`
 
 ### Memory Usage Growing
+
 1. Run manual cleanup: `curl -X POST /api/data/cache-cleanup`
 2. Check TTL settings in raw-data-cache.js
 3. Monitor entry count: `curl /api/data/cache-info | jq '.totalEntries'`
 
 ### Slow Response Times
+
 1. Check cache hit rate with repeated requests
 2. Monitor backend API response times
 3. Verify Redis connectivity if configured
@@ -336,9 +362,11 @@ e650ff9 - docs: Add comprehensive data flow and access guide
 ## Deployment Notes
 
 ### Required Changes
+
 - None - feature is non-breaking and uses existing services
 
 ### Optional Configuration
+
 ```bash
 # Adjust prefetch interval (default 60 seconds)
 export PREFETCH_INTERVAL_SECONDS=120
@@ -350,6 +378,7 @@ export REDIS_URL=redis://localhost:6379
 ```
 
 ### Testing After Deployment
+
 1. Check `/api/data/schema` returns full documentation
 2. Verify `/api/data/summary` shows non-zero counts after 60s
 3. Test `/api/data/live` returns match data
@@ -365,5 +394,5 @@ The implementation is clean, well-documented, and fully backward compatible with
 ---
 
 **BETRIX Data Exposure System**  
-*Implementation Complete - Ready for Production*  
-*Last Updated: 2024-12-19*
+_Implementation Complete - Ready for Production_  
+_Last Updated: 2024-12-19_

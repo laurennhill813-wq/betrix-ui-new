@@ -1,5 +1,5 @@
-import { getRedis } from '../lib/redis-factory.js';
-import createRedisAdapter from '../utils/redis-adapter.js';
+import { getRedis } from "../lib/redis-factory.js";
+import createRedisAdapter from "../utils/redis-adapter.js";
 
 const redis = createRedisAdapter(getRedis());
 
@@ -11,12 +11,12 @@ export class Database {
 
   static async saveUser(telegramId, userData) {
     await redis.set(`user:${telegramId}`, JSON.stringify(userData));
-    
+
     if (userData.referralCode) {
       await redis.set(`referralCode:${userData.referralCode}`, telegramId);
     }
-    
-    await redis.zadd('users:all', Date.now(), telegramId);
+
+    await redis.zadd("users:all", Date.now(), telegramId);
   }
 
   static async updateUser(telegramId, updates) {
@@ -40,8 +40,8 @@ export class Database {
 
   static async saveSubscription(telegramId, subData) {
     await redis.set(`subscription:${telegramId}`, JSON.stringify(subData));
-    if (subData.status === 'active') {
-      await redis.zadd('subscriptions:active', Date.now(), telegramId);
+    if (subData.status === "active") {
+      await redis.zadd("subscriptions:active", Date.now(), telegramId);
     }
   }
 
@@ -55,57 +55,67 @@ export class Database {
     referrals.push({
       refereeId,
       timestamp: Date.now(),
-      rewardStatus: 'active'
+      rewardStatus: "active",
     });
     await redis.set(`referrals:${referrerId}`, JSON.stringify(referrals));
-    
-    await redis.zincrby('leaderboard:referrals', 1, referrerId);
-    await redis.zincrby('leaderboard:points', 50, referrerId);
-    
+
+    await redis.zincrby("leaderboard:referrals", 1, referrerId);
+    await redis.zincrby("leaderboard:points", 50, referrerId);
+
     const referrer = await this.getUser(referrerId);
     const newPoints = (referrer.rewardPoints || 0) + 50;
     const updated = { ...referrer, rewardPoints: newPoints };
     await redis.set(`user:${referrerId}`, JSON.stringify(updated));
-    
+
     if (updated.referralCode) {
       await redis.set(`referralCode:${updated.referralCode}`, referrerId);
     }
-    await redis.zadd('users:all', Date.now(), referrerId);
-    
+    await redis.zadd("users:all", Date.now(), referrerId);
+
     const referralCount = referrals.length;
     if (referralCount === 5) {
       const subscription = {
-        tier: 'Pro',
-        sport: 'bonus',
-        status: 'active',
+        tier: "Pro",
+        sport: "bonus",
+        status: "active",
         startDate: new Date().toISOString(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        source: 'referral_reward'
+        source: "referral_reward",
       };
       await this.saveSubscription(referrerId, subscription);
     }
   }
 
-  static async getLeaderboard(type = 'referrals') {
-    const leaderboardKey = type === 'referrals' ? 'leaderboard:referrals' : 'leaderboard:points';
-    const topUserIds = await redis.zrevrange(leaderboardKey, 0, 9, 'WITHSCORES');
-    
+  static async getLeaderboard(type = "referrals") {
+    const leaderboardKey =
+      type === "referrals" ? "leaderboard:referrals" : "leaderboard:points";
+    const topUserIds = await redis.zrevrange(
+      leaderboardKey,
+      0,
+      9,
+      "WITHSCORES",
+    );
+
     const users = [];
     for (let i = 0; i < topUserIds.length; i += 2) {
       const userId = topUserIds[i];
       const score = topUserIds[i + 1];
       const user = await this.getUser(userId);
-      
+
       if (user) {
         users.push({
           name: user.name,
           country: user.country,
-          referrals: type === 'referrals' ? parseInt(score) : await this.getReferrals(userId).then(r => r.length),
-          rewardPoints: type === 'points' ? parseInt(score) : user.rewardPoints || 0
+          referrals:
+            type === "referrals"
+              ? parseInt(score)
+              : await this.getReferrals(userId).then((r) => r.length),
+          rewardPoints:
+            type === "points" ? parseInt(score) : user.rewardPoints || 0,
         });
       }
     }
-    
+
     return users;
   }
 
@@ -113,7 +123,7 @@ export class Database {
     const payments = await this.getPayments(telegramId);
     payments.push({
       ...paymentData,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
     await redis.set(`payments:${telegramId}`, JSON.stringify(payments));
   }

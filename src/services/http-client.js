@@ -12,7 +12,13 @@ class HttpClient {
   /**
    * Fetch with retries and timeout
    */
-  static async fetch(url, options = {}, label = "request", retries = 2, timeoutMs = 15000) {
+  static async fetch(
+    url,
+    options = {},
+    label = "request",
+    retries = 2,
+    timeoutMs = 15000,
+  ) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -26,7 +32,10 @@ class HttpClient {
 
       const text = await response.text();
       if (!response.ok) {
-        throw new APIError(`HTTP ${response.status} ${response.statusText} ${text}`, response.status);
+        throw new APIError(
+          `HTTP ${response.status} ${response.statusText} ${text}`,
+          response.status,
+        );
       }
 
       // Handle empty responses
@@ -45,16 +54,23 @@ class HttpClient {
 
       // If this is an APIError with a non-retryable 4xx status (except 429), propagate immediately
       const status = err && (err.statusCode || err.status || 0);
-      if (status && Number(status) >= 400 && Number(status) < 500 && Number(status) !== 429) {
+      if (
+        status &&
+        Number(status) >= 400 &&
+        Number(status) < 500 &&
+        Number(status) !== 429
+      ) {
         logger.warn(`${label} returned ${status}; not retrying`);
         throw err;
       }
 
       // If we have retries left, attempt retry with a modest backoff. Treat 429 specially with longer backoff.
       if (retries > 0) {
-        const waitMs = (status === 429) ? 2000 : 600;
-        logger.warn(`Retry ${label}: ${err.message} (${retries} retries left), waiting ${waitMs}ms`);
-        await new Promise(r => setTimeout(r, waitMs));
+        const waitMs = status === 429 ? 2000 : 600;
+        logger.warn(
+          `Retry ${label}: ${err.message} (${retries} retries left), waiting ${waitMs}ms`,
+        );
+        await new Promise((r) => setTimeout(r, waitMs));
         return HttpClient.fetch(url, options, label, retries - 1, timeoutMs);
       }
 

@@ -4,9 +4,9 @@
  * Prefetch scheduler (every 60s) will handle data from SportMonks and Football-Data.
  */
 
-import { CONFIG } from '../config.js';
-import { Logger } from '../utils/logger.js';
-const logger = new Logger('StartupInitializer');
+import { CONFIG } from "../config.js";
+import { Logger } from "../utils/logger.js";
+const logger = new Logger("StartupInitializer");
 void CONFIG;
 
 class StartupInitializer {
@@ -23,7 +23,9 @@ class StartupInitializer {
   async initialize() {
     if (this.initialized) return this.sportData;
 
-    logger.info('🤖 [Startup] StatPal support removed; startup prefetch disabled. Prefetch scheduler will populate SportMonks/Football-Data caches.');
+    logger.info(
+      "🤖 [Startup] StatPal support removed; startup prefetch disabled. Prefetch scheduler will populate SportMonks/Football-Data caches.",
+    );
 
     this.initialized = true;
     this.lastInitTime = Date.now();

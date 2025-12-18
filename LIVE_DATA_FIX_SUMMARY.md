@@ -1,21 +1,25 @@
 # Live Data Fix Summary - November 28, 2025
 
 ## Problem Statement
+
 The bot was showing **no live data** or **fake demo data** instead of real matches, with all API providers failing (404s, SSL errors, subscription errors). This prevented users from seeing actual live games.
 
 ## Root Causes Identified
 
 ### 1. **APIBootstrap Calling Non-Existent Methods**
+
 - ❌ Bootstrap was calling `sportsAggregator.getUpcomingMatches()` - method doesn't exist
-- ❌ Bootstrap was calling `oddsAnalyzer.getOdds()` - method doesn't exist  
+- ❌ Bootstrap was calling `oddsAnalyzer.getOdds()` - method doesn't exist
 - ✅ **Fixed:** Changed to stub methods that defer to scheduler (prefetch handles ongoing updates)
 
 ### 2. **Demo Data Fallback (Fake Matches)**
+
 - ❌ When APIs failed, system returned hardcoded demo matches (Manchester United vs Liverpool, etc.)
 - ❌ Users trusted bot, then got confused by fake fixtures
 - ✅ **Fixed:** Changed all fallbacks to return empty arrays `[]` - shows honest "No matches" message instead
 
 ### 3. **API Endpoint Configuration Issues**
+
 - ❌ RapidAPI endpoint (`api-football-v3.p.rapidapi.com`) returns 404 "API doesn't exists"
 - ❌ Football-Data using wrong league IDs (API-Sports IDs != Football-Data IDs)
 - ❌ SportsData returning 404 errors
@@ -30,11 +34,13 @@ The bot was showing **no live data** or **fake demo data** instead of real match
 ## Solutions Implemented
 
 ### ✅ Commit 1: Fix APIBootstrap Methods
+
 - **File:** `src/tasks/api-bootstrap.js`
 - **Change:** Replaced non-existent method calls with stub methods
 - **Impact:** Bootstrap now initializes without errors
 
 ### ✅ Commit 2: Fix API Endpoints
+
 - **File:** `src/services/sports-aggregator.js`
 - **Changes:**
   - Use API-Sports direct endpoint only
@@ -43,11 +49,13 @@ The bot was showing **no live data** or **fake demo data** instead of real match
 - **Impact:** API calls now work for configured providers
 
 ### ✅ Commit 3: Remove Fake Data
+
 - **File:** `src/services/sports-aggregator.js`
 - **Change:** Replace demo data fallbacks with empty arrays
 - **Impact:** Users see honest "No Live Matches" instead of fake data
 
 ### ✅ Commit 4: Add Endpoint Strategies
+
 - **File:** `src/services/sports-aggregator.js`
 - **Changes:**
   - Try multiple query formats for API-Sports (league_live, league_season_live)
@@ -80,6 +88,7 @@ When User Clicks "Live Games":
 ## What to Verify
 
 ### 1. **Check API Keys in Render Dashboard**
+
 - Visit: Render > betrix-ui service > Environment
 - Verify these are set (ALL REQUIRED):
   ```
@@ -91,6 +100,7 @@ When User Clicks "Live Games":
   ```
 
 ### 2. **Test Live Data**
+
 - Send `/start` to bot
 - Click "Live Games"
 - Should show:
@@ -99,7 +109,9 @@ When User Clicks "Live Games":
   - ❌ NEVER fake matches like "Manchester United vs Liverpool"
 
 ### 3. **Monitor Render Logs**
+
 After deployment, check logs for:
+
 ```
 ✅ Bootstrap found 1+ configured providers
 ✅ League 39: Found X live matches
@@ -109,6 +121,7 @@ After deployment, check logs for:
 ## Remaining Known Issues
 
 ### Current Limitations
+
 1. **RapidAPI Endpoint Broken:** `api-football-v3.p.rapidapi.com` returns 404
    - **Status:** Bypassed, using direct endpoint instead
    - **Solution:** If direct endpoint also fails, try switching to another provider
@@ -158,7 +171,7 @@ After deployment, check logs for:
    - Fixed prefetchOdds() - now defers to analyzer
    - Cleaner error messages
 
-✅ src/services/sports-aggregator.js  
+✅ src/services/sports-aggregator.js
    - _getLiveFromApiSports() - added endpoint strategies
    - _getOddsFromApiSports() - added endpoint strategies
    - _getLiveFromFootballData() - added league ID mapping
@@ -176,19 +189,21 @@ After deployment, check logs for:
 
 - **Immediately (0-5 min):** Render building new image
 - **5-10 min:** Container starting, API Bootstrap running
-- **Check logs:** Should see provider status and prefetch results  
+- **Check logs:** Should see provider status and prefetch results
 - **Live data:** Should appear in bot responses after Bootstrap completes
 - **Continuous:** Updates every 60 seconds via prefetch scheduler
 
 ## Success Criteria
 
 ✅ **Success When:**
+
 - Bot starts without errors
 - "Live Games" shows real matches OR "No matches" (not fake)
 - Render logs show prefetch counts > 0
 - Payment buttons still work (payment fixes from earlier session still in place)
 
 ❌ **Still Broken If:**
+
 - Still seeing "Manchester United vs Liverpool" type matches (= fake data)
 - "Live Games" times out (> 5 seconds waiting)
 - Bot crashes on startup
@@ -196,6 +211,7 @@ After deployment, check logs for:
 ## Questions?
 
 If live data is still missing:
+
 1. Check if API_FOOTBALL_KEY is set in Render
 2. Verify key works with manual API test
 3. Check Render logs for detailed error messages

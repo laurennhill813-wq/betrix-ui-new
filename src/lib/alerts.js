@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from "axios";
 
 // Simple alerting helper that posts JSON to a configured webhook URL.
 // Non-blocking and forgiving: failure to alert will not throw.
@@ -14,7 +14,9 @@ export async function sendAlert(payload = {}) {
     await axios.post(url, payload, { timeout: 5000 });
     return true;
   } catch (e) {
-    try { console.warn('[alerts] failed to send alert', e?.message || String(e)); } catch(_){}
+    try {
+      console.warn("[alerts] failed to send alert", e?.message || String(e));
+    } catch (_) {}
     return false;
   }
 }

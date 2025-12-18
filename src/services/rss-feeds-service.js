@@ -32,7 +32,10 @@ class RSSFeedsService {
       const headlines = [];
       const titleRegex = /<title>([^<]+)<\/title>/g;
       let match;
-      while ((match = titleRegex.exec(text)) !== null && headlines.length < limit) {
+      while (
+        (match = titleRegex.exec(text)) !== null &&
+        headlines.length < limit
+      ) {
         const title = match[1].trim();
         if (title.length > 10 && !title.includes("RSS")) {
           headlines.push(title);

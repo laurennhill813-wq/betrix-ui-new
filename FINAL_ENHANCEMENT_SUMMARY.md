@@ -10,16 +10,18 @@
 ### 1. ✅ Enhanced Payment Flow with Till Number Explanations
 
 **Files Modified:**
+
 - `src/handlers/payment-router.js` - Enhanced payment instruction generation
 - `src/handlers/telegram-handler-v2.js` - Improved payment callback display
 
 **Improvements:**
+
 - **Clear Till Instructions:** Step-by-step guide for M-Pesa "Lipa Na M-Pesa Online" till payments
   - Till Number prominently displayed (e.g., Safaricom Till 606215)
   - Amount clearly marked (e.g., 150 KES)
   - Reference code generated and explained
-  
 - **Payment Method Steps:**
+
   ```
   1️⃣ Open M-Pesa on your phone
   2️⃣ Tap "Lipa Na M-Pesa Online"
@@ -35,7 +37,6 @@
   - "Copy the M-Pesa confirmation SMS"
   - "Paste it in this chat for instant verification"
   - OR "Click Verify Payment button"
-  
 - **STK Push Support:** Automatic prompt display for STK-enabled methods
 
 **Impact:** Users now have crystal-clear payment instructions, reducing support requests and failed transactions
@@ -47,10 +48,12 @@
 **File Modified:** `src/services/live-scraper.js`
 
 **Features Implemented:**
+
 - **Proxy Support with Agent Caching:**
+
   ```javascript
-  import { HttpProxyAgent } from 'http-proxy-agent';
-  import { HttpsProxyAgent } from 'https-proxy-agent';
+  import { HttpProxyAgent } from "http-proxy-agent";
+  import { HttpsProxyAgent } from "https-proxy-agent";
   ```
 
 - **Dynamic Proxy Selection:**
@@ -68,6 +71,7 @@
   - Debug info on proxy usage per domain
 
 **Configuration:**
+
 ```bash
 # Usage example
 export LIVE_SCRAPER_PROXIES="http://proxy1.com:8080,http://proxy2.com:8080,https://proxy3.com:443"
@@ -80,9 +84,11 @@ export LIVE_SCRAPER_PROXIES="http://proxy1.com:8080,http://proxy2.com:8080,https
 ### 3. ✅ Flashscore Advanced Scraper with Puppeteer JS Rendering
 
 **Files Created:**
+
 - `src/services/flashscore-scraper-advanced.js` (NEW)
 
 **Features:**
+
 - **Dual-Mode Rendering:**
   - Primary: Puppeteer-based JavaScript rendering (renders React content)
   - Fallback: HTML-only Cheerio scraping (if Puppeteer unavailable)
@@ -93,14 +99,16 @@ export LIVE_SCRAPER_PROXIES="http://proxy1.com:8080,http://proxy2.com:8080,https
   - Automatic cleanup on process exit
 
 - **Match Data Extraction:**
+
   ```javascript
-  getLiveMatchesFlashscoreAdvanced(leagueId = '1', usePuppeteer = true)
+  getLiveMatchesFlashscoreAdvanced((leagueId = "1"), (usePuppeteer = true));
   // Returns: [{ home, away, score, status, time, league, rendered, source }]
   ```
 
 - **Detailed Statistics:**
+
   ```javascript
-  getFlashscoreMatchDetailsAdvanced(matchId)
+  getFlashscoreMatchDetailsAdvanced(matchId);
   // Returns: { home, away, score, status, stats: { possession, shots, passes, fouls, corners, cards } }
   ```
 
@@ -110,6 +118,7 @@ export LIVE_SCRAPER_PROXIES="http://proxy1.com:8080,http://proxy2.com:8080,https
   - Graceful degradation to HTML scraping
 
 **Environment:**
+
 ```bash
 # Optional: install Puppeteer for full JS rendering
 npm install puppeteer
@@ -122,17 +131,19 @@ npm install puppeteer
 ### 4. ✅ Odds Expansion: Oddschecker & Betfair Scrapers
 
 **Files Created:**
+
 - `src/services/oddschecker-scraper.js` (NEW)
 - `src/services/betfair-scraper.js` (NEW)
 
 #### **Oddschecker Scraper Features:**
+
 - **Multi-Bookmaker Odds Comparison:**
   - Automatic odds extraction from Oddschecker tables
   - Parses decimal, fractional, and American odds
-  
 - **Best Odds Finder:**
+
   ```javascript
-  getBestOddscheckerOdds(homeTeam, awayTeam, outcome = 'homeWin')
+  getBestOddscheckerOdds(homeTeam, awayTeam, (outcome = "homeWin"));
   // Returns: { bookmaker, odds }
   ```
 
@@ -144,14 +155,15 @@ npm install puppeteer
   ```
 
 #### **Betfair Exchange Scraper Features:**
+
 - **Exchange Odds Format:**
   - Back odds (lowest to lay) and lay odds (highest to back)
   - Spread calculation (difference between back/lay)
   - Arrow format recommendation
-  
 - **Live Markets:**
+
   ```javascript
-  getBetfairLiveMarkets()
+  getBetfairLiveMarkets();
   // Returns markets with event counts
   ```
 
@@ -168,6 +180,7 @@ npm install puppeteer
 **File Created:** `src/utils/odds-normalizer.js`
 
 **Comprehensive Odds Conversion:**
+
 ```javascript
 // Supported formats
 OddsFormat = {
@@ -184,24 +197,26 @@ decimalToImplied(2.0) // Returns 0.5 (50%)
 ```
 
 **Odds Analysis:**
+
 ```javascript
 // Compare multiple sources
 compareOdds([
-  { bookmaker: 'Bet365', odds: 1.5 },
-  { bookmaker: 'William Hill', odds: 1.55 },
-  { bookmaker: 'Betfair', odds: 1.52 }
-])
+  { bookmaker: "Bet365", odds: 1.5 },
+  { bookmaker: "William Hill", odds: 1.55 },
+  { bookmaker: "Betfair", odds: 1.52 },
+]);
 // Returns: { best, worst, avg, all }
 
 // Detect arbitrage opportunities
-detectArbitrage(oddsArray)
+detectArbitrage(oddsArray);
 // Returns: { detected, margin, message }
 ```
 
 **Formatting:**
+
 ```javascript
-formatOdds(odds, format, precision) // Flexible formatting
-formatOddsComparison(result) // Telegram-ready display
+formatOdds(odds, format, precision); // Flexible formatting
+formatOddsComparison(result); // Telegram-ready display
 ```
 
 **Impact:** Unified odds handling; enables arbitrage detection; cross-platform compatibility
@@ -213,6 +228,7 @@ formatOddsComparison(result) // Telegram-ready display
 **File Created:** `src/utils/tos-compliance.js`
 
 **Disclaimer Management:**
+
 ```javascript
 DATA_DISCLAIMERS = {
   goal: { provider, disclaimer, tos, rateLimit, accuracy },
@@ -224,18 +240,20 @@ DATA_DISCLAIMERS = {
 ```
 
 **Features:**
+
 - **Per-Provider Disclaimers:** Clear attribution and ToS links
 - **Rate Limit Compliance:** Headers indicating respect for terms
 - **Access Logging:** Tracks scraper usage for audit trail
 - **Telegram Format:** User-friendly disclaimer display
 
 **Example Disclaimer Output:**
+
 ```
 📋 DATA SOURCE: Goal.com
 
-⚠️ Data sourced from Goal.com (public web scraping). 
-Goal.com is a third-party service. Please verify 
-critical information directly on Goal.com. 
+⚠️ Data sourced from Goal.com (public web scraping).
+Goal.com is a third-party service. Please verify
+critical information directly on Goal.com.
 BETRIX is not affiliated with Goal.com.
 
 🔗 Terms: https://www.goal.com/en/terms-of-use
@@ -254,6 +272,7 @@ BETRIX is not affiliated with Goal.com.
 **Features:**
 
 #### **Odds Comparison Button:**
+
 - Integrated into match details keyboard
 - Shows count of available odds: `💰 Compare Odds (12)`
 - Displays best odds prominently
@@ -261,6 +280,7 @@ BETRIX is not affiliated with Goal.com.
 - Average odds calculation
 
 #### **Live Refresh Counter:**
+
 - Rate-limited: 5 refreshes per minute per match
 - Visual progress bar: `█████░ 3s`
 - Countdown timer display
@@ -268,12 +288,14 @@ BETRIX is not affiliated with Goal.com.
 - User-friendly error messages
 
 #### **Match Update Notifications:**
+
 - Auto-detects score changes: "⚽ GOAL! 0-0 → 1-0"
 - Status updates: "🔔 Status: LIVE"
 - Card events: "🟨 Yellow card issued"
 - Smart notifications (no spam for minor changes)
 
 #### **Enhanced Match Display:**
+
 ```
 ⚽ *Manchester City* vs *Liverpool*
 
@@ -299,6 +321,7 @@ Liverpool: 35%
 ```
 
 #### **Bet Slip Integration:**
+
 - "Add to Bet Slip" button for each match
 - Tracks selected matches and odds
 - Supports multiple bets per slip
@@ -310,11 +333,13 @@ Liverpool: 35%
 ## 📊 Technology Stack Additions
 
 ### New Dependencies (Optional):
+
 ```bash
 npm install http-proxy-agent https-proxy-agent puppeteer
 ```
 
 ### Environment Variables:
+
 ```bash
 # Proxy support
 LIVE_SCRAPER_PROXIES="http://proxy1:port,http://proxy2:port"
@@ -340,22 +365,23 @@ f436240 - Enhanced payment instructions, proxy agents, Puppeteer, Oddschecker/Be
 
 ## 📈 Feature Summary by Impact
 
-| Feature | Impact | Priority | Status |
-|---------|--------|----------|--------|
-| Payment Till Instructions | 🔴 Critical | HIGH | ✅ Complete |
-| Proxy Integration | 🟠 High | HIGH | ✅ Complete |
-| Flashscore JS Rendering | 🟠 High | HIGH | ✅ Complete |
-| Oddschecker Odds | 🟡 Medium | MEDIUM | ✅ Complete |
-| Betfair Exchange Odds | 🟡 Medium | MEDIUM | ✅ Complete |
-| Odds Normalization | 🟡 Medium | MEDIUM | ✅ Complete |
-| ToS Compliance | 🟠 High | HIGH | ✅ Complete |
-| Match UX Enhancements | 🟡 Medium | MEDIUM | ✅ Complete |
+| Feature                   | Impact      | Priority | Status      |
+| ------------------------- | ----------- | -------- | ----------- |
+| Payment Till Instructions | 🔴 Critical | HIGH     | ✅ Complete |
+| Proxy Integration         | 🟠 High     | HIGH     | ✅ Complete |
+| Flashscore JS Rendering   | 🟠 High     | HIGH     | ✅ Complete |
+| Oddschecker Odds          | 🟡 Medium   | MEDIUM   | ✅ Complete |
+| Betfair Exchange Odds     | 🟡 Medium   | MEDIUM   | ✅ Complete |
+| Odds Normalization        | 🟡 Medium   | MEDIUM   | ✅ Complete |
+| ToS Compliance            | 🟠 High     | HIGH     | ✅ Complete |
+| Match UX Enhancements     | 🟡 Medium   | MEDIUM   | ✅ Complete |
 
 ---
 
 ## 🔐 Legal & Compliance Notes
 
 ### Data Source Attribution:
+
 - ✅ All external data sources clearly attributed
 - ✅ Terms of Service links provided
 - ✅ Rate limiting respected
@@ -363,6 +389,7 @@ f436240 - Enhanced payment instructions, proxy agents, Puppeteer, Oddschecker/Be
 - ✅ Data accuracy expectations set
 
 ### Best Practices Implemented:
+
 - **User-Agent Rotation:** 4 different UA strings
 - **Per-Domain Rate Limiting:** 500ms default
 - **Exponential Backoff:** Handles rate limit (429) responses
@@ -370,6 +397,7 @@ f436240 - Enhanced payment instructions, proxy agents, Puppeteer, Oddschecker/Be
 - **Access Logging:** Audit trail for all scraper access
 
 ### Recommendations:
+
 1. **Monitor ToS Changes:** Set alerts for policy updates
 2. **Rotate Proxies:** Regularly update proxy list
 3. **Test Rate Limits:** Verify compliance with provider limits
@@ -381,6 +409,7 @@ f436240 - Enhanced payment instructions, proxy agents, Puppeteer, Oddschecker/Be
 ## 🧪 Testing Recommendations
 
 ### Manual Tests:
+
 ```bash
 # Test Oddschecker
 node -e "import('./src/services/oddschecker-scraper.js').then(m => m.getOddscheckerOdds('Man City', 'Liverpool', 'premier-league').then(r => console.log(JSON.stringify(r, null, 2))))"
@@ -396,6 +425,7 @@ node -e "import('./src/utils/odds-normalizer.js').then(m => { const test = m.com
 ```
 
 ### Integration Tests:
+
 1. Payment flow: Verify till number displays correctly
 2. Proxy rotation: Check logs for proxy usage
 3. Odds comparison: Verify multiple sources displayed
@@ -407,6 +437,7 @@ node -e "import('./src/utils/odds-normalizer.js').then(m => { const test = m.com
 ## 📋 Known Limitations & Future Enhancements
 
 ### Current Limitations:
+
 1. **Flashscore:** HTML selectors fragile; may break on redesign
 2. **Puppeteer Memory:** Single browser instance to conserve resources
 3. **Oddschecker:** Requires parsing table structures (not API)
@@ -414,6 +445,7 @@ node -e "import('./src/utils/odds-normalizer.js').then(m => { const test = m.com
 5. **Proxy:** Requires external proxy service (free proxies unreliable)
 
 ### Future Enhancements:
+
 1. **API Fallbacks:** Add Sportradar, FlashScore API (if available)
 2. **Machine Learning:** Predict match outcomes from odds movement
 3. **User Preferences:** Save favorite bookmakers & odds formats
@@ -483,16 +515,16 @@ Telegram User Display
 **Files Created:** 6 new modules  
 **Files Modified:** 3 handlers/services  
 **Total Lines Added:** ~2000 lines of production code  
-**Token Usage:** ~85K / 200K  
+**Token Usage:** ~85K / 200K
 
 **All user requests implemented and deployed to main branch!**
 
 ---
 
 **Next Session Priorities:**
+
 1. Install Puppeteer if not available: `npm install puppeteer`
 2. Configure proxies if needed: Set `LIVE_SCRAPER_PROXIES` env var
 3. Test odds comparison in Telegram: Click "Compare Odds" button
 4. Monitor scraper logs for errors: Check rate limiting compliance
 5. User feedback: Refine UX based on usage patterns
-

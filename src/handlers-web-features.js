@@ -43,7 +43,7 @@ class WebFeaturesHandlers {
       logger.error("Headlines error", err);
       return this.telegram.sendMessage(
         chatId,
-        `${BrandingService.ICONS.error} Could not fetch headlines right now.`
+        `${BrandingService.ICONS.error} Could not fetch headlines right now.`,
       );
     }
   }
@@ -60,7 +60,7 @@ class WebFeaturesHandlers {
       logger.error("Reddit error", err);
       return this.telegram.sendMessage(
         chatId,
-        `${BrandingService.ICONS.error} Reddit service temporarily down.`
+        `${BrandingService.ICONS.error} Reddit service temporarily down.`,
       );
     }
   }
@@ -108,7 +108,7 @@ class WebFeaturesHandlers {
       logger.error("Stadium error", err);
       return this.telegram.sendMessage(
         chatId,
-        `${BrandingService.ICONS.error} Stadium not found. Try: /stadium "Old Trafford"`
+        `${BrandingService.ICONS.error} Stadium not found. Try: /stadium "Old Trafford"`,
       );
     }
   }
@@ -116,7 +116,11 @@ class WebFeaturesHandlers {
   /**
    * /live_commentary [team1] [team2] - Simulated live match commentary
    */
-  async handleLiveCommentary(chatId, team1 = "Manchester United", team2 = "Liverpool") {
+  async handleLiveCommentary(
+    chatId,
+    team1 = "Manchester United",
+    team2 = "Liverpool",
+  ) {
     const text = `${BrandingService.ICONS.live} ${LiveCommentaryService.generateLiveUpdate(team1, team2, 1, 0)}`;
     return this.telegram.sendMessage(chatId, text);
   }

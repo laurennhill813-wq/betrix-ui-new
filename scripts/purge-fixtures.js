@@ -2,12 +2,12 @@
 // Purge Redis keys for raw fixtures and raw live caches (useful after deploy)
 // Usage: ALLOW_INSECURE_TLS=1 node ./scripts/purge-fixtures.js
 
-import { getRedisAdapter } from '../src/lib/redis-factory.js';
+import { getRedisAdapter } from "../src/lib/redis-factory.js";
 
 async function purge() {
   try {
-    console.log('Scanning for keys matching raw:fixtures:* and raw:live:*');
-    const patterns = ['raw:fixtures:*', 'raw:live:*', 'betrix:prefetch:*'];
+    console.log("Scanning for keys matching raw:fixtures:* and raw:live:*");
+    const patterns = ["raw:fixtures:*", "raw:live:*", "betrix:prefetch:*"];
     const redis = getRedisAdapter();
     for (const pattern of patterns) {
       console.log(`Scanning ${pattern} ...`);
@@ -19,18 +19,24 @@ async function purge() {
           await redis.del(...keys);
         } catch (e) {
           // Some adapters may prefer single-key deletes
-          for (const k of keys) { try { await redis.del(k); } catch(_){} }
+          for (const k of keys) {
+            try {
+              await redis.del(k);
+            } catch (_) {}
+          }
         }
       }
       console.log(`Finished pattern ${pattern}`);
     }
-    console.log('Purge complete.');
+    console.log("Purge complete.");
   } catch (e) {
-    console.error('Error during purge:', e && e.message);
+    console.error("Error during purge:", e && e.message);
     process.exit(1);
   } finally {
     // Best effort shutdown
-    try { if (typeof redis?.quit === 'function') await redis.quit(); } catch(_) {}
+    try {
+      if (typeof redis?.quit === "function") await redis.quit();
+    } catch (_) {}
   }
 }
 

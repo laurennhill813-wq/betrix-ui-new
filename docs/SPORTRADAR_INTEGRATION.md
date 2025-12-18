@@ -1,28 +1,24 @@
-Sportradar integration & signed-download guide
-============================================
+# Sportradar integration & signed-download guide
 
-Goal
-----
+## Goal
+
 Help the app fetch protected Sportradar image assets and post them to Telegram by either:
 
 - Using a direct API key (if your Sportradar account allows direct asset downloads from server-to-server requests), or
 - Using a signing/exchange endpoint (recommended): a small internal service that calls Sportradar using an account that is permitted to download assets and returns a time-limited signed URL the app can fetch.
 
-Environment variables
----------------------
+## Environment variables
 
 - `SPORTRADAR_API_KEY` or `SPORTRADAR_KEY` — your Sportradar API key (if available). The adapter will append this to manifest URLs so manifests can be read.
-- `SPORTRADAR_SIGN_ENDPOINT` — *optional but recommended* — URL of an internal signing service that accepts `{ url }` and returns `{ signedUrl }`.
+- `SPORTRADAR_SIGN_ENDPOINT` — _optional but recommended_ — URL of an internal signing service that accepts `{ url }` and returns `{ signedUrl }`.
 
-How it works in this repo
--------------------------
+## How it works in this repo
 
 - `src/data/images-sportradar.js` parses Sportradar manifest XML and returns candidate asset URLs.
 - `src/services/image-proxy.js` tries several fetch header strategies. If all fail and the URL looks like a Sportradar asset, it will call the configured `SPORTRADAR_SIGN_ENDPOINT` via `src/data/images-sportradar-exchange.js` to obtain a signed download URL and try that instead.
 - Diagnostic files for failed fetches are written to the image cache directory (default: OS temp dir under `betrix-image-cache`) with `.diag.json` suffix.
 
-Setting up a signing endpoint
------------------------------
+## Setting up a signing endpoint
 
 You have two options:
 
@@ -35,8 +31,7 @@ You have two options:
 
 The app includes a helper CLI to test this flow locally (see next section).
 
-Testing locally
----------------
+## Testing locally
 
 1. Make sure `SPORTRADAR_SIGN_ENDPOINT` is set to your signing endpoint.
 2. Run the interactive helper to POST an asset and attempt a fetch:
@@ -48,8 +43,7 @@ node scripts/sportradar-exchange-cli.mjs
 
 Follow prompts to paste the asset URL. The helper will show the signing response and whether the signed URL is fetchable from your environment.
 
-Retrying the media pipeline
----------------------------
+## Retrying the media pipeline
 
 Once you have a working signer or allowed API key:
 
@@ -62,14 +56,13 @@ node scripts/forceMediaTick.mjs
 
 If assets still fail with `403`, collect diagnostics in the image cache directory (look for `*.diag.json`) and share them with Sportradar support or paste here for me to help prepare a support package.
 
-Security & licensing
----------------------
+## Security & licensing
 
 - Licensed images from Sportradar (or Reuters/Getty/AP) must be used according to your subscription terms. Ensure you have the right to rehost or post assets externally (Telegram channel). If in doubt, consult your account rep.
 - Keep signing endpoints internal and authenticated; do not expose them publicly.
 
-Need help?
-----------
+## Need help?
+
 If you want I can:
 
 - Help craft the minimal signing service code (Node.js + S3 presigner) to run on a trusted host, or

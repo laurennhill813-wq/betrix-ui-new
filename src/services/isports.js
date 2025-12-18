@@ -1,12 +1,13 @@
-import fetch from 'node-fetch';
+import fetch from "node-fetch";
 
 const KEY = process.env.ISPORTS_API_KEY;
-const BASE = process.env.ISPORTS_API_BASE || 'http://api.isportsapi.com';
-const FALLBACK = process.env.ISPORTS_API_BASE_FALLBACK || 'http://api2.isportsapi.com';
+const BASE = process.env.ISPORTS_API_BASE || "http://api.isportsapi.com";
+const FALLBACK =
+  process.env.ISPORTS_API_BASE_FALLBACK || "http://api2.isportsapi.com";
 
 export async function isports(path) {
-  const url = `${BASE}${path}${path.includes('?') ? '&' : '?'}api_key=${KEY}`;
-  const fallbackUrl = `${FALLBACK}${path}${path.includes('?') ? '&' : '?'}api_key=${KEY}`;
+  const url = `${BASE}${path}${path.includes("?") ? "&" : "?"}api_key=${KEY}`;
+  const fallbackUrl = `${FALLBACK}${path}${path.includes("?") ? "&" : "?"}api_key=${KEY}`;
 
   try {
     const res = await fetch(url, { timeout: 15000 });

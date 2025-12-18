@@ -52,7 +52,11 @@ class MpesaCallbackHandler {
       // Update payment to confirmed
       await db
         .update(payments)
-        .set({ status: "confirmed", transactionId: code, verifiedAt: new Date() })
+        .set({
+          status: "confirmed",
+          transactionId: code,
+          verifiedAt: new Date(),
+        })
         .where(eq(payments.id, payment.id));
 
       // Update user tier
@@ -71,22 +75,27 @@ class MpesaCallbackHandler {
           // Calculate expiry
           const now = new Date();
           if (payment.tier === "vvip_day") {
-            tierUpdateData.vvipExpiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+            tierUpdateData.vvipExpiresAt = new Date(
+              now.getTime() + 24 * 60 * 60 * 1000,
+            );
           } else if (payment.tier === "vvip_week") {
-            tierUpdateData.vvipExpiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+            tierUpdateData.vvipExpiresAt = new Date(
+              now.getTime() + 7 * 24 * 60 * 60 * 1000,
+            );
           } else if (payment.tier === "vvip_month") {
-            tierUpdateData.vvipExpiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+            tierUpdateData.vvipExpiresAt = new Date(
+              now.getTime() + 30 * 24 * 60 * 60 * 1000,
+            );
           }
         }
 
         await db.update(users).set(tierUpdateData).where(eq(users.id, user.id));
 
         // Send confirmation to user
-        const tierName =
-          payment.tier === "member" ? "Member" : "VVIP";
+        const tierName = payment.tier === "member" ? "Member" : "VVIP";
         await this.telegram?.sendMessage(
           user.chatId,
-          `✅ Payment confirmed!\n💎 ${tierName} tier activated\n\nYou now have access to premium features!`
+          `✅ Payment confirmed!\n💎 ${tierName} tier activated\n\nYou now have access to premium features!`,
         );
 
         logger.info(`Payment verified: user ${user.id} - ${payment.tier}`);

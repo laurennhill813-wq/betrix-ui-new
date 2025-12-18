@@ -4,45 +4,73 @@ async function main() {
     // Prefer centralized adapter when available
     let client = null;
     try {
-      const mod = await import('../src/lib/redis-factory.js');
-      if (mod && typeof mod.getRedisAdapter === 'function') {
+      const mod = await import("../src/lib/redis-factory.js");
+      if (mod && typeof mod.getRedisAdapter === "function") {
         client = mod.getRedisAdapter();
-        try { if (typeof client.connect === 'function') await client.connect(); } catch(_) {}
+        try {
+          if (typeof client.connect === "function") await client.connect();
+        } catch (_) {}
       }
     } catch (_) {}
 
     if (!client) {
       // fallback to node-redis
-      const Redis = require('redis');
+      const Redis = require("redis");
       const url = process.env.REDIS_URL || undefined;
       client = Redis.createClient({ url });
-      client.on('error', (e) => console.error('redis-err', e && (e.stack||e.message||String(e))));
+      client.on("error", (e) =>
+        console.error("redis-err", e && (e.stack || e.message || String(e))),
+      );
       await client.connect();
     }
-    console.info('FALLBACK_WORKER_STARTED', { ts: new Date().toISOString(), redis: !!url });
+    console.info("FALLBACK_WORKER_STARTED", {
+      ts: new Date().toISOString(),
+      redis: !!url,
+    });
 
     while (true) {
       try {
-        const res = await client.brPop('betrix-jobs', 5);
+        const res = await client.brPop("betrix-jobs", 5);
         if (!res) continue;
-        let payload; if (Array.isArray(res)) { payload = res[1]; } else if (res && typeof res === 'object') { payload = res.element || res.value || res.payload || (res[1] || JSON.stringify(res)); } else { payload = res; }
-        console.info('WORKER:BRPOP', payload);
+        let payload;
+        if (Array.isArray(res)) {
+          payload = res[1];
+        } else if (res && typeof res === "object") {
+          payload =
+            res.element ||
+            res.value ||
+            res.payload ||
+            res[1] ||
+            JSON.stringify(res);
+        } else {
+          payload = res;
+        }
+        console.info("WORKER:BRPOP", payload);
         try {
           const job = JSON.parse(payload);
-          console.info('WORKER:JOB_PARSED', { jobId: job.jobId, type: job.type, chatId: job.payload?.message?.chat?.id || job.chatId || null });
+          console.info("WORKER:JOB_PARSED", {
+            jobId: job.jobId,
+            type: job.type,
+            chatId: job.payload?.message?.chat?.id || job.chatId || null,
+          });
         } catch (e) {
-          console.error('WORKER:JOB_PARSE_ERR', e && (e.stack||e.message||String(e)));
+          console.error(
+            "WORKER:JOB_PARSE_ERR",
+            e && (e.stack || e.message || String(e)),
+          );
         }
       } catch (e) {
-        console.error('WORKER_LOOP_ERR', e && (e.stack||e.message||String(e)));
-        await new Promise(r => setTimeout(r, 2000));
+        console.error(
+          "WORKER_LOOP_ERR",
+          e && (e.stack || e.message || String(e)),
+        );
+        await new Promise((r) => setTimeout(r, 2000));
       }
     }
   } catch (e) {
-    console.error('FALLBACK_FATAL', e && (e.stack||e.message||String(e)));
+    console.error("FALLBACK_FATAL", e && (e.stack || e.message || String(e)));
     process.exit(1);
   }
 }
 
 main();
-

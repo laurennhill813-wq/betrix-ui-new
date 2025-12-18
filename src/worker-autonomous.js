@@ -22,17 +22,16 @@ class AutonomousWorker {
   async start() {
     try {
       logger.info("🚀 Starting BETRIX in autonomous mode");
-      
+
       // Set up graceful shutdown handlers
       this.setupSignalHandlers();
-      
+
       // Start the main worker
       this.isRunning = true;
       logger.info("✅ BETRIX Worker initialized and running autonomously");
-      
+
       // Start health checks
       this.startHealthChecks();
-      
     } catch (err) {
       logger.error("Fatal error during startup", err);
       this.handleCrash(err);
@@ -120,8 +119,13 @@ class AutonomousWorker {
     // Attempt reconnection
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      const backoffTime = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
-      logger.info(`🔄 Attempting to recover (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}) after ${backoffTime}ms`);
+      const backoffTime = Math.min(
+        1000 * Math.pow(2, this.reconnectAttempts),
+        30000,
+      );
+      logger.info(
+        `🔄 Attempting to recover (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}) after ${backoffTime}ms`,
+      );
 
       setTimeout(() => {
         this.start();

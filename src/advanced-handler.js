@@ -42,16 +42,21 @@ class AdvancedHandler {
         `${ICONS.analysis} <b>Your Analytics</b>\n\n` +
         `👤 Profile: ${user?.name || "User"}\n` +
         `🎯 Predictions: ${userStats.totalPredictions}\n` +
-        `📊 Accuracy: ${(await this.predictor.getPredictionAccuracy(userId))}%\n` +
+        `📊 Accuracy: ${await this.predictor.getPredictionAccuracy(userId)}%\n` +
         `⏰ Member since: ${new Date(user?.createdAt || Date.now()).toLocaleDateString()}\n` +
         `🏆 Points: ${user?.rewards_points || 0}\n\n` +
         `<b>Top Commands:</b>\n` +
-        topCommands.map((c, i) => `${i + 1}. ${c.command} (${c.count}x)`).join("\n");
+        topCommands
+          .map((c, i) => `${i + 1}. ${c.command} (${c.count}x)`)
+          .join("\n");
 
       return this.telegram.sendMessage(chatId, text);
     } catch (err) {
       logger.error("Stats error", err);
-      return this.telegram.sendMessage(chatId, "Unable to load stats. Try again later.");
+      return this.telegram.sendMessage(
+        chatId,
+        "Unable to load stats. Try again later.",
+      );
     }
   }
 
@@ -62,7 +67,7 @@ class AdvancedHandler {
     if (!matchQuery) {
       return this.telegram.sendMessage(
         chatId,
-        `${ICONS.analysis} Usage: /predict [home] vs [away]\n\nExample: /predict Liverpool vs Man City`
+        `${ICONS.analysis} Usage: /predict [home] vs [away]\n\nExample: /predict Liverpool vs Man City`,
       );
     }
 
@@ -71,11 +76,14 @@ class AdvancedHandler {
       if (!home || !away) {
         return this.telegram.sendMessage(
           chatId,
-          `Format: /predict Home vs Away\n\nExample: /predict Liverpool vs Man City`
+          `Format: /predict Home vs Away\n\nExample: /predict Liverpool vs Man City`,
         );
       }
 
-      const prediction = await this.predictor.predictMatch(home.trim(), away.trim());
+      const prediction = await this.predictor.predictMatch(
+        home.trim(),
+        away.trim(),
+      );
       const confidence = Math.round(prediction.confidence * 100);
 
       const text =
@@ -85,13 +93,25 @@ class AdvancedHandler {
         `📊 Confidence: ${confidence}%\n` +
         `${confidence >= 75 ? "✅ High confidence" : confidence >= 60 ? "⚠️ Medium confidence" : "⚠️ Low confidence"}`;
 
-      await this.analytics.trackPrediction(userId, `${home}-${away}`, prediction.prediction, prediction.confidence);
-      await this.context.recordMessage(userId, `Predicted: ${matchQuery}`, "system");
+      await this.analytics.trackPrediction(
+        userId,
+        `${home}-${away}`,
+        prediction.prediction,
+        prediction.confidence,
+      );
+      await this.context.recordMessage(
+        userId,
+        `Predicted: ${matchQuery}`,
+        "system",
+      );
 
       return this.telegram.sendMessage(chatId, text);
     } catch (err) {
       logger.error("Predict error", err);
-      return this.telegram.sendMessage(chatId, "Prediction service unavailable. Try /live instead.");
+      return this.telegram.sendMessage(
+        chatId,
+        "Prediction service unavailable. Try /live instead.",
+      );
     }
   }
 
@@ -107,7 +127,7 @@ class AdvancedHandler {
 
       const aiInsight = await this.gemini.chat(
         `Generate 3 brief, actionable betting insights for a user interested in ${prefs.favoriteLeagues.join(", ") || "football"}. Keep under 200 chars total.`,
-        {}
+        {},
       );
 
       const text =
@@ -122,7 +142,10 @@ class AdvancedHandler {
       return this.telegram.sendMessage(chatId, text);
     } catch (err) {
       logger.error("Insights error", err);
-      return this.telegram.sendMessage(chatId, "Insights unavailable. Try /tips for general advice.");
+      return this.telegram.sendMessage(
+        chatId,
+        "Insights unavailable. Try /tips for general advice.",
+      );
     }
   }
 
@@ -131,12 +154,16 @@ class AdvancedHandler {
    */
   async watchMatch(chatId, userId, fixtureId) {
     try {
-      const subscribed = await this.alerts.subscribeToMatch(userId, fixtureId, {});
+      const subscribed = await this.alerts.subscribeToMatch(
+        userId,
+        fixtureId,
+        {},
+      );
 
       if (subscribed) {
         return this.telegram.sendMessage(
           chatId,
-          `🔔 Watching this match! You'll get alerts for goals and important moments.\n\nType /unwatch ${fixtureId} to unsubscribe.`
+          `🔔 Watching this match! You'll get alerts for goals and important moments.\n\nType /unwatch ${fixtureId} to unsubscribe.`,
         );
       }
     } catch (err) {
@@ -151,7 +178,12 @@ class AdvancedHandler {
   async handleCompete(chatId, userId) {
     try {
       const accuracy = await this.predictor.getPredictionAccuracy(userId);
-      const topPredictors = await this.redis.zrevrange("user:accuracy", 0, 4, "WITHSCORES");
+      const topPredictors = await this.redis.zrevrange(
+        "user:accuracy",
+        0,
+        4,
+        "WITHSCORES",
+      );
 
       const text =
         `🏆 <b>Prediction Leaderboard</b>\n\n` +
@@ -168,7 +200,10 @@ class AdvancedHandler {
       return this.telegram.sendMessage(chatId, text);
     } catch (err) {
       logger.error("Compete error", err);
-      return this.telegram.sendMessage(chatId, "Leaderboard unavailable. Try /stats.");
+      return this.telegram.sendMessage(
+        chatId,
+        "Leaderboard unavailable. Try /stats.",
+      );
     }
   }
 
@@ -177,10 +212,13 @@ class AdvancedHandler {
    */
   async checkRateLimit(chatId, userId, tier = "default") {
     if (await this.rateLimiter.isRateLimited(userId, tier)) {
-      const remaining = await this.rateLimiter.getRemainingRequests(userId, tier);
+      const remaining = await this.rateLimiter.getRemainingRequests(
+        userId,
+        tier,
+      );
       await this.telegram.sendMessage(
         chatId,
-        `⏱️ Rate limited. You have ${remaining} requests left this minute.`
+        `⏱️ Rate limited. You have ${remaining} requests left this minute.`,
       );
       return false;
     }

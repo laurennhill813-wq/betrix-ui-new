@@ -24,16 +24,19 @@ export class ProviderHealth {
     }
     const mem = this.mem.get(name);
     if (!mem) return false;
-    return (Date.now() < (mem.disabledUntil || 0));
+    return Date.now() < (mem.disabledUntil || 0);
   }
 
-  async markDisabled(name, seconds, reason = '') {
-    const disabledUntil = Date.now() + (Number(seconds || 0) * 1000);
+  async markDisabled(name, seconds, reason = "") {
+    const disabledUntil = Date.now() + Number(seconds || 0) * 1000;
     this.mem.set(name, { disabledUntil, reason });
     try {
       if (this.redis) {
         const key = this._redisKey(name);
-        await this.redis.set(key, JSON.stringify({ reason: String(reason || ''), ts: Date.now() }));
+        await this.redis.set(
+          key,
+          JSON.stringify({ reason: String(reason || ""), ts: Date.now() }),
+        );
         await this.redis.expire(key, Number(seconds || 60));
       }
     } catch (e) {
@@ -41,13 +44,17 @@ export class ProviderHealth {
     }
   }
 
-  async markFailure(name, statusCode, message = '') {
+  async markFailure(name, statusCode, message = "") {
     // Non-retryable errors: 401,403,404 -> disable for 30m
     // Rate limit: 429 -> disable for 5m
     // Server errors: 500-599 -> short backoff 1m
     const code = Number(statusCode || 0);
     if ([401, 403, 404].includes(code)) {
-      await this.markDisabled(name, 30 * 60, `non-retryable:${code} ${message}`);
+      await this.markDisabled(
+        name,
+        30 * 60,
+        `non-retryable:${code} ${message}`,
+      );
       return;
     }
     if (code === 429) {

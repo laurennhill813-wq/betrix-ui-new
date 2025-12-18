@@ -66,34 +66,52 @@ ${BrandingService.ICONS.help} Commands & Help
 💬 Chat with BETRIX: Just type anything!`,
       keyboard: [
         [
-          { text: `${BrandingService.ICONS.live} LIVE`, callback_data: "menu:live" },
-          { text: `${BrandingService.ICONS.odds} ODDS`, callback_data: "menu:odds" }
+          {
+            text: `${BrandingService.ICONS.live} LIVE`,
+            callback_data: "menu:live",
+          },
+          {
+            text: `${BrandingService.ICONS.odds} ODDS`,
+            callback_data: "menu:odds",
+          },
         ],
         [
-          { text: `${BrandingService.ICONS.tips} TIPS`, callback_data: "menu:tips" },
-          { text: `${BrandingService.ICONS.analyze} ANALYZE`, callback_data: "menu:analyze" }
+          {
+            text: `${BrandingService.ICONS.tips} TIPS`,
+            callback_data: "menu:tips",
+          },
+          {
+            text: `${BrandingService.ICONS.analyze} ANALYZE`,
+            callback_data: "menu:analyze",
+          },
         ],
         [
           { text: "🎭 MEMES", callback_data: "menu:meme" },
-          { text: "💰 CRYPTO", callback_data: "menu:crypto" }
+          { text: "💰 CRYPTO", callback_data: "menu:crypto" },
         ],
         [
           { text: "📰 NEWS", callback_data: "menu:news" },
-          { text: "📡 HEADLINES", callback_data: "menu:headlines" }
+          { text: "📡 HEADLINES", callback_data: "menu:headlines" },
         ],
         [
           { text: "💬 REDDIT", callback_data: "menu:reddit" },
-          { text: "⭐ STADIUM", callback_data: "menu:stadium" }
+          { text: "⭐ STADIUM", callback_data: "menu:stadium" },
         ],
         [
           { text: "🎯 BET IDEAS", callback_data: "menu:trending_bets" },
-          { text: "🌦️ WEATHER", callback_data: "menu:weather" }
+          { text: "🌦️ WEATHER", callback_data: "menu:weather" },
         ],
         [
-          { text: `${BrandingService.ICONS.status} PROFILE`, callback_data: "menu:profile" },
-          { text: `${BrandingService.ICONS.pricing} UPGRADE`, callback_data: "menu:pricing" }
-        ]
-      ]
+          {
+            text: `${BrandingService.ICONS.status} PROFILE`,
+            callback_data: "menu:profile",
+          },
+          {
+            text: `${BrandingService.ICONS.pricing} UPGRADE`,
+            callback_data: "menu:pricing",
+          },
+        ],
+      ],
     };
   }
 
@@ -255,7 +273,7 @@ ${BrandingService.ICONS.predict} /predict - Predictions
   static accountMenu(user) {
     const tier = user?.tier || "free";
     const tierEmoji = tier === "vvip" ? "👑" : tier === "member" ? "⭐" : "🆓";
-    
+
     return `${BrandingService.ICONS.status} <b>MY PROFILE</b>
 
 ━━━━━━━━━━━━━━━━━━━━━━━
@@ -302,51 +320,75 @@ ${tierEmoji} <b>Tier:</b> ${tier.toUpperCase()}
       main: {
         inline_keyboard: [
           [
-            { text: `${BrandingService.ICONS.live} Live`, callback_data: "menu:live" },
-            { text: `${BrandingService.ICONS.odds} Odds`, callback_data: "menu:odds" }
+            {
+              text: `${BrandingService.ICONS.live} Live`,
+              callback_data: "menu:live",
+            },
+            {
+              text: `${BrandingService.ICONS.odds} Odds`,
+              callback_data: "menu:odds",
+            },
           ],
           [
             { text: "🎭 Memes", callback_data: "menu:meme" },
-            { text: "💰 Crypto", callback_data: "menu:crypto" }
+            { text: "💰 Crypto", callback_data: "menu:crypto" },
           ],
           [
             { text: "📰 News", callback_data: "menu:news" },
-            { text: "📡 Headlines", callback_data: "menu:headlines" }
+            { text: "📡 Headlines", callback_data: "menu:headlines" },
           ],
           [
-            { text: `${BrandingService.ICONS.pricing} Upgrade`, callback_data: "menu:upgrade" },
-            { text: `${BrandingService.ICONS.help} Help`, callback_data: "menu:help" }
-          ]
-        ]
+            {
+              text: `${BrandingService.ICONS.pricing} Upgrade`,
+              callback_data: "menu:upgrade",
+            },
+            {
+              text: `${BrandingService.ICONS.help} Help`,
+              callback_data: "menu:help",
+            },
+          ],
+        ],
       },
       sports: {
         inline_keyboard: [
           [
-            { text: `${BrandingService.ICONS.live} Live`, callback_data: "action:live" },
-            { text: `${BrandingService.ICONS.standings} Tables`, callback_data: "action:standings" }
+            {
+              text: `${BrandingService.ICONS.live} Live`,
+              callback_data: "action:live",
+            },
+            {
+              text: `${BrandingService.ICONS.standings} Tables`,
+              callback_data: "action:standings",
+            },
           ],
           [
-            { text: `${BrandingService.ICONS.odds} Odds`, callback_data: "action:odds" },
-            { text: `${BrandingService.ICONS.analyze} Analyze`, callback_data: "action:analyze" }
-          ]
-        ]
+            {
+              text: `${BrandingService.ICONS.odds} Odds`,
+              callback_data: "action:odds",
+            },
+            {
+              text: `${BrandingService.ICONS.analyze} Analyze`,
+              callback_data: "action:analyze",
+            },
+          ],
+        ],
       },
       free: {
         inline_keyboard: [
           [
             { text: "🎭 Memes", callback_data: "free:meme" },
-            { text: "💰 Crypto", callback_data: "free:crypto" }
+            { text: "💰 Crypto", callback_data: "free:crypto" },
           ],
           [
             { text: "📰 News", callback_data: "free:news" },
-            { text: "📡 Headlines", callback_data: "free:headlines" }
+            { text: "📡 Headlines", callback_data: "free:headlines" },
           ],
           [
             { text: "💬 Reddit", callback_data: "free:reddit" },
-            { text: "⭐ Stadium", callback_data: "free:stadium" }
-          ]
-        ]
-      }
+            { text: "⭐ Stadium", callback_data: "free:stadium" },
+          ],
+        ],
+      },
     };
     return keyboards[type] || keyboards.main;
   }

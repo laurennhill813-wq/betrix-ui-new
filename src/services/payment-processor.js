@@ -1,34 +1,34 @@
-import { getRedis } from '../lib/redis-factory.js';
-import createRedisAdapter from '../utils/redis-adapter.js';
-import { Database } from './database.js';
-import { PayPalService } from './paypal.js';
+import { getRedis } from "../lib/redis-factory.js";
+import createRedisAdapter from "../utils/redis-adapter.js";
+import { Database } from "./database.js";
+import { PayPalService } from "./paypal.js";
 
 const redis = createRedisAdapter(getRedis());
 
 export class PaymentProcessor {
   static async processPaymentJobs() {
-    console.log('💳 Payment Processor started');
-    
+    console.log("💳 Payment Processor started");
+
     // Intentional long-running worker loop - polls Redis for payment jobs
     // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
-        const jobRaw = await redis.lpop('payment-jobs');
+        const jobRaw = await redis.lpop("payment-jobs");
         if (!jobRaw) {
-          await new Promise(r => setTimeout(r, 1000));
+          await new Promise((r) => setTimeout(r, 1000));
           continue;
         }
 
         const job = JSON.parse(jobRaw);
-        
-        if (job.type === 'paypal_success') {
+
+        if (job.type === "paypal_success") {
           await this.handlePayPalSuccess(job);
-        } else if (job.type === 'paypal_webhook') {
+        } else if (job.type === "paypal_webhook") {
           await this.handlePayPalWebhook(job);
         }
       } catch (error) {
-        console.error('Payment processing error:', error);
-        await new Promise(r => setTimeout(r, 2000));
+        console.error("Payment processing error:", error);
+        await new Promise((r) => setTimeout(r, 2000));
       }
     }
   }
@@ -36,48 +36,52 @@ export class PaymentProcessor {
   static async handlePayPalSuccess(job) {
     const { orderId, pendingData } = job;
     const { userId, sport, tier } = pendingData;
-    
+
     try {
       const captureResult = await PayPalService.captureOrder(orderId);
-      
-      if (captureResult.success && captureResult.data.status === 'COMPLETED') {
+
+      if (captureResult.success && captureResult.data.status === "COMPLETED") {
         const subscription = {
-          tier: tier || 'starter',
-          sport: sport || 'football',
-          status: 'active',
+          tier: tier || "starter",
+          sport: sport || "football",
+          status: "active",
           startDate: new Date().toISOString(),
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          paypalOrderId: orderId
+          endDate: new Date(
+            Date.now() + 30 * 24 * 60 * 60 * 1000,
+          ).toISOString(),
+          paypalOrderId: orderId,
         };
-        
+
         await Database.saveSubscription(userId, subscription);
         await Database.savePayment(userId, {
           orderId,
-          status: 'completed',
+          status: "completed",
           amount: captureResult.data.purchase_units[0].amount.value,
           currency: captureResult.data.purchase_units[0].amount.currency_code,
           sport,
-          tier
+          tier,
         });
-        
-        await redis.zadd('subscriptions:active', Date.now(), userId);
+
+        await redis.zadd("subscriptions:active", Date.now(), userId);
         await redis.del(`payment:pending:${orderId}`);
-        
-        console.log(`✅ Subscription activated for user ${userId}: ${sport} ${tier}`);
+
+        console.log(
+          `✅ Subscription activated for user ${userId}: ${sport} ${tier}`,
+        );
       } else {
-        console.error('Payment capture failed or incomplete:', captureResult);
+        console.error("Payment capture failed or incomplete:", captureResult);
         await Database.savePayment(userId, {
           orderId,
-          status: 'failed',
-          error: 'Capture failed or not completed'
+          status: "failed",
+          error: "Capture failed or not completed",
         });
       }
     } catch (error) {
-      console.error('PayPal capture error:', error);
+      console.error("PayPal capture error:", error);
       await Database.savePayment(userId, {
         orderId,
-        status: 'failed',
-        error: error.message
+        status: "failed",
+        error: error.message,
       });
     }
   }
@@ -87,11 +91,11 @@ export class PaymentProcessor {
     void _resource;
 
     console.log(`PayPal webhook received: ${event}`);
-    
-    if (event === 'PAYMENT.CAPTURE.COMPLETED') {
-      console.log('Payment capture completed via webhook');
-    } else if (event === 'PAYMENT.CAPTURE.DENIED') {
-      console.log('Payment capture denied');
+
+    if (event === "PAYMENT.CAPTURE.COMPLETED") {
+      console.log("Payment capture completed via webhook");
+    } else if (event === "PAYMENT.CAPTURE.DENIED") {
+      console.log("Payment capture denied");
     }
   }
 }

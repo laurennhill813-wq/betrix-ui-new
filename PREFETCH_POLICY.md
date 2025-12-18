@@ -1,5 +1,4 @@
-Prefetching & Cache Policy
-==========================
+# Prefetching & Cache Policy
 
 This project includes a prefetch scheduler that warms caches for free-data providers. Use the following guidance when configuring the scheduler and cache TTLs.
 
@@ -11,5 +10,6 @@ This project includes a prefetch scheduler that warms caches for free-data provi
 - Respect robots.txt: scrapers should check `robots.txt` and honor Crawl-delay directives.
 
 Operational notes
+
 - Monitor `prefetch:error` and `prefetch:updates` channels to detect provider throttling and outages.
 - If you plan to increase polling frequency, contact the provider or use official paid APIs when available.

@@ -49,7 +49,7 @@ class AlertsService {
    */
   async broadcastMatchEvent(fixtureId, _event) {
     try {
-      const keys = await this.redis.keys('alerts:*:matches');
+      const keys = await this.redis.keys("alerts:*:matches");
       const subscribers = [];
 
       for (const key of keys) {

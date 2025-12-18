@@ -7,11 +7,13 @@ Get BETRIX running locally in **15 minutes** with all production features.
 ### Step 1: Prerequisites (2 min)
 
 **Required:**
+
 - [Node.js ≥ 20](https://nodejs.org/) - Download and install
 - [Redis](https://redis.io/) - Install locally or use [Upstash](https://upstash.com/) (free cloud option)
 - [Telegram Bot Token](https://t.me/BotFather) - Create bot via @BotFather
 
 **Optional (for AI features):**
+
 - [Google Gemini API Key](https://aistudio.google.com/app/apikey) - Free tier available
 - Azure OpenAI credentials (if using Azure as fallback)
 
@@ -37,6 +39,7 @@ notepad .env
 ```
 
 **Minimal `.env` (required to run):**
+
 ```env
 # Telegram
 TELEGRAM_TOKEN=<your_bot_token_from_BotFather>
@@ -54,11 +57,13 @@ GEMINI_API_KEY=your_gemini_key_here
 ### Step 4: Start Services (5 min)
 
 **Terminal 1 - Start Worker (prefetch + queue processor):**
+
 ```powershell
 node src/worker-final.js
 ```
 
 Expected output:
+
 ```
 [WORKER] Started with AI providers: gemini
 [WORKER] Prefetch loop activated (interval: 60s)
@@ -67,11 +72,13 @@ Expected output:
 ```
 
 **Terminal 2 - Start Web Server (HTTP + WebSocket):**
+
 ```powershell
 node src/app.js
 ```
 
 Expected output:
+
 ```
 [HTTP] Server listening on port 5000
 [WS] WebSocket initialized
@@ -102,15 +109,16 @@ curl http://localhost:5000/live/leagues
 
 No API keys needed for these:
 
-| Source | Endpoint | Update | Free Tier |
-|--------|----------|--------|-----------|
-| **Leagues** | `/live/leagues` | 30s | ✓ |
-| **Standings** | `/live/standings?league=BL` | 30s | ✓ |
-| **Sports News** | `/live/news` | 60s | ✓ |
-| **Highlights** | `/live/highlights` | 120s | ✓ |
-| **Historical Data** | `/live/fixtures?season=2024` | 1h | ✓ |
+| Source              | Endpoint                     | Update | Free Tier |
+| ------------------- | ---------------------------- | ------ | --------- |
+| **Leagues**         | `/live/leagues`              | 30s    | ✓         |
+| **Standings**       | `/live/standings?league=BL`  | 30s    | ✓         |
+| **Sports News**     | `/live/news`                 | 60s    | ✓         |
+| **Highlights**      | `/live/highlights`           | 120s   | ✓         |
+| **Historical Data** | `/live/fixtures?season=2024` | 1h     | ✓         |
 
 Test in browser:
+
 ```
 http://localhost:5000/live/leagues
 http://localhost:5000/live/news
@@ -119,11 +127,13 @@ http://localhost:5000/live/news
 ## 🤖 AI Features (Optional)
 
 ### Without API Keys (Offline Mode)
+
 - Bot receives messages
 - Responds with helpful defaults
 - No AI analysis, but fully functional
 
 ### With Gemini API Key
+
 1. Get free key: https://aistudio.google.com/app/apikey
 2. Add to `.env`:
    ```env
@@ -133,7 +143,9 @@ http://localhost:5000/live/news
 4. Bot now provides intelligent analysis
 
 ### Multi-Provider Fallback Chain
+
 If Gemini fails, tries:
+
 1. Gemini (primary)
 2. Azure OpenAI (if configured)
 3. HuggingFace (if token set)
@@ -143,10 +155,13 @@ If Gemini fails, tries:
 ## 📈 Monitoring
 
 ### Real-Time Dashboard
+
 ```
 http://localhost:5000/monitor.html
 ```
+
 Shows:
+
 - ✅ Server status
 - 📊 Queue statistics
 - 🤖 Active AI provider
@@ -154,6 +169,7 @@ Shows:
 - 🔄 Update frequency
 
 ### API Metrics
+
 ```powershell
 # JSON API
 curl http://localhost:5000/monitor
@@ -185,17 +201,20 @@ npm test
 ## 🌐 Next Steps
 
 ### For Development
+
 1. Edit handlers: `src/handlers/`
 2. Add new commands: `src/telegram-handler.js`
 3. Customize AI: `src/ai-composite-chain.js`
 
 ### For Production
+
 1. Follow [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
 2. Use managed Redis (Upstash, Redis Cloud)
 3. Deploy to Render, Railway, or Heroku
 4. Set up monitoring alerts
 
 ### Explore Features
+
 - **Admin Console**: `/admin` (requires auth)
 - **WebSocket Events**: Real-time prefetch updates
 - **Custom Cache**: Configure intervals in `src/config/cache-config.js`
@@ -204,6 +223,7 @@ npm test
 ## 🔧 Common Issues
 
 ### "Cannot connect to Redis"
+
 ```powershell
 # Verify Redis is running
 redis-cli ping
@@ -216,6 +236,7 @@ redis-cli ping
 ```
 
 ### "Telegram bot not responding"
+
 ```powershell
 # Verify webhook setup
 curl http://localhost:5000/health
@@ -225,6 +246,7 @@ curl http://localhost:5000/health
 ```
 
 ### "WebSocket connection failed"
+
 ```powershell
 # Verify web server is running
 # Check browser console for errors
@@ -233,23 +255,25 @@ curl http://localhost:5000/health
 
 ## 📚 Documentation Structure
 
-| File | Purpose |
-|------|---------|
-| **README.md** | Overview, features, architecture |
-| **QUICK_START.md** | This file - 15-min setup |
+| File                        | Purpose                                            |
+| --------------------------- | -------------------------------------------------- |
+| **README.md**               | Overview, features, architecture                   |
+| **QUICK_START.md**          | This file - 15-min setup                           |
 | **INFRASTRUCTURE_GUIDE.md** | Complete architecture, monitoring, troubleshooting |
-| **API_REFERENCE.md** | All endpoints, WebSocket, Pub/Sub channels |
-| **PREFETCH_POLICY.md** | Cache strategy, backoff tuning, recommendations |
-| **DEPLOYMENT_GUIDE.md** | Production deployment on Render/Heroku/Railway |
+| **API_REFERENCE.md**        | All endpoints, WebSocket, Pub/Sub channels         |
+| **PREFETCH_POLICY.md**      | Cache strategy, backoff tuning, recommendations    |
+| **DEPLOYMENT_GUIDE.md**     | Production deployment on Render/Heroku/Railway     |
 
 ## ⚡ Pro Tips
 
 1. **Local Redis via Docker** (if you have Docker):
+
    ```powershell
    docker run -d -p 6379:6379 redis:latest
    ```
 
 2. **Watch prefetch activity** in real-time:
+
    ```powershell
    # Terminal 3
    redis-cli
@@ -257,6 +281,7 @@ curl http://localhost:5000/health
    ```
 
 3. **Debug mode** - Add to `.env`:
+
    ```env
    DEBUG=betrix:*
    ```

@@ -7,8 +7,7 @@ import { Logger } from "../utils/logger.js";
 
 const logger = new Logger("ContentGen");
 
-class Cvoid logger;
-ontentGenerationService {
+class ContentGenerationService {
   /**
    * Generate varied betting tips
    */
@@ -62,15 +61,40 @@ The ${match.favorite || "home team"} are favored, but ${match.contrarian || "the
    */
   static generateStreakContent(streak) {
     const content = [
-      { streak: 1, title: "🚀 Getting Started", msg: "First win! You're on your way." },
-      { streak: 3, title: "🔥 Hot Hand", msg: "3 in a row! The momentum is real." },
-      { streak: 5, title: "⭐ Unstoppable", msg: "5 straight! You're in the zone." },
-      { streak: 10, title: "🏆 Legendary", msg: "10-win streak! You're a BETRIX master." },
-      { streak: 20, title: "👑 King Status", msg: "20 wins! You're officially untouchable." },
-      { streak: 50, title: "🌟 Hall of Fame", msg: "50-win streak! You're a betting legend!" },
+      {
+        streak: 1,
+        title: "🚀 Getting Started",
+        msg: "First win! You're on your way.",
+      },
+      {
+        streak: 3,
+        title: "🔥 Hot Hand",
+        msg: "3 in a row! The momentum is real.",
+      },
+      {
+        streak: 5,
+        title: "⭐ Unstoppable",
+        msg: "5 straight! You're in the zone.",
+      },
+      {
+        streak: 10,
+        title: "🏆 Legendary",
+        msg: "10-win streak! You're a BETRIX master.",
+      },
+      {
+        streak: 20,
+        title: "👑 King Status",
+        msg: "20 wins! You're officially untouchable.",
+      },
+      {
+        streak: 50,
+        title: "🌟 Hall of Fame",
+        msg: "50-win streak! You're a betting legend!",
+      },
     ];
 
-    const match = content.find((c) => c.streak === streak) || content[content.length - 1];
+    const match =
+      content.find((c) => c.streak === streak) || content[content.length - 1];
     return `${match.title}\n\n${match.msg}\n\nKeep the momentum going! 🎯`;
   }
 

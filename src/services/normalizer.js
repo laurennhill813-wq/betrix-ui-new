@@ -2,11 +2,37 @@
 
 function normalizeMatch(raw, source) {
   // raw is source specific; try to extract common fields
-  const out = { source, home: raw.HomeTeam || raw.home || raw.Home || raw.hometeam || raw.home_team || raw.home_name || null, away: raw.AwayTeam || raw.away || raw.Away || raw.awayteam || raw.away_name || null, date: raw.MatchDate || raw.Date || raw.date || raw.match_date || raw.datetime || null, score: null };
-  if (raw.FTHG != null || raw.fthg != null) out.score = `${raw.FTHG || raw.fthg}-${raw.FTAG || raw.ftag || raw.ftag || ''}`;
+  const out = {
+    source,
+    home:
+      raw.HomeTeam ||
+      raw.home ||
+      raw.Home ||
+      raw.hometeam ||
+      raw.home_team ||
+      raw.home_name ||
+      null,
+    away:
+      raw.AwayTeam ||
+      raw.away ||
+      raw.Away ||
+      raw.awayteam ||
+      raw.away_name ||
+      null,
+    date:
+      raw.MatchDate ||
+      raw.Date ||
+      raw.date ||
+      raw.match_date ||
+      raw.datetime ||
+      null,
+    score: null,
+  };
+  if (raw.FTHG != null || raw.fthg != null)
+    out.score = `${raw.FTHG || raw.fthg}-${raw.FTAG || raw.ftag || raw.ftag || ""}`;
   out.confidence = 0.7; // baseline
-  if (source === 'openligadb') out.confidence += 0.15;
-  if (source === 'footballdata') out.confidence += 0.1;
+  if (source === "openligadb") out.confidence += 0.15;
+  if (source === "footballdata") out.confidence += 0.1;
   return out;
 }
 

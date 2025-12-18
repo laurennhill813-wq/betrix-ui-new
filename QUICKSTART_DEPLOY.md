@@ -21,6 +21,7 @@
 1. **Get the proxy CA certificate** from your network admin (usually `.cer` or `.pem` file)
 
 2. **Run the installation script:**
+
    ```powershell
    cd 'd:\betrix-ui (1)\betrix-ui'
    .\docs\dev-scripts\install-proxy-ca.ps1 -CertPath 'C:\path\to\proxy-ca.cer'
@@ -48,6 +49,7 @@ cd 'd:\betrix-ui (1)\betrix-ui'
 ```
 
 This will prompt you for:
+
 - `TELEGRAM_TOKEN` (your bot token)
 - `REDIS_URL` (redis://default:password@host:6379)
 - `SPORTSMONKS_API` (your SportMonks token)
@@ -77,6 +79,7 @@ node src/worker-final.js
 ```
 
 **Expected output:**
+
 ```
 [Worker] Started: BRPOPLPUSH queue handler
 [Redis] Connected to redis://default:...
@@ -106,6 +109,7 @@ node scripts/validate-telegram-live.js
 ```
 
 **Expected output:**
+
 ```
 ✅ All required env vars set
 ✅ Redis connected: PONG
@@ -152,13 +156,13 @@ redis-cli GET worker:heartbeat
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| `/live` shows "Unknown vs Unknown" | ① Verify `SPORTSMONKS_API` token is set and correct<br>② Run: `node scripts/test-sportmonks-axios.js`<br>③ Check worker logs for errors |
-| Bot doesn't respond to `/live` | ① Ensure worker is running: `redis-cli GET worker:heartbeat`<br>② Verify `TELEGRAM_TOKEN` is set<br>③ Check webhook is registered |
-| "NOAUTH" errors in logs | ① Wrong Redis password in `REDIS_URL`<br>② Example correct format: `redis://default:mypassword@host:6379`<br>③ Re-run setup script to update |
-| TLS certificate errors | ① Run proxy CA installer: `.\docs\dev-scripts\install-proxy-ca.ps1`<br>② Or allowlist `api.sportmonks.com` in proxy settings<br>③ Verify: `node scripts/inspect-sportmonks-cert.js` |
-| Redis connection refused | ① Check Redis is running: `redis-cli PING`<br>② Verify `REDIS_URL` host/port/password<br>③ If cloud Redis, allow firewall rule for your IP |
+| Problem                            | Solution                                                                                                                                                                            |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/live` shows "Unknown vs Unknown" | ① Verify `SPORTSMONKS_API` token is set and correct<br>② Run: `node scripts/test-sportmonks-axios.js`<br>③ Check worker logs for errors                                             |
+| Bot doesn't respond to `/live`     | ① Ensure worker is running: `redis-cli GET worker:heartbeat`<br>② Verify `TELEGRAM_TOKEN` is set<br>③ Check webhook is registered                                                   |
+| "NOAUTH" errors in logs            | ① Wrong Redis password in `REDIS_URL`<br>② Example correct format: `redis://default:mypassword@host:6379`<br>③ Re-run setup script to update                                        |
+| TLS certificate errors             | ① Run proxy CA installer: `.\docs\dev-scripts\install-proxy-ca.ps1`<br>② Or allowlist `api.sportmonks.com` in proxy settings<br>③ Verify: `node scripts/inspect-sportmonks-cert.js` |
+| Redis connection refused           | ① Check Redis is running: `redis-cli PING`<br>② Verify `REDIS_URL` host/port/password<br>③ If cloud Redis, allow firewall rule for your IP                                          |
 
 ---
 
@@ -167,6 +171,7 @@ redis-cli GET worker:heartbeat
 ### For Heroku / Railway / Render:
 
 1. Set config variables in platform dashboard:
+
    ```
    TELEGRAM_TOKEN=...
    REDIS_URL=...
@@ -182,11 +187,12 @@ redis-cli GET worker:heartbeat
 ### For Self-Hosted Linux:
 
 1. **Create systemd service** (`/etc/systemd/system/betrix-worker.service`):
+
    ```ini
    [Unit]
    Description=BETRIX Worker
    After=network.target redis.service
-   
+
    [Service]
    Type=simple
    User=betrix
@@ -195,12 +201,13 @@ redis-cli GET worker:heartbeat
    ExecStart=/usr/bin/node /opt/betrix/src/worker-final.js
    Restart=always
    RestartSec=10
-   
+
    [Install]
    WantedBy=multi-user.target
    ```
 
 2. **Start service**:
+
    ```bash
    sudo systemctl enable betrix-worker
    sudo systemctl start betrix-worker

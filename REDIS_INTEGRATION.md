@@ -21,6 +21,7 @@ USE_MOCK_REDIS=0
 ```
 
 **URL Components:**
+
 - **Protocol:** `redis://` (or `rediss://` for TLS)
 - **Auth:** `default:k5hVSqo106q0tTX9wbulgJPK4SiRc9UR` (username:password)
 - **Host:** `redis-14261.c282.east-us-mz.azure.cloud.redislabs.com`
@@ -35,13 +36,14 @@ USE_MOCK_REDIS=0
 
 ```javascript
 // File: src/lib/redis-factory.js
-import { getRedis } from './lib/redis-factory.js';
+import { getRedis } from "./lib/redis-factory.js";
 
 // Anywhere in your code:
 const redis = getRedis(); // Singleton - same instance every time
 ```
 
 **Features:**
+
 - ✅ Singleton pattern - ensures single connection per process
 - ✅ Automatic connection pooling
 - ✅ Intelligent retry strategy with exponential backoff
@@ -52,42 +54,52 @@ const redis = getRedis(); // Singleton - same instance every time
 ### Integration Points
 
 #### 1. **Application Server** (`src/app.js`)
+
 ```javascript
 const redis = getRedis();
 const rssAggregator = new RSSAggregator(redis);
 const scrapers = new Scrapers(redis);
 ```
+
 - Handles caching, session management, logging
 - Pub/Sub for real-time updates
 
 #### 2. **Worker Process** (`src/worker.js`)
+
 ```javascript
-const redis = getRedis({ /* custom retry options */ });
+const redis = getRedis({
+  /* custom retry options */
+});
 ```
+
 - Processes async jobs
 - Maintains heartbeat and metrics
 - Tracks command usage and predictions
 
 #### 3. **Telegram Handlers** (`src/handlers/telegram-handler-v2.js`)
+
 ```javascript
 // Passed as parameter
 async function handleMessage(update, redis, services) {
   const userData = await redis.hgetall(`user:${userId}`);
-  await redis.set(`cache:key`, JSON.stringify(data), 'EX', 3600);
+  await redis.set(`cache:key`, JSON.stringify(data), "EX", 3600);
 }
 ```
+
 - User data storage and retrieval
 - Payment state management
 - Bet slip tracking
 - Session caching
 
 #### 4. **Payment Router** (`src/handlers/payment-router.js`)
+
 ```javascript
 async function createPaymentOrder(redis, userId, tier, provider, region, data) {
   const orderId = generateOrderId();
   await redis.setex(`payment:${orderId}`, 3600, JSON.stringify(paymentData));
 }
 ```
+
 - Order creation and tracking
 - Payment status updates
 - Subscription management
@@ -97,15 +109,23 @@ async function createPaymentOrder(redis, userId, tier, provider, region, data) {
 ## 🔄 Data Structures & Operations
 
 ### User Data (Hashes)
+
 ```javascript
 // Store user profile
-await redis.hset(`user:${userId}`, 
-  'tier', 'PLUS',
-  'username', 'john_doe',
-  'phone', '+254712345678',
-  'email', 'john@example.com',
-  'referralCode', 'REF123',
-  'subscriptionExpiry', '2024-12-31T23:59:59Z'
+await redis.hset(
+  `user:${userId}`,
+  "tier",
+  "PLUS",
+  "username",
+  "john_doe",
+  "phone",
+  "+254712345678",
+  "email",
+  "john@example.com",
+  "referralCode",
+  "REF123",
+  "subscriptionExpiry",
+  "2024-12-31T23:59:59Z",
 );
 
 // Retrieve all user data
@@ -113,46 +133,58 @@ const userData = await redis.hgetall(`user:${userId}`);
 ```
 
 ### Payment Orders (Strings with TTL)
+
 ```javascript
 // Store payment order for 1 hour
 const orderId = `order_${Date.now()}`;
-await redis.setex(`payment:${orderId}`, 3600, JSON.stringify({
-  userId: 123,
-  tier: 'SIGNUP',
-  amount: 150,
-  currency: 'KES',
-  provider: 'SAFARICOM_TILL',
-  status: 'pending',
-  createdAt: new Date().toISOString()
-}));
+await redis.setex(
+  `payment:${orderId}`,
+  3600,
+  JSON.stringify({
+    userId: 123,
+    tier: "SIGNUP",
+    amount: 150,
+    currency: "KES",
+    provider: "SAFARICOM_TILL",
+    status: "pending",
+    createdAt: new Date().toISOString(),
+  }),
+);
 ```
 
 ### Bet Slips (Strings with TTL)
+
 ```javascript
 // Store active bet slip for 1 hour
-await redis.setex(`betslip:${betslipId}`, 3600, JSON.stringify({
-  userId: 123,
-  matches: [
-    { id: 1, home: 'Arsenal', away: 'Chelsea', odds: 1.85 },
-    { id: 2, home: 'Man City', away: 'Liverpool', odds: 2.10 }
-  ],
-  totalOdds: 3.885,
-  stake: 100,
-  createdAt: new Date().toISOString()
-}));
+await redis.setex(
+  `betslip:${betslipId}`,
+  3600,
+  JSON.stringify({
+    userId: 123,
+    matches: [
+      { id: 1, home: "Arsenal", away: "Chelsea", odds: 1.85 },
+      { id: 2, home: "Man City", away: "Liverpool", odds: 2.1 },
+    ],
+    totalOdds: 3.885,
+    stake: 100,
+    createdAt: new Date().toISOString(),
+  }),
+);
 ```
 
 ### User Favorites (Sets)
+
 ```javascript
 // Add/remove favorite teams
-await redis.sadd(`user:${userId}:favorites`, 'Arsenal', 'Chelsea', 'Man City');
-await redis.srem(`user:${userId}:favorites`, 'Tottenham');
+await redis.sadd(`user:${userId}:favorites`, "Arsenal", "Chelsea", "Man City");
+await redis.srem(`user:${userId}:favorites`, "Tottenham");
 
 // Get all favorites
 const favorites = await redis.smembers(`user:${userId}:favorites`);
 ```
 
 ### Command Usage Tracking (Counters)
+
 ```javascript
 // Track command usage per month
 const usageKey = `cmd:usage:${userId}:/live:${monthYear}`;
@@ -161,15 +193,17 @@ await redis.expire(usageKey, 2592000); // 30 days
 ```
 
 ### Leaderboards (Sorted Sets)
+
 ```javascript
 // Track prediction accuracy
-await redis.zadd(`predictions:accuracy`, 95.5, 'user:123:arsenal-chelsea');
+await redis.zadd(`predictions:accuracy`, 95.5, "user:123:arsenal-chelsea");
 
 // Get top predictions
-const top = await redis.zrevrange(`predictions:accuracy`, 0, 9, 'WITHSCORES');
+const top = await redis.zrevrange(`predictions:accuracy`, 0, 9, "WITHSCORES");
 ```
 
 ### Job Queues (Lists)
+
 ```javascript
 // Push job to queue
 await redis.rpush(`telegram-jobs`, JSON.stringify(jobData));
@@ -183,46 +217,51 @@ const job = await redis.lpop(`telegram-jobs`);
 ## ⚡ Key Operations Reference
 
 ### Strings
+
 ```javascript
-await redis.set(key, value);                  // Set value
-await redis.get(key);                         // Get value
-await redis.setex(key, seconds, value);       // Set with TTL
-await redis.del(key);                         // Delete key
-await redis.incr(key);                        // Increment number
+await redis.set(key, value); // Set value
+await redis.get(key); // Get value
+await redis.setex(key, seconds, value); // Set with TTL
+await redis.del(key); // Delete key
+await redis.incr(key); // Increment number
 ```
 
 ### Hashes (User Data)
+
 ```javascript
-await redis.hset(key, field, value);          // Set hash field
-await redis.hget(key, field);                 // Get hash field
-await redis.hgetall(key);                     // Get all fields
-await redis.hincrby(key, field, count);       // Increment hash field
-await redis.hdel(key, field);                 // Delete hash field
+await redis.hset(key, field, value); // Set hash field
+await redis.hget(key, field); // Get hash field
+await redis.hgetall(key); // Get all fields
+await redis.hincrby(key, field, count); // Increment hash field
+await redis.hdel(key, field); // Delete hash field
 ```
 
 ### Sets (Favorites, Favorites)
+
 ```javascript
-await redis.sadd(key, member);                // Add to set
-await redis.smembers(key);                    // Get all members
-await redis.srem(key, member);                // Remove from set
-await redis.sismember(key, member);           // Check membership
+await redis.sadd(key, member); // Add to set
+await redis.smembers(key); // Get all members
+await redis.srem(key, member); // Remove from set
+await redis.sismember(key, member); // Check membership
 ```
 
 ### Sorted Sets (Rankings, Leaderboards)
+
 ```javascript
-await redis.zadd(key, score, member);         // Add scored member
-await redis.zrange(key, 0, -1);               // Get members (ascending)
-await redis.zrevrange(key, 0, -1);            // Get members (descending)
-await redis.zrange(key, 0, -1, 'WITHSCORES'); // Get with scores
+await redis.zadd(key, score, member); // Add scored member
+await redis.zrange(key, 0, -1); // Get members (ascending)
+await redis.zrevrange(key, 0, -1); // Get members (descending)
+await redis.zrange(key, 0, -1, "WITHSCORES"); // Get with scores
 ```
 
 ### Lists (Job Queues)
+
 ```javascript
-await redis.lpush(key, value);                // Push to head
-await redis.rpush(key, value);                // Push to tail
-await redis.lpop(key);                        // Pop from head
-await redis.rpop(key);                        // Pop from tail
-await redis.lrange(key, 0, -1);               // Get range
+await redis.lpush(key, value); // Push to head
+await redis.rpush(key, value); // Push to tail
+await redis.lpop(key); // Pop from head
+await redis.rpop(key); // Pop from tail
+await redis.lrange(key, 0, -1); // Get range
 ```
 
 ---
@@ -230,14 +269,15 @@ await redis.lrange(key, 0, -1);               // Get range
 ## 🛡️ Error Handling
 
 ### Safe User Data Retrieval
+
 ```javascript
 // Helper function that handles WRONGTYPE errors gracefully
 async function safeGetUserData(redis, key) {
   try {
     const data = await redis.hgetall(key);
-    return (data && Object.keys(data).length > 0) ? data : null;
+    return data && Object.keys(data).length > 0 ? data : null;
   } catch (e) {
-    if (e.message && e.message.includes('WRONGTYPE')) {
+    if (e.message && e.message.includes("WRONGTYPE")) {
       // Key exists but is wrong type - delete and start fresh
       try {
         await redis.del(key);
@@ -255,19 +295,20 @@ const userData = await safeGetUserData(redis, `user:${userId}`);
 ```
 
 ### Connection Error Handling
+
 ```javascript
-redis.on('error', (err) => {
-  if (err.message.includes('NOAUTH')) {
-    console.error('Invalid Redis password');
-  } else if (err.message.includes('ECONNREFUSED')) {
-    console.error('Cannot connect to Redis host');
-  } else if (err.message.includes('ETIMEDOUT')) {
-    console.error('Redis connection timeout');
+redis.on("error", (err) => {
+  if (err.message.includes("NOAUTH")) {
+    console.error("Invalid Redis password");
+  } else if (err.message.includes("ECONNREFUSED")) {
+    console.error("Cannot connect to Redis host");
+  } else if (err.message.includes("ETIMEDOUT")) {
+    console.error("Redis connection timeout");
   }
 });
 
-redis.on('reconnecting', () => {
-  console.log('Attempting to reconnect to Redis...');
+redis.on("reconnecting", () => {
+  console.log("Attempting to reconnect to Redis...");
 });
 ```
 
@@ -276,11 +317,13 @@ redis.on('reconnecting', () => {
 ## 🧪 Testing & Validation
 
 ### Run Connection Validation
+
 ```bash
 node scripts/validate-redis-connection.js
 ```
 
 **Tests:**
+
 - ✅ Environment configuration
 - ✅ Direct ioredis connection
 - ✅ All basic operations (SET, GET, DEL, HSET, LPUSH, etc.)
@@ -289,6 +332,7 @@ node scripts/validate-redis-connection.js
 - ✅ Cleanup of test data
 
 ### Expected Output
+
 ```
 ✅ REDIS_URL environment variable...... Configured: redis://default:k5h...
 ✅ REDIS_URL format validation......... Protocol: redis://, Host: redis-14261.c282.east-us-mz.azure.cloud.redislabs.com:14261
@@ -314,12 +358,14 @@ node scripts/validate-redis-connection.js
 ## 🔍 Monitoring & Debugging
 
 ### Check Redis Connection Status
+
 ```javascript
 const status = await redis.ping();
 console.log(status); // 'PONG' if healthy
 ```
 
 ### View Redis Keys (Development Only)
+
 ```bash
 # Connect to Redis CLI
 redis-cli -u 'redis://default:k5hVSqo106q0tTX9wbulgJPK4SiRc9UR@redis-14261.c282.east-us-mz.azure.cloud.redislabs.com:14261'
@@ -335,19 +381,20 @@ redis-cli -u 'redis://default:k5hVSqo106q0tTX9wbulgJPK4SiRc9UR@redis-14261.c282.
 ```
 
 ### Health Check Endpoint
+
 ```javascript
 // In express app or worker
-app.get('/health/redis', async (req, res) => {
+app.get("/health/redis", async (req, res) => {
   try {
     const status = await redis.ping();
     const dbsize = await redis.dbsize();
     res.json({
-      redis: status === 'PONG' ? 'OK' : 'FAIL',
+      redis: status === "PONG" ? "OK" : "FAIL",
       keys: dbsize,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    res.status(500).json({ redis: 'ERROR', error: error.message });
+    res.status(500).json({ redis: "ERROR", error: error.message });
   }
 });
 ```
@@ -415,24 +462,29 @@ cache:{serviceName}:{key}           # General cache (TTL: varies)
 ### Connection Issues
 
 **Error:** `NOAUTH Invalid password`
+
 - ✅ **Solution:** Verify Redis URL password is correct
 - Check: `redis://default:YOUR_PASSWORD@HOST:PORT`
 
 **Error:** `ECONNREFUSED Connection refused`
+
 - ✅ **Solution:** Verify hostname and port are correct
 - Check: Port 14261 is accessible from your network
 
 **Error:** `ETIMEDOUT Connection timeout`
+
 - ✅ **Solution:** Check network connectivity and firewall
 - Verify: Network allows outbound to Azure Redis
 
 ### Data Issues
 
 **Error:** `WRONGTYPE Operation against a key holding the wrong kind of value`
+
 - ✅ **Solution:** Use `safeGetUserData()` helper or delete key
 - Example: `await redis.del(`user:${userId}`)` then recreate
 
 **Missing Data After Restart**
+
 - ✅ **Expected:** Redis data is in-memory, not persistent by default
 - Check: Enable AOF (Append Only File) in Redis settings for persistence
 - Note: Azure Redis doesn't persist by default
@@ -440,11 +492,13 @@ cache:{serviceName}:{key}           # General cache (TTL: varies)
 ### Performance Issues
 
 **Slow Response Times**
+
 - Check: Database size with `DBSIZE`
 - Clean: Remove expired keys with `FLUSHDB`
 - Monitor: CPU and memory usage in Azure Redis dashboard
 
 **Connection Pool Exhaustion**
+
 - Verify: All connections properly closed with `redis.quit()`
 - Check: Middleware properly closes connections
 

@@ -1,7 +1,9 @@
 # BETRIX Session Improvements Summary
 
 ## Session Overview
+
 This session focused on completing three major request phases:
+
 1. ✅ Redis telemetry injection + callback alerting
 2. ✅ Enhanced signup flow with payment method selection
 3. ✅ Public betting/odds scrapers (Goal.com, Flashscore)
@@ -11,6 +13,7 @@ This session focused on completing three major request phases:
 ## Commits & Changes
 
 ### Commit 8f48653: Redis Injection + Callback Alerting
+
 **File:** `src/worker-final.js`
 
 - **Feature 1: Telemetry Redis Injection**
@@ -31,11 +34,14 @@ This session focused on completing three major request phases:
 ---
 
 ### Commit 47df128: Enhanced Signup Flow + Proxy Support
-**Files:** 
+
+**Files:**
+
 - `src/handlers/telegram-handler-v2.js` (signup flow refactor)
 - `src/services/live-scraper.js` (proxy rotation setup)
 
 #### Signup Flow Improvements:
+
 1. **Multi-Step Onboarding (Name → Age → Country → Payment Method)**
    - Captures user profile in Redis hash `user:${userId}:profile` with fields:
      - `name` (required, 2+ chars)
@@ -60,6 +66,7 @@ This session focused on completing three major request phases:
    - Suggests contacting support on failure with specific error message
 
 #### Proxy Support Skeleton (Not Yet Wired):
+
 - Added proxy parsing from `LIVE_SCRAPER_PROXIES` env var (comma-separated)
 - Implemented proxy rotation via `getNextProxy()` function
 - Proxy logging ready (actual proxy agent integration pending)
@@ -69,12 +76,15 @@ This session focused on completing three major request phases:
 ---
 
 ### Commit 2be9d16: Public Betting Scrapers
+
 **Files:**
+
 - `src/services/goal-scraper.js` (NEW)
 - `src/services/flashscore-scraper.js` (NEW)
 - `src/services/sports-aggregator.js` (integration)
 
 #### Goal.com Scraper Features:
+
 - **Function:** `getLiveMatchesFromGoal(league)`
   - Scrapes Goal.com fixtures page using Cheerio
   - Extracts team names, scores, basic odds data
@@ -89,6 +99,7 @@ This session focused on completing three major request phases:
 - **Helper:** `getGoalLeagueCodes()` - Maps league IDs to Goal.com URL paths
 
 #### Flashscore Scraper Features:
+
 - **Function:** `getLiveMatchesFromFlashscore(sport)`
   - Scrapes Flashscore main page for live matches
   - HTML fallback (Flashscore uses heavy JS; full dynamic rendering would require Puppeteer)
@@ -107,6 +118,7 @@ This session focused on completing three major request phases:
 - **Helper:** `getFlashscoreLeagueIds()` - Reference for league numeric IDs
 
 #### Sports Aggregator Integration:
+
 - **Live Matches Priority Chain (Updated):**
   1. SportsData.io
   2. SportsMonks
@@ -139,39 +151,45 @@ This session focused on completing three major request phases:
 ## Technical Improvements Summary
 
 ### Observability & Monitoring
+
 ✅ Real-time callback_data truncation alerts (Redis telemetry → admin Telegram)  
 ✅ Repetition pattern detection for corrupted callbacks  
-✅ Automatic threshold-based alerting (configurable in code)  
+✅ Automatic threshold-based alerting (configurable in code)
 
 ### User Data & Persistence
+
 ✅ User profile hash in Redis: `user:${userId}:profile` (name, age, country, paymentMethod)  
 ✅ Multi-step signup preserves all fields in single Redis hash  
-✅ Payment method preference stored for future transactions  
+✅ Payment method preference stored for future transactions
 
 ### Payment Flow
+
 ✅ Country-aware payment method selection  
 ✅ Regional fee calculation (150 KES Kenya, 1 USD others)  
 ✅ Enhanced payment verification with method validation  
-✅ Clear confirmation messages with tier benefits  
+✅ Clear confirmation messages with tier benefits
 
 ### Data Quality & Live Scores
+
 ✅ Goal.com live matches & odds (no registration)  
 ✅ Flashscore live scoreboard (no registration)  
 ✅ Automatic league mapping for new sources  
 ✅ Per-domain rate-limiting + exponential backoff retry  
-✅ UA rotation (4 browsers) to reduce blocking  
+✅ UA rotation (4 browsers) to reduce blocking
 
 ### Infrastructure
+
 ✅ Proxy rotation skeleton ready for LIVE_SCRAPER_PROXIES env var  
 ✅ Flexible provider enable/disable via config  
 ✅ Health tracking for each provider  
-✅ Cache TTL optimization (2min live, 30min news, 10min odds)  
+✅ Cache TTL optimization (2min live, 30min news, 10min odds)
 
 ---
 
 ## Environment Configuration
 
 ### New Environment Variables (Optional)
+
 ```bash
 # Live scraper rate-limiter interval (ms, default 500)
 LIVE_SCRAPER_MIN_INTERVAL_MS=500
@@ -184,6 +202,7 @@ TELEGRAM_ADMIN_ID=123456789
 ```
 
 ### Redis Keys Used (New)
+
 ```
 betrix:telemetry:callback_truncated_outgoing    # Count of truncated callbacks
 betrix:telemetry:callback_repetition_odds       # Count of odds_* repetition patterns
@@ -203,6 +222,7 @@ user:${userId}:profile:paymentMethod            # Preferred payment method
 ## Testing & Validation
 
 ### Manual Test Commands
+
 ```bash
 # Test Goal.com scraper
 node -e "import('./src/services/goal-scraper.js').then(m => m.getLiveMatchesFromGoal('premier-league').then(r => console.log(JSON.stringify(r, null, 2))))"
@@ -215,6 +235,7 @@ node -e "import('./src/services/flashscore-scraper.js').then(m => m.getLiveMatch
 ```
 
 ### Known Limitations
+
 - Goal.com & Flashscore selectors may break if site redesigns (fragile scraping)
 - HTML-only fallback for Flashscore (JS-heavy site; Puppeteer would improve reliability)
 - Proxy integration skeleton (actual proxy agent not yet connected to fetch calls)
@@ -238,26 +259,31 @@ src/services/flashscore-scraper.js       (NEW - Flashscore scraper)
 ## Next Session Recommendations
 
 ### Priority 1: Proxy Integration
+
 - Wire actual proxy support into `retryFetchJson()` using `https-proxy-agent` or `axios`
 - Test with free proxy list (e.g., from free-proxy-list.net)
 - Add proxy health checks to detect dead proxies
 
 ### Priority 2: Scraper Robustness
+
 - Add Puppeteer/Playwright for Flashscore (JS rendering required for full match data)
 - Implement selector fallbacks for Goal.com/Flashscore (detect layout changes)
 - Add automatic selector update mechanism
 
 ### Priority 3: Betting Odds Expansion
+
 - Implement Oddschecker.com scraper (larger odds comparison)
 - Add Betfair public API (if accessible without registration)
 - Create odds normalization function (convert all sources to 1.5, 2.0, 2.5 format)
 
 ### Priority 4: Legal Compliance
+
 - Add ToS disclaimer in bot when displaying Goal.com/Flashscore data
 - Implement rate-limiting to avoid overwhelming scrape targets
 - Monitor for 429 (rate limit) and 403 (blocked) errors; auto-switch providers if detected
 
 ### Priority 5: UX Improvements
+
 - Add "Show odds comparison" button in match details (display all available sources)
 - Add "Live updates" refresh button (manual re-scrape with visual counter)
 - Show data source & last updated timestamp in match displays
@@ -265,6 +291,7 @@ src/services/flashscore-scraper.js       (NEW - Flashscore scraper)
 ---
 
 ## Commits Pushed (Session)
+
 ```
 1b8f6dc - callback_data telemetry, live-scraper rate-limiter+retries, BBC/Reuters/ESPN RSS
 8f48653 - inject telemetry Redis into v2Handler + add callback alert loop

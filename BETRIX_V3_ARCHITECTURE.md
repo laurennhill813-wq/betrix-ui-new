@@ -9,6 +9,7 @@
 ## 📋 Executive Summary
 
 BETRIX is now a **supreme sports betting assistant** with:
+
 - ✅ **9 core commands** (plus natural language intent routing)
 - ✅ **Guided signup flow** with profile collection (name → country → age)
 - ✅ **Unified payment hub** (M-Pesa, PayPal, Binance, Card)
@@ -26,11 +27,13 @@ BETRIX is now a **supreme sports betting assistant** with:
 ## 🚀 Core Commands (9)
 
 ### `/start` - Welcome & onboarding
+
 - **Response:** Welcome greeting + feature highlights + signup prompt
 - **Buttons:** [Sign up] [Learn more] [Help]
 - **Purpose:** Entry point; introduces BETRIX value
 
 ### `/signup` - Guided profile collection → signup fee payment
+
 - **Flow:**
   1. Collect name (with validation)
   2. Collect country (KE/UG/TZ)
@@ -41,6 +44,7 @@ BETRIX is now a **supreme sports betting assistant** with:
 - **Purpose:** Onboard new users with structured inputs
 
 ### `/pay` - Unified payment hub
+
 - **Shows:**
   - ✅ Payment status (signup paid: yes/no, VVIP: active/inactive)
   - 💳 Available actions: pay signup, subscribe VVIP, manage subscription, receipts
@@ -48,6 +52,7 @@ BETRIX is now a **supreme sports betting assistant** with:
 - **Purpose:** Central payment management + history tracking
 
 ### `/menu` - Main dashboard
+
 - **Layout (4×2 grid):**
   - 🎯 Odds | 🧠 Analyze
   - 🗞️ News | 🔗 Betting Sites
@@ -57,6 +62,7 @@ BETRIX is now a **supreme sports betting assistant** with:
 - **Purpose:** Central hub for all features
 
 ### `/odds` - Today's fixtures + live odds
+
 - **Output:**
   - Fixtures card: Team A vs Team B | Kickoff time | Odds (H/D/A)
   - Up to 8 matches shown with aggregated odds
@@ -66,6 +72,7 @@ BETRIX is now a **supreme sports betting assistant** with:
 - **Purpose:** Fast access to betting opportunities
 
 ### `/analyze` - AI match predictions
+
 - **Per-match output:**
   - 🎯 Pick (e.g., "Arsenal Win")
   - 📊 Confidence % (0-100, calibrated over 400+ predictions)
@@ -76,11 +83,13 @@ BETRIX is now a **supreme sports betting assistant** with:
 - **Purpose:** Explainable, confident predictions with narrative
 
 ### `/news` - Curated sports news & updates
+
 - **Categories:** [Breaking] [Injuries] [Lineups] [Transfers] [Form trends]
 - **Per-item:** Headline + 1-2 sentence summary + source tag
 - **Purpose:** Context that affects odds and decision-making
 
 ### `/vvip` - Premium tier system & benefits
+
 - **Benefits shown:**
   - ✓ Priority picks (higher signal)
   - ✓ Early access (30 min before kickoff)
@@ -95,6 +104,7 @@ BETRIX is now a **supreme sports betting assistant** with:
 - **Purpose:** Revenue stream + premium user retention
 
 ### `/help` - FAQs & support
+
 - **Topics:** Signup, Payment, Accuracy, VVIP, Refunds, Contact
 - **Actions:** [Email Support] [Privacy Policy] [Back]
 - **Purpose:** Self-serve help + support escalation
@@ -105,18 +115,19 @@ BETRIX is now a **supreme sports betting assistant** with:
 
 In addition to explicit commands, the bot **classifies user messages by intent**:
 
-| User Says | Intent | Routes To |
-|-----------|--------|-----------|
-| "I want to join" | signup | /signup |
-| "Show odds" / "Today's matches" | odds | /odds |
-| "Analyze Arsenal vs Chelsea" | analyze | /analyze |
-| "What's new?" / "News" | news | /news |
-| "Help" / "FAQ" | help | /help |
-| "Pay" / "Subscribe" / "VVIP" | payment | /pay or /vvip |
-| "Betting sites" / "Where to bet?" | sites | Betting sites menu |
-| "Main menu" / "Home" | menu | /menu |
+| User Says                         | Intent  | Routes To          |
+| --------------------------------- | ------- | ------------------ |
+| "I want to join"                  | signup  | /signup            |
+| "Show odds" / "Today's matches"   | odds    | /odds              |
+| "Analyze Arsenal vs Chelsea"      | analyze | /analyze           |
+| "What's new?" / "News"            | news    | /news              |
+| "Help" / "FAQ"                    | help    | /help              |
+| "Pay" / "Subscribe" / "VVIP"      | payment | /pay or /vvip      |
+| "Betting sites" / "Where to bet?" | sites   | Betting sites menu |
+| "Main menu" / "Home"              | menu    | /menu              |
 
 ### Implementation
+
 - **File:** `src/handlers/message-handler-v3.js`
 - **Function:** `classifyIntent()` uses regex patterns
 - **Fallback:** Shows help if intent unknown
@@ -126,6 +137,7 @@ In addition to explicit commands, the bot **classifies user messages by intent**
 ## 📊 Data Models & Storage
 
 ### User Profile (Redis: `user:{userId}`)
+
 ```
 name: string
 country: string (KE, UG, TZ)
@@ -143,6 +155,7 @@ total_won: number (KES)
 ```
 
 ### Payment Ledger (Redis: `payment:{paymentId}` + `order:{orderId}`)
+
 ```
 payment_id: string (UUID)
 order_id: string (ORD{timestamp})
@@ -159,6 +172,7 @@ webhook_verified: boolean
 ```
 
 ### AI Output Cache (Redis: `ai_output:{queryId}`)
+
 ```
 query_id: string
 user_id: string
@@ -176,6 +190,7 @@ was_correct: boolean (post-match)
 ```
 
 ### Odds Cache (Redis: `odds:{fixtureId}`)
+
 ```
 fixture_id: string
 home_team: string
@@ -191,6 +206,7 @@ expires_at: timestamp (1-hour TTL)
 ```
 
 ### State Machine (Redis: `user:{userId}:state`)
+
 - `idle` - User not in any flow
 - `signup_name` - Awaiting name input
 - `signup_country` - Awaiting country input
@@ -207,6 +223,7 @@ expires_at: timestamp (1-hour TTL)
 ## 🎨 Inline Keyboard Layouts
 
 ### Main Menu (4 rows × 2 cols)
+
 ```
 [🎯 Odds] [🧠 Analyze]
 [🗞️ News] [🔗 Betting Sites]
@@ -215,6 +232,7 @@ expires_at: timestamp (1-hour TTL)
 ```
 
 ### Odds Submenu (vertical)
+
 ```
 [🏆 By League]
 [⏰ By Time]
@@ -225,6 +243,7 @@ expires_at: timestamp (1-hour TTL)
 ```
 
 ### Payment Methods (vertical)
+
 ```
 [📱 M-Pesa STK Push]
 [🔵 PayPal]
@@ -234,6 +253,7 @@ expires_at: timestamp (1-hour TTL)
 ```
 
 ### VVIP Tiers (inactive state)
+
 ```
 [📅 Daily (200 KES)]
 [📆 Weekly (1,000 KES)]
@@ -246,6 +266,7 @@ expires_at: timestamp (1-hour TTL)
 ## 🌍 Betting Sites Directory
 
 **Kenya sites** (with bonuses):
+
 1. 🎲 **Betika** - 10,000 KES welcome bonus
 2. ⚽ **SportPesa** - 15,000 KES welcome offer
 3. 🏆 **Odibets** - 100% match on first deposit
@@ -254,6 +275,7 @@ expires_at: timestamp (1-hour TTL)
 6. 💰 **Betkwatro** - Loyalty rewards program
 
 **Features:**
+
 - Direct links to each site
 - Bonus/offer information
 - 4.3–4.7 star ratings
@@ -265,12 +287,14 @@ expires_at: timestamp (1-hour TTL)
 ## 💰 Payment Integration
 
 ### Signup Fee
+
 - **Amount:** 150 KES or $1 USD (one-time)
 - **Methods:** M-Pesa, PayPal, Binance, Card
 - **Confirmation:** Webhook verification + status update to Redis
 - **Next step:** Auto-welcome + quick tour
 
 ### VVIP Subscription
+
 - **Daily:** 200 KES / $2
 - **Weekly:** 1,000 KES / $8
 - **Monthly:** 3,000 KES / $20
@@ -278,6 +302,7 @@ expires_at: timestamp (1-hour TTL)
 - **Cancellation:** Anytime; refund logic TBD (non-refundable baseline)
 
 ### Payment Flow
+
 1. User selects tier/method
 2. Bot creates order in Redis + payment ledger
 3. Payment gateway (PayPal SDK, M-Pesa API) initiated
@@ -304,6 +329,7 @@ src/handlers/
 ```
 
 ### Import Flow
+
 ```
 Webhook (telegram-handler-v2.js)
   ↓
@@ -330,42 +356,52 @@ Webhook (telegram-handler-v2.js)
 ## 🔄 Typical User Journey (First Day)
 
 ### Step 1: /start
+
 - **Bot:** "Welcome to BETRIX — your AI-powered sports-tech assistant. Sign up to begin."
 - **Buttons:** [Sign up] [Learn more] [Help]
 
 ### Step 2: User taps "Sign up" → /signup
+
 - **Bot:** "What's your full name?"
 - **User:** "John Doe"
 
 ### Step 3: State = signup_name → Input handling
+
 - **Bot:** "Nice to meet you, John! Which country are you in?"
 - **User:** "Kenya"
 
 ### Step 4: State = signup_country → Input handling
+
 - **Bot:** "Got it, KE! How old are you?"
 - **User:** "28"
 
 ### Step 5: State = signup_age → Profile created
+
 - **Bot:** "Profile complete! John, pay a one-time signup fee of 150 KES to unlock all features."
 - **Buttons:** [Pay now] [Later]
 
 ### Step 6: User taps "Pay now" → /pay
+
 - **Bot:** "Choose payment method:"
 - **Buttons:** [M-Pesa STK] [PayPal] [Binance] [Card]
 
 ### Step 7: User selects M-Pesa → Payment initiated
+
 - **Bot:** "STK prompt sent to your phone. Complete payment."
 - **Payment ledger created:** order_id = ORD1732619940, status = pending
 
 ### Step 8: Webhook confirms payment
+
 - **Bot:** "🎉 Payment confirmed, John! Welcome to BETRIX!"
 - **Auto-actions:** Activate profile, unlock features, show quick tour
 
 ### Step 9: Quick tour
+
 - **Bot:** "You're in! Here's what you can do:"
 - **Buttons:** [Get odds 🎯] [Analyze 🧠] [News 🗞️] [Betting sites 🔗] [VVIP 👑] [Main menu 🏠]
 
 ### Step 10: User taps "Get odds"
+
 - **Bot:** Shows today's fixtures with odds, filters, and quick-bet buttons
 - **Example fixture card:**
   ```
@@ -375,10 +411,12 @@ Webhook (telegram-handler-v2.js)
   ```
 
 ### Step 11: User taps "Analyze" on a fixture
+
 - **Bot:** AI prediction with confidence, narrative, risk flags
 - **Buttons:** [Place bet] [Show odds] [Why?] [Back]
 
 ### Step 12: User explores VVIP
+
 - **Bot:** Shows benefits + pricing
 - **Buttons:** [Daily] [Weekly] [Monthly] [Back]
 
@@ -402,7 +440,7 @@ Webhook (telegram-handler-v2.js)
 
 ## 🚢 Deployment Checklist
 
-- [ ] Environment variables set (TELEGRAM_TOKEN, REDIS_URL, PAYPAL_*, API keys)
+- [ ] Environment variables set (TELEGRAM*TOKEN, REDIS_URL, PAYPAL*\*, API keys)
 - [ ] Worker process running (src/worker-final.js)
 - [ ] Webhook URL configured + HTTPS
 - [ ] Payment webhooks mapped (PayPal, M-Pesa)

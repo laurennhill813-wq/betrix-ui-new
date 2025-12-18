@@ -3,6 +3,7 @@
 ## Quick Start - How to Use These Services
 
 ### 1. Import the Services
+
 ```javascript
 import { BetslipGenerator } from "./services/betslip-generator.js";
 import { BettingSitesService } from "./services/betting-sites-service.js";
@@ -12,6 +13,7 @@ import { BetslipHandlers } from "./handlers-betslip.js";
 ```
 
 ### 2. Initialize in worker-db.js
+
 ```javascript
 const betslipHandlers = new BetslipHandlers(telegram, userService, gemini);
 const freeBetService = new FreeBetService(redis);
@@ -22,26 +24,28 @@ const freeBetService = new FreeBetService(redis);
 ## Usage Examples
 
 ### Example 1: Generate Betslip After Payment
+
 ```javascript
 // After payment verification
 const slip = {
   matches: [
-    { team: "Liverpool WIN", prediction: "1", odds: 1.80, matchId: "123" },
-    { team: "Arsenal WIN", prediction: "1", odds: 1.65, matchId: "124" }
+    { team: "Liverpool WIN", prediction: "1", odds: 1.8, matchId: "123" },
+    { team: "Arsenal WIN", prediction: "1", odds: 1.65, matchId: "124" },
   ],
-  totalOdds: 2.97
+  totalOdds: 2.97,
 };
 
 await betslipHandlers.generateBetslipAfterPayment(
-  chatId,      // Telegram chat ID
-  userId,      // User ID
-  slip,        // Slip object
-  user,        // User data
-  "KE"         // Country code
+  chatId, // Telegram chat ID
+  userId, // User ID
+  slip, // Slip object
+  user, // User data
+  "KE", // Country code
 );
 ```
 
 **What it does:**
+
 1. Generates AI analysis
 2. Creates professional betslip
 3. Shows betting sites for Kenya
@@ -50,6 +54,7 @@ await betslipHandlers.generateBetslipAfterPayment(
 ---
 
 ### Example 2: Issue and Generate Free Bet
+
 ```javascript
 // Issue free bet
 const freeBet = await freeBetService.issueBet(
@@ -74,12 +79,13 @@ await betslipHandlers.generateFreeBetSlip(
 ---
 
 ### Example 3: Format Betslip Manually
+
 ```javascript
 // Get formatted betslip text
 const betslipText = BetslipGenerator.formatBetslipAsImage(
   slip,
   user,
-  "KES"  // Currency
+  "KES", // Currency
 );
 
 // Send to user
@@ -89,6 +95,7 @@ await telegram.sendMessage(chatId, `<pre>${betslipText}</pre>`);
 ---
 
 ### Example 4: Get Betting Sites for Country
+
 ```javascript
 // Get sites as formatted text
 const sitesDisplay = BettingSitesService.formatSitesDisplay("KE");
@@ -106,6 +113,7 @@ const topSite = BettingSitesService.getTopSite("KE");
 ---
 
 ### Example 5: Generate AI Analysis
+
 ```javascript
 // Create analysis service
 const analysisService = new BetslipAnalysisService(gemini);
@@ -114,13 +122,18 @@ const analysisService = new BetslipAnalysisService(gemini);
 const analysis = await analysisService.analyzeBetslip(slip, userStats);
 
 // Get formatted display
-const display = analysisService.formatAnalysisDisplay(analysis, slip, userStats);
+const display = analysisService.formatAnalysisDisplay(
+  analysis,
+  slip,
+  userStats,
+);
 await telegram.sendMessage(chatId, display);
 ```
 
 ---
 
 ### Example 6: Assess Risk
+
 ```javascript
 // Get risk assessment
 const risk = analysisService.assessRisk(slip.totalOdds, slip.matches);
@@ -132,6 +145,7 @@ await telegram.sendMessage(chatId, `Risk: ${risk.level}`);
 ---
 
 ### Example 7: Manage Free Bets
+
 ```javascript
 // Get active free bets
 const activeBets = await freeBetService.getActiveBets(userId);
@@ -148,7 +162,9 @@ const isExpired = freeBetService.isExpired(bet);
 ## 🌍 Supported Countries
 
 ### Auto-Detection
+
 Use user's country during signup:
+
 ```javascript
 // During signup
 const country = await geoService.detectCountry(userId);
@@ -160,11 +176,12 @@ await betslipHandlers.generateBetslipAfterPayment(
   userId,
   slip,
   user,
-  user.country  // Auto-detected country
+  user.country, // Auto-detected country
 );
 ```
 
 ### Supported Country Codes
+
 - **Africa:** KE, NG, ZA, TZ, UG, GH (+ 20+ more)
 - **Americas:** US, CA, BR, MX
 - **Europe:** GB, FR, DE, ES, IT, NL (+ more)
@@ -175,37 +192,34 @@ await betslipHandlers.generateBetslipAfterPayment(
 ## 💡 Integration Points
 
 ### Payment Success Webhook
+
 ```javascript
 // In payment handler
 if (paymentVerified) {
   // Generate recommended slip
   const slip = await getRecommendedSlip(userId);
-  
+
   // Generate betslip with analysis
   await betslipHandlers.generateBetslipAfterPayment(
     chatId,
     userId,
     slip,
     user,
-    country
+    country,
   );
 }
 ```
 
 ### Free Bet Issuance (Admin Command)
+
 ```javascript
 // /admin_issue_free_bet [userId] [amount] [days]
-const bet = await freeBetService.issueBet(
-  userId,
-  amount,
-  "admin_bonus",
-  days
-);
+const bet = await freeBetService.issueBet(userId, amount, "admin_bonus", days);
 
 // Notify user
 await telegram.sendMessage(
   userChatId,
-  `🎁 You received a ${amount} KES free bet!`
+  `🎁 You received a ${amount} KES free bet!`,
 );
 
 // Get their slip
@@ -216,11 +230,12 @@ await betslipHandlers.generateFreeBetSlip(
   bet,
   slip,
   user,
-  country
+  country,
 );
 ```
 
 ### User Commands
+
 ```javascript
 // /freebets - Show active free bets
 const bets = await freeBetService.getActiveBets(userId);
@@ -236,7 +251,7 @@ await telegram.sendMessage(chatId, `<pre>${betslip}</pre>`);
 // /betting_sites - Show sites for their country
 const sites = BettingSitesService.formatSitesDisplay(user.country);
 await telegram.sendMessage(chatId, sites, {
-  reply_markup: BettingSitesService.buildBettingSitesKeyboard(user.country)
+  reply_markup: BettingSitesService.buildBettingSitesKeyboard(user.country),
 });
 ```
 
@@ -254,10 +269,10 @@ async handleUpgradePayment(chatId, userId, amount, plan) {
       await telegram.sendMessage(chatId, "❌ Payment failed");
       return;
     }
-    
+
     // 2. Get user data
     const user = await userService.getUser(userId);
-    
+
     // 3. Create recommended betslip
     const slip = {
       matches: [
@@ -266,7 +281,7 @@ async handleUpgradePayment(chatId, userId, amount, plan) {
       ],
       totalOdds: 2.97
     };
-    
+
     // 4. Generate and send betslip with analysis
     await betslipHandlers.generateBetslipAfterPayment(
       chatId,
@@ -275,10 +290,10 @@ async handleUpgradePayment(chatId, userId, amount, plan) {
       user,
       user.country
     );
-    
+
     // 5. Update user tier
     await userService.updateTier(userId, plan);
-    
+
   } catch (err) {
     logger.error("Upgrade failed", err);
     await telegram.sendMessage(chatId, "Error processing upgrade");

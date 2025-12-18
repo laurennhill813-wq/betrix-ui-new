@@ -1,5 +1,5 @@
-import { createClient } from 'redis';
-import createRedisAdapter from '../utils/redis-adapter.js';
+import { createClient } from "redis";
+import createRedisAdapter from "../utils/redis-adapter.js";
 
 let client = null;
 let fallbackStore = new Map();
@@ -9,12 +9,12 @@ function getClient() {
   const url = process.env.REDIS_URL;
   if (!url) return null;
   client = createClient({ url });
-  client.on('error', () => {
+  client.on("error", () => {
     // swallow errors; fall back to in-memory
   });
   try {
     // connect lazily
-    client.connect().catch(()=>{});
+    client.connect().catch(() => {});
   } catch (e) {}
   return client;
 }
@@ -43,7 +43,9 @@ export async function cacheSet(key, value, ttlSeconds = 60) {
     try {
       fallbackStore.set(key, value);
       return true;
-    } catch (e) { return false; }
+    } catch (e) {
+      return false;
+    }
   }
   try {
     if (ttlSeconds && ttlSeconds > 0) {
@@ -62,10 +64,17 @@ export async function cacheSet(key, value, ttlSeconds = 60) {
 export async function cacheDel(key) {
   const c = getClient();
   if (!c) return fallbackStore.delete(key);
-  try { await c.del(key); return true; } catch (e) { return false; }
+  try {
+    await c.del(key);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
-export function _clearFallback() { fallbackStore = new Map(); }
+export function _clearFallback() {
+  fallbackStore = new Map();
+}
 
 // Atomic increment with optional TTL. Returns numeric value after increment.
 export async function incrWithTTL(key, ttlSeconds = 0) {
@@ -79,7 +88,11 @@ export async function incrWithTTL(key, ttlSeconds = 0) {
   try {
     const val = await c.incr(key);
     if (ttlSeconds && ttlSeconds > 0) {
-      try { await c.expire(key, ttlSeconds); } catch (e) { /* ignore */ }
+      try {
+        await c.expire(key, ttlSeconds);
+      } catch (e) {
+        /* ignore */
+      }
     }
     return Number(val);
   } catch (e) {
@@ -108,5 +121,9 @@ export async function getRaw(key) {
 export function getRedisClient() {
   const c = getClient();
   if (!c) return null;
-  try { return createRedisAdapter(c); } catch (e) { return c; }
+  try {
+    return createRedisAdapter(c);
+  } catch (e) {
+    return c;
+  }
 }

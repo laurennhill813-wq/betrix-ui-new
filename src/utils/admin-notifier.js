@@ -3,14 +3,19 @@
  * Call this when a payment cannot be matched to notify the admin
  */
 
-import { Logger } from '../utils/logger.js';
+import { Logger } from "../utils/logger.js";
 
-const logger = new Logger('AdminNotifier');
+const logger = new Logger("AdminNotifier");
 
-export async function notifyUnmatchedPayment(bot, adminTelegramId, paymentData, source) {
+export async function notifyUnmatchedPayment(
+  bot,
+  adminTelegramId,
+  paymentData,
+  source,
+) {
   try {
     if (!bot || !adminTelegramId) {
-      logger.warn('Bot or admin ID not configured for notifications');
+      logger.warn("Bot or admin ID not configured for notifications");
       return;
     }
 
@@ -19,9 +24,9 @@ export async function notifyUnmatchedPayment(bot, adminTelegramId, paymentData, 
 
 📊 *Source:* ${source}
 💰 *Amount:* ${Amount}
-📞 *Phone:* ${Phone || 'N/A'}
-🔗 *Reference:* ${Reference || 'N/A'}
-🔢 *Transaction:* ${TransactionID || 'N/A'}
+📞 *Phone:* ${Phone || "N/A"}
+🔗 *Reference:* ${Reference || "N/A"}
+🔢 *Transaction:* ${TransactionID || "N/A"}
 
 👉 Please review at: /admin
 
@@ -29,16 +34,24 @@ _Timestamp:_ ${new Date().toISOString()}`;
 
     // Attempt to send via Telegram (if bot is available)
     try {
-      await bot.telegram.sendMessage(adminTelegramId, text, { parse_mode: 'Markdown' });
+      await bot.telegram.sendMessage(adminTelegramId, text, {
+        parse_mode: "Markdown",
+      });
     } catch (e) {
-      logger.warn('Failed to send Telegram notification', e);
+      logger.warn("Failed to send Telegram notification", e);
     }
   } catch (err) {
-    logger.error('notifyUnmatchedPayment failed', err);
+    logger.error("notifyUnmatchedPayment failed", err);
   }
 }
 
-export async function notifyPaymentVerified(bot, adminTelegramId, orderId, userId, tier) {
+export async function notifyPaymentVerified(
+  bot,
+  adminTelegramId,
+  orderId,
+  userId,
+  tier,
+) {
   try {
     if (!bot || !adminTelegramId) return;
 
@@ -50,11 +63,13 @@ export async function notifyPaymentVerified(bot, adminTelegramId, orderId, userI
 ⏰ *Time:* ${new Date().toISOString()}`;
 
     try {
-      await bot.telegram.sendMessage(adminTelegramId, text, { parse_mode: 'Markdown' });
+      await bot.telegram.sendMessage(adminTelegramId, text, {
+        parse_mode: "Markdown",
+      });
     } catch (e) {
-      logger.warn('Failed to send verification notification', e);
+      logger.warn("Failed to send verification notification", e);
     }
   } catch (err) {
-    logger.error('notifyPaymentVerified failed', err);
+    logger.error("notifyPaymentVerified failed", err);
   }
 }

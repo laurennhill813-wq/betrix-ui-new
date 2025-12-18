@@ -37,16 +37,35 @@ export function getSystemPrompt(options = {}) {
   if (options.short) return BETRIX_SYSTEM_PROMPT_SHORT;
   if (options.includeContext) {
     try {
-      return BETRIX_SYSTEM_PROMPT_FULL + '\nContext: ' + JSON.stringify(options.includeContext);
-    } catch (e) { /* fallthrough */ }
+      return (
+        BETRIX_SYSTEM_PROMPT_FULL +
+        "\nContext: " +
+        JSON.stringify(options.includeContext)
+      );
+    } catch (e) {
+      /* fallthrough */
+    }
   }
   return BETRIX_SYSTEM_PROMPT_FULL;
 }
 
 export const FEW_SHOT_EXAMPLES = [
   // examples are minimal and focused to shape tone and structured outputs
-  { role: 'assistant', content: 'Hi 👋 I\'m BETRIX. How can I help you with football or betting today?' },
-  { role: 'assistant', content: 'Example recommendation (JSON): {"type":"recommendation","match_id":"12345","market":"match_winner","selection":"Team A","odds":1.95,"confidence":0.72,"stake_recommendation":"small","rationale":"Team A has home advantage and stronger recent form."}' }
+  {
+    role: "assistant",
+    content:
+      "Hi 👋 I'm BETRIX. How can I help you with football or betting today?",
+  },
+  {
+    role: "assistant",
+    content:
+      'Example recommendation (JSON): {"type":"recommendation","match_id":"12345","market":"match_winner","selection":"Team A","odds":1.95,"confidence":0.72,"stake_recommendation":"small","rationale":"Team A has home advantage and stronger recent form."}',
+  },
 ];
 
-export default { getSystemPrompt, BETRIX_SYSTEM_PROMPT_FULL, BETRIX_SYSTEM_PROMPT_SHORT, FEW_SHOT_EXAMPLES };
+export default {
+  getSystemPrompt,
+  BETRIX_SYSTEM_PROMPT_FULL,
+  BETRIX_SYSTEM_PROMPT_SHORT,
+  FEW_SHOT_EXAMPLES,
+};

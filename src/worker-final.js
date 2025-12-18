@@ -9,19 +9,19 @@
 // via `SPORTSMONKS_INSECURE=true` if absolutely required for local testing.
 
 import dotenv from "dotenv";
-import fs from 'fs';
+import fs from "fs";
 // Prefer loading .env.local when present (Render uses .env.local for secrets in this workspace)
-const envLocalPath = '.env.local';
+const envLocalPath = ".env.local";
 if (fs.existsSync(envLocalPath)) {
   dotenv.config({ path: envLocalPath });
-  console.log('[env] loaded .env.local');
+  console.log("[env] loaded .env.local");
 } else {
   dotenv.config();
 }
 
 import Redis from "ioredis";
 import { getRedis, MockRedis } from "./lib/redis-factory.js";
-import createRedisAdapter from './utils/redis-adapter.js';
+import createRedisAdapter from "./utils/redis-adapter.js";
 import { CONFIG, validateConfig } from "./config.js";
 import { Logger } from "./utils/logger.js";
 import { TelegramService } from "./services/telegram.js";
@@ -34,7 +34,7 @@ import { HuggingFaceService } from "./services/huggingface.js";
 import { AzureAIService } from "./services/azure-ai.js";
 import { FreeSportsService } from "./services/free-sports.js";
 import ClaudeService from "./services/claude.js";
-import GroqService from './services/groq.js';
+import GroqService from "./services/groq.js";
 import { BotHandlers } from "./handlers.js";
 import OpenLigaDBService from "./services/openligadb.js";
 import RSSAggregator from "./services/rss-aggregator.js";
@@ -54,17 +54,17 @@ import { AnalyticsService } from "./services/analytics.js";
 import { RateLimiter } from "./middleware/rate-limiter.js";
 import { ContextManager } from "./middleware/context-manager.js";
 import v2Handler from "./handlers/telegram-handler-v2-clean.js";
-import { handleOnboardingMessage } from './handlers/telegram-handler-v2.js';
+import { handleOnboardingMessage } from "./handlers/telegram-handler-v2.js";
 import completeHandler from "./handlers/handler-complete.js";
 // SportMonks integration removed — stub out sportMonksAPI as null
 import SportsDataAPI from "./services/sportsdata-api.js";
-import ImageProvider from './services/image-provider.js';
+import ImageProvider from "./services/image-provider.js";
 import { registerDataExposureAPI } from "./app_clean.js";
 import app from "./app_clean.js";
-import { runMediaAiTick } from './tickers/mediaAiTicker.js';
-import { canPostNow, markPosted } from './lib/liveliness.js';
-import { Pool } from 'pg';
-import { reconcileWithLipana } from './tasks/reconcile-lipana.js';
+import { runMediaAiTick } from "./tickers/mediaAiTicker.js";
+import { canPostNow, markPosted } from "./lib/liveliness.js";
+import { Pool } from "pg";
+import { reconcileWithLipana } from "./tasks/reconcile-lipana.js";
 
 // ===== PREMIUM ENHANCEMENT MODULES =====
 import premiumUI from "./utils/premium-ui-builder.js";
@@ -76,12 +76,14 @@ import perfUtils from "./utils/performance-optimizer.js";
 
 const logger = new Logger("FinalWorker");
 
-import persona from './ai/persona.js';
-import createRag from './ai/rag.js';
+import persona from "./ai/persona.js";
+import createRag from "./ai/rag.js";
 
 try {
   validateConfig();
-  logger.info("✅ Configuration validated (SPORTSMONKS or FOOTBALLDATA keys accepted)");
+  logger.info(
+    "✅ Configuration validated (SPORTSMONKS or FOOTBALLDATA keys accepted)",
+  );
 } catch (err) {
   logger.error("Configuration failed", err);
   process.exit(1);
@@ -91,8 +93,14 @@ try {
 // Prefer sending to configured admin ID to avoid posting to a channel the bot
 // isn't a member of. If no admin or broadcast ID is configured, skip the test.
 try {
-  const adminId = process.env.ADMIN_TELEGRAM_ID || (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.ADMIN_ID) || null;
-  const broadcastEnv = process.env.BOT_BROADCAST_CHAT_ID || (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.BROADCAST_CHAT_ID) || null;
+  const adminId =
+    process.env.ADMIN_TELEGRAM_ID ||
+    (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.ADMIN_ID) ||
+    null;
+  const broadcastEnv =
+    process.env.BOT_BROADCAST_CHAT_ID ||
+    (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.BROADCAST_CHAT_ID) ||
+    null;
   const target = adminId || broadcastEnv || null;
 
   if (target) {
@@ -102,13 +110,23 @@ try {
 
     // Use broadcastText helper which is async; do not block initialization.
     broadcastText(String(target), msg)
-      .then(() => logger.info('Startup test broadcast dispatched', { target }))
-      .catch(err => logger.error('Startup test broadcast error', err && err.message ? err.message : String(err)));
+      .then(() => logger.info("Startup test broadcast dispatched", { target }))
+      .catch((err) =>
+        logger.error(
+          "Startup test broadcast error",
+          err && err.message ? err.message : String(err),
+        ),
+      );
   } else {
-    logger.info('No ADMIN_TELEGRAM_ID or BOT_BROADCAST_CHAT_ID set — skipping startup test broadcast');
+    logger.info(
+      "No ADMIN_TELEGRAM_ID or BOT_BROADCAST_CHAT_ID set — skipping startup test broadcast",
+    );
   }
 } catch (e) {
-  logger.warn('Startup test broadcast encountered an exception', e && e.message ? e.message : String(e));
+  logger.warn(
+    "Startup test broadcast encountered an exception",
+    e && e.message ? e.message : String(e),
+  );
 }
 
 // Initialize Redis with a safe fallback to in-memory MockRedis for local dev
@@ -119,84 +137,132 @@ try {
   redis = createRedisAdapter(getRedis());
   try {
     // test connectivity; if this throws (NOAUTH etc.) we fallback
-    if (typeof redis.ping === 'function') await redis.ping();
+    if (typeof redis.ping === "function") await redis.ping();
     logger.info("✅ Redis connected (factory)");
-    } catch (err) {
+  } catch (err) {
     const msg = String(err?.message || err);
-    if (msg.includes('NOAUTH')) {
-      logger.warn('⚠️ Redis authentication failed (NOAUTH). Falling back to in-memory MockRedis for local dev');
+    if (msg.includes("NOAUTH")) {
+      logger.warn(
+        "⚠️ Redis authentication failed (NOAUTH). Falling back to in-memory MockRedis for local dev",
+      );
     } else {
-      logger.warn('⚠️ Redis ping failed, using in-memory MockRedis for local dev', msg);
+      logger.warn(
+        "⚠️ Redis ping failed, using in-memory MockRedis for local dev",
+        msg,
+      );
     }
     redis = createRedisAdapter(new MockRedis());
   }
 } catch (e) {
-  logger.warn('⚠️ Redis initialization failed, using in-memory MockRedis', e?.message || String(e));
+  logger.warn(
+    "⚠️ Redis initialization failed, using in-memory MockRedis",
+    e?.message || String(e),
+  );
   redis = createRedisAdapter(new MockRedis());
 }
 
 // attach a safe error handler to avoid unhandled errors
-if (redis && typeof redis.on === 'function') {
-  try { redis.on('error', (err) => logger.error('Redis error', err)); } catch(e){}
+if (redis && typeof redis.on === "function") {
+  try {
+    redis.on("error", (err) => logger.error("Redis error", err));
+  } catch (e) {}
 }
 
 // ===== STARTUP ENV & SERVICE VALIDATION =====
 // Ensure critical environment variables are present in the Render environment
 (() => {
-  const telegramToken = process.env.TELEGRAM_TOKEN || (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.TOKEN) || CONFIG.TELEGRAM_TOKEN || CONFIG.TELEGRAM?.BOT_USERNAME || null;
+  const telegramToken =
+    process.env.TELEGRAM_TOKEN ||
+    (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.TOKEN) ||
+    CONFIG.TELEGRAM_TOKEN ||
+    CONFIG.TELEGRAM?.BOT_USERNAME ||
+    null;
   const redisUrl = process.env.REDIS_URL || CONFIG.REDIS_URL || null;
   // Accept both legacy names and newer Azure OpenAI naming used in Render
-  const azureKey = process.env.AZURE_AI_KEY || process.env.AZURE_KEY || process.env.AZURE_OPENAI_KEY || process.env.AZURE_OPENAI_KEY || (CONFIG.AZURE && CONFIG.AZURE.KEY) || null;
-  const sgoKey = process.env.SPORTSGAMEODDS_API_KEY || process.env.SPORTSGAMEODDS_KEY || null;
+  const azureKey =
+    process.env.AZURE_AI_KEY ||
+    process.env.AZURE_KEY ||
+    process.env.AZURE_OPENAI_KEY ||
+    process.env.AZURE_OPENAI_KEY ||
+    (CONFIG.AZURE && CONFIG.AZURE.KEY) ||
+    null;
+  const sgoKey =
+    process.env.SPORTSGAMEODDS_API_KEY ||
+    process.env.SPORTSGAMEODDS_KEY ||
+    null;
 
   // Allow a local developer override to run the worker without all external secrets.
   // Set `ALLOW_LOCAL_RUN=1` in your environment to skip strict startup checks.
   const missing = [];
-  if (!telegramToken) missing.push('TELEGRAM_TOKEN');
-  if (!redisUrl) missing.push('REDIS_URL');
-  if (!azureKey) missing.push('AZURE_AI_KEY or AZURE_KEY');
-  if (!sgoKey) missing.push('SPORTSGAMEODDS_API_KEY');
+  if (!telegramToken) missing.push("TELEGRAM_TOKEN");
+  if (!redisUrl) missing.push("REDIS_URL");
+  if (!azureKey) missing.push("AZURE_AI_KEY or AZURE_KEY");
+  if (!sgoKey) missing.push("SPORTSGAMEODDS_API_KEY");
 
   // If Redis URL is set but we fell back to MockRedis, that's a connectivity/auth issue
-  const isMock = redis && redis.constructor && redis.constructor.name === 'MockRedis';
+  const isMock =
+    redis && redis.constructor && redis.constructor.name === "MockRedis";
   if (redisUrl && isMock) {
-    logger.error('REDIS_URL provided but failed to connect/authenticate to Redis; MockRedis in use');
-    if (String(process.env.ALLOW_LOCAL_RUN) === '1') {
-      logger.warn('ALLOW_LOCAL_RUN=1 detected — continuing with MockRedis for local development');
+    logger.error(
+      "REDIS_URL provided but failed to connect/authenticate to Redis; MockRedis in use",
+    );
+    if (String(process.env.ALLOW_LOCAL_RUN) === "1") {
+      logger.warn(
+        "ALLOW_LOCAL_RUN=1 detected — continuing with MockRedis for local development",
+      );
     } else {
       process.exit(1);
     }
   }
 
   if (missing.length > 0) {
-    if (String(process.env.ALLOW_LOCAL_RUN) === '1') {
-      logger.warn('ALLOW_LOCAL_RUN=1 detected — skipping missing env var checks (missing: ' + missing.join(', ') + ')');
+    if (String(process.env.ALLOW_LOCAL_RUN) === "1") {
+      logger.warn(
+        "ALLOW_LOCAL_RUN=1 detected — skipping missing env var checks (missing: " +
+          missing.join(", ") +
+          ")",
+      );
     } else {
-      logger.error('Missing required startup environment variables: ' + missing.join(', '));
+      logger.error(
+        "Missing required startup environment variables: " + missing.join(", "),
+      );
       // Exit early so Render shows a failed deploy and you can fix env vars
       process.exit(1);
     }
   }
 
-  logger.info('Startup env check: required env vars present (TELEGRAM, AZURE, SPORTSGAMEODDS, REDIS)');
+  logger.info(
+    "Startup env check: required env vars present (TELEGRAM, AZURE, SPORTSGAMEODDS, REDIS)",
+  );
 })();
 
 // Initialize Postgres pool (optional) — fall back gracefully if DATABASE_URL not set or connection fails
 let pgPool;
 try {
-  const connStr = process.env.DATABASE_URL || (CONFIG && CONFIG.DATABASE_URL) || null;
+  const connStr =
+    process.env.DATABASE_URL || (CONFIG && CONFIG.DATABASE_URL) || null;
   if (connStr) {
-  pgPool = new Pool({ connectionString: connStr, ssl: { rejectUnauthorized: false } });
+    pgPool = new Pool({
+      connectionString: connStr,
+      ssl: { rejectUnauthorized: false },
+    });
     // quick connectivity smoke-test
-    await pgPool.query('SELECT 1');
-    logger.info('✅ Postgres pool initialized');
+    await pgPool.query("SELECT 1");
+    logger.info("✅ Postgres pool initialized");
   } else {
-    logger.warn('⚠️ DATABASE_URL not set — Postgres pool will not be initialized');
+    logger.warn(
+      "⚠️ DATABASE_URL not set — Postgres pool will not be initialized",
+    );
     pgPool = null;
   }
 } catch (err) {
-  logger.warn('⚠️ Postgres pool initialization failed — continuing without DB', err?.message || String(err));
-  try { if (pgPool && typeof pgPool.end === 'function') await pgPool.end(); } catch(e){}
+  logger.warn(
+    "⚠️ Postgres pool initialization failed — continuing without DB",
+    err?.message || String(err),
+  );
+  try {
+    if (pgPool && typeof pgPool.end === "function") await pgPool.end();
+  } catch (e) {}
   pgPool = null;
 }
 
@@ -214,7 +280,10 @@ setInterval(async () => {
 }, 10 * 1000);
 
 // Initialize all services
-const telegram = new TelegramService(CONFIG.TELEGRAM_TOKEN, CONFIG.TELEGRAM.SAFE_CHUNK);
+const telegram = new TelegramService(
+  CONFIG.TELEGRAM_TOKEN,
+  CONFIG.TELEGRAM.SAFE_CHUNK,
+);
 const userService = new UserService(redis);
 // Periodic Lipana reconciliation (runs only if Postgres pool is available)
 if (pgPool) {
@@ -222,134 +291,250 @@ if (pgPool) {
   const intervalMs = Math.max(1, minutes) * 60 * 1000;
   setInterval(async () => {
     try {
-      logger.info('Running scheduled Lipana reconciliation');
+      logger.info("Running scheduled Lipana reconciliation");
       await reconcileWithLipana({
         pool: pgPool,
         telegram,
         redis,
         thresholdMinutes: Number(process.env.RECONCILE_THRESHOLD_MINUTES || 15),
         limit: Number(process.env.RECONCILE_LIMIT || 200),
-        adminId: process.env.ADMIN_TELEGRAM_ID || (CONFIG && CONFIG.ADMIN_TELEGRAM_ID) || null,
+        adminId:
+          process.env.ADMIN_TELEGRAM_ID ||
+          (CONFIG && CONFIG.ADMIN_TELEGRAM_ID) ||
+          null,
       });
-      logger.info('Scheduled Lipana reconciliation complete');
+      logger.info("Scheduled Lipana reconciliation complete");
     } catch (err) {
-      logger.error('Scheduled Lipana reconciliation failed', err?.message || String(err));
+      logger.error(
+        "Scheduled Lipana reconciliation failed",
+        err?.message || String(err),
+      );
     }
   }, intervalMs);
 }
 // Do not instantiate API-Football service — set to null so handlers fall back to SportMonks/Football-Data
 const apiFootball = null;
 const gemini = new GeminiService(CONFIG.GEMINI.API_KEY);
-const hfModels = process.env.HUGGINGFACE_MODELS || process.env.HUGGINGFACE_MODEL || null;
-const huggingface = new HuggingFaceService(hfModels, process.env.HUGGINGFACE_TOKEN);
+const hfModels =
+  process.env.HUGGINGFACE_MODELS || process.env.HUGGINGFACE_MODEL || null;
+const huggingface = new HuggingFaceService(
+  hfModels,
+  process.env.HUGGINGFACE_TOKEN,
+);
 const localAI = new LocalAIService();
-  // Construct AzureAIService using either legacy env names or the newer AZURE_OPENAI_* names
-  const azure = new AzureAIService(
-    process.env.AZURE_AI_ENDPOINT || process.env.AZURE_ENDPOINT || process.env.AZURE_OPENAI_ENDPOINT || (CONFIG.AZURE && CONFIG.AZURE.ENDPOINT),
-    process.env.AZURE_AI_KEY || process.env.AZURE_KEY || process.env.AZURE_OPENAI_KEY || (CONFIG.AZURE && CONFIG.AZURE.KEY),
-    process.env.AZURE_AI_DEPLOYMENT || process.env.AZURE_DEPLOYMENT || process.env.AZURE_OPENAI_DEPLOYMENT || (CONFIG.AZURE && CONFIG.AZURE.DEPLOYMENT),
-    process.env.AZURE_API_VERSION || process.env.AZURE_OPENAI_API_VERSION || (CONFIG.AZURE && CONFIG.AZURE.API_VERSION) || '2023-05-15'
-  );
-  // Create RAG helper instance (non-fatal if embeddings not configured)
-  let rag = null;
-  try {
-    rag = createRag({ redis, azure, logger });
-    logger.info('RAG helper created (indexing available)');
-  } catch (e) {
-    logger.warn('RAG helper not available:', e && e.message ? e.message : e);
-    rag = null;
+// Construct AzureAIService using either legacy env names or the newer AZURE_OPENAI_* names
+const azure = new AzureAIService(
+  process.env.AZURE_AI_ENDPOINT ||
+    process.env.AZURE_ENDPOINT ||
+    process.env.AZURE_OPENAI_ENDPOINT ||
+    (CONFIG.AZURE && CONFIG.AZURE.ENDPOINT),
+  process.env.AZURE_AI_KEY ||
+    process.env.AZURE_KEY ||
+    process.env.AZURE_OPENAI_KEY ||
+    (CONFIG.AZURE && CONFIG.AZURE.KEY),
+  process.env.AZURE_AI_DEPLOYMENT ||
+    process.env.AZURE_DEPLOYMENT ||
+    process.env.AZURE_OPENAI_DEPLOYMENT ||
+    (CONFIG.AZURE && CONFIG.AZURE.DEPLOYMENT),
+  process.env.AZURE_API_VERSION ||
+    process.env.AZURE_OPENAI_API_VERSION ||
+    (CONFIG.AZURE && CONFIG.AZURE.API_VERSION) ||
+    "2023-05-15",
+);
+// Create RAG helper instance (non-fatal if embeddings not configured)
+let rag = null;
+try {
+  rag = createRag({ redis, azure, logger });
+  logger.info("RAG helper created (indexing available)");
+} catch (e) {
+  logger.warn("RAG helper not available:", e && e.message ? e.message : e);
+  rag = null;
+}
+// Log Azure configuration presence (do not log secrets)
+try {
+  if (azure && azure.enabled) {
+    logger.info("✅ Azure AI configured", {
+      endpoint: azure.endpoint || null,
+      deployment: azure.deployment || null,
+      apiVersion: azure.apiVersion || azure.apiVersion,
+    });
+  } else {
+    logger.info("ℹ️ Azure AI not configured (no endpoint/key/deployment)");
   }
-  // Log Azure configuration presence (do not log secrets)
-  try {
-    if (azure && azure.enabled) {
-      logger.info('✅ Azure AI configured', { endpoint: azure.endpoint || null, deployment: azure.deployment || null, apiVersion: azure.apiVersion || azure.apiVersion });
-    } else {
-      logger.info('ℹ️ Azure AI not configured (no endpoint/key/deployment)');
-    }
-  } catch (e) { /* ignore */ }
-  // Allow forcing Azure first via env var for testing: set FORCE_AZURE=1 or FORCE_AZURE_PROVIDER=1
-  const FORCE_AZURE = (String(process.env.FORCE_AZURE || process.env.FORCE_AZURE_PROVIDER || process.env.PREFER_AZURE || '').toLowerCase() === '1' || String(process.env.FORCE_AZURE || process.env.FORCE_AZURE_PROVIDER || process.env.PREFER_AZURE || '').toLowerCase() === 'true');
+} catch (e) {
+  /* ignore */
+}
+// Allow forcing Azure first via env var for testing: set FORCE_AZURE=1 or FORCE_AZURE_PROVIDER=1
+const FORCE_AZURE =
+  String(
+    process.env.FORCE_AZURE ||
+      process.env.FORCE_AZURE_PROVIDER ||
+      process.env.PREFER_AZURE ||
+      "",
+  ).toLowerCase() === "1" ||
+  String(
+    process.env.FORCE_AZURE ||
+      process.env.FORCE_AZURE_PROVIDER ||
+      process.env.PREFER_AZURE ||
+      "",
+  ).toLowerCase() === "true";
 const freeSports = new FreeSportsService(redis);
 const cache = new CacheService(redis);
 const openLiga = new OpenLigaDBService(undefined, cache, { ttlSeconds: 30 });
 const rssAggregator = new RSSAggregator(cache, { ttlSeconds: 60 });
 const footballDataService = new FootballDataService();
-const scorebatService = new ScoreBatService(process.env.SCOREBAT_TOKEN || null, cache, { retries: Number(process.env.SCOREBAT_RETRIES || 3), cacheTtlSeconds: Number(process.env.SCOREBAT_CACHE_TTL || 60) });
+const scorebatService = new ScoreBatService(
+  process.env.SCOREBAT_TOKEN || null,
+  cache,
+  {
+    retries: Number(process.env.SCOREBAT_RETRIES || 3),
+    cacheTtlSeconds: Number(process.env.SCOREBAT_CACHE_TTL || 60),
+  },
+);
 const scrapers = new Scrapers(redis);
 // Initialize SportsAggregator with enforced provider priority: only SportMonks and Football-Data
-const sportsAggregator = new SportsAggregator(redis, { scorebat: scorebatService, rss: rssAggregator, openLiga, allowedProviders: ['SPORTSMONKS','FOOTBALLDATA'] });
+const sportsAggregator = new SportsAggregator(redis, {
+  scorebat: scorebatService,
+  rss: rssAggregator,
+  openLiga,
+  allowedProviders: ["SPORTSMONKS", "FOOTBALLDATA"],
+});
 const oddsAnalyzer = new OddsAnalyzer(redis, sportsAggregator, null);
-const multiSportAnalyzer = new MultiSportAnalyzer(redis, sportsAggregator, null);
+const multiSportAnalyzer = new MultiSportAnalyzer(
+  redis,
+  sportsAggregator,
+  null,
+);
 const sportMonksAPI = null;
 const sportsDataAPI = new SportsDataAPI();
 
 // Claude (Anthropic) - prefer if enabled in config
-const claude = new ClaudeService(CONFIG.CLAUDE.API_KEY, CONFIG.CLAUDE.MODEL, CONFIG.CLAUDE.TIMEOUT_MS);
+const claude = new ClaudeService(
+  CONFIG.CLAUDE.API_KEY,
+  CONFIG.CLAUDE.MODEL,
+  CONFIG.CLAUDE.TIMEOUT_MS,
+);
 // Groq - OpenAI-compatible provider
-const groq = new GroqService(process.env.GROQ_API_KEY || CONFIG.GROQ && CONFIG.GROQ.API_KEY, process.env.GROQ_MODEL || (CONFIG.GROQ && CONFIG.GROQ.MODEL), Number(process.env.GROQ_TIMEOUT_MS || 20000), process.env.GROQ_BASE_URL || (CONFIG.GROQ && CONFIG.GROQ.BASE_URL) || 'https://api.groq.com');
+const groq = new GroqService(
+  process.env.GROQ_API_KEY || (CONFIG.GROQ && CONFIG.GROQ.API_KEY),
+  process.env.GROQ_MODEL || (CONFIG.GROQ && CONFIG.GROQ.MODEL),
+  Number(process.env.GROQ_TIMEOUT_MS || 20000),
+  process.env.GROQ_BASE_URL ||
+    (CONFIG.GROQ && CONFIG.GROQ.BASE_URL) ||
+    "https://api.groq.com",
+);
 
 // Composite AI wrapper: try Gemini per-request, fall back to LocalAI on errors.
 // create AI wrapper that uses Azure + RAG as the brain
-import { createAIWrapper } from './ai/wrapper.js';
+import { createAIWrapper } from "./ai/wrapper.js";
 
-const ai = createAIWrapper({ azure, gemini, huggingface, localAI, claude, groq, redis, logger });
+const ai = createAIWrapper({
+  azure,
+  gemini,
+  huggingface,
+  localAI,
+  claude,
+  groq,
+  redis,
+  logger,
+});
 
 // Startup probe: check remote AI providers (Azure, HuggingFace) and disable them
 // automatically if they return 401/unauthorized so the worker can fall back
 // to other providers (e.g., LocalAI) and remain functional.
 async function probeAIProviders() {
   try {
-    if (azure && typeof azure.embeddings === 'function' && azure.enabled) {
+    if (azure && typeof azure.embeddings === "function" && azure.enabled) {
       try {
-        await azure.embeddings(['ping']);
+        await azure.embeddings(["ping"]);
       } catch (e) {
-        const msg = String(e?.message || '').toLowerCase();
-        if ((e && e.status === 401) || msg.includes('invalid subscription key') || msg.includes('access denied')) {
-          logger.error('Azure returned 401/unauthorized during startup probe — disabling Azure provider until credentials are fixed.');
+        const msg = String(e?.message || "").toLowerCase();
+        if (
+          (e && e.status === 401) ||
+          msg.includes("invalid subscription key") ||
+          msg.includes("access denied")
+        ) {
+          logger.error(
+            "Azure returned 401/unauthorized during startup probe — disabling Azure provider until credentials are fixed.",
+          );
           azure.enabled = false;
         } else {
-          logger.warn('Azure embeddings probe failed (non-auth):', e?.message || String(e));
+          logger.warn(
+            "Azure embeddings probe failed (non-auth):",
+            e?.message || String(e),
+          );
         }
       }
     }
-  } catch (err) { logger.warn('Azure probe error', err?.message || String(err)); }
+  } catch (err) {
+    logger.warn("Azure probe error", err?.message || String(err));
+  }
 
   try {
     if (huggingface && huggingface.enabled) {
       try {
-        await huggingface.chat('ping');
+        await huggingface.chat("ping");
       } catch (e) {
-        const msg = String(e?.message || '').toLowerCase();
-        if (msg.includes('401') || msg.includes('unauthorized') || msg.includes('not found')) {
-          logger.error('HuggingFace returned 401/unauthorized during startup probe — disabling HuggingFace provider until credentials or model names are fixed.');
+        const msg = String(e?.message || "").toLowerCase();
+        if (
+          msg.includes("401") ||
+          msg.includes("unauthorized") ||
+          msg.includes("not found")
+        ) {
+          logger.error(
+            "HuggingFace returned 401/unauthorized during startup probe — disabling HuggingFace provider until credentials or model names are fixed.",
+          );
           huggingface.enabled = false;
         } else {
-          logger.warn('HuggingFace probe failed (non-auth):', e?.message || String(e));
+          logger.warn(
+            "HuggingFace probe failed (non-auth):",
+            e?.message || String(e),
+          );
         }
       }
     }
-  } catch (err) { logger.warn('HuggingFace probe error', err?.message || String(err)); }
+  } catch (err) {
+    logger.warn("HuggingFace probe error", err?.message || String(err));
+  }
 
   // Log final provider availability
   try {
-    logger.info('AI providers availability after probe', {
-      azure: azure && typeof azure.enabled !== 'undefined' ? azure.enabled : false,
-      huggingface: huggingface && typeof huggingface.enabled !== 'undefined' ? huggingface.enabled : false,
-      gemini: gemini && typeof gemini.enabled !== 'undefined' ? gemini.enabled : false,
-      localAI: localAI && typeof localAI.isHealthy === 'function' ? localAI.isHealthy() : true,
+    logger.info("AI providers availability after probe", {
+      azure:
+        azure && typeof azure.enabled !== "undefined" ? azure.enabled : false,
+      huggingface:
+        huggingface && typeof huggingface.enabled !== "undefined"
+          ? huggingface.enabled
+          : false,
+      gemini:
+        gemini && typeof gemini.enabled !== "undefined"
+          ? gemini.enabled
+          : false,
+      localAI:
+        localAI && typeof localAI.isHealthy === "function"
+          ? localAI.isHealthy()
+          : true,
     });
-  } catch (e) { /**/ }
+  } catch (e) {
+    /**/
+  }
 }
 
-(async () => { await probeAIProviders(); })();
+(async () => {
+  await probeAIProviders();
+})();
 
 // keep analyzeSport stub if needed
-ai.analyzeSport = async function(sport, matchData, question) {
+ai.analyzeSport = async function (sport, matchData, question) {
   if (gemini && gemini.enabled) {
     try {
-      if (typeof gemini.analyzeSport === 'function') return await gemini.analyzeSport(sport, matchData, question);
+      if (typeof gemini.analyzeSport === "function")
+        return await gemini.analyzeSport(sport, matchData, question);
     } catch (err) {
-      logger.warn('Gemini.analyzeSport failed, falling back', err?.message || String(err));
+      logger.warn(
+        "Gemini.analyzeSport failed, falling back",
+        err?.message || String(err),
+      );
     }
   }
 
@@ -357,30 +542,49 @@ ai.analyzeSport = async function(sport, matchData, question) {
     try {
       return await huggingface.analyzeSport(sport, matchData, question);
     } catch (err) {
-      logger.warn('HuggingFace.analyzeSport failed, falling back', err?.message || String(err));
+      logger.warn(
+        "HuggingFace.analyzeSport failed, falling back",
+        err?.message || String(err),
+      );
     }
   }
 
   return localAI.analyzeSport(sport, matchData, question);
 };
 
-ai.isHealthy = function() {
-  return (gemini && gemini.enabled) || (huggingface && huggingface.isHealthy()) || (localAI && typeof localAI.isHealthy === 'function' ? localAI.isHealthy() : true);
+ai.isHealthy = function () {
+  return (
+    (gemini && gemini.enabled) ||
+    (huggingface && huggingface.isHealthy()) ||
+    (localAI && typeof localAI.isHealthy === "function"
+      ? localAI.isHealthy()
+      : true)
+  );
 };
 const analytics = new AnalyticsService(redis);
 const rateLimiter = new RateLimiter(redis);
 const contextManager = new ContextManager(redis);
-const basicHandlers = new BotHandlers(telegram, userService, apiFootball, ai, redis, freeSports, {
-  openLiga,
-  rss: rssAggregator,
-  scorebat: scorebatService,
-  footballData: footballDataService,
-  scrapers,
-});
+const basicHandlers = new BotHandlers(
+  telegram,
+  userService,
+  apiFootball,
+  ai,
+  redis,
+  freeSports,
+  {
+    openLiga,
+    rss: rssAggregator,
+    scorebat: scorebatService,
+    footballData: footballDataService,
+    scrapers,
+  },
+);
 
 // StatPal integration removed: system now uses SPORTSMONKS and FOOTBALLDATA only
 let statpalInitSuccess = false;
-logger.info('ℹ️ StatPal integration disabled/removed — using SPORTSMONKS and FOOTBALL-DATA only');
+logger.info(
+  "ℹ️ StatPal integration disabled/removed — using SPORTSMONKS and FOOTBALL-DATA only",
+);
 
 // ===== API BOOTSTRAP: Validate keys and immediately prefetch data =====
 let apiBootstrapSuccess = false;
@@ -388,38 +592,50 @@ try {
   const apiBootstrap = new APIBootstrap(sportsAggregator, oddsAnalyzer, redis);
   const bootstrapResult = await apiBootstrap.initialize();
   apiBootstrapSuccess = bootstrapResult.success;
-  
+
   if (bootstrapResult.success) {
-    logger.info('✅ API Bootstrap successful', bootstrapResult.data);
+    logger.info("✅ API Bootstrap successful", bootstrapResult.data);
     // Start continuous prefetch after initial success
-    apiBootstrap.startContinuousPrefetch(Number(process.env.PREFETCH_INTERVAL_SECONDS || 60));
+    apiBootstrap.startContinuousPrefetch(
+      Number(process.env.PREFETCH_INTERVAL_SECONDS || 60),
+    );
   } else {
-    logger.warn('⚠️  API Bootstrap warning', bootstrapResult);
+    logger.warn("⚠️  API Bootstrap warning", bootstrapResult);
   }
 } catch (e) {
-  logger.warn('API Bootstrap initialization failed', e?.message || String(e));
+  logger.warn("API Bootstrap initialization failed", e?.message || String(e));
 }
 
 // Start prefetch scheduler (runs in-worker). Interval controlled by PREFETCH_INTERVAL_SECONDS (default 60s).
 try {
-  startPrefetchScheduler({ redis, openLiga, rss: rssAggregator, scorebat: scorebatService, footballData: footballDataService, sportsAggregator: sportsAggregator, intervalSeconds: Number(process.env.PREFETCH_INTERVAL_SECONDS || 60) });
-  logger.info('Prefetch scheduler started', { intervalSeconds: Number(process.env.PREFETCH_INTERVAL_SECONDS || 60) });
+  startPrefetchScheduler({
+    redis,
+    openLiga,
+    rss: rssAggregator,
+    scorebat: scorebatService,
+    footballData: footballDataService,
+    sportsAggregator: sportsAggregator,
+    intervalSeconds: Number(process.env.PREFETCH_INTERVAL_SECONDS || 60),
+  });
+  logger.info("Prefetch scheduler started", {
+    intervalSeconds: Number(process.env.PREFETCH_INTERVAL_SECONDS || 60),
+  });
 } catch (e) {
-  logger.warn('Prefetch scheduler failed to start', e?.message || String(e));
+  logger.warn("Prefetch scheduler failed to start", e?.message || String(e));
 }
 
 // Register Data Exposure API endpoints for accessing cached sports data
 try {
   registerDataExposureAPI(sportsAggregator);
-  logger.info('✅ Data Exposure API registered - access at /api/data/*');
+  logger.info("✅ Data Exposure API registered - access at /api/data/*");
 } catch (e) {
-  logger.warn('Failed to register Data Exposure API', e?.message || String(e));
+  logger.warn("Failed to register Data Exposure API", e?.message || String(e));
 }
 
 // Start minimal HTTP server so Render detects an open port and webhooks can be received.
 try {
   const PORT = Number(process.env.PORT || process.env.RENDER_PORT || 5000);
-  const HOST = process.env.HOST || '0.0.0.0';
+  const HOST = process.env.HOST || "0.0.0.0";
   app.listen(PORT, HOST, () => {
     const msg = `HTTP server listening on ${HOST}:${PORT}`;
     // Ensure a plain console log exists for Render's port scanner and for easier debugging
@@ -427,110 +643,180 @@ try {
     logger.info(msg);
   });
 } catch (e) {
-  logger.warn('Failed to start HTTP server for webhooks', e?.message || String(e));
+  logger.warn(
+    "Failed to start HTTP server for webhooks",
+    e?.message || String(e),
+  );
 }
 
 // Attempt to register Telegram webhook automatically when webhook URL and token are provided.
 // This makes deploy logs show webhook registration success/failure.
 try {
   const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || null;
-  const TELEGRAM_WEBHOOK_URL = process.env.TELEGRAM_WEBHOOK_URL || process.env.TELEGRAM_WEBHOOK || null;
-  const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET || null;
+  const TELEGRAM_WEBHOOK_URL =
+    process.env.TELEGRAM_WEBHOOK_URL || process.env.TELEGRAM_WEBHOOK || null;
+  const TELEGRAM_WEBHOOK_SECRET =
+    process.env.TELEGRAM_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET || null;
 
   if (TELEGRAM_TOKEN && TELEGRAM_WEBHOOK_URL) {
     (async () => {
       try {
         const setUrl = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/setWebhook`;
         const body = { url: TELEGRAM_WEBHOOK_URL };
-        if (TELEGRAM_WEBHOOK_SECRET) body.secret_token = TELEGRAM_WEBHOOK_SECRET;
+        if (TELEGRAM_WEBHOOK_SECRET)
+          body.secret_token = TELEGRAM_WEBHOOK_SECRET;
         // prefer JSON to avoid form encoding complexity
-        const resp = await fetch(setUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), timeout: 10000 });
+        const resp = await fetch(setUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          timeout: 10000,
+        });
         const json = await resp.json().catch(() => null);
         if (json && json.ok) {
-          logger.info('✅ Telegram webhook set successfully', { url: TELEGRAM_WEBHOOK_URL });
-          console.log('Telegram webhook set successfully');
+          logger.info("✅ Telegram webhook set successfully", {
+            url: TELEGRAM_WEBHOOK_URL,
+          });
+          console.log("Telegram webhook set successfully");
         } else {
-          logger.warn('⚠️ Telegram setWebhook returned non-ok', { result: json });
+          logger.warn("⚠️ Telegram setWebhook returned non-ok", {
+            result: json,
+          });
         }
       } catch (err) {
-        logger.warn('⚠️ Telegram setWebhook failed', err?.message || String(err));
+        logger.warn(
+          "⚠️ Telegram setWebhook failed",
+          err?.message || String(err),
+        );
       }
     })();
   } else {
-    logger.info('ℹ️ Telegram webhook auto-registration skipped (TELEGRAM_TOKEN or TELEGRAM_WEBHOOK_URL missing)');
+    logger.info(
+      "ℹ️ Telegram webhook auto-registration skipped (TELEGRAM_TOKEN or TELEGRAM_WEBHOOK_URL missing)",
+    );
   }
-} catch (e) { logger.warn('Telegram webhook registration error', e?.message || String(e)); }
+} catch (e) {
+  logger.warn("Telegram webhook registration error", e?.message || String(e));
+}
 
 // Subscribe to prefetch events for internal observability and reactive caching
 try {
   const sub = new Redis(CONFIG.REDIS_URL);
-  sub.subscribe('prefetch:updates', 'prefetch:error').then(() => logger.info('Subscribed to prefetch pub/sub channels')).catch(()=>{});
-  sub.on('message', async (channel, message) => {
+  sub
+    .subscribe("prefetch:updates", "prefetch:error")
+    .then(() => logger.info("Subscribed to prefetch pub/sub channels"))
+    .catch(() => {});
+  sub.on("message", async (channel, message) => {
     let payload = message;
-    try { payload = JSON.parse(message); } catch (e) { /* raw */ }
-    logger.info('Prefetch event', { channel, payload });
+    try {
+      payload = JSON.parse(message);
+    } catch (e) {
+      /* raw */
+    }
+    logger.info("Prefetch event", { channel, payload });
     // Example reactive action: when openligadb updates, optionally warm specific caches
     try {
-      if (channel === 'prefetch:updates' && payload && payload.type === 'openligadb') {
+      if (
+        channel === "prefetch:updates" &&
+        payload &&
+        payload.type === "openligadb"
+      ) {
         // touch a short key indicating last openligadb update
-        await redis.set('prefetch:last:openligadb', Date.now());
-        await redis.expire('prefetch:last:openligadb', 300);
+        await redis.set("prefetch:last:openligadb", Date.now());
+        await redis.expire("prefetch:last:openligadb", 300);
       }
-    } catch (e) { logger.warn('Failed reactive prefetch action', e?.message || String(e)); }
+    } catch (e) {
+      logger.warn("Failed reactive prefetch action", e?.message || String(e));
+    }
   });
-} catch (e) { logger.warn('Prefetch subscriber failed to start', e?.message || String(e)); }
+} catch (e) {
+  logger.warn("Prefetch subscriber failed to start", e?.message || String(e));
+}
 // If we're running with an in-memory MockRedis, skip creating a separate
 // subscriber connection because MockRedis doesn't implement pub/sub.
 try {
-  const isMock = redis && redis.constructor && redis.constructor.name === 'MockRedis';
+  const isMock =
+    redis && redis.constructor && redis.constructor.name === "MockRedis";
   if (!isMock && CONFIG.REDIS_URL) {
     const sub = new Redis(CONFIG.REDIS_URL);
-    sub.subscribe('prefetch:updates', 'prefetch:error').then(() => logger.info('Subscribed to prefetch pub/sub channels')).catch(()=>{});
-    sub.on('message', async (channel, message) => {
+    sub
+      .subscribe("prefetch:updates", "prefetch:error")
+      .then(() => logger.info("Subscribed to prefetch pub/sub channels"))
+      .catch(() => {});
+    sub.on("message", async (channel, message) => {
       let payload = message;
-      try { payload = JSON.parse(message); } catch (e) { /* raw */ }
-      logger.info('Prefetch event', { channel, payload });
       try {
-        if (channel === 'prefetch:updates' && payload && payload.type === 'openligadb') {
-          await redis.set('prefetch:last:openligadb', Date.now());
-          await redis.expire('prefetch:last:openligadb', 300);
+        payload = JSON.parse(message);
+      } catch (e) {
+        /* raw */
+      }
+      logger.info("Prefetch event", { channel, payload });
+      try {
+        if (
+          channel === "prefetch:updates" &&
+          payload &&
+          payload.type === "openligadb"
+        ) {
+          await redis.set("prefetch:last:openligadb", Date.now());
+          await redis.expire("prefetch:last:openligadb", 300);
         }
-      } catch (e) { logger.warn('Failed reactive prefetch action', e?.message || String(e)); }
+      } catch (e) {
+        logger.warn("Failed reactive prefetch action", e?.message || String(e));
+      }
     });
   } else {
-    logger.info('ℹ️ Pub/sub disabled: using in-memory MockRedis for local development');
+    logger.info(
+      "ℹ️ Pub/sub disabled: using in-memory MockRedis for local development",
+    );
   }
 } catch (e) {
-  logger.warn('Prefetch subscriber failed to start', e?.message || String(e));
+  logger.warn("Prefetch subscriber failed to start", e?.message || String(e));
 }
 // Inject Redis into v2 handler for telemetry wiring (no-op for MockRedis)
-if (typeof v2Handler.setTelemetryRedis === 'function') {
-  try { v2Handler.setTelemetryRedis(redis); logger.info('✅ Telemetry Redis injected into v2Handler'); } catch(e){}
+if (typeof v2Handler.setTelemetryRedis === "function") {
+  try {
+    v2Handler.setTelemetryRedis(redis);
+    logger.info("✅ Telemetry Redis injected into v2Handler");
+  } catch (e) {}
 }
 
 // ===== SCHEDULE: Media AI Ticker =====
 try {
-  const intervalSeconds = Number(process.env.MEDIA_AI_INTERVAL_SECONDS || process.env.MEDIA_AI_TICK_INTERVAL_SECONDS || 180);
+  const intervalSeconds = Number(
+    process.env.MEDIA_AI_INTERVAL_SECONDS ||
+      process.env.MEDIA_AI_TICK_INTERVAL_SECONDS ||
+      180,
+  );
   if (intervalSeconds > 0) {
-    setInterval(async () => {
-      try {
-        // Respect liveliness policy stored in Redis
-        const ok = await canPostNow();
-        if (!ok) return;
+    setInterval(
+      async () => {
+        try {
+          // Respect liveliness policy stored in Redis
+          const ok = await canPostNow();
+          if (!ok) return;
 
-        await runMediaAiTick();
-        // markPosted is best-effort; if runMediaAiTick posted, mark it
-        try { await markPosted(); } catch(e) { /* ignore */ }
-      } catch (e) {
-        logger.warn('MediaAiTicker scheduled run failed', e?.message || String(e));
-      }
-    }, Math.max(1000, intervalSeconds * 1000));
-    logger.info('MediaAiTicker scheduled', { intervalSeconds });
+          await runMediaAiTick();
+          // markPosted is best-effort; if runMediaAiTick posted, mark it
+          try {
+            await markPosted();
+          } catch (e) {
+            /* ignore */
+          }
+        } catch (e) {
+          logger.warn(
+            "MediaAiTicker scheduled run failed",
+            e?.message || String(e),
+          );
+        }
+      },
+      Math.max(1000, intervalSeconds * 1000),
+    );
+    logger.info("MediaAiTicker scheduled", { intervalSeconds });
   } else {
-    logger.info('MediaAiTicker scheduling disabled (intervalSeconds <= 0)');
+    logger.info("MediaAiTicker scheduling disabled (intervalSeconds <= 0)");
   }
 } catch (e) {
-  logger.warn('Failed to schedule MediaAiTicker', e?.message || String(e));
+  logger.warn("Failed to schedule MediaAiTicker", e?.message || String(e));
 }
 
 // ===== INITIALIZE PERFORMANCE OPTIMIZER =====
@@ -540,115 +826,186 @@ const perfOptimizer = {
   instance: perfInstance,
   prefetcher: perfInstance.prefetchData.bind(perfInstance),
   rateLimiterFactory: perfInstance.createRateLimiter.bind(perfInstance),
-  getMetrics: perfInstance.getMetrics.bind(perfInstance)
+  getMetrics: perfInstance.getMetrics.bind(perfInstance),
 };
-logger.info('✅ Performance Optimizer instance created (PerformanceOptimizer)');
+logger.info("✅ Performance Optimizer instance created (PerformanceOptimizer)");
 
 // Wrap sportsAggregator methods with caching
 if (sportsAggregator) {
   const originalGetLiveMatches = sportsAggregator.getLiveMatches;
-  sportsAggregator.getLiveMatches = async function(leagueId) {
+  sportsAggregator.getLiveMatches = async function (leagueId) {
     try {
-          const cacheKey = `cache:live_matches:${leagueId || 'all'}`;
-          // Use PerformanceOptimizer.smartCache to fetch-or-read cached value
-          const result = await perfInstance.smartCache(cacheKey, async () => {
-            return await originalGetLiveMatches.call(this, leagueId);
-          }, 120);
-          return result;
+      const cacheKey = `cache:live_matches:${leagueId || "all"}`;
+      // Use PerformanceOptimizer.smartCache to fetch-or-read cached value
+      const result = await perfInstance.smartCache(
+        cacheKey,
+        async () => {
+          return await originalGetLiveMatches.call(this, leagueId);
+        },
+        120,
+      );
+      return result;
     } catch (e) {
-      logger.warn('Cached getLiveMatches failed, falling back', e.message);
+      logger.warn("Cached getLiveMatches failed, falling back", e.message);
       return originalGetLiveMatches.call(this, leagueId);
     }
   };
 
   const originalGetLeagues = sportsAggregator.getLeagues;
-  sportsAggregator.getLeagues = async function(sport) {
+  sportsAggregator.getLeagues = async function (sport) {
     try {
-      const cacheKey = `cache:leagues:${sport || 'all'}`;
-      const result = await perfInstance.smartCache(cacheKey, async () => {
-        return await originalGetLeagues.call(this, sport);
-      }, 600);
+      const cacheKey = `cache:leagues:${sport || "all"}`;
+      const result = await perfInstance.smartCache(
+        cacheKey,
+        async () => {
+          return await originalGetLeagues.call(this, sport);
+        },
+        600,
+      );
       return result;
     } catch (e) {
-      logger.warn('Cached getLeagues failed, falling back', e.message);
+      logger.warn("Cached getLeagues failed, falling back", e.message);
       return originalGetLeagues.call(this, sport);
     }
   };
-  
-  logger.info('✅ Performance caching enabled on sportsAggregator');
+
+  logger.info("✅ Performance caching enabled on sportsAggregator");
 }
 
 // Setup callback telemetry alerts (sends admin message if truncation threshold exceeded)
 setInterval(async () => {
   try {
-    const truncCount = await redis.get('betrix:telemetry:callback_truncated_outgoing');
-    const repOdds = await redis.get('betrix:telemetry:callback_repetition_odds');
+    const truncCount = await redis.get(
+      "betrix:telemetry:callback_truncated_outgoing",
+    );
+    const repOdds = await redis.get(
+      "betrix:telemetry:callback_repetition_odds",
+    );
     if ((Number(truncCount) || 0) > 10 || (Number(repOdds) || 0) > 5) {
-      const adminId = CONFIG.TELEGRAM && CONFIG.TELEGRAM.ADMIN_ID ? Number(CONFIG.TELEGRAM.ADMIN_ID) : null;
+      const adminId =
+        CONFIG.TELEGRAM && CONFIG.TELEGRAM.ADMIN_ID
+          ? Number(CONFIG.TELEGRAM.ADMIN_ID)
+          : null;
       if (adminId && telegram) {
         const msg = `⚠️ *Callback Telemetry Alert*\n\nTruncated outgoing: ${truncCount || 0}\nRepetition (odds): ${repOdds || 0}\n\nCheck samples: betrix:telemetry:callback_truncated_samples`;
-        await telegram.sendMessage(adminId, msg, { parse_mode: 'Markdown' }).catch(() => {});
+        await telegram
+          .sendMessage(adminId, msg, { parse_mode: "Markdown" })
+          .catch(() => {});
       }
-      await redis.set('betrix:telemetry:callback_truncated_outgoing', '0');
-      await redis.set('betrix:telemetry:callback_repetition_odds', '0');
+      await redis.set("betrix:telemetry:callback_truncated_outgoing", "0");
+      await redis.set("betrix:telemetry:callback_repetition_odds", "0");
     }
   } catch (e) {
-    logger.warn('Callback telemetry alert check failed', e?.message || String(e));
+    logger.warn(
+      "Callback telemetry alert check failed",
+      e?.message || String(e),
+    );
   }
 }, 60 * 1000);
 
-const advancedHandler = new AdvancedHandler(basicHandlers, redis, telegram, userService, ai);
+const advancedHandler = new AdvancedHandler(
+  basicHandlers,
+  redis,
+  telegram,
+  userService,
+  ai,
+);
 const premiumService = new PremiumService(redis, ai);
 const adminDashboard = new AdminDashboard(redis, telegram, analytics);
 
 // Start automation schedulers (media ticker, odds, fixtures, live alerts)
 try {
   // dynamic import of `node-cron` and automation modules
-  const cronMod = await import('node-cron');
+  const cronMod = await import("node-cron");
   const cron = cronMod && cronMod.default ? cronMod.default : cronMod;
   // dynamic import of automation modules
-  const { startMediaTickerScheduler } = await import('./automation/mediaTicker.js');
-  const { startOddsTickerScheduler } = await import('./automation/oddsTicker.js');
-  const { startFixturesTickerScheduler } = await import('./automation/fixturesTicker.js');
-  const { startLiveAlertsScheduler } = await import('./automation/liveAlerts.js');
+  const { startMediaTickerScheduler } =
+    await import("./automation/mediaTicker.js");
+  const { startOddsTickerScheduler } =
+    await import("./automation/oddsTicker.js");
+  const { startFixturesTickerScheduler } =
+    await import("./automation/fixturesTicker.js");
+  const { startLiveAlertsScheduler } =
+    await import("./automation/liveAlerts.js");
 
   function startSchedulers() {
-    try { startMediaTickerScheduler(cron, sportsAggregator); } catch(e) { logger.warn('MediaTicker failed to start', e && e.message ? e.message : e); }
-    try { startOddsTickerScheduler(cron, sportsAggregator); } catch(e) { logger.warn('OddsTicker failed to start', e && e.message ? e.message : e); }
-    try { startFixturesTickerScheduler(cron, sportsAggregator); } catch(e) { logger.warn('FixturesTicker failed to start', e && e.message ? e.message : e); }
-    try { startLiveAlertsScheduler(cron, sportsAggregator); } catch(e) { logger.warn('LiveAlerts failed to start', e && e.message ? e.message : e); }
+    try {
+      startMediaTickerScheduler(cron, sportsAggregator);
+    } catch (e) {
+      logger.warn(
+        "MediaTicker failed to start",
+        e && e.message ? e.message : e,
+      );
+    }
+    try {
+      startOddsTickerScheduler(cron, sportsAggregator);
+    } catch (e) {
+      logger.warn("OddsTicker failed to start", e && e.message ? e.message : e);
+    }
+    try {
+      startFixturesTickerScheduler(cron, sportsAggregator);
+    } catch (e) {
+      logger.warn(
+        "FixturesTicker failed to start",
+        e && e.message ? e.message : e,
+      );
+    }
+    try {
+      startLiveAlertsScheduler(cron, sportsAggregator);
+    } catch (e) {
+      logger.warn("LiveAlerts failed to start", e && e.message ? e.message : e);
+    }
   }
 
   startSchedulers();
-  logger.info('✅ Automation schedulers start attempted');
+  logger.info("✅ Automation schedulers start attempted");
   // ---- Startup test broadcast (temporary) ----
   try {
-    const testChat = process.env.BOT_BROADCAST_CHAT_ID || (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.BROADCAST_CHAT_ID) || null;
+    const testChat =
+      process.env.BOT_BROADCAST_CHAT_ID ||
+      (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.BROADCAST_CHAT_ID) ||
+      null;
     if (testChat) {
       (async () => {
         try {
           // Attempt to fetch a representative image and send as photo where possible
-          const caption = "🚀 BETRIX TEST BROADCAST — If you see this, the channel wiring works.";
-          const imageUrl = await ImageProvider.findImage({ q: 'betrix test broadcast' });
+          const caption =
+            "🚀 BETRIX TEST BROADCAST — If you see this, the channel wiring works.";
+          const imageUrl = await ImageProvider.findImage({
+            q: "betrix test broadcast",
+          });
           if (imageUrl) {
-            await telegram.sendPhoto(Number(testChat), imageUrl, caption, { disable_notification: true });
+            await telegram.sendPhoto(Number(testChat), imageUrl, caption, {
+              disable_notification: true,
+            });
           } else {
             // Fallback to text-only broadcast
             await telegram.sendMessage(Number(testChat), caption);
           }
-          logger.info('Startup test broadcast sent', { chat: testChat });
+          logger.info("Startup test broadcast sent", { chat: testChat });
         } catch (err) {
-          logger.error('Startup test broadcast failed', err && err.message ? err.message : String(err));
+          logger.error(
+            "Startup test broadcast failed",
+            err && err.message ? err.message : String(err),
+          );
         }
       })();
     } else {
-      logger.info('No BOT_BROADCAST_CHAT_ID set — skipping startup test broadcast');
+      logger.info(
+        "No BOT_BROADCAST_CHAT_ID set — skipping startup test broadcast",
+      );
     }
   } catch (e) {
-    logger.warn('Startup test broadcast encountered an error', e && e.message ? e.message : String(e));
+    logger.warn(
+      "Startup test broadcast encountered an error",
+      e && e.message ? e.message : String(e),
+    );
   }
 } catch (e) {
-  logger.warn('Automation schedulers failed to initialize', e && e.message ? e.message : e);
+  logger.warn(
+    "Automation schedulers failed to initialize",
+    e && e.message ? e.message : e,
+  );
 }
 
 logger.info("🚀 BETRIX Final Worker - All Services Initialized");
@@ -662,34 +1019,50 @@ async function main() {
   try {
     let moved = 0;
     while (true) {
-      const item = await redis.rpoplpush("telegram:processing", "telegram:updates");
+      const item = await redis.rpoplpush(
+        "telegram:processing",
+        "telegram:updates",
+      );
       if (!item) break;
       moved += 1;
       // avoid busy looping
       if (moved % 100 === 0) await sleep(10);
     }
-    if (moved > 0) logger.info(`Requeued ${moved} items from telegram:processing to telegram:updates`);
+    if (moved > 0)
+      logger.info(
+        `Requeued ${moved} items from telegram:processing to telegram:updates`,
+      );
   } catch (err) {
-    logger.warn("Failed to requeue processing list on startup", err?.message || String(err));
+    logger.warn(
+      "Failed to requeue processing list on startup",
+      err?.message || String(err),
+    );
   }
 
   while (running) {
     try {
       // BRPOPLPUSH blocks until an item is available or timeout (5s)
-      const raw = await redis.brpoplpush("telegram:updates", "telegram:processing", 5);
+      const raw = await redis.brpoplpush(
+        "telegram:updates",
+        "telegram:processing",
+        5,
+      );
       if (!raw) {
         // timeout expired, loop again to check running flag
         continue;
       }
 
-  // mark which AI is active for observability (set before processing)
-  const preferred = (gemini && gemini.enabled)
-    ? "gemini"
-    : (azure && azure.isHealthy())
-      ? "azure"
-      : ((huggingface && huggingface.isHealthy()) ? "huggingface" : "local");
-  await redis.set("ai:active", preferred);
-  await redis.expire("ai:active", 30);
+      // mark which AI is active for observability (set before processing)
+      const preferred =
+        gemini && gemini.enabled
+          ? "gemini"
+          : azure && azure.isHealthy()
+            ? "azure"
+            : huggingface && huggingface.isHealthy()
+              ? "huggingface"
+              : "local";
+      await redis.set("ai:active", preferred);
+      await redis.expire("ai:active", 30);
 
       const data = JSON.parse(raw);
       await handleUpdate(data);
@@ -715,34 +1088,70 @@ async function handleUpdate(update) {
 
       // Admin-guard: intercept takeover/hacked claims to avoid social-engineering the bot
       try {
-        const takeoverRegex = /\b(hack|hacked|i have control|i hacked|i own you|i have access|i control you|someone hacked|i broke you)\b/i;
+        const takeoverRegex =
+          /\b(hack|hacked|i have control|i hacked|i own you|i have access|i control you|someone hacked|i broke you)\b/i;
         if (text && takeoverRegex.test(String(text))) {
-          logger.warn('Admin-claim detected in user message', { userId, chatId, text: String(text).slice(0,200) });
+          logger.warn("Admin-claim detected in user message", {
+            userId,
+            chatId,
+            text: String(text).slice(0, 200),
+          });
           // record claim for manual review
           try {
-            await redis.lpush('admin:claims', JSON.stringify({ userId, chatId, text: String(text), ts: Date.now() }));
-          } catch (e) { logger.warn('Failed to record admin claim', e && e.message ? e.message : e); }
+            await redis.lpush(
+              "admin:claims",
+              JSON.stringify({
+                userId,
+                chatId,
+                text: String(text),
+                ts: Date.now(),
+              }),
+            );
+          } catch (e) {
+            logger.warn(
+              "Failed to record admin claim",
+              e && e.message ? e.message : e,
+            );
+          }
 
           // Notify user with a safe, non-committal message
-          await telegram.sendMessage(chatId, "I can't confirm takeover or control claims. If you are an administrator, please authenticate via the admin interface. This claim has been logged for review.");
+          await telegram.sendMessage(
+            chatId,
+            "I can't confirm takeover or control claims. If you are an administrator, please authenticate via the admin interface. This claim has been logged for review.",
+          );
 
           // Notify configured admin(s)
           try {
-            const adminId = process.env.ADMIN_TELEGRAM_ID || (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.ADMIN_ID) || null;
+            const adminId =
+              process.env.ADMIN_TELEGRAM_ID ||
+              (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.ADMIN_ID) ||
+              null;
             if (adminId) {
-              const adminMsg = `⚠️ *Takeover claim logged*\n\nUser: ${userId}\nChat: ${chatId}\nTime: ${new Date().toISOString()}\nMessage: ${String(text).slice(0,400)}`;
-              await telegram.sendMessage(adminId, adminMsg, { parse_mode: 'Markdown' }).catch(()=>{});
+              const adminMsg = `⚠️ *Takeover claim logged*\n\nUser: ${userId}\nChat: ${chatId}\nTime: ${new Date().toISOString()}\nMessage: ${String(text).slice(0, 400)}`;
+              await telegram
+                .sendMessage(adminId, adminMsg, { parse_mode: "Markdown" })
+                .catch(() => {});
             }
-          } catch (e) { logger.warn('Failed to notify admin of claim', e && e.message ? e.message : e); }
+          } catch (e) {
+            logger.warn(
+              "Failed to notify admin of claim",
+              e && e.message ? e.message : e,
+            );
+          }
 
           // Do not process further
           return;
         }
-      } catch (e) { logger.warn('Admin-guard check failed', e && e.message ? e.message : e); }
+      } catch (e) {
+        logger.warn("Admin-guard check failed", e && e.message ? e.message : e);
+      }
 
       // Check suspension
       if (await adminDashboard.isUserSuspended(userId)) {
-        return await telegram.sendMessage(chatId, "⛔ Your account has been suspended.");
+        return await telegram.sendMessage(
+          chatId,
+          "⛔ Your account has been suspended.",
+        );
       }
 
       // Track engagement
@@ -751,23 +1160,45 @@ async function handleUpdate(update) {
 
       // Optional: auto-index incoming user messages into RAG (non-blocking)
       try {
-        const enableIndex = String(process.env.ENABLE_AUTO_INDEXING || '0') === '1';
-        if (enableIndex && rag && typeof rag.indexDocument === 'function' && text && String(text).trim().length > 0) {
+        const enableIndex =
+          String(process.env.ENABLE_AUTO_INDEXING || "0") === "1";
+        if (
+          enableIndex &&
+          rag &&
+          typeof rag.indexDocument === "function" &&
+          text &&
+          String(text).trim().length > 0
+        ) {
           // fire-and-forget indexing so it doesn't block user response
           (async () => {
             try {
               const id = `telegram-manual-${userId}-${Date.now()}`;
-              await rag.indexDocument(id, String(text), { userId, chatId, source: 'telegram' });
-              logger.info('Auto-indexed message into RAG', { id });
+              await rag.indexDocument(id, String(text), {
+                userId,
+                chatId,
+                source: "telegram",
+              });
+              logger.info("Auto-indexed message into RAG", { id });
             } catch (ie) {
-              logger.warn('Auto-indexing failed', ie && ie.message ? ie.message : ie);
+              logger.warn(
+                "Auto-indexing failed",
+                ie && ie.message ? ie.message : ie,
+              );
             }
           })();
         }
-      } catch (e) { logger.warn('Auto-index decision failed', e && e.message ? e.message : e); }
+      } catch (e) {
+        logger.warn(
+          "Auto-index decision failed",
+          e && e.message ? e.message : e,
+        );
+      }
 
       // Rate limit check
-      const tier = (await userService.getUser(userId))?.role === "vvip" ? "premium" : "default";
+      const tier =
+        (await userService.getUser(userId))?.role === "vvip"
+          ? "premium"
+          : "default";
       if (!(await advancedHandler.checkRateLimit(chatId, userId, tier))) {
         return;
       }
@@ -775,25 +1206,55 @@ async function handleUpdate(update) {
       // Check structured onboarding flow first (new flow)
       // Skip onboarding dispatch for slash commands (e.g., '/start', '/menu') so commands show menus.
       try {
-        if (!(text && String(text).startsWith('/'))) {
+        if (!(text && String(text).startsWith("/"))) {
           const onboardRaw = await redis.get(`user:${userId}:onboarding`);
           if (onboardRaw) {
-            const payload = await handleOnboardingMessage(text, chatId, userId, redis, { telegram, userService, analytics });
+            const payload = await handleOnboardingMessage(
+              text,
+              chatId,
+              userId,
+              redis,
+              { telegram, userService, analytics },
+            );
             if (payload) {
               // payload may be an array of actions or a single action
               const actions = Array.isArray(payload) ? payload : [payload];
               for (const act of actions) {
                 try {
                   if (!act || !act.method) continue;
-                  if (act.method === 'sendMessage') {
-                    await telegram.sendMessage(act.chat_id || chatId, act.text || '', { reply_markup: act.reply_markup, parse_mode: act.parse_mode }).catch(()=>{});
-                  } else if (act.method === 'editMessageText') {
-                    await telegram.editMessageText(act.chat_id || chatId, act.message_id || null, act.text || '', { reply_markup: act.reply_markup, parse_mode: act.parse_mode }).catch(()=>{});
-                  } else if (act.method === 'answerCallbackQuery') {
-                    await telegram.answerCallback(act.callback_query_id || act.callbackId, act.text || '', { show_alert: act.show_alert }).catch(()=>{});
+                  if (act.method === "sendMessage") {
+                    await telegram
+                      .sendMessage(act.chat_id || chatId, act.text || "", {
+                        reply_markup: act.reply_markup,
+                        parse_mode: act.parse_mode,
+                      })
+                      .catch(() => {});
+                  } else if (act.method === "editMessageText") {
+                    await telegram
+                      .editMessageText(
+                        act.chat_id || chatId,
+                        act.message_id || null,
+                        act.text || "",
+                        {
+                          reply_markup: act.reply_markup,
+                          parse_mode: act.parse_mode,
+                        },
+                      )
+                      .catch(() => {});
+                  } else if (act.method === "answerCallbackQuery") {
+                    await telegram
+                      .answerCallback(
+                        act.callback_query_id || act.callbackId,
+                        act.text || "",
+                        { show_alert: act.show_alert },
+                      )
+                      .catch(() => {});
                   }
                 } catch (errAct) {
-                  logger.warn('Applying onboarding action failed', errAct && errAct.message ? errAct.message : errAct);
+                  logger.warn(
+                    "Applying onboarding action failed",
+                    errAct && errAct.message ? errAct.message : errAct,
+                  );
                 }
               }
               return;
@@ -801,7 +1262,7 @@ async function handleUpdate(update) {
           }
         }
       } catch (e) {
-        logger.warn('Onboarding dispatch failed', e?.message || String(e));
+        logger.warn("Onboarding dispatch failed", e?.message || String(e));
       }
 
       // Check legacy signup flow
@@ -821,21 +1282,33 @@ async function handleUpdate(update) {
         const fullUser = (await userService.getUser(userId)) || {};
         // Ensure context is trimmed to model prompt budget before fetching recent messages
         try {
-          await contextManager.trimContextToTokenBudget(userId, CONFIG.GEMINI.MAX_PROMPT_TOKENS || 1500);
+          await contextManager.trimContextToTokenBudget(
+            userId,
+            CONFIG.GEMINI.MAX_PROMPT_TOKENS || 1500,
+          );
         } catch (e) {
-          logger.warn('Context trim failed', e?.message || String(e));
+          logger.warn("Context trim failed", e?.message || String(e));
         }
         const recent = await contextManager.getContext(userId).catch(() => []);
-        const recentTexts = recent.slice(-6).map(m => `${m.sender}: ${m.message}`);
+        const recentTexts = recent
+          .slice(-6)
+          .map((m) => `${m.sender}: ${m.message}`);
         const compactContext = {
           id: userId,
           name: fullUser.name || null,
           role: fullUser.role || null,
           favoriteLeagues: fullUser.favoriteLeagues || fullUser.leagues || null,
-          preferredLanguage: fullUser.preferredLanguage || fullUser.language || 'en',
+          preferredLanguage:
+            fullUser.preferredLanguage || fullUser.language || "en",
           recentMessages: recentTexts,
           // Ensure Azure (and other providers that honor system messages) receive the BETRIX persona
-          system: persona.getSystemPrompt({ includeContext: { id: userId, role: fullUser.role || null, name: fullUser.name || null } }),
+          system: persona.getSystemPrompt({
+            includeContext: {
+              id: userId,
+              role: fullUser.role || null,
+              name: fullUser.name || null,
+            },
+          }),
         };
 
         const response = await ai.chat(text, compactContext);
@@ -852,56 +1325,147 @@ async function handleUpdate(update) {
 
       // Avoid answering callback queries that are already too old (Telegram rejects if >60s)
       try {
-        const cbMsgDate = callbackQuery.message && (callbackQuery.message.date || callbackQuery.message.edit_date) ? Number(callbackQuery.message.date || callbackQuery.message.edit_date) : null;
-        const ageSec = cbMsgDate ? (Date.now() / 1000 - cbMsgDate) : 0;
+        const cbMsgDate =
+          callbackQuery.message &&
+          (callbackQuery.message.date || callbackQuery.message.edit_date)
+            ? Number(
+                callbackQuery.message.date || callbackQuery.message.edit_date,
+              )
+            : null;
+        const ageSec = cbMsgDate ? Date.now() / 1000 - cbMsgDate : 0;
         if (ageSec && ageSec > 55) {
-          logger.info('Skipping initial answerCallback: callback appears too old', { ageSec });
+          logger.info(
+            "Skipping initial answerCallback: callback appears too old",
+            { ageSec },
+          );
         } else {
           await telegram.answerCallback(callbackId, "Processing...");
         }
       } catch (e) {
         // If initial answer fails (rare), continue without blocking the callback handling
-        logger.warn('Initial answerCallback failed, continuing dispatch', e && e.message ? e.message : e);
+        logger.warn(
+          "Initial answerCallback failed, continuing dispatch",
+          e && e.message ? e.message : e,
+        );
       }
 
       try {
-        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportsData: sportsDataAPI, ai };
-        const res = await completeHandler.handleCallbackQuery(callbackQuery, redis, services);
-        if (!res) return;
+        const services = {
+          openLiga,
+          footballData: footballDataService,
+          rss: rssAggregator,
+          scrapers,
+          sportsAggregator,
+          oddsAnalyzer,
+          multiSportAnalyzer,
+          cache,
+          sportsData: sportsDataAPI,
+          ai,
+        };
+        const res = await completeHandler.handleCallbackQuery(
+          callbackQuery,
+          redis,
+          services,
+        );
+        // Log a concise summary of the handler return value to aid debugging
+        try {
+          const summarize = (v) => {
+            try {
+              if (v === null || v === undefined) return String(v);
+              if (Array.isArray(v)) return `array(${v.length})`;
+              if (typeof v === "object")
+                return `object(keys:${Object.keys(v).length})`;
+              return String(v).slice(0, 200);
+            } catch (e) {
+              return "unserializable";
+            }
+          };
+          logger.info("Callback handler returned", {
+            callback_data: callbackQuery.data,
+            summary: summarize(res),
+          });
+        } catch (e) {
+          logger.debug(
+            "Failed to summarize callback handler return",
+            e && e.message ? e.message : e,
+          );
+        }
+        if (!res) {
+          logger.info(
+            "Callback handler returned no actions; nothing to dispatch",
+            { callback_data: callbackQuery.data },
+          );
+          return;
+        }
 
         // Normalize to array for uniform processing
         const actions = Array.isArray(res) ? res : [res];
 
         for (const action of actions) {
           try {
-            if (!action || typeof action !== 'object') continue;
+            if (!action || typeof action !== "object") continue;
 
-            const method = (action.method || '').toString();
+            const method = (action.method || "").toString();
 
             // Edit existing message
-            if (method === 'editMessageText' || method === 'edit' || action.edit) {
-              const messageId = action.message_id || callbackQuery.message?.message_id;
-              const text = action.text || '';
+            if (
+              method === "editMessageText" ||
+              method === "edit" ||
+              action.edit
+            ) {
+              const messageId =
+                action.message_id || callbackQuery.message?.message_id;
+              const text = action.text || "";
               const reply_markup = action.reply_markup || null;
               // Pass parse_mode through to editMessage options so handlers
               // that specify HTML vs Markdown are respected.
-              await telegram.editMessage(chatId, messageId, text, reply_markup, { parse_mode: action.parse_mode || 'Markdown' });
-              logger.info('Dispatched editMessageText', { chatId, messageId });
+              await telegram.editMessage(
+                chatId,
+                messageId,
+                text,
+                reply_markup,
+                { parse_mode: action.parse_mode || "Markdown" },
+              );
+              logger.info("Dispatched editMessageText", { chatId, messageId });
               continue;
             }
 
             // Answer callback query (quick popup)
-            if (method === 'answerCallback' || method === 'answerCallbackQuery' || action.answer) {
+            if (
+              method === "answerCallback" ||
+              method === "answerCallbackQuery" ||
+              action.answer
+            ) {
               try {
-                await telegram.answerCallback(callbackId, action.text || '', !!action.show_alert);
-                logger.info('Dispatched answerCallback', { callbackId });
+                await telegram.answerCallback(
+                  callbackId,
+                  action.text || "",
+                  !!action.show_alert,
+                );
+                logger.info("Dispatched answerCallback", { callbackId });
               } catch (e) {
-                const msg = (e && (e.message || String(e))) || '';
+                const msg = (e && (e.message || String(e))) || "";
                 // If Telegram rejects because the query is too old, fallback to sending a message to chat
-                if (msg.includes('query is too old') || msg.includes('too old') || msg.includes('Query is too old')) {
-                  logger.info('Callback query too old; falling back to sendMessage', { callbackId });
+                if (
+                  msg.includes("query is too old") ||
+                  msg.includes("too old") ||
+                  msg.includes("Query is too old")
+                ) {
+                  logger.info(
+                    "Callback query too old; falling back to sendMessage",
+                    { callbackId },
+                  );
                   const target = action.chat_id || chatId;
-                  try { await telegram.sendMessage(target, action.text || '', { parse_mode: action.parse_mode || 'HTML' }); } catch (e2) { logger.warn('Fallback sendMessage failed', e2 && e2.message ? e2.message : e2); }
+                  try {
+                    await telegram.sendMessage(target, action.text || "", {
+                      parse_mode: action.parse_mode || "HTML",
+                    });
+                  } catch (e2) {
+                    logger.warn(
+                      "Fallback sendMessage failed",
+                      e2 && e2.message ? e2.message : e2,
+                    );
+                  }
                 } else {
                   throw e;
                 }
@@ -910,57 +1474,80 @@ async function handleUpdate(update) {
             }
 
             // Send a new message to chat or specific chat_id
-            if (method === 'sendMessage' || action.chat_id || action.text) {
+            if (method === "sendMessage" || action.chat_id || action.text) {
               const target = action.chat_id || chatId;
-              const text = action.text || '';
-              const opts = { reply_markup: action.reply_markup, parse_mode: action.parse_mode || 'HTML' };
-              logger.debug('Callback dispatch sendMessage opts', { target, has_reply_markup: !!opts.reply_markup, parse_mode: opts.parse_mode });
+              const text = action.text || "";
+              const opts = {
+                reply_markup: action.reply_markup,
+                parse_mode: action.parse_mode || "HTML",
+              };
+              logger.debug("Callback dispatch sendMessage opts", {
+                target,
+                has_reply_markup: !!opts.reply_markup,
+                parse_mode: opts.parse_mode,
+              });
               await telegram.sendMessage(target, text, opts);
-              logger.info('Dispatched sendMessage', { target });
+              logger.info("Dispatched sendMessage", { target });
               continue;
             }
 
             // Unknown action: log for debugging
-            logger.warn('Unknown callback action returned by v2 handler', { action });
+            logger.warn("Unknown callback action returned by v2 handler", {
+              action,
+            });
           } catch (errAction) {
-            const errMsg = errAction && (errAction.message || String(errAction));
+            const errMsg =
+              errAction && (errAction.message || String(errAction));
             const benignPatterns = [
-              'message is not modified',
-              'message to edit not found',
-              'message not found',
-              'chat not found',
-              'message can\'t be edited',
-              'message cannot be edited',
-              'Bad Request: message to edit not found',
-              'Bad Request: message is not modified',
+              "message is not modified",
+              "message to edit not found",
+              "message not found",
+              "chat not found",
+              "message can't be edited",
+              "message cannot be edited",
+              "Bad Request: message to edit not found",
+              "Bad Request: message is not modified",
             ];
 
-            const matched = typeof errMsg === 'string' && benignPatterns.some(p => errMsg.includes(p));
+            const matched =
+              typeof errMsg === "string" &&
+              benignPatterns.some((p) => errMsg.includes(p));
             if (matched) {
-              const messageId = (action && (action.message_id || callbackQuery.message?.message_id)) || null;
-              logger.info('Benign Telegram API response while dispatching callback action', { chatId, messageId, reason: errMsg });
+              const messageId =
+                (action &&
+                  (action.message_id || callbackQuery.message?.message_id)) ||
+                null;
+              logger.info(
+                "Benign Telegram API response while dispatching callback action",
+                { chatId, messageId, reason: errMsg },
+              );
             } else {
-              logger.error('Error dispatching callback action', errMsg);
+              logger.error("Error dispatching callback action", errMsg);
             }
           }
         }
       } catch (err) {
         const errMsg = err && (err.message || String(err));
         const benignPatterns = [
-          'message is not modified',
-          'message to edit not found',
-          'message not found',
-          'chat not found',
-          'message can\'t be edited',
-          'message cannot be edited',
-          'Bad Request: message to edit not found',
-          'Bad Request: message is not modified',
+          "message is not modified",
+          "message to edit not found",
+          "message not found",
+          "chat not found",
+          "message can't be edited",
+          "message cannot be edited",
+          "Bad Request: message to edit not found",
+          "Bad Request: message is not modified",
         ];
-        const matched = typeof errMsg === 'string' && benignPatterns.some(p => errMsg.includes(p));
+        const matched =
+          typeof errMsg === "string" &&
+          benignPatterns.some((p) => errMsg.includes(p));
         if (matched) {
-          logger.info('Callback handling: benign Telegram API response (non-fatal)', { reason: errMsg });
+          logger.info(
+            "Callback handling: benign Telegram API response (non-fatal)",
+            { reason: errMsg },
+          );
         } else {
-          logger.error('Callback handling failed', err);
+          logger.error("Callback handling failed", err);
         }
       }
     }
@@ -979,7 +1566,7 @@ function parseCommand(text) {
 
 async function handleCommand(chatId, userId, cmd, args, fullText) {
   try {
-    const user = await userService.getUser(userId) || {};
+    const user = (await userService.getUser(userId)) || {};
     const isAdmin = userId === parseInt(CONFIG.TELEGRAM.ADMIN_ID);
     const isVVIP = userService.isVVIP(user);
 
@@ -987,45 +1574,82 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
     const start = Date.now();
 
     // Basic commands - routed through complete handler for full menu system
-    const sharedServices = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportsData: sportsDataAPI, redis, ai };
+    const sharedServices = {
+      openLiga,
+      footballData: footballDataService,
+      rss: rssAggregator,
+      scrapers,
+      sportsAggregator,
+      oddsAnalyzer,
+      multiSportAnalyzer,
+      cache,
+      sportsData: sportsDataAPI,
+      redis,
+      ai,
+    };
     const basicCommands = {
       "/start": async () => {
         try {
-          const result = await completeHandler.handleStart(chatId, sharedServices);
-          await telegram.sendMessage(chatId, result.text, { reply_markup: result.reply_markup, parse_mode: result.parse_mode || 'Markdown' });
+          const result = await completeHandler.handleStart(
+            chatId,
+            sharedServices,
+          );
+          await telegram.sendMessage(chatId, result.text, {
+            reply_markup: result.reply_markup,
+            parse_mode: result.parse_mode || "Markdown",
+          });
         } catch (e) {
-          logger.warn('/start handler error', e?.message);
-          await telegram.sendMessage(chatId, '❌ Error loading menu');
+          logger.warn("/start handler error", e?.message);
+          await telegram.sendMessage(chatId, "❌ Error loading menu");
         }
       },
       "/menu": async () => {
         try {
-          const result = await completeHandler.handleMenu(chatId, sharedServices);
-          await telegram.sendMessage(chatId, result.text, { reply_markup: result.reply_markup, parse_mode: result.parse_mode || 'Markdown' });
+          const result = await completeHandler.handleMenu(
+            chatId,
+            sharedServices,
+          );
+          await telegram.sendMessage(chatId, result.text, {
+            reply_markup: result.reply_markup,
+            parse_mode: result.parse_mode || "Markdown",
+          });
         } catch (e) {
-          logger.warn('/menu handler error', e?.message);
-          await telegram.sendMessage(chatId, '❌ Error loading menu');
+          logger.warn("/menu handler error", e?.message);
+          await telegram.sendMessage(chatId, "❌ Error loading menu");
         }
       },
       "/live": async () => {
         try {
-          const result = await completeHandler.handleLive(chatId, null, sharedServices);
-          await telegram.sendMessage(chatId, result.text, { reply_markup: result.reply_markup, parse_mode: result.parse_mode || 'Markdown' });
+          const result = await completeHandler.handleLive(
+            chatId,
+            null,
+            sharedServices,
+          );
+          await telegram.sendMessage(chatId, result.text, {
+            reply_markup: result.reply_markup,
+            parse_mode: result.parse_mode || "Markdown",
+          });
         } catch (e) {
-          logger.warn('/live handler error', e?.message);
-          await telegram.sendMessage(chatId, '⚽ Error loading live games');
+          logger.warn("/live handler error", e?.message);
+          await telegram.sendMessage(chatId, "⚽ Error loading live games");
         }
       },
       "/help": async () => {
         try {
-          const result = await completeHandler.handleMenu(chatId, sharedServices);
+          const result = await completeHandler.handleMenu(
+            chatId,
+            sharedServices,
+          );
           if (result && result.text) {
-            await telegram.sendMessage(chatId, result.text, { reply_markup: result.reply_markup, parse_mode: result.parse_mode || 'Markdown' });
+            await telegram.sendMessage(chatId, result.text, {
+              reply_markup: result.reply_markup,
+              parse_mode: result.parse_mode || "Markdown",
+            });
           } else {
             await basicHandlers.help(chatId);
           }
         } catch (e) {
-          logger.warn('/help handler error', e?.message);
+          logger.warn("/help handler error", e?.message);
           await basicHandlers.help(chatId);
         }
       },
@@ -1033,38 +1657,107 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
       "/live": async () => {
         // route /live to the complete handler (same as above)
         try {
-          const result = await completeHandler.handleLive(chatId, null, sharedServices);
-          await telegram.sendMessage(chatId, result.text, { reply_markup: result.reply_markup, parse_mode: result.parse_mode || 'Markdown' });
+          const result = await completeHandler.handleLive(
+            chatId,
+            null,
+            sharedServices,
+          );
+          await telegram.sendMessage(chatId, result.text, {
+            reply_markup: result.reply_markup,
+            parse_mode: result.parse_mode || "Markdown",
+          });
         } catch (e) {
-          logger.warn('/live handler (duplicate) error', e?.message);
+          logger.warn("/live handler (duplicate) error", e?.message);
         }
       },
       "/news": () => basicHandlers.news(chatId),
       "/highlights": () => basicHandlers.highlights(chatId),
       "/standings": async () => {
-        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportsData: sportsDataAPI, ai };
-        const text = '/standings ' + (args && args.length ? args.join(' ') : '');
-        const msg = await v2Handler.handleCommand(text, chatId, userId, redis, services);
+        const services = {
+          openLiga,
+          footballData: footballDataService,
+          rss: rssAggregator,
+          scrapers,
+          sportsAggregator,
+          oddsAnalyzer,
+          multiSportAnalyzer,
+          cache,
+          sportsData: sportsDataAPI,
+          ai,
+        };
+        const text =
+          "/standings " + (args && args.length ? args.join(" ") : "");
+        const msg = await v2Handler.handleCommand(
+          text,
+          chatId,
+          userId,
+          redis,
+          services,
+        );
         if (msg && msg.chat_id) {
-          await telegram.sendMessage(chatId, msg.text || '', { reply_markup: msg.reply_markup, parse_mode: msg.parse_mode || 'Markdown' });
+          await telegram.sendMessage(chatId, msg.text || "", {
+            reply_markup: msg.reply_markup,
+            parse_mode: msg.parse_mode || "Markdown",
+          });
         }
       },
       "/league": () => basicHandlers.league(chatId, args.join(" ")),
       "/predict": () => basicHandlers.predict(chatId, args.join(" ")),
       "/odds": async () => {
-        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportsData: sportsDataAPI, ai };
-        const text = '/odds ' + (args && args.length ? args.join(' ') : '');
-        const msg = await v2Handler.handleCommand(text, chatId, userId, redis, services);
+        const services = {
+          openLiga,
+          footballData: footballDataService,
+          rss: rssAggregator,
+          scrapers,
+          sportsAggregator,
+          oddsAnalyzer,
+          multiSportAnalyzer,
+          cache,
+          sportsData: sportsDataAPI,
+          ai,
+        };
+        const text = "/odds " + (args && args.length ? args.join(" ") : "");
+        const msg = await v2Handler.handleCommand(
+          text,
+          chatId,
+          userId,
+          redis,
+          services,
+        );
         if (msg && msg.chat_id) {
-          await telegram.sendMessage(chatId, msg.text || '', { reply_markup: msg.reply_markup, parse_mode: msg.parse_mode || 'Markdown' });
+          await telegram.sendMessage(chatId, msg.text || "", {
+            reply_markup: msg.reply_markup,
+            parse_mode: msg.parse_mode || "Markdown",
+          });
         }
       },
       "/tips": () => basicHandlers.tips(chatId),
       "/pricing": async () => {
-        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI, ai };
-        const msg = await v2Handler.handleCommand('/pricing', chatId, userId, redis, services);
+        const services = {
+          openLiga,
+          footballData: footballDataService,
+          rss: rssAggregator,
+          scrapers,
+          sportsAggregator,
+          oddsAnalyzer,
+          multiSportAnalyzer,
+          cache,
+          sportMonks: sportMonksAPI,
+          sportsData: sportsDataAPI,
+          ai,
+        };
+        const msg = await v2Handler.handleCommand(
+          "/pricing",
+          chatId,
+          userId,
+          redis,
+          services,
+        );
         if (msg && msg.chat_id) {
-          await telegram.sendMessage(chatId, msg.text || '', { reply_markup: msg.reply_markup, parse_mode: msg.parse_mode || 'Markdown' });
+          await telegram.sendMessage(chatId, msg.text || "", {
+            reply_markup: msg.reply_markup,
+            parse_mode: msg.parse_mode || "Markdown",
+          });
         } else {
           await basicHandlers.pricing(chatId);
         }
@@ -1073,10 +1766,31 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
       "/refer": () => basicHandlers.refer(chatId, userId),
       "/leaderboard": () => basicHandlers.leaderboard(chatId),
       "/signup": async () => {
-        const services = { openLiga, footballData: footballDataService, rss: rssAggregator, scrapers, sportsAggregator, oddsAnalyzer, multiSportAnalyzer, cache, sportMonks: sportMonksAPI, sportsData: sportsDataAPI, ai };
-        const msg = await v2Handler.handleCommand('/signup', chatId, userId, redis, services);
+        const services = {
+          openLiga,
+          footballData: footballDataService,
+          rss: rssAggregator,
+          scrapers,
+          sportsAggregator,
+          oddsAnalyzer,
+          multiSportAnalyzer,
+          cache,
+          sportMonks: sportMonksAPI,
+          sportsData: sportsDataAPI,
+          ai,
+        };
+        const msg = await v2Handler.handleCommand(
+          "/signup",
+          chatId,
+          userId,
+          redis,
+          services,
+        );
         if (msg && msg.chat_id) {
-          await telegram.sendMessage(chatId, msg.text || '', { reply_markup: msg.reply_markup, parse_mode: msg.parse_mode || 'Markdown' });
+          await telegram.sendMessage(chatId, msg.text || "", {
+            reply_markup: msg.reply_markup,
+            parse_mode: msg.parse_mode || "Markdown",
+          });
         }
       },
       "/analyze": () => basicHandlers.analyze(chatId, args.join(" ")),
@@ -1085,47 +1799,65 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
     // Advanced commands
     const advancedCommands = {
       "/stats": () => advancedHandler.handleStats(chatId, userId),
-      "/predict": () => advancedHandler.handlePredictAdvanced(chatId, userId, args.join(" ")),
+      "/predict": () =>
+        advancedHandler.handlePredictAdvanced(chatId, userId, args.join(" ")),
       "/insights": () => advancedHandler.handleInsights(chatId, userId),
       "/compete": () => advancedHandler.handleCompete(chatId, userId),
     };
 
     // Premium commands
     const premiumCommands = {
-      "/dossier": () => premiumService.generateMatchDossier({ match: args.join(" ") }).then(d => 
-        telegram.sendMessage(chatId, `📋 <b>Match Dossier</b>\n\n${d}`)
-      ),
+      "/dossier": () =>
+        premiumService
+          .generateMatchDossier({ match: args.join(" ") })
+          .then((d) =>
+            telegram.sendMessage(chatId, `📋 <b>Match Dossier</b>\n\n${d}`),
+          ),
       "/coach": async () => {
         const stats = await analytics.getUserStats(userId);
         const advice = await premiumService.getCoachAdvice(stats);
         return telegram.sendMessage(chatId, `🏆 <b>Coaching</b>\n\n${advice}`);
       },
-      "/trends": () => premiumService.analyzeSeasonalTrends(args[0] || "premier league").then(t =>
-        telegram.sendMessage(chatId, `📊 <b>Seasonal Trends</b>\n\n${t}`)
-      ),
+      "/trends": () =>
+        premiumService
+          .analyzeSeasonalTrends(args[0] || "premier league")
+          .then((t) =>
+            telegram.sendMessage(chatId, `📊 <b>Seasonal Trends</b>\n\n${t}`),
+          ),
       "/premium": () => basicHandlers.pricing(chatId),
     };
 
     // Admin commands
     const adminCommands = {
       "/admin_health": () => adminDashboard.sendHealthReport(chatId),
-      "/admin_broadcast": () => adminDashboard.broadcastMessage(args.join(" ")).then(sent =>
-        telegram.sendMessage(chatId, `📢 Broadcast sent to ${sent} users`)
-      ),
+      "/admin_broadcast": () =>
+        adminDashboard
+          .broadcastMessage(args.join(" "))
+          .then((sent) =>
+            telegram.sendMessage(chatId, `📢 Broadcast sent to ${sent} users`),
+          ),
       "/admin_users": async () => {
         const stats = await adminDashboard.getUserStats();
-        return telegram.sendMessage(chatId, 
-          `👥 Total: ${stats.total}, Active: ${stats.active}, Paid: ${stats.paid}`
+        return telegram.sendMessage(
+          chatId,
+          `👥 Total: ${stats.total}, Active: ${stats.active}, Paid: ${stats.paid}`,
         );
       },
       "/admin_suspend": async () => {
-        const result = await adminDashboard.suspendUser(parseInt(args[0]), args.slice(1).join(" "));
-        return telegram.sendMessage(chatId, result ? "✅ User suspended" : "❌ Failed");
+        const result = await adminDashboard.suspendUser(
+          parseInt(args[0]),
+          args.slice(1).join(" "),
+        );
+        return telegram.sendMessage(
+          chatId,
+          result ? "✅ User suspended" : "❌ Failed",
+        );
       },
       "/admin_revenue": async () => {
         const rev = await adminDashboard.getRevenueMetrics();
-        return telegram.sendMessage(chatId,
-          `💰 Total: $${rev.total}, Today: $${rev.today}, Month: $${rev.month}`
+        return telegram.sendMessage(
+          chatId,
+          `💰 Total: $${rev.total}, Today: $${rev.today}, Month: $${rev.month}`,
         );
       },
     };
@@ -1149,7 +1881,10 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
     await analytics.trackCommand(cmd, userId, duration);
   } catch (err) {
     logger.error(`Command ${cmd} failed`, err);
-    await telegram.sendMessage(chatId, "❌ Error processing command. Try /menu");
+    await telegram.sendMessage(
+      chatId,
+      "❌ Error processing command. Try /menu",
+    );
   }
 }
 
@@ -1176,7 +1911,10 @@ async function handleSignupFlow(chatId, userId, text, state) {
     if (state === "name") {
       await userService.saveUser(userId, { name: text });
       await redis.set(`signup:${userId}:state`, "country", "EX", 300);
-      return await telegram.sendMessage(chatId, `Nice to meet you, ${text}! 👋\n\nWhich country are you from?`);
+      return await telegram.sendMessage(
+        chatId,
+        `Nice to meet you, ${text}! 👋\n\nWhich country are you from?`,
+      );
     }
 
     if (state === "country") {
@@ -1186,7 +1924,8 @@ async function handleSignupFlow(chatId, userId, text, state) {
       await redis.del(`signup:${userId}:state`);
       await analytics.trackEngagement(userId, "signup");
 
-      const welcome = `✅ Welcome to BETRIX, ${user.name}!\n\n` +
+      const welcome =
+        `✅ Welcome to BETRIX, ${user.name}!\n\n` +
         `You're all set. Here's what's next:\n\n` +
         `💬 /menu - Explore all features\n` +
         `💵 /pricing - View our plans\n` +
@@ -1237,7 +1976,7 @@ process.on("uncaughtException", (err) => {
   process.exit(1);
 });
 
-main().catch(err => {
+main().catch((err) => {
   logger.error("Fatal", err);
   process.exit(1);
 });

@@ -5,6 +5,7 @@
 Your original `src/worker.js` (2000+ lines) has been completely refactored into a modern, modular architecture.
 
 ### Stats
+
 - **Before**: 1 monolithic file (2000+ lines)
 - **After**: 10+ focused modules
 - **Code Reuse**: ~30% reduction through modularity
@@ -35,6 +36,7 @@ src/
 ## Key Features
 
 ### 1. Service Classes
+
 Clean, focused services with single responsibility:
 
 ```javascript
@@ -58,6 +60,7 @@ await api.getOdds(fixtureId);
 ```
 
 ### 2. Better Error Handling
+
 Type-safe error classes:
 
 ```javascript
@@ -75,6 +78,7 @@ try {
 ```
 
 ### 3. Structured Logging
+
 ```javascript
 import { Logger } from "./utils/logger.js";
 
@@ -85,16 +89,18 @@ logger.warn("Cache miss");
 ```
 
 ### 4. Centralized Configuration
+
 ```javascript
 import { CONFIG } from "./config.js";
 
-console.log(CONFIG.PRICING.VVIP.MONTHLY.KES);    // 2500
-console.log(CONFIG.TELEGRAM.SAFE_CHUNK);          // 3000
-console.log(CONFIG.ROLES.VVIP);                   // "vvip"
-console.log(CONFIG.DURATIONS.MONTH);              // 2592000000
+console.log(CONFIG.PRICING.VVIP.MONTHLY.KES); // 2500
+console.log(CONFIG.TELEGRAM.SAFE_CHUNK); // 3000
+console.log(CONFIG.ROLES.VVIP); // "vvip"
+console.log(CONFIG.DURATIONS.MONTH); // 2592000000
 ```
 
 ### 5. HTTP Client with Resilience
+
 ```javascript
 import { HttpClient } from "./services/http-client.js";
 
@@ -103,17 +109,18 @@ const data = await HttpClient.fetch(
   url,
   { headers, method: "POST", body },
   "description",
-  2,        // retries
-  15000     // timeout ms
+  2, // retries
+  15000, // timeout ms
 );
 ```
 
 ### 6. Caching Service
+
 ```javascript
 import { CacheService } from "./utils/cache.js";
 
 const cache = new CacheService(redis);
-await cache.set("key", data, 300);        // 5 min TTL
+await cache.set("key", data, 300); // 5 min TTL
 const hit = await cache.get("key");
 await cache.delete("key");
 ```
@@ -121,7 +128,9 @@ await cache.delete("key");
 ## Migration Checklist
 
 ### For Command Handlers
+
 **Old:**
+
 ```javascript
 async function handleCommand(cmd, args) {
   // 200+ lines per command
@@ -139,6 +148,7 @@ async function handleCommand(cmd, args) {
 ```
 
 **New:**
+
 ```javascript
 async function handleCommand(chatId, userId, cmd, args) {
   if (cmd === "/live") return handleLive(chatId, args[0]);
@@ -157,7 +167,9 @@ async function handleLive(chatId, league) {
 ```
 
 ### For API Calls
+
 **Old:**
+
 ```javascript
 async function getLiveMatches() {
   const url = `${API_FOOTBALL_BASE}/fixtures?live=all&timezone=${TZ}`;
@@ -169,13 +181,16 @@ async function getLiveMatches() {
 ```
 
 **New:**
+
 ```javascript
 const data = await apiFootball.getLive();
 // Automatic caching, retry, timeout, error handling
 ```
 
 ### For User Management
+
 **Old:**
+
 ```javascript
 async function getUser(userId) {
   const raw = await redis.get(`user:${userId}`);
@@ -183,7 +198,7 @@ async function getUser(userId) {
 }
 
 async function putUser(userId, data) {
-  const current = await getUser(userId) || {};
+  const current = (await getUser(userId)) || {};
   const next = { ...current, ...data };
   await redis.set(`user:${userId}`, JSON.stringify(next));
   return next;
@@ -191,6 +206,7 @@ async function putUser(userId, data) {
 ```
 
 **New:**
+
 ```javascript
 const user = await userService.getUser(userId);
 await userService.saveUser(userId, { role: "vvip" });
@@ -199,30 +215,35 @@ await userService.saveUser(userId, { role: "vvip" });
 ## Benefits
 
 ### Code Quality
+
 - ✅ Single Responsibility Principle
 - ✅ DRY (Don't Repeat Yourself)
 - ✅ SOLID principles
 - ✅ 40% less code duplication
 
 ### Error Handling
+
 - ✅ Type-safe errors
 - ✅ Automatic retry logic
 - ✅ Timeout protection
 - ✅ Graceful degradation
 
 ### Maintainability
+
 - ✅ Clear module boundaries
 - ✅ Easy to find and fix bugs
 - ✅ Simple to add new features
 - ✅ Testable in isolation
 
 ### Performance
+
 - ✅ Smart caching
 - ✅ Connection reuse
 - ✅ Request deduplication
 - ✅ Memory efficient
 
 ### Debugging
+
 - ✅ Structured logging
 - ✅ Error context
 - ✅ Execution traces
@@ -231,6 +252,7 @@ await userService.saveUser(userId, { role: "vvip" });
 ## Next Steps
 
 1. **Replace worker entry point** (when ready):
+
    ```bash
    # Old: node src/worker.js
    # New: node src/worker-modern.js
@@ -255,20 +277,25 @@ await userService.saveUser(userId, { role: "vvip" });
 ## Troubleshooting
 
 ### Port/Connection Issues
+
 Check `CONFIG.REDIS_URL` and `CONFIG.TELEGRAM_TOKEN` in `src/config.js`
 
 ### Missing Commands
+
 Add handlers to `handleCommand()` in `src/worker-modern.js`
 
 ### Cache Not Working
+
 Verify Redis connection and TTL in `src/utils/cache.js`
 
 ### API Errors
+
 Check `src/services/api-football.js` retry logic and headers
 
 ## Questions?
 
 Refer to:
+
 - `ARCHITECTURE.md` - Overall design
 - Service files for implementation details
 - Error classes in `src/utils/errors.js`

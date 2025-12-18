@@ -4123,11 +4123,7 @@
         }
       ],
       "name": "model-router",
-      "routingModes": [
-        "balanced",
-        "quality",
-        "cost"
-      ],
+      "routingModes": ["balanced", "quality", "cost"],
       "skus": [
         {
           "capacity": {

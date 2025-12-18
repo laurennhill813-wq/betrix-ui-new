@@ -30,7 +30,7 @@ class BrandingService {
     betrix: "🎯",
     pro: "⭐",
     special: "🌟",
-    
+
     // Main Features (8)
     menu: "📋",
     live: "🔴",
@@ -40,48 +40,48 @@ class BrandingService {
     tips: "💡",
     help: "❓",
     search: "🔎",
-    
+
     // Predictions & Analysis (4)
     predict: "🧠",
     insights: "💭",
     coach: "🎓",
     compete: "🏆",
-    
+
     // Payments (4)
     pricing: "💰",
     vvip: "👑",
     member: "💎",
     free: "🎁",
-    
+
     // Betting (5)
     betslip: "📋",
     watch: "👁️",
     parlay: "🔗",
     odds_high: "📈",
     odds_low: "📉",
-    
+
     // Leaderboard (3)
     leaderboard: "🏅",
     rank: "🥇",
     streak: "🔥",
-    
+
     // Notifications (4)
     notification: "🔔",
     goal: "⚽",
     milestone: "🎉",
     achievement: "🏆",
-    
+
     // Status (4)
     success: "✅",
     error: "❌",
     warning: "⚠️",
     info: "ℹ️",
-    
+
     // Social (3)
     refer: "👥",
     share: "📢",
     community: "👫",
-    
+
     // Account & Settings (6)
     settings: "⚙️",
     stats: "📈",
@@ -89,14 +89,14 @@ class BrandingService {
     support: "🤝",
     language: "🌍",
     verify: "🔐",
-    
+
     // Sports (5)
     soccer: "⚽",
     basketball: "🏀",
     football: "🏈",
     tennis: "🎾",
     cricket: "🏏",
-    
+
     // Utilities (10)
     hot: "🔥",
     amazing: "✨",
@@ -108,22 +108,22 @@ class BrandingService {
     goal: "🎯",
     rocket: "🚀",
     approve: "👌",
-    
+
     // Additional (3)
     medal: "🥇",
-    silver    target: "🎯",
-e: "🥉",
+    silver: "🥈",
+    bronze: "🥉",
   };
 
   // Brand Colors (for future web/image support)
   static COLORS = {
-    primary: "#2563EB",      // Bright Blue
-    secondary: "#7C3AED",    // Deep Purple
-    accent: "#DC2626",       // Vibrant Red
-    success: "#16A34A",      // Green
-    warning: "#EA580C",      // Orange
-    dark: "#1F2937",         // Dark Gray
-    light: "#F3F4F6",        // Light Gray
+    primary: "#2563EB", // Bright Blue
+    secondary: "#7C3AED", // Deep Purple
+    accent: "#DC2626", // Vibrant Red
+    success: "#16A34A", // Green
+    warning: "#EA580C", // Orange
+    dark: "#1F2937", // Dark Gray
+    light: "#F3F4F6", // Light Gray
   };
 
   // Brand Fonts (emoji-based styling)
@@ -166,7 +166,7 @@ e: "🥉",
    * Format header
    */
   static header(text) {
-    return `╔${'═'.repeat(text.length + 2)}╗\n║ ${text} ║\n╚${'═'.repeat(text.length + 2)}╝`;
+    return `╔${"═".repeat(text.length + 2)}╗\n║ ${text} ║\n╚${"═".repeat(text.length + 2)}╝`;
   }
 
   /**
@@ -290,7 +290,7 @@ ${this.menuItem("/status", "Account info", this.ICONS.pro)}`;
    * Get brand footer
    */
   static getFooter() {
-    return `\n\n${'─'.repeat(50)}\n💎 Powered by BETRIX AI\n${this.getTagline()}\n${'─'.repeat(50)}`;
+    return `\n\n${"─".repeat(50)}\n💎 Powered by BETRIX AI\n${this.getTagline()}\n${"─".repeat(50)}`;
   }
 }
 

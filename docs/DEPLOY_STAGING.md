@@ -7,6 +7,7 @@ Important: do not commit secrets to the repo. Use CI / cloud provider secrets or
 ---
 
 ## Required secrets / env variables (staging)
+
 - `REDIS_URL` (e.g. `redis://:password@host:6379`)
 - `TELEGRAM_TOKEN` (bot token)
 - `ADMIN_TELEGRAM_ID` or `TELEGRAM_ADMIN_ID` (numeric chat id to receive admin alerts)
@@ -15,7 +16,7 @@ Important: do not commit secrets to the repo. Use CI / cloud provider secrets or
 - `PAYPAL_MODE` (`sandbox` or `live`)
 - `PAYPAL_WEBHOOK_ID` (recommended to enable PayPal verification)
 - `MPESA_TILL` or `SAFARICOM_TILL_NUMBER` (staging till number, default `606215`)
- - `MPESA_STORE_NUMBER` (optional: your internal store identifier, do NOT commit actual values)
+- `MPESA_STORE_NUMBER` (optional: your internal store identifier, do NOT commit actual values)
 - Optional: `PAYMENT_WEBHOOK_SECRET`, `MPESA_WEBHOOK_SECRET`, `SAFARICOM_TILL_SECRET` for HMAC validation
 - Optional: `SLACK_WEBHOOK_URL`, `PAGERDUTY_ROUTING_KEY` for notifications
 
@@ -24,6 +25,7 @@ Set these as your staging environment variables in your platform (Render, Heroku
 ---
 
 ## Deploy steps (staging)
+
 1. Prepare staging environment (example using GitHub Actions or a platform UI):
    - Ensure `origin/main` has the cleaned `main` branch.
    - Configure secrets in the platform (see list above).
@@ -39,6 +41,7 @@ Set these as your staging environment variables in your platform (Render, Heroku
 ---
 
 ## Run payment harness locally against staging
+
 Option A: Run the harness locally but point to staging Redis and Telegram bot. This allows verifying order creation and webhook mapping behavior without sending real money.
 
 PowerShell example (replace placeholders):
@@ -64,6 +67,7 @@ node scripts/test-payment-harness.js
 ```
 
 What the harness does
+
 - Creates a canonical order via `createPaymentOrder(...)` using the configured provider.
 - Persists `payment:order:{orderId}` and `payment:by_provider_ref:{provider}:{ref}` mappings.
 - When a simulated verification is performed, it calls `verifyAndActivatePayment` to mark subscription active.
@@ -71,6 +75,7 @@ What the harness does
 ---
 
 ## Testing webhook roundtrip (manual)
+
 If you want to simulate an incoming webhook to staging (e.g., to `/webhook/payment/till`), use `curl` or Postman. Example:
 
 ```bash
@@ -84,6 +89,7 @@ Check staging logs and admin Telegram for mapping-miss alerts or success message
 ---
 
 ## Verification checklist
+
 - [ ] Staging service started and connected to `REDIS_URL`
 - [ ] Payment webhooks reachable from provider (or use tunneling for local testing e.g., `ngrok`)
 - [ ] `PAYPAL_WEBHOOK_ID` configured and PayPal webhook verify returns `SUCCESS`
@@ -97,6 +103,7 @@ Check staging logs and admin Telegram for mapping-miss alerts or success message
 ---
 
 ## Rollback notes
+
 - If a serious issue is detected, rollback by reverting the staging deploy to the previous commit or redeploy the previous release in your provider dashboard.
 - Do not reintroduce the `.history` folder or any files with secrets. If secrets leak, rotate them immediately (Redis, PayPal, Telegram tokens).
 

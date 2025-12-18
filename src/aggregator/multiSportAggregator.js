@@ -13,21 +13,23 @@ async function safeFetch(fn, ...args) {
   try {
     if (!fn) return [];
     const out = await fn(...args);
-    return Array.isArray(out) ? out : (out ? [out] : []);
+    return Array.isArray(out) ? out : out ? [out] : [];
   } catch (e) {
-    try { console.warn('multiSportAggregator source failed', e?.message || e); } catch(_){}
+    try {
+      console.warn("multiSportAggregator source failed", e?.message || e);
+    } catch (_) {}
     return [];
   }
 }
 
 export async function getInterestingEvents() {
-  const soccerMod = await tryImport('../data/soccer.js');
-  const nbaMod = await tryImport('../data/nba.js');
-  const nflMod = await tryImport('../data/nfl.js');
-  const mlbMod = await tryImport('../data/mlb.js');
-  const nhlMod = await tryImport('../data/nhl.js');
-  const nascarMod = await tryImport('../data/nascar.js');
-  const tennisMod = await tryImport('../data/tennis.js');
+  const soccerMod = await tryImport("../data/soccer.js");
+  const nbaMod = await tryImport("../data/nba.js");
+  const nflMod = await tryImport("../data/nfl.js");
+  const mlbMod = await tryImport("../data/mlb.js");
+  const nhlMod = await tryImport("../data/nhl.js");
+  const nascarMod = await tryImport("../data/nascar.js");
+  const tennisMod = await tryImport("../data/tennis.js");
 
   const [soccer, nba, nfl, mlb, nhl, nascar, tennis] = await Promise.all([
     safeFetch(soccerMod && soccerMod.getLiveSoccerEvents),
@@ -37,7 +39,7 @@ export async function getInterestingEvents() {
     safeFetch(nhlMod && nhlMod.getLiveNhlEvents),
     safeFetch(nascarMod && nascarMod.getLiveNascarEvents),
     safeFetch(tennisMod && tennisMod.getLiveTennisEvents),
-  ]).catch(() => [[],[],[],[],[],[],[]]);
+  ]).catch(() => [[], [], [], [], [], [], []]);
 
   // flatten
   const all = [
@@ -51,26 +53,30 @@ export async function getInterestingEvents() {
   ];
 
   // attach basic normalization if missing
-  const normalized = all.map(ev => {
+  const normalized = all.map((ev) => {
     return {
-      sport: ev.sport || ev.sport_name || ev.sportId || 'sport',
+      sport: ev.sport || ev.sport_name || ev.sportId || "sport",
       league: ev.league || ev.competition || ev.competitionName || null,
       home: ev.home || ev.team_home || ev.home_name || ev.homeTeam || null,
       away: ev.away || ev.team_away || ev.away_name || ev.awayTeam || null,
-      status: ev.status || ev.state || ev.match_status || 'UPCOMING',
+      status: ev.status || ev.state || ev.match_status || "UPCOMING",
       score: ev.score || ev.result || null,
       time: ev.time || ev.minute || null,
-      importance: ev.importance || ev.importanceLevel || 'medium',
+      importance: ev.importance || ev.importanceLevel || "medium",
       context: ev.context || {},
       raw: ev,
     };
   });
 
   // Filter by isInteresting: live or high importance upcoming
-  return normalized.filter(ev => {
+  return normalized.filter((ev) => {
     if (!ev) return false;
-    if (String(ev.status).toUpperCase() === 'LIVE') return true;
-    if (String(ev.status).toUpperCase() === 'UPCOMING' && ev.importance === 'high') return true;
+    if (String(ev.status).toUpperCase() === "LIVE") return true;
+    if (
+      String(ev.status).toUpperCase() === "UPCOMING" &&
+      ev.importance === "high"
+    )
+      return true;
     return false;
   });
 }

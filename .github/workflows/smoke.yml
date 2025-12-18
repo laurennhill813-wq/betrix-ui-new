@@ -1,7 +1,7 @@
 name: smoke-test
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 jobs:
   smoke:
     runs-on: ubuntu-latest

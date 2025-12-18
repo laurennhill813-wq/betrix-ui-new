@@ -1,21 +1,22 @@
 /**
  * BETRIX Menu System - Consolidated
  * All menu definitions, formatters, and UI builders in one module
- * 
+ *
  * Exports:
  * - mainMenu, sportsMenu, subscriptionMenu, profileMenu, helpMenu
  * - format* functions for each content type
  */
 
-import { Logger } from '../utils/logger.js';
-import safeName from '../utils/safe-name.js';
+import { Logger } from "../utils/logger.js";
+import safeName from "../utils/safe-name.js";
 
-const logger = new Logger('MenuSystem');
-void logger;
+const logger = new Logger("MenuSystem");
+// logger initialized
 
-const BETRIX_EMOJI = '🌀';
+const BETRIX_EMOJI = "🌀";
 const BETRIX_HEADER = `${BETRIX_EMOJI} *BETRIX* - Premium Sports Analytics`;
-const TILL_NUMBER = process.env.MPESA_TILL || process.env.SAFARICOM_TILL_NUMBER || '606215';
+const TILL_NUMBER =
+  process.env.MPESA_TILL || process.env.SAFARICOM_TILL_NUMBER || "606215";
 
 // ============================================================================
 // MAIN MENU
@@ -30,23 +31,23 @@ Welcome back! 👋 Choose an option below or ask naturally (e.g. "Top picks toni
   reply_markup: {
     inline_keyboard: [
       [
-        { text: '🔴 Live', callback_data: 'menu_live' },
-        { text: '📊 Odds', callback_data: 'menu_odds' }
+        { text: "🔴 Live", callback_data: "menu_live" },
+        { text: "📊 Odds", callback_data: "menu_odds" },
       ],
       [
-        { text: '🏆 Standings', callback_data: 'menu_standings' },
-        { text: '📰 News', callback_data: 'menu_news' }
+        { text: "🏆 Standings", callback_data: "menu_standings" },
+        { text: "📰 News", callback_data: "menu_news" },
       ],
       [
-        { text: '💎 Subscribe', callback_data: 'menu_vvip' },
-        { text: '👤 Profile', callback_data: 'menu_profile' }
+        { text: "💎 Subscribe", callback_data: "menu_vvip" },
+        { text: "👤 Profile", callback_data: "menu_profile" },
       ],
       [
-        { text: '❓ Help', callback_data: 'menu_help' },
-        { text: '⚙️ Settings', callback_data: 'menu_help' }
-      ]
-    ]
-  }
+        { text: "❓ Help", callback_data: "menu_help" },
+        { text: "⚙️ Settings", callback_data: "menu_help" },
+      ],
+    ],
+  },
 };
 
 // ============================================================================
@@ -57,26 +58,24 @@ export const sportsMenu = {
   text: `${BETRIX_HEADER}
 
 *Select a Sport:*`,
-  
+
   reply_markup: {
     inline_keyboard: [
       [
-        { text: '⚽ Football', callback_data: 'sport_football' },
-        { text: '🏀 Basketball', callback_data: 'sport_basketball' }
+        { text: "⚽ Football", callback_data: "sport_football" },
+        { text: "🏀 Basketball", callback_data: "sport_basketball" },
       ],
       [
-        { text: '🎾 Tennis', callback_data: 'sport_tennis' },
-        { text: '🏈 American Football', callback_data: 'sport_nfl' }
+        { text: "🎾 Tennis", callback_data: "sport_tennis" },
+        { text: "🏈 American Football", callback_data: "sport_nfl" },
       ],
       [
-        { text: '🏒 Ice Hockey', callback_data: 'sport_hockey' },
-        { text: '⚾ Baseball', callback_data: 'sport_baseball' }
+        { text: "🏒 Ice Hockey", callback_data: "sport_hockey" },
+        { text: "⚾ Baseball", callback_data: "sport_baseball" },
       ],
-      [
-        { text: '🔙 Back to Main', callback_data: 'menu_main' }
-      ]
-    ]
-  }
+      [{ text: "🔙 Back to Main", callback_data: "menu_main" }],
+    ],
+  },
 };
 
 // ============================================================================
@@ -93,12 +92,12 @@ Choose a plan below. Payment methods shown after selection.`,
   // Compact subscription card layout
   reply_markup: {
     inline_keyboard: [
-      [ { text: '📊 Pro — KES 899/mo', callback_data: 'sub_pro' } ],
-      [ { text: '👑 VVIP — KES 2,699/mo', callback_data: 'sub_vvip' } ],
-      [ { text: '💎 PLUS — KES 8,999/mo', callback_data: 'sub_plus' } ],
-      [ { text: '🔙 Back', callback_data: 'menu_main' } ]
-    ]
-  }
+      [{ text: "📊 Pro — KES 899/mo", callback_data: "sub_pro" }],
+      [{ text: "👑 VVIP — KES 2,699/mo", callback_data: "sub_vvip" }],
+      [{ text: "💎 PLUS — KES 8,999/mo", callback_data: "sub_plus" }],
+      [{ text: "🔙 Back", callback_data: "menu_main" }],
+    ],
+  },
 };
 
 // ============================================================================
@@ -111,23 +110,26 @@ export const paymentMethodsMenu = (tier) => ({
 *Choose Payment Method for ${tier} Tier*
 
 Select one of our secure payment options below:`,
-  
+
   reply_markup: {
     inline_keyboard: [
       [
-        { text: `🏪 Safaricom Till #${TILL_NUMBER}`, callback_data: `pay_till_${tier}` },
-        { text: '📱 M-Pesa STK', callback_data: `pay_mpesa_${tier}` }
+        {
+          text: `🏪 Safaricom Till #${TILL_NUMBER}`,
+          callback_data: `pay_till_${tier}`,
+        },
+        { text: "📱 M-Pesa STK", callback_data: `pay_mpesa_${tier}` },
       ],
       [
-        { text: '💳 PayPal', callback_data: `pay_paypal_${tier}` },
-        { text: '₿ Binance Pay', callback_data: `pay_binance_${tier}` }
+        { text: "💳 PayPal", callback_data: `pay_paypal_${tier}` },
+        { text: "₿ Binance Pay", callback_data: `pay_binance_${tier}` },
       ],
       [
-        { text: '🏦 Bank Transfer', callback_data: `pay_swift_${tier}` },
-        { text: '🔙 Back', callback_data: 'menu_vvip' }
-      ]
-    ]
-  }
+        { text: "🏦 Bank Transfer", callback_data: `pay_swift_${tier}` },
+        { text: "🔙 Back", callback_data: "menu_vvip" },
+      ],
+    ],
+  },
 });
 
 // ============================================================================
@@ -140,22 +142,20 @@ export const profileMenu = {
 *Your Profile*
 
 Manage your account, view stats, and preferences.`,
-  
+
   reply_markup: {
     inline_keyboard: [
       [
-        { text: '📊 My Stats', callback_data: 'profile_stats' },
-        { text: '💰 My Transactions', callback_data: 'profile_bets' }
+        { text: "📊 My Stats", callback_data: "profile_stats" },
+        { text: "💰 My Transactions", callback_data: "profile_bets" },
       ],
       [
-        { text: '⭐ Favorites', callback_data: 'profile_favorites' },
-        { text: '⚙️ Settings', callback_data: 'profile_settings' }
+        { text: "⭐ Favorites", callback_data: "profile_favorites" },
+        { text: "⚙️ Settings", callback_data: "profile_settings" },
       ],
-      [
-        { text: '🔙 Back to Main', callback_data: 'menu_main' }
-      ]
-    ]
-  }
+      [{ text: "🔙 Back to Main", callback_data: "menu_main" }],
+    ],
+  },
 };
 
 // ============================================================================
@@ -189,26 +189,26 @@ Contact: support@betrix.app
 Response time: ~2 hours
 
 *What can I help with?*`,
-  
+
   reply_markup: {
     inline_keyboard: [
       [
-        { text: '❓ FAQ', callback_data: 'help_faq' },
-        { text: '🎮 Try Demo', callback_data: 'help_demo' }
+        { text: "❓ FAQ", callback_data: "help_faq" },
+        { text: "🎮 Try Demo", callback_data: "help_demo" },
       ],
       [
-        { text: '📧 Contact Support', callback_data: 'help_contact' },
-        { text: '🔙 Back', callback_data: 'menu_main' }
-      ]
-    ]
-  }
+        { text: "📧 Contact Support", callback_data: "help_contact" },
+        { text: "🔙 Back", callback_data: "menu_main" },
+      ],
+    ],
+  },
 };
 
 // ============================================================================
 // FORMATTERS - Live Games
 // ============================================================================
 
-export function formatLiveGames(games, sport = 'Football') {
+export function formatLiveGames(games, sport = "Football") {
   // Lively, helpful fallback when no live matches
   if (!games || games.length === 0) {
     return `${BETRIX_HEADER}
@@ -232,14 +232,21 @@ I'll notify you when a match starts. Meanwhile, want a quick prediction demo? Ty
   for (let i = 0; i < Math.min(games.length, 10); i++) {
     const game = games[i];
     // Friendly formatting with emoji and short status
-    const status = game.status || 'LIVE';
-    const minute = game.minute ? ` • ${game.minute}'` : '';
-    const fid = game.id ? ` (ID: ${game.id})` : '';
-    const home = safeName(game.home || game.homeTeam || (game.raw && game.raw.home_team), 'Home');
-    const away = safeName(game.away || game.awayTeam || (game.raw && game.raw.away_team), 'Away');
+    const status = game.status || "LIVE";
+    const minute = game.minute ? ` • ${game.minute}'` : "";
+    const fid = game.id ? ` (ID: ${game.id})` : "";
+    const home = safeName(
+      game.home || game.homeTeam || (game.raw && game.raw.home_team),
+      "Home",
+    );
+    const away = safeName(
+      game.away || game.awayTeam || (game.raw && game.raw.away_team),
+      "Away",
+    );
     text += `${i + 1}. *${home}* vs *${away}*${fid} — ${status}${minute}\n`;
-    if (game.score) text += `   Score: ${game.score.home} - ${game.score.away}\n`;
-    text += `   Tip: ${game.tip || 'No tip yet — run /analyze for a short preview'}\n\n`;
+    if (game.score)
+      text += `   Score: ${game.score.home} - ${game.score.away}\n`;
+    text += `   Tip: ${game.tip || "No tip yet — run /analyze for a short preview"}\n\n`;
   }
   text += `⚡ Use /odds <fixture-id> to view current odds (example: /odds 12345), or run /analyze <home> vs <away> for a prediction.`;
   return text;
@@ -254,29 +261,44 @@ export function formatOdds(odds, fixtureId) {
   const bk = Array.isArray(odds?.bookmakers) ? odds.bookmakers.slice(0, 2) : [];
 
   const snapshot = (source) => {
-    if (!source) return { home: 'N/A', draw: 'N/A', away: 'N/A', label: 'Market' };
-    const label = source.title || source.name || (source.bk || 'Bookmaker');
+    if (!source)
+      return { home: "N/A", draw: "N/A", away: "N/A", label: "Market" };
+    const label = source.title || source.name || source.bk || "Bookmaker";
     const market = source.markets?.[0] || source.bets?.[0] || null;
     if (market && market.outcomes) {
-      const home = market.outcomes.find(o => /home|1/i.test(o.name))?.price ?? market.outcomes[0]?.price ?? 'N/A';
-      const draw = market.outcomes.find(o => /draw|x/i.test(o.name))?.price ?? market.outcomes[1]?.price ?? 'N/A';
-      const away = market.outcomes.find(o => /away|2/i.test(o.name))?.price ?? market.outcomes[2]?.price ?? 'N/A';
+      const home =
+        market.outcomes.find((o) => /home|1/i.test(o.name))?.price ??
+        market.outcomes[0]?.price ??
+        "N/A";
+      const draw =
+        market.outcomes.find((o) => /draw|x/i.test(o.name))?.price ??
+        market.outcomes[1]?.price ??
+        "N/A";
+      const away =
+        market.outcomes.find((o) => /away|2/i.test(o.name))?.price ??
+        market.outcomes[2]?.price ??
+        "N/A";
       return { home, draw, away, label };
     }
-    return { home: source.home ?? 'N/A', draw: source.draw ?? 'N/A', away: source.away ?? 'N/A', label };
+    return {
+      home: source.home ?? "N/A",
+      draw: source.draw ?? "N/A",
+      away: source.away ?? "N/A",
+      label,
+    };
   };
 
   const aggregated = bk.map(snapshot);
   const primary = aggregated[0] || snapshot(odds);
   const secondary = aggregated[1] || null;
 
-  let lines = `${BETRIX_HEADER}\n\n💰 *Odds & Quick Analysis*\n\nMatch: ${fixtureId || 'Fixture details'}\n\n`;
+  let lines = `${BETRIX_HEADER}\n\n💰 *Odds & Quick Analysis*\n\nMatch: ${fixtureId || "Fixture details"}\n\n`;
   lines += `🏷️ *Odds Snapshot* (${primary.label}):\n• Home: ${primary.home} · Draw: ${primary.draw} · Away: ${primary.away}\n`;
   if (secondary) {
     lines += `• Compared with ${secondary.label}: Home ${secondary.home}, Draw ${secondary.draw}, Away ${secondary.away}\n`;
   }
 
-  lines += `\n🔍 *Quick Insight:*\n• Recommendation: *${odds?.recommended || 'Compare markets'}*\n• Confidence: *${odds?.confidence || 'N/A'}*\n\n💡 Tip: Compare multiple bookmakers and look for >10% edge before staking.\nType /analyze <home> vs <away> for a short prediction, or upgrade to VVIP for full reports.`;
+  lines += `\n🔍 *Quick Insight:*\n• Recommendation: *${odds?.recommended || "Compare markets"}*\n• Confidence: *${odds?.confidence || "N/A"}*\n\n💡 Tip: Compare multiple bookmakers and look for >10% edge before staking.\nType /analyze <home> vs <away> for a short prediction, or upgrade to VVIP for full reports.`;
 
   return lines;
 }
@@ -285,7 +307,7 @@ export function formatOdds(odds, fixtureId) {
 // FORMATTERS - Standings
 // ============================================================================
 
-export function formatStandings(league, leagueName = 'Premier League') {
+export function formatStandings(league, leagueName = "Premier League") {
   // Lively standings with short actionable note
   return `${BETRIX_HEADER}
 
@@ -319,7 +341,7 @@ Type /news <id> to open a story. Want a curated digest? Upgrade to VVIP for pers
   let text = `${BETRIX_HEADER}\n\n📰 *Latest Sports Headlines*\n\n`;
   for (let i = 0; i < Math.min(5, articles.length); i++) {
     const a = articles[i];
-    text += `• ${a.title || 'Headline ' + (i+1)} — ${a.source || 'Source'}\n`;
+    text += `• ${a.title || "Headline " + (i + 1)} — ${a.source || "Source"}\n`;
   }
   text += `\n🔎 Use /news <id> to read full story or /help for support.`;
   return text;
@@ -330,8 +352,8 @@ Type /news <id> to open a story. Want a curated digest? Upgrade to VVIP for pers
 // ============================================================================
 
 export function formatProfile(user) {
-  const tier = user?.tier || 'FREE';
-  const joined = user?.created_at || 'Unknown';
+  const tier = user?.tier || "FREE";
+  const joined = user?.created_at || "Unknown";
   const bets = Number(user?.total_bets || 0);
   const wins = Number(user?.total_wins || 0);
   const winRate = bets > 0 ? ((wins / bets) * 100).toFixed(1) : 0;
@@ -341,7 +363,7 @@ export function formatProfile(user) {
 
 👤 *Your Profile*
 
-ID: \`${user?.id || 'N/A'}\`
+ID: \`${user?.id || "N/A"}\`
 ⭐ Tier: *${tier}*
 📅 Joined: ${joined}
 
@@ -353,7 +375,7 @@ ID: \`${user?.id || 'N/A'}\`
 
 🎯 *Pro Tip:* Keep your stakes proportional to bankroll. Use /vvip for full analytics and personalized staking plans.
 
-🎁 Referral Code: \`${user?.referral_code || 'N/A'}\`
+🎁 Referral Code: \`${user?.referral_code || "N/A"}\`
 
 Need help? Tap /help or contact support@betrix.app`;
 }
@@ -369,30 +391,30 @@ Need help? Tap /help or contact support@betrix.app`;
 export function buildTierAwareMenu(tier) {
   const baseButtons = [
     [
-      { text: '⚽ Live Games', callback_data: 'menu_live' },
-      { text: '📊 Odds & Analysis', callback_data: 'menu_odds' }
-    ]
+      { text: "⚽ Live Games", callback_data: "menu_live" },
+      { text: "📊 Odds & Analysis", callback_data: "menu_odds" },
+    ],
   ];
-  
-  if (tier === 'FREE') {
+
+  if (tier === "FREE") {
     baseButtons.push([
-      { text: '💰 Upgrade to VVIP', callback_data: 'menu_vvip' }
+      { text: "💰 Upgrade to VVIP", callback_data: "menu_vvip" },
     ]);
-  } else if (['PRO', 'VVIP', 'PLUS'].includes(tier)) {
+  } else if (["PRO", "VVIP", "PLUS"].includes(tier)) {
     baseButtons.push([
-      { text: '🎯 Advanced Features', callback_data: 'menu_advanced' }
+      { text: "🎯 Advanced Features", callback_data: "menu_advanced" },
     ]);
   }
-  
+
   baseButtons.push([
-    { text: '👤 Profile', callback_data: 'menu_profile' },
-    { text: '❓ Help', callback_data: 'menu_help' }
+    { text: "👤 Profile", callback_data: "menu_profile" },
+    { text: "❓ Help", callback_data: "menu_help" },
   ]);
-  
+
   return {
     reply_markup: {
-      inline_keyboard: baseButtons
-    }
+      inline_keyboard: baseButtons,
+    },
   };
 }
 
@@ -408,5 +430,5 @@ export default {
   formatStandings,
   formatNews,
   formatProfile,
-  buildTierAwareMenu
+  buildTierAwareMenu,
 };

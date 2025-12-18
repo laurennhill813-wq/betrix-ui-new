@@ -20,16 +20,19 @@ const RAPID_PATH = "/conversationllama";
 const OPEN_ROUTER_KEY = process.env.OPEN_ROUTER_KEY || null;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || null;
 const HUGGING_FACE_KEY = process.env.HUGGING_FACE_KEY || null;
-const USE_STUB_AI = (process.env.USE_STUB_AI || "false").toLowerCase() === "true";
+const USE_STUB_AI =
+  (process.env.USE_STUB_AI || "false").toLowerCase() === "true";
 const RATE_LIMIT_PER_MINUTE = Number(process.env.RATE_LIMIT_PER_MINUTE || 30);
 
 // Simple stub replies
 function stubReply(prompt) {
   const t = (prompt || "").toString().toLowerCase();
   if (!t) return "I didn't get that. Ask me about fixtures, odds, or tips.";
-  if (/\bhello|hi|hey\b/.test(t)) return "Hello! BETRIX here � limited mode (stub). Ask about odds or fixtures.";
+  if (/\bhello|hi|hey\b/.test(t))
+    return "Hello! BETRIX here � limited mode (stub). Ask about odds or fixtures.";
   if (/\bping\b/.test(t)) return "pong (stub)";
-  if (/\b(odds|fixture|match|score)\b/.test(t)) return "Stubbed matches: Team A vs Team B; Team C vs Team D.";
+  if (/\b(odds|fixture|match|score)\b/.test(t))
+    return "Stubbed matches: Team A vs Team B; Team C vs Team D.";
   return "BETRIX (stub): I'm currently running in fallback mode. Set OPEN_ROUTER_KEY or RAPID_API_KEY to enable live AI.";
 }
 
@@ -45,17 +48,24 @@ async function callRapidLlama(prompt) {
       "x-rapidapi-host": RAPID_HOST,
       "x-rapidapi-key": key,
     },
-    body: JSON.stringify({ messages: [{ role: "user", content: prompt }], web_access: false }),
+    body: JSON.stringify({
+      messages: [{ role: "user", content: prompt }],
+      web_access: false,
+    }),
     timeout: 30000,
   });
   if (!res.ok) {
-    const txt = await res.text().catch(()=>"");
+    const txt = await res.text().catch(() => "");
     const err = new Error(`RapidAPI ${res.status}: ${txt}`);
     err.status = res.status;
     throw err;
   }
-  const json = await res.json().catch(()=>({}));
-  const reply = json?.result || json?.text || (json?.choices && json.choices[0]?.message?.content) || JSON.stringify(json);
+  const json = await res.json().catch(() => ({}));
+  const reply =
+    json?.result ||
+    json?.text ||
+    (json?.choices && json.choices[0]?.message?.content) ||
+    JSON.stringify(json);
   return String(reply);
 }
 
@@ -63,20 +73,29 @@ async function callRapidLlama(prompt) {
 async function callHuggingFace(prompt) {
   const key = HUGGING_FACE_KEY || process.env.HUGGING_FACE_KEY;
   if (!key) throw new Error("HUGGING_FACE_KEY missing");
-  const res = await fetch("https://api-inference.huggingface.co/models/distilgpt2", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ inputs: prompt }),
-    timeout: 30000,
-  });
+  const res = await fetch(
+    "https://api-inference.huggingface.co/models/distilgpt2",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ inputs: prompt }),
+      timeout: 30000,
+    },
+  );
   if (!res.ok) {
-    const txt = await res.text().catch(()=>"");
+    const txt = await res.text().catch(() => "");
     const err = new Error(`HuggingFace ${res.status}: ${txt}`);
     err.status = res.status;
     throw err;
   }
-  const json = await res.json().catch(()=>({}));
-  const text = (Array.isArray(json) && json[0]?.generated_text) || json?.generated_text || JSON.stringify(json);
+  const json = await res.json().catch(() => ({}));
+  const text =
+    (Array.isArray(json) && json[0]?.generated_text) ||
+    json?.generated_text ||
+    JSON.stringify(json);
   return String(text);
 }
 
@@ -87,9 +106,15 @@ async function callOpenRouter(prompt, opts = {}) {
   const max_tokens = opts.max_tokens || 400;
   const url = "https://api.openrouter.ai/v1/completions";
   const body = { model, input: prompt, max_tokens };
-  const headers = { Authorization: `Bearer ${OPEN_ROUTER_KEY}`, "Content-Type": "application/json" };
+  const headers = {
+    Authorization: `Bearer ${OPEN_ROUTER_KEY}`,
+    "Content-Type": "application/json",
+  };
   const resp = await axios.post(url, body, { headers, timeout: 15000 });
-  const text = resp?.data?.choices?.[0]?.message?.content || resp?.data?.result || JSON.stringify(resp?.data);
+  const text =
+    resp?.data?.choices?.[0]?.message?.content ||
+    resp?.data?.result ||
+    JSON.stringify(resp?.data);
   return String(text);
 }
 
@@ -99,10 +124,18 @@ async function callOpenAI(prompt, opts = {}) {
   const model = opts.model || "gpt-3.5-turbo";
   const max_tokens = opts.max_tokens || 400;
   const url = "https://api.openai.com/v1/chat/completions";
-  const body = { model, messages: [{ role: "user", content: prompt }], max_tokens };
-  const headers = { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" };
+  const body = {
+    model,
+    messages: [{ role: "user", content: prompt }],
+    max_tokens,
+  };
+  const headers = {
+    Authorization: `Bearer ${OPENAI_API_KEY}`,
+    "Content-Type": "application/json",
+  };
   const resp = await axios.post(url, body, { headers, timeout: 15000 });
-  const text = resp?.data?.choices?.[0]?.message?.content || JSON.stringify(resp?.data);
+  const text =
+    resp?.data?.choices?.[0]?.message?.content || JSON.stringify(resp?.data);
   return String(text);
 }
 
@@ -121,13 +154,23 @@ async function ask(prompt, opts = {}) {
       const t0 = Date.now();
       const text = await callRapidLlama(prompt);
       telemetry.rapidSuccess += 1;
-      r      const t0 = Date.now(); void t0;
-} catch (err) {
+      return { ok: true, text };
+    } catch (err) {
       telemetry.rapidErrors += 1;
       telemetry.lastError = String(err && (err.message || err.status || err));
       // one retry after small backoff
-      try { await new Promise(r => setTimeout(r, 400)); const text2 = await callRapidLlama(prompt); telemetry.rapidSuccess += 1; return { ok: true, text: text2 }; } catch (err2) { telemetry.rapidErrors += 1; telemetry.lastError = String(err2 && (err2.message || err2.status || err2)); }
-      // fallthrough to Hugging Face
+      try {
+        await new Promise((r) => setTimeout(r, 400));
+        const text2 = await callRapidLlama(prompt);
+        telemetry.rapidSuccess += 1;
+        return { ok: true, text: text2 };
+      } catch (err2) {
+        telemetry.rapidErrors += 1;
+        telemetry.lastError = String(
+          err2 && (err2.message || err2.status || err2),
+        );
+      }
+      // fallthrough to other providers
     }
   }
 
@@ -176,10 +219,14 @@ function rateLimiter(req, res, next) {
     const now = Date.now();
     const winMs = 60_000;
     const st = rateMap.get(chatId) || { count: 0, tsWindow: now };
-    if (now - st.tsWindow > winMs) { st.count = 0; st.tsWindow = now; }
+    if (now - st.tsWindow > winMs) {
+      st.count = 0;
+      st.tsWindow = now;
+    }
     st.count += 1;
     rateMap.set(chatId, st);
-    if (st.count > RATE_LIMIT_PER_MINUTE) return res.status(429).send({ ok: false, error: "rate_limited" });
+    if (st.count > RATE_LIMIT_PER_MINUTE)
+      return res.status(429).send({ ok: false, error: "rate_limited" });
     return next();
   } catch (e) {
     return next();

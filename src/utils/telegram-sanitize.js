@@ -4,34 +4,45 @@
 // - Provides a short escape fallback for when we want to avoid any parsing
 
 const ALLOWED_TAGS = new Set([
-  'b', 'strong', 'i', 'em', 'u', 'ins', 's', 'strike', 'del', 'code', 'pre', 'a'
+  "b",
+  "strong",
+  "i",
+  "em",
+  "u",
+  "ins",
+  "s",
+  "strike",
+  "del",
+  "code",
+  "pre",
+  "a",
 ]);
 
 function sanitizeTelegramHtml(text) {
-  if (typeof text !== 'string' || text.length === 0) return text;
+  if (typeof text !== "string" || text.length === 0) return text;
 
   // Replace unsupported tags like <fixture-id> by escaping their angle brackets,
   // while preserving allowed tags.
   return text.replace(/<\/?([a-zA-Z0-9-]+)(\s[^>]*)?>/g, (match, tagName) => {
-    if (!tagName) return match.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    if (!tagName) return match.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     if (ALLOWED_TAGS.has(tagName.toLowerCase())) return match;
     // Escape the whole match to avoid Telegram parsing it as an entity
-    return match.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return match.replace(/</g, "&lt;").replace(/>/g, "&gt;");
   });
 }
 
 // Simpler coarse-grain escape when we want to remove ALL HTML parsing:
 function escapeAngleBrackets(text) {
-  if (typeof text !== 'string' || text.length === 0) return text;
-  return text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  if (typeof text !== "string" || text.length === 0) return text;
+  return text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 // Escape text for Telegram MarkdownV2 parse mode by backslash-escaping
 // all special characters per Telegram MarkdownV2 rules.
 function escapeMarkdownV2(text) {
-  if (typeof text !== 'string' || text.length === 0) return text;
+  if (typeof text !== "string" || text.length === 0) return text;
   // Characters to escape in MarkdownV2: _ * [ ] ( ) ~ ` > # + - = | { } . !
   // We replace each of these with a backslash-prefixed version.
-  return text.replace(/([_\*\[\]\(\)~`>#\+\-=|{}\.!])/g, '\\$1');
+  return text.replace(/([_\*\[\]\(\)~`>#\+\-=|{}\.!])/g, "\\$1");
 }
 export { sanitizeTelegramHtml, escapeAngleBrackets, escapeMarkdownV2 };

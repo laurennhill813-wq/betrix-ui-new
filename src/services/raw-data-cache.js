@@ -4,10 +4,10 @@
  * Provides comprehensive access to raw API responses with full detail
  */
 
-import { Logger } from '../utils/logger.js';
-import { CONFIG } from '../config.js';
+import { Logger } from "../utils/logger.js";
+import { CONFIG } from "../config.js";
 
-const logger = new Logger('RawDataCache');
+const logger = new Logger("RawDataCache");
 void CONFIG;
 
 export class RawDataCache {
@@ -18,7 +18,7 @@ export class RawDataCache {
       live: 2 * 60, // 2 minutes for live data
       fixtures: 10 * 60, // 10 minutes for fixtures
       standings: 30 * 60, // 30 minutes for standings
-      leagues: 24 * 60 * 60 // 24 hours for leagues
+      leagues: 24 * 60 * 60, // 24 hours for leagues
     };
   }
 
@@ -31,7 +31,7 @@ export class RawDataCache {
       data,
       timestamp: Date.now(),
       ttl: ttlSeconds,
-      expires: Date.now() + (ttlSeconds * 1000)
+      expires: Date.now() + ttlSeconds * 1000,
     };
 
     const serialized = JSON.stringify(payload);
@@ -106,7 +106,9 @@ export class RawDataCache {
   async storeFixtures(source, leagueId, fixtures) {
     const key = `raw:fixtures:${source}:${leagueId}`;
     await this.store(key, fixtures, this.ttl.fixtures);
-    logger.info(`✅ Cached ${fixtures.length} fixtures from ${source} (league ${leagueId})`);
+    logger.info(
+      `✅ Cached ${fixtures.length} fixtures from ${source} (league ${leagueId})`,
+    );
   }
 
   /**
@@ -178,13 +180,13 @@ export class RawDataCache {
   async getFullMatchData(matchId) {
     const data = {
       id: matchId,
-      sportsmonks: await this.getMatchDetail(matchId, 'sportsmonks'),
-      footballdata: await this.getMatchDetail(matchId, 'footballdata'),
-      retrieved: new Date().toISOString()
+      sportsmonks: await this.getMatchDetail(matchId, "sportsmonks"),
+      footballdata: await this.getMatchDetail(matchId, "footballdata"),
+      retrieved: new Date().toISOString(),
     };
 
     // Filter out nulls
-    Object.keys(data).forEach(k => !data[k] && delete data[k]);
+    Object.keys(data).forEach((k) => !data[k] && delete data[k]);
     return data;
   }
 
@@ -199,26 +201,26 @@ export class RawDataCache {
           liveMatches: 0,
           fixtures: {},
           standings: {},
-          leagues: 0
+          leagues: 0,
         },
         footballdata: {
           liveMatches: 0,
           fixtures: {},
           standings: {},
-          leagues: 0
-        }
-      }
+          leagues: 0,
+        },
+      },
     };
 
     // Count live matches
-    const smLive = await this.getLiveMatches('sportsmonks');
-    const fdLive = await this.getLiveMatches('footballdata');
+    const smLive = await this.getLiveMatches("sportsmonks");
+    const fdLive = await this.getLiveMatches("footballdata");
     summary.sources.sportsmonks.liveMatches = (smLive || []).length;
     summary.sources.footballdata.liveMatches = (fdLive || []).length;
 
     // Count leagues
-    const smLeagues = await this.getLeagues('sportsmonks');
-    const fdLeagues = await this.getLeagues('footballdata');
+    const smLeagues = await this.getLeagues("sportsmonks");
+    const fdLeagues = await this.getLeagues("footballdata");
     summary.sources.sportsmonks.leagues = (smLeagues || []).length;
     summary.sources.footballdata.leagues = (fdLeagues || []).length;
 
@@ -246,7 +248,7 @@ export class RawDataCache {
 
       return cleaned;
     } catch (e) {
-      logger.warn('Cleanup failed:', e.message);
+      logger.warn("Cleanup failed:", e.message);
       return 0;
     }
   }
@@ -257,8 +259,8 @@ export class RawDataCache {
   async exportAll() {
     const exported = {
       timestamp: new Date().toISOString(),
-      source: 'memory',
-      entries: []
+      source: "memory",
+      entries: [],
     };
 
     for (const [key, value] of this.memCache.entries()) {
@@ -267,7 +269,9 @@ export class RawDataCache {
           key,
           size: JSON.stringify(value.data).length,
           expiresIn: Math.round((value.expires - Date.now()) / 1000),
-          dataType: Array.isArray(value.data) ? `Array[${value.data.length}]` : typeof value.data
+          dataType: Array.isArray(value.data)
+            ? `Array[${value.data.length}]`
+            : typeof value.data,
         });
       }
     }

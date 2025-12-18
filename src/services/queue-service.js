@@ -25,8 +25,14 @@ class QueueService {
   setupProcessors() {
     // Process match alerts
     this.matchQueue.process(async (job) => {
-      const { userId, fixtu      const { userId, fixtureId: _fixtureId, alertType, message: _message } = job.data;
-      void _fixtureId; void _message;
+      const {
+        userId,
+        fixtureId: _fixtureId,
+        alertType,
+        message: _message,
+      } = job.data;
+      void _fixtureId;
+      void _message;
       logger.info(`Processing alert: ${alertType} for user ${userId}`);
       // Send alert implementation here
       return { sent: true };
@@ -36,7 +42,7 @@ class QueueService {
     this.notificationQueue.process(async (job) => {
       const { userId, message: _message, type } = job.data;
       void _message;
-cation: ${type} for user ${userId}`);
+      logger.info(`Sending notification: ${type} for user ${userId}`);
       // Send notification implementation here
       return { sent: true };
     });
@@ -65,7 +71,11 @@ cation: ${type} for user ${userId}`);
     try {
       await this.matchQueue.add(
         { userId, fixtureId, alertType, message },
-        { delay: 1000, attempts: 3, backoff: { type: "exponential", delay: 2000 } }
+        {
+          delay: 1000,
+          attempts: 3,
+          backoff: { type: "exponential", delay: 2000 },
+        },
       );
       logger.info(`Alert queued: ${userId}`);
     } catch (err) {
@@ -80,7 +90,7 @@ cation: ${type} for user ${userId}`);
     try {
       await this.notificationQueue.add(
         { userId, message, type },
-        { delay: 500, attempts: 2 }
+        { delay: 500, attempts: 2 },
       );
     } catch (err) {
       logger.error("Queue notification failed", err);

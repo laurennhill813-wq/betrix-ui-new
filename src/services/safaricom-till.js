@@ -11,9 +11,14 @@ class SafaricomTillService {
   constructor(redis, config) {
     this.redis = redis;
     this.config = config;
-    this.tillNumber = config.MPESA.TILL || process.env.MPESA_TILL || process.env.SAFARICOM_TILL_NUMBER || "606215";
+    this.tillNumber =
+      config.MPESA.TILL ||
+      process.env.MPESA_TILL ||
+      process.env.SAFARICOM_TILL_NUMBER ||
+      "606215";
     // Optional store number (internal identifier). Use env `MPESA_STORE_NUMBER` to override.
-    this.storeNumber = config.MPESA.STORE || process.env.MPESA_STORE_NUMBER || null;
+    this.storeNumber =
+      config.MPESA.STORE || process.env.MPESA_STORE_NUMBER || null;
     this.accountName = config.MPESA.ACCOUNT || "BETRIX";
   }
 
@@ -65,7 +70,12 @@ class SafaricomTillService {
   buildTillPaymentButton(amount, tier = "member") {
     return {
       inline_keyboard: [
-        [{ text: "📱 Use Safaricom Till", callback_data: `pay:till:${tier}:${amount}` }],
+        [
+          {
+            text: "📱 Use Safaricom Till",
+            callback_data: `pay:till:${tier}:${amount}`,
+          },
+        ],
         [{ text: "💳 Other Methods", callback_data: "pay:methods" }],
         [{ text: "⬅️ Back", callback_data: "menu:pricing" }],
       ],
@@ -108,8 +118,7 @@ class SafaricomTillService {
       if (!payment) return false;
 
       const p = JSON.parse(payment);
-      const isValid =
-        p.reference === referenceCode && p.status === "pending";
+      const isValid = p.reference === referenceCode && p.status === "pending";
 
       if (isValid) {
         p.status = "verified";

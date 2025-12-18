@@ -1,10 +1,14 @@
-import { americanToImpliedProb, impliedProbToAmerican, removeVig } from './odds-math.js';
+import {
+  americanToImpliedProb,
+  impliedProbToAmerican,
+  removeVig,
+} from "./odds-math.js";
 
 export function computeConsensusForEvent(records) {
   if (!records || !Array.isArray(records) || records.length === 0) return null;
 
   const valid = records
-    .map(r => {
+    .map((r) => {
       const homeOdds = Number(r.markets?.moneyline?.home);
       const awayOdds = Number(r.markets?.moneyline?.away);
       return {
@@ -15,7 +19,7 @@ export function computeConsensusForEvent(records) {
         pAway: americanToImpliedProb(awayOdds),
       };
     })
-    .filter(x => x.pHome != null && x.pAway != null);
+    .filter((x) => x.pHome != null && x.pAway != null);
 
   if (!valid.length) return null;
 
@@ -27,12 +31,23 @@ export function computeConsensusForEvent(records) {
   const fairHomeOdds = impliedProbToAmerican(fairHome);
   const fairAwayOdds = impliedProbToAmerican(fairAway);
 
-  const bestHome = valid.reduce((best, x) => (x.homeOdds > (best.homeOdds || -Infinity) ? x : best), valid[0]);
-  const bestAway = valid.reduce((best, x) => (x.awayOdds > (best.awayOdds || -Infinity) ? x : best), valid[0]);
+  const bestHome = valid.reduce(
+    (best, x) => (x.homeOdds > (best.homeOdds || -Infinity) ? x : best),
+    valid[0],
+  );
+  const bestAway = valid.reduce(
+    (best, x) => (x.awayOdds > (best.awayOdds || -Infinity) ? x : best),
+    valid[0],
+  );
 
   return {
     consensus: { homeProb: avgHome, awayProb: avgAway },
-    fair: { homeProb: fairHome, awayProb: fairAway, homeOdds: fairHomeOdds, awayOdds: fairAwayOdds },
+    fair: {
+      homeProb: fairHome,
+      awayProb: fairAway,
+      homeOdds: fairHomeOdds,
+      awayOdds: fairAwayOdds,
+    },
     bestOffers: { home: bestHome, away: bestAway },
   };
 }

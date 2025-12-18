@@ -7,6 +7,7 @@
 ## 🎯 The 4-Step Deploy
 
 ### Step 1️⃣: TLS (If Behind Proxy)
+
 ```powershell
 # Get .cer from IT, then:
 .\docs\dev-scripts\install-proxy-ca.ps1 -CertPath 'C:\path\to\ca.cer'
@@ -16,6 +17,7 @@ node scripts/inspect-sportmonks-cert.js
 ```
 
 ### Step 2️⃣: Environment
+
 ```powershell
 # Interactive:
 .\scripts\setup-production-env.ps1
@@ -27,12 +29,14 @@ node scripts/inspect-sportmonks-cert.js
 ```
 
 ### Step 3️⃣: Start Worker
+
 ```bash
 node src/worker-final.js
 # Leave this terminal open
 ```
 
 ### Step 4️⃣: Validate
+
 ```bash
 # In NEW terminal:
 node scripts/validate-telegram-live.js
@@ -46,23 +50,23 @@ node scripts/validate-telegram-live.js
 
 ## 🔧 Environment Variables
 
-| Variable | Example | Where to Get |
-|----------|---------|--------------|
-| `TELEGRAM_TOKEN` | `123456:ABCdef...` | [@BotFather](https://t.me/botfather) |
-| `REDIS_URL` | `redis://default:pwd@host:6379` | Redis admin or cloud provider |
-| `SPORTSMONKS_API` | `abc123xyz...` | [sportmonks.com](https://sportmonks.com) |
+| Variable          | Example                         | Where to Get                             |
+| ----------------- | ------------------------------- | ---------------------------------------- |
+| `TELEGRAM_TOKEN`  | `123456:ABCdef...`              | [@BotFather](https://t.me/botfather)     |
+| `REDIS_URL`       | `redis://default:pwd@host:6379` | Redis admin or cloud provider            |
+| `SPORTSMONKS_API` | `abc123xyz...`                  | [sportmonks.com](https://sportmonks.com) |
 
 ---
 
 ## 🆘 Common Issues (Quick Fix)
 
-| Problem | Fix |
-|---------|-----|
-| "Unknown vs Unknown" | Check `SPORTSMONKS_API` token |
-| No response to `/live` | Ensure worker running: `redis-cli GET worker:heartbeat` |
-| "NOAUTH" in logs | Wrong Redis password; re-run `.\scripts\setup-production-env.ps1` |
-| TLS error | Run `.\docs\dev-scripts\install-proxy-ca.ps1` |
-| Redis refused | Test: `redis-cli PING` should return `PONG` |
+| Problem                | Fix                                                               |
+| ---------------------- | ----------------------------------------------------------------- |
+| "Unknown vs Unknown"   | Check `SPORTSMONKS_API` token                                     |
+| No response to `/live` | Ensure worker running: `redis-cli GET worker:heartbeat`           |
+| "NOAUTH" in logs       | Wrong Redis password; re-run `.\scripts\setup-production-env.ps1` |
+| TLS error              | Run `.\docs\dev-scripts\install-proxy-ca.ps1`                     |
+| Redis refused          | Test: `redis-cli PING` should return `PONG`                       |
 
 ---
 
@@ -83,25 +87,27 @@ redis-cli GET worker:heartbeat
 
 ## 📚 Full Guides (By Time)
 
-| Time | Guide | What It Has |
-|------|-------|------------|
-| 5 min | [DEPLOYMENT_SUMMARY.md](DEPLOYMENT_SUMMARY.md) | One-page overview |
-| 15-30 min | [QUICKSTART_DEPLOY.md](QUICKSTART_DEPLOY.md) | Fast walkthrough |
-| 30-45 min | [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md) | Detailed steps |
-| Ref | [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md) | Enterprise checklist |
-| Ref | [ARCHITECTURE_DEPLOYMENT.md](ARCHITECTURE_DEPLOYMENT.md) | Diagrams & flows |
+| Time      | Guide                                                    | What It Has          |
+| --------- | -------------------------------------------------------- | -------------------- |
+| 5 min     | [DEPLOYMENT_SUMMARY.md](DEPLOYMENT_SUMMARY.md)           | One-page overview    |
+| 15-30 min | [QUICKSTART_DEPLOY.md](QUICKSTART_DEPLOY.md)             | Fast walkthrough     |
+| 30-45 min | [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md)               | Detailed steps       |
+| Ref       | [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md)           | Enterprise checklist |
+| Ref       | [ARCHITECTURE_DEPLOYMENT.md](ARCHITECTURE_DEPLOYMENT.md) | Diagrams & flows     |
 
 ---
 
 ## 🚀 Deployment Targets
 
 ### Local Development
+
 ```bash
 node src/worker-final.js
 # Test with /live command in Telegram
 ```
 
 ### Heroku
+
 ```bash
 # 1. Set config in dashboard
 # 2. git push heroku main
@@ -109,6 +115,7 @@ node src/worker-final.js
 ```
 
 ### Railway / Render
+
 ```bash
 # 1. Set env vars in platform dashboard
 # 2. Deploy: git push (auto-deploy) or manual
@@ -116,6 +123,7 @@ node src/worker-final.js
 ```
 
 ### Linux (systemd)
+
 ```bash
 # 1. Create /etc/systemd/system/betrix-worker.service
 # 2. sudo systemctl enable betrix-worker
@@ -123,6 +131,7 @@ node src/worker-final.js
 ```
 
 ### Docker
+
 ```bash
 docker run -d \
   -e TELEGRAM_TOKEN="$TOKEN" \
@@ -176,7 +185,7 @@ redis-cli DBSIZE                  # Total keys
 ✅ `/live` command in Telegram returns real match names  
 ✅ Clicking match button edits the message  
 ✅ No "Unknown vs Unknown" placeholders  
-✅ No NOAUTH, TLS, or unhandled rejection errors  
+✅ No NOAUTH, TLS, or unhandled rejection errors
 
 ---
 
@@ -196,13 +205,13 @@ redis-cli DBSIZE                  # Total keys
 
 ## 🚀 Time Estimates
 
-| Task | Time |
-|------|------|
-| TLS setup (if needed) | 5-15 min |
-| Env configuration | 5 min |
-| Start worker | 2 min |
-| Validation | 5 min |
-| **Total** | **15-30 min** |
+| Task                  | Time          |
+| --------------------- | ------------- |
+| TLS setup (if needed) | 5-15 min      |
+| Env configuration     | 5 min         |
+| Start worker          | 2 min         |
+| Validation            | 5 min         |
+| **Total**             | **15-30 min** |
 
 ---
 

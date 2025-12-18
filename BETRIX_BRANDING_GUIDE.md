@@ -24,22 +24,24 @@
 ## 🎨 Brand Identity
 
 ### Primary Icon
+
 🎯 - Represents precision, targeting, and accuracy
 
 ### Secondary Icon
+
 💎 - Represents premium quality and value
 
 ### Emoji Icon System (50+ Icons)
 
-| Category | Icons |
-|----------|-------|
-| **Core** | 💎 🎯 ⭐ 🌟 |
-| **Features** | 🔴 📊 🎲 🔍 💡 ❓ |
-| **Predictions** | 🧠 💭 🎓 🏆 |
-| **Payments** | 💰 👑 🎁 |
-| **Betting** | 📋 👁️ 🔗 📈 📉 |
-| **Social** | 🏅 🥇 🔥 👥 📢 |
-| **Status** | ✅ ❌ ⚠️ ℹ️ |
+| Category        | Icons             |
+| --------------- | ----------------- |
+| **Core**        | 💎 🎯 ⭐ 🌟       |
+| **Features**    | 🔴 📊 🎲 🔍 💡 ❓ |
+| **Predictions** | 🧠 💭 🎓 🏆       |
+| **Payments**    | 💰 👑 🎁          |
+| **Betting**     | 📋 👁️ 🔗 📈 📉    |
+| **Social**      | 🏅 🥇 🔥 👥 📢    |
+| **Status**      | ✅ ❌ ⚠️ ℹ️       |
 
 ---
 
@@ -58,6 +60,7 @@
 ## 📝 Brand Messaging
 
 ### Taglines
+
 - 🎯 Professional Sports AI
 - ⚽ Your Betting Coach
 - 🏆 Win With Confidence
@@ -66,6 +69,7 @@
 - 🚀 Next-Gen Betting
 
 ### Brand Personality
+
 - Professional but approachable
 - Data-driven but conversational
 - Confident but honest
@@ -76,6 +80,7 @@
 ## 🎮 How to Use in Bot
 
 ### Import Branding Service
+
 ```javascript
 import { BrandingService } from "./services/branding-service.js";
 
@@ -83,10 +88,10 @@ import { BrandingService } from "./services/branding-service.js";
 await telegram.sendMessage(chatId, BrandingService.LOGO);
 
 // Use icons
-const icon = BrandingService.getIcon("live");  // 🔴
+const icon = BrandingService.getIcon("live"); // 🔴
 
 // Create branded sections
-const menu = BrandingService.getMenu();  // Full menu with icons
+const menu = BrandingService.getMenu(); // Full menu with icons
 
 // Brand messages
 const success = BrandingService.success("Payment received!");
@@ -98,12 +103,14 @@ const error = BrandingService.error("Something went wrong");
 ## 📋 All 50+ Icons
 
 ### Core Branding
+
 - 💎 Brand Primary
 - 🎯 BETRIX Logo
 - ⭐ Premium/Pro
 - 🌟 Special
 
 ### Main Features
+
 - 🔴 Live Matches
 - 📊 Standings/Stats
 - 🎲 Odds
@@ -113,18 +120,21 @@ const error = BrandingService.error("Something went wrong");
 - 📋 Menu
 
 ### Predictions & Analysis
+
 - 🧠 Predictions
 - 💭 Insights
 - 🎓 Coach
 - 🏆 Compete/Trophy
 
 ### Payments & Tiers
+
 - 💰 Pricing/Money
 - 👑 VVIP/Premium
 - 💎 Member
 - 🎁 Free Bets
 
 ### Betting Features
+
 - 📋 Betslips
 - 👁️ Watch/Subscribe
 - 🔗 Parlay/Link
@@ -132,28 +142,33 @@ const error = BrandingService.error("Something went wrong");
 - 📉 Odds Down
 
 ### Leaderboards & Competition
+
 - 🏅 Leaderboard
 - 🥇 First Place/Rank
 - 🔥 Streak/Hot
 
 ### Notifications
+
 - 🔔 Notification
 - ⚽ Goal Alert
 - 🎉 Milestone/Achievement
 - 🏆 Achievement/Badge
 
 ### Status Messages
+
 - ✅ Success
 - ❌ Error
 - ⚠️ Warning
 - ℹ️ Information
 
 ### Social & Community
+
 - 👥 Referral/People
 - 📢 Share/Broadcast
 - 👫 Community
 
 ### Account & Settings
+
 - ⚙️ Settings
 - 📈 Stats
 - 📜 History
@@ -166,6 +181,7 @@ const error = BrandingService.error("Something went wrong");
 ## 🎯 Usage Examples
 
 ### Example 1: Welcome Message
+
 ```
 💎 BETRIX 💎
 
@@ -185,6 +201,7 @@ Your autonomous AI sports analyst powered by advanced machine learning.
 ```
 
 ### Example 2: Main Menu
+
 ```
 🎯 BETRIX MENU
 
@@ -214,6 +231,7 @@ Your autonomous AI sports analyst powered by advanced machine learning.
 ```
 
 ### Example 3: Success Message
+
 ```
 ✅ Success!
 Payment received!
@@ -225,6 +243,7 @@ Payment received!
 ```
 
 ### Example 4: Feature Description
+
 ```
 🏅 Live Leaderboards
 Compete daily with other users. See rankings, points, and streaks in real-time.
@@ -250,30 +269,30 @@ All branding is available in `BrandingService`:
 
 ```javascript
 // Logo
-BrandingService.LOGO              // Full logo
-BrandingService.LOGO_COMPACT      // Compact version
-BrandingService.getTagline()      // Random tagline
+BrandingService.LOGO; // Full logo
+BrandingService.LOGO_COMPACT; // Compact version
+BrandingService.getTagline(); // Random tagline
 
 // Icons
-BrandingService.ICONS             // All 50+ icons
-BrandingService.getIcon("live")   // Get specific icon
+BrandingService.ICONS; // All 50+ icons
+BrandingService.getIcon("live"); // Get specific icon
 
 // Formatting
-BrandingService.brand(text)       // Brand text
-BrandingService.section(title)    // Create section
-BrandingService.header(text)      // Create header
-BrandingService.menuItem(cmd, desc) // Menu item
+BrandingService.brand(text); // Brand text
+BrandingService.section(title); // Create section
+BrandingService.header(text); // Create header
+BrandingService.menuItem(cmd, desc); // Menu item
 
 // Messages
-BrandingService.success(msg)      // Success message
-BrandingService.error(msg)        // Error message
-BrandingService.warning(msg)      // Warning message
-BrandingService.info(msg)         // Info message
+BrandingService.success(msg); // Success message
+BrandingService.error(msg); // Error message
+BrandingService.warning(msg); // Warning message
+BrandingService.info(msg); // Info message
 
 // Pre-built
-BrandingService.getWelcome(name)  // Welcome message
-BrandingService.getMenu()         // Full menu
-BrandingService.getFooter()       // Footer with tagline
+BrandingService.getWelcome(name); // Welcome message
+BrandingService.getMenu(); // Full menu
+BrandingService.getFooter(); // Footer with tagline
 ```
 
 ---
@@ -294,6 +313,7 @@ BrandingService.getFooter()       // Footer with tagline
 ## 🎊 Visual Consistency
 
 Every message now has:
+
 1. **Consistent Branding** - 💎 BETRIX 💎
 2. **Clear Icons** - Shows feature type immediately
 3. **Professional Format** - Organized, scannable

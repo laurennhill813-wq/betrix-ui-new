@@ -64,7 +64,7 @@ class ContextManager {
       const messages = await this.redis.lrange(key, 0, -1);
 
       return messages
-        .map(m => {
+        .map((m) => {
           try {
             return JSON.parse(m);
           } catch {
@@ -102,7 +102,7 @@ class ContextManager {
         if (!item) break;
         try {
           const parsed = JSON.parse(item);
-          const t = parsed?.tokens || estimateTokens(parsed?.message || '');
+          const t = parsed?.tokens || estimateTokens(parsed?.message || "");
           current = Math.max(0, current - t);
         } catch (e) {
           // ignore parse errors
@@ -117,7 +117,7 @@ class ContextManager {
         // ignore
       }
     } catch (err) {
-      logger.warn('trimContext failed', err?.message || String(err));
+      logger.warn("trimContext failed", err?.message || String(err));
     }
   }
 

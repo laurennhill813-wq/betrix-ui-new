@@ -5,8 +5,6 @@
 import fs from "fs";
 import path from "path";
 
-classvoid path;
-
 class ComprehensiveLogger {
   constructor(module, redis = null) {
     this.module = module;
@@ -42,7 +40,7 @@ class ComprehensiveLogger {
     const timestamp = new Date().toISOString();
     const logEntry = `[${timestamp}] ${level} [${this.module}] ${msg}`;
     console.log(logEntry, data);
-    
+
     try {
       fs.appendFileSync(this.logFile, `${logEntry} ${JSON.stringify(data)}\n`);
     } catch (e) {
@@ -54,4 +52,9 @@ class ComprehensiveLogger {
     if (this.redis) {
       await this.redis.incr(`metrics:${key}`);
     }
+    // keep _value param available for future use
     void _value;
+  }
+}
+
+export default ComprehensiveLogger;

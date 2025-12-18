@@ -4,7 +4,7 @@
  */
 
 import { Logger } from "../utils/logger.js";
-import createRedisAdapter from '../utils/redis-adapter.js';
+import createRedisAdapter from "../utils/redis-adapter.js";
 
 const logger = new Logger("Premium");
 

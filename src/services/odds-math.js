@@ -7,7 +7,7 @@ export function americanToImpliedProb(odds) {
 }
 
 export function impliedProbToAmerican(p) {
-  if (p == null || typeof p !== 'number' || p <= 0 || p >= 1) return null;
+  if (p == null || typeof p !== "number" || p <= 0 || p >= 1) return null;
   if (p > 0.5) {
     return Math.round((-p / (1 - p)) * 100);
   }

@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+import fetch from "node-fetch";
 
 function parseRssItems(rssText, max = 10) {
   const items = [];
@@ -9,29 +9,33 @@ function parseRssItems(rssText, max = 10) {
     const titleMatch = /<title>([\s\S]*?)<\/title>/i.exec(item);
     const linkMatch = /<link>([\s\S]*?)<\/link>/i.exec(item);
     const pubMatch = /<pubDate>([\s\S]*?)<\/pubDate>/i.exec(item);
-    const descriptionMatch = /<description>([\s\S]*?)<\/description>/i.exec(item);
+    const descriptionMatch = /<description>([\s\S]*?)<\/description>/i.exec(
+      item,
+    );
 
     items.push({
       title: titleMatch ? titleMatch[1].trim() : null,
       link: linkMatch ? linkMatch[1].trim() : null,
       pubDate: pubMatch ? new Date(pubMatch[1].trim()).toISOString() : null,
-      description: descriptionMatch ? descriptionMatch[1].replace(/<[^>]*>/g, '').trim() : null,
+      description: descriptionMatch
+        ? descriptionMatch[1].replace(/<[^>]*>/g, "").trim()
+        : null,
     });
   }
   return items;
 }
 
-export async function getNewsHeadlines({ query = 'football', max = 10 } = {}) {
+export async function getNewsHeadlines({ query = "football", max = 10 } = {}) {
   // Try multiple public RSS sources (no API keys)
   const q = encodeURIComponent(query);
   const urls = [
     `https://news.google.com/rss/search?q=${q}+when:1d&hl=en-US&gl=US&ceid=US:en`,
     // BBC Sport football RSS
-    'https://feeds.bbci.co.uk/sport/football/rss.xml',
+    "https://feeds.bbci.co.uk/sport/football/rss.xml",
     // Reuters sports news
-    'http://feeds.reuters.com/reuters/sportsNews',
+    "http://feeds.reuters.com/reuters/sportsNews",
     // ESPN top headlines RSS
-    'https://www.espn.com/espn/rss/news'
+    "https://www.espn.com/espn/rss/news",
   ];
 
   let lastErr = null;
@@ -39,7 +43,9 @@ export async function getNewsHeadlines({ query = 'football', max = 10 } = {}) {
     try {
       const res = await fetch(url, { timeout: 10000 });
       if (!res.ok) {
-        lastErr = new Error(`News fetch failed: ${res.status} ${res.statusText}`);
+        lastErr = new Error(
+          `News fetch failed: ${res.status} ${res.statusText}`,
+        );
         continue;
       }
       const rss = await res.text();
@@ -49,25 +55,27 @@ export async function getNewsHeadlines({ query = 'football', max = 10 } = {}) {
       lastErr = e;
     }
   }
-  throw lastErr || new Error('News fetch failed (no RSS sources returned items)');
+  throw (
+    lastErr || new Error("News fetch failed (no RSS sources returned items)")
+  );
 }
 
 // Team-specific subreddits: fallback when main subreddit is blocked
 const TEAM_SUBREDDITS = {
-  'manchester united': 'reddevils',
-  'manchester city': 'MCFC',
-  'liverpool': 'liverpoolfc',
-  'arsenal': 'Gunners',
-  'chelsea': 'chelseafc',
-  'tottenham': 'coys',
-  'leicester': 'lcfc',
-  'brighton': 'albion',
-  'newcastle': 'newcastleunited',
-  'real madrid': 'realmadrid',
-  'barcelona': 'Barca',
-  'psg': 'PSG',
-  'bayern': 'fcbayern',
-  'borussia dortmund': 'borussiadortmund'
+  "manchester united": "reddevils",
+  "manchester city": "MCFC",
+  liverpool: "liverpoolfc",
+  arsenal: "Gunners",
+  chelsea: "chelseafc",
+  tottenham: "coys",
+  leicester: "lcfc",
+  brighton: "albion",
+  newcastle: "newcastleunited",
+  "real madrid": "realmadrid",
+  barcelona: "Barca",
+  psg: "PSG",
+  bayern: "fcbayern",
+  "borussia dortmund": "borussiadortmund",
 };
 
 async function _fetchRedditRss(url, headers, proxy = null) {
@@ -77,21 +85,37 @@ async function _fetchRedditRss(url, headers, proxy = null) {
   return await res.text();
 }
 
-export async function getRedditHeadlines({ subreddit = 'soccer', max = 10, proxy = null, teamName = null } = {}) {
-  const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) BetrixBot/1.0 compatible with Googlebot' };
-  
+export async function getRedditHeadlines({
+  subreddit = "soccer",
+  max = 10,
+  proxy = null,
+  teamName = null,
+} = {}) {
+  const headers = {
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) BetrixBot/1.0 compatible with Googlebot",
+  };
+
   const urlsToTry = [];
-  
+
   // Primary subreddit
-  urlsToTry.push(`https://www.reddit.com/r/${encodeURIComponent(subreddit)}/.rss`);
-  urlsToTry.push(`https://old.reddit.com/r/${encodeURIComponent(subreddit)}/.rss`);
-  
+  urlsToTry.push(
+    `https://www.reddit.com/r/${encodeURIComponent(subreddit)}/.rss`,
+  );
+  urlsToTry.push(
+    `https://old.reddit.com/r/${encodeURIComponent(subreddit)}/.rss`,
+  );
+
   // Team-specific subreddit if provided
   if (teamName) {
     const teamSubreddit = TEAM_SUBREDDITS[teamName.toLowerCase()];
     if (teamSubreddit) {
-      urlsToTry.push(`https://www.reddit.com/r/${encodeURIComponent(teamSubreddit)}/.rss`);
-      urlsToTry.push(`https://old.reddit.com/r/${encodeURIComponent(teamSubreddit)}/.rss`);
+      urlsToTry.push(
+        `https://www.reddit.com/r/${encodeURIComponent(teamSubreddit)}/.rss`,
+      );
+      urlsToTry.push(
+        `https://old.reddit.com/r/${encodeURIComponent(teamSubreddit)}/.rss`,
+      );
     }
   }
 
@@ -106,5 +130,5 @@ export async function getRedditHeadlines({ subreddit = 'soccer', max = 10, proxy
       // Try next URL
     }
   }
-  throw lastErr || new Error('Reddit RSS fetch failed (all URLs exhausted)');
+  throw lastErr || new Error("Reddit RSS fetch failed (all URLs exhausted)");
 }

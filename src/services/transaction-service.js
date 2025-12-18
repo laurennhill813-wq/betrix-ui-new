@@ -4,8 +4,8 @@
 
 import { Logger } from "../utils/logger.js";
 import { db } from "../database/db.js";
-importimport { payments, users } from "../database/schema.js";
-{ eq, desc } from "drizzle-orm";
+import { payments, users } from "../database/schema.js";
+import { eq, desc } from "drizzle-orm";
 
 const logger = new Logger("TransactionService");
 
@@ -51,7 +51,8 @@ class TransactionService {
         where: eq(users.id, payment.userId),
       });
 
-      return `📄 <b>RECEIPT</b>\n\n` +
+      return (
+        `📄 <b>RECEIPT</b>\n\n` +
         `Name: ${user?.name}\n` +
         `Amount: ${payment.currency} ${payment.amount}\n` +
         `Method: ${payment.method}\n` +
@@ -59,7 +60,8 @@ class TransactionService {
         `Status: ${payment.status}\n` +
         `Date: ${payment.createdAt?.toLocaleDateString()}\n` +
         `Reference: ${payment.reference}\n` +
-        `Transaction ID: ${payment.transactionId || "—"}`;
+        `Transaction ID: ${payment.transactionId || "—"}`
+      );
     } catch (err) {
       logger.error("Format receipt failed", err);
       return null;

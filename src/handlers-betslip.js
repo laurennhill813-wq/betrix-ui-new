@@ -29,16 +29,24 @@ class BetslipHandlers {
       const analysis = await this.analysis.analyzeBetslip(slip, userStats);
 
       // 2. Format analysis display
-      const analysisDisplay = this.analysis.formatAnalysisDisplay(analysis, slip, userStats);
+      const analysisDisplay = this.analysis.formatAnalysisDisplay(
+        analysis,
+        slip,
+        userStats,
+      );
 
       // 3. Send analysis first
       await this.telegram.sendMessage(
         chatId,
-        `💡 <b>Analysis Before Your Betslip</b>\n\n${analysisDisplay}`
+        `💡 <b>Analysis Before Your Betslip</b>\n\n${analysisDisplay}`,
       );
 
       // 4. Generate betslip text
-      const betslipText = BetslipGenerator.formatBetslipAsImage(slip, user, currency);
+      const betslipText = BetslipGenerator.formatBetslipAsImage(
+        slip,
+        user,
+        currency,
+      );
 
       // 5. Send betslip
       await this.telegram.sendMessage(chatId, `<pre>${betslipText}</pre>`);
@@ -54,7 +62,7 @@ class BetslipHandlers {
       logger.error("Generate betslip after payment failed", err);
       await this.telegram.sendMessage(
         chatId,
-        "❌ Error generating betslip. Please try again."
+        "❌ Error generating betslip. Please try again.",
       );
     }
   }
@@ -69,20 +77,31 @@ class BetslipHandlers {
 
       // 1. Show free bet info
       const freeBetDisplay = FreeBetService.prototype.formatBetDisplay(freeBet);
-      await this.telegram.sendMessage(chatId, `🎁 <b>Your Free Bet</b>\n\n${freeBetDisplay}`);
+      await this.telegram.sendMessage(
+        chatId,
+        `🎁 <b>Your Free Bet</b>\n\n${freeBetDisplay}`,
+      );
 
       // 2. Generate AI analysis
       const analysis = await this.analysis.analyzeBetslip(slip, userStats);
-      const analysisDisplay = this.analysis.formatAnalysisDisplay(analysis, slip, userStats);
+      const analysisDisplay = this.analysis.formatAnalysisDisplay(
+        analysis,
+        slip,
+        userStats,
+      );
 
       // 3. Send analysis
       await this.telegram.sendMessage(
         chatId,
-        `💡 <b>Recommended Betslip Analysis</b>\n\n${analysisDisplay}`
+        `💡 <b>Recommended Betslip Analysis</b>\n\n${analysisDisplay}`,
       );
 
       // 4. Generate betslip
-      const betslipText = BetslipGenerator.formatBetslipAsImage(slip, user, currency);
+      const betslipText = BetslipGenerator.formatBetslipAsImage(
+        slip,
+        user,
+        currency,
+      );
       await this.telegram.sendMessage(chatId, `<pre>${betslipText}</pre>`);
 
       // 5. Highlight potential winnings with free bet
@@ -93,7 +112,7 @@ class BetslipHandlers {
           `Stake: ${freeBet.amount} (FREE)\n` +
           `Odds: ${slip.totalOdds}\n` +
           `Potential Win: ${potentialWinnings.toFixed(2)} ${currency}\n\n` +
-          `Use the betting sites below to place your free bet!`
+          `Use the betting sites below to place your free bet!`,
       );
 
       // 6. Show betting sites
@@ -105,7 +124,10 @@ class BetslipHandlers {
       logger.info(`Free bet slip generated: ${userId}`);
     } catch (err) {
       logger.error("Generate free bet slip failed", err);
-      await this.telegram.sendMessage(chatId, "❌ Error generating free bet slip.");
+      await this.telegram.sendMessage(
+        chatId,
+        "❌ Error generating free bet slip.",
+      );
     }
   }
 

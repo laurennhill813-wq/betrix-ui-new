@@ -17,7 +17,10 @@ console.log("=== Payload Debug ===");
 console.log("File:", payloadPath);
 console.log("Payload length (bytes):", buf.length);
 console.log("Raw hex (first 64 bytes):", buf.slice(0, 64).toString("hex"));
-console.log("Raw UTF-8 preview (first 300 chars):", buf.toString("utf8").slice(0, 300));
+console.log(
+  "Raw UTF-8 preview (first 300 chars):",
+  buf.toString("utf8").slice(0, 300),
+);
 
 const sigHex = crypto.createHmac("sha256", secret).update(buf).digest("hex");
 const sigB64 = crypto.createHmac("sha256", secret).update(buf).digest("base64");

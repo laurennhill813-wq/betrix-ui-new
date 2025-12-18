@@ -18,7 +18,7 @@ class CryptoPredictionsService {
   async predictCryptoPrice(symbol) {
     try {
       const response = await fetch(
-        `${this.coingeckoBase}/simple/price?ids=${symbol}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true`
+        `${this.coingeckoBase}/simple/price?ids=${symbol}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true`,
       );
       const data = await response.json();
 
@@ -66,7 +66,7 @@ class CryptoPredictionsService {
   async getTopGainers() {
     try {
       const response = await fetch(
-        `${this.coingeckoBase}/coins/markets?vs_currency=usd&order=24h_change_desc&per_page=5&sparkline=false`
+        `${this.coingeckoBase}/coins/markets?vs_currency=usd&order=24h_change_desc&per_page=5&sparkline=false`,
       );
       const coins = await response.json();
 

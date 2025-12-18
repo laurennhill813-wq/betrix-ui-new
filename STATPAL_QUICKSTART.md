@@ -11,6 +11,7 @@
 Go to: **https://dashboard.render.com → Betrix Service → Settings → Environment Variables**
 
 Add:
+
 ```
 Name: STATPAL_API_KEY
 Value: 4c9cee6b-cf19-4b68-a122-48120fe855b5
@@ -48,6 +49,7 @@ Esports | Formula 1 | Handball | Golf | Horse Racing | Volleyball
 ```
 
 **For Each Sport**:
+
 - ⚡ Live Scores
 - 💰 Live Odds
 - 📅 Fixtures
@@ -69,57 +71,57 @@ Esports | Formula 1 | Handball | Golf | Horse Racing | Volleyball
 
 ```javascript
 // Get live football scores
-const MultiSportHandler = require('./src/services/multi-sport-handler');
+const MultiSportHandler = require("./src/services/multi-sport-handler");
 const handler = new MultiSportHandler();
-const soccer = await handler.getLive('soccer');
+const soccer = await handler.getLive("soccer");
 
 // Get all sports at once
 const all = await handler.getAllSportsLive({
-  sports: ['soccer', 'nfl', 'nba'],
-  limit: 10
+  sports: ["soccer", "nfl", "nba"],
+  limit: 10,
 });
 
 // Get odds for betting
-const odds = await handler.getOdds('soccer');
+const odds = await handler.getOdds("soccer");
 
 // Get player stats
-const stats = await handler.getPlayerStats('soccer', 'player_id');
+const stats = await handler.getPlayerStats("soccer", "player_id");
 ```
 
 ### Add Telegram Commands
 
 ```javascript
-bot.command('live', async (ctx) => {
+bot.command("live", async (ctx) => {
   const handler = new MultiSportHandler();
-  const matches = await handler.getLive('soccer', { limit: 5 });
-  
+  const matches = await handler.getLive("soccer", { limit: 5 });
+
   if (!matches.length) {
-    return ctx.reply('No live matches 😴');
+    return ctx.reply("No live matches 😴");
   }
-  
-  let text = '⚽ **LIVE MATCHES**\n\n';
-  matches.forEach(m => {
+
+  let text = "⚽ **LIVE MATCHES**\n\n";
+  matches.forEach((m) => {
     text += `${m.homeTeam} vs ${m.awayTeam} - ${m.status}\n`;
   });
-  
-  ctx.reply(text, { parse_mode: 'Markdown' });
+
+  ctx.reply(text, { parse_mode: "Markdown" });
 });
 
-bot.command('nfl', async (ctx) => {
+bot.command("nfl", async (ctx) => {
   const handler = new MultiSportHandler();
-  const matches = await handler.getLive('nfl', { limit: 5 });
+  const matches = await handler.getLive("nfl", { limit: 5 });
   ctx.reply(`🏈 NFL: ${matches.length} live games`);
 });
 
-bot.command('nba', async (ctx) => {
+bot.command("nba", async (ctx) => {
   const handler = new MultiSportHandler();
-  const matches = await handler.getLive('nba', { limit: 5 });
+  const matches = await handler.getLive("nba", { limit: 5 });
   ctx.reply(`🏀 NBA: ${matches.length} live games`);
 });
 
-bot.command('odds', async (ctx) => {
+bot.command("odds", async (ctx) => {
   const handler = new MultiSportHandler();
-  const odds = await handler.getOdds('soccer', { limit: 5 });
+  const odds = await handler.getOdds("soccer", { limit: 5 });
   ctx.reply(`💰 Available odds: ${odds.length}`);
 });
 ```
@@ -129,11 +131,13 @@ bot.command('odds', async (ctx) => {
 ## 🔗 Documentation
 
 **Complete Guides**:
+
 - 📖 `STATPAL_INTEGRATION_GUIDE.md` - Full reference
 - 📋 `STATPAL_IMPLEMENTATION_SUMMARY.md` - Technical details
 - ✅ `validate-statpal-integration.js` - Validation script
 
 **API Reference**:
+
 - 📘 `src/services/statpal-service.js` - Core service (all methods)
 - 🎯 `src/services/multi-sport-handler.js` - High-level handler
 - 🔄 `src/services/sports-aggregator.js` - Integration point
@@ -143,11 +147,13 @@ bot.command('odds', async (ctx) => {
 ## 🧪 Testing
 
 ### Run Validation
+
 ```bash
 node validate-statpal-integration.js
 ```
 
 Tests:
+
 - Configuration ✅
 - Service instantiation ✅
 - All 13 sports ✅
@@ -157,6 +163,7 @@ Tests:
 - Deployment readiness ✅
 
 ### Manual Test
+
 ```bash
 # Soccer
 node -e "const S = require('./src/services/statpal-service'); new S().getLiveScores('soccer').then(d => console.log(d.length + ' matches'))"
@@ -191,11 +198,12 @@ node -e "const S = require('./src/services/statpal-service'); new S().getLiveSco
 ## 📊 Usage Examples
 
 ### Example 1: Multi-Sport Dashboard
+
 ```javascript
 const handler = new MultiSportHandler();
 const dashboard = await handler.getAllSportsLive({
-  sports: ['soccer', 'nfl', 'nba', 'nhl', 'mlb'],
-  limit: 5
+  sports: ["soccer", "nfl", "nba", "nhl", "mlb"],
+  limit: 5,
 });
 
 Object.entries(dashboard).forEach(([sport, data]) => {
@@ -204,6 +212,7 @@ Object.entries(dashboard).forEach(([sport, data]) => {
 ```
 
 Output:
+
 ```
 soccer: 12 live matches
 nfl: 2 live games
@@ -213,24 +222,26 @@ mlb: 4 live games
 ```
 
 ### Example 2: Real-Time Updates
+
 ```javascript
 // Refresh live scores every 30 seconds
 setInterval(async () => {
   const handler = new MultiSportHandler();
-  const matches = await handler.getLive('soccer');
+  const matches = await handler.getLive("soccer");
   console.log(`Updated: ${matches.length} matches`);
-  
+
   // Send to users, update dashboard, etc.
   updateUI(matches);
 }, 30000);
 ```
 
 ### Example 3: Betting Odds
+
 ```javascript
 const handler = new MultiSportHandler();
-const odds = await handler.getOdds('soccer', { limit: 20 });
+const odds = await handler.getOdds("soccer", { limit: 20 });
 
-odds.forEach(odd => {
+odds.forEach((odd) => {
   console.log(`Match: ${odd.match}`);
   console.log(`  Home: ${odd.homeOdds}`);
   console.log(`  Draw: ${odd.drawOdds}`);
@@ -243,16 +254,17 @@ odds.forEach(odd => {
 
 ## ⚠️ Troubleshooting
 
-| Problem | Fix |
-|---------|-----|
-| `Error: API key not found` | Set `STATPAL_API_KEY` in Render env vars |
-| `401 Unauthorized` | Check key is set correctly, not expired |
-| `404 Not Found` | Verify sport code (soccer, nfl, nba, etc.) |
-| `429 Too Many Requests` | Wait 5 min, increase cache to 5min, reduce calls |
-| No data returned | Sport may have no live events, try different sport |
-| Service timeout | Check internet, try again, increase timeout to 10s |
+| Problem                    | Fix                                                |
+| -------------------------- | -------------------------------------------------- |
+| `Error: API key not found` | Set `STATPAL_API_KEY` in Render env vars           |
+| `401 Unauthorized`         | Check key is set correctly, not expired            |
+| `404 Not Found`            | Verify sport code (soccer, nfl, nba, etc.)         |
+| `429 Too Many Requests`    | Wait 5 min, increase cache to 5min, reduce calls   |
+| No data returned           | Sport may have no live events, try different sport |
+| Service timeout            | Check internet, try again, increase timeout to 10s |
 
 **Debug Mode**:
+
 ```bash
 export DEBUG=betrix:*
 node server.js

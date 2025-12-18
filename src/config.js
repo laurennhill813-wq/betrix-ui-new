@@ -12,47 +12,54 @@ const CONFIG = {
 
   // APIs
   API_FOOTBALL: {
-    BASE: process.env.API_FOOTBALL_BASE || process.env.API_SPORTS_BASE || "https://api-football-v3.p.rapidapi.com",
+    BASE:
+      process.env.API_FOOTBALL_BASE ||
+      process.env.API_SPORTS_BASE ||
+      "https://api-football-v3.p.rapidapi.com",
     KEY: process.env.API_FOOTBALL_KEY || process.env.API_SPORTS_KEY,
   },
 
   // AllSports API (RapidAPI)
   ALLSPORTS: {
-    HOST: process.env.ALLSPORTS_HOST || 'allsportsapi.p.rapidapi.com',
+    HOST: process.env.ALLSPORTS_HOST || "allsportsapi.p.rapidapi.com",
     KEY: process.env.ALLSPORTS_API || process.env.ALLSPORTS_API_KEY,
   },
 
   // SportsData.io
   SPORTSDATA: {
-    KEY: process.env.SPORTSDATA_API_KEY || process.env.SPORTSDATA_KEY || process.env.SPORTS_DATA_KEY,
-    BASE: process.env.SPORTSDATA_BASE || 'https://api.sportsdata.io',
+    KEY:
+      process.env.SPORTSDATA_API_KEY ||
+      process.env.SPORTSDATA_KEY ||
+      process.env.SPORTS_DATA_KEY,
+    BASE: process.env.SPORTSDATA_BASE || "https://api.sportsdata.io",
   },
 
   // SportGameOdds (preferred odds + fixtures provider)
   SPORTSGAMEODDS: {
     KEY: process.env.SPORTSGAMEODDS_API_KEY,
-    BASE: process.env.SPORTSGAMEODDS_BASE || 'https://api.sportsgameodds.com/v1',
+    BASE:
+      process.env.SPORTSGAMEODDS_BASE || "https://api.sportsgameodds.com/v1",
     CACHE_TTL: Number(process.env.SPORTSGAMEODDS_CACHE_TTL || 600),
   },
 
   // Sportradar
   SPORTRADAR: {
     KEY: process.env.SPORTRADAR_KEY || process.env.SPORTRADAR_API_KEY,
-    BASE: process.env.SPORTRADAR_BASE || 'https://api.sportradar.com',
+    BASE: process.env.SPORTRADAR_BASE || "https://api.sportradar.com",
   },
 
   // Football-Data.org
   FOOTBALLDATA: {
     KEY: process.env.FOOTBALL_DATA_API || process.env.FOOTBALLDATA_API_KEY,
-    BASE: process.env.FOOTBALLDATA_BASE || 'https://api.football-data.org/v4',
+    BASE: process.env.FOOTBALLDATA_BASE || "https://api.football-data.org/v4",
   },
 
   // SofaScore removed from primary providers; keep legacy config (disabled)
   SOFASCORE: {
-    BASE: process.env.SOFASCORE_API_BASE || 'https://sofascore.p.rapidapi.com',
+    BASE: process.env.SOFASCORE_API_BASE || "https://sofascore.p.rapidapi.com",
     KEY: process.env.SOFASCORE_API_KEY || process.env.RAPIDAPI_KEY,
-    HOST: process.env.SOFASCORE_HOST || 'sofascore.p.rapidapi.com',
-    ENABLED: false
+    HOST: process.env.SOFASCORE_HOST || "sofascore.p.rapidapi.com",
+    ENABLED: false,
   },
 
   // SportMonks removed from this deployment (operator requested)
@@ -61,7 +68,7 @@ const CONFIG = {
   STATPAL: {
     KEY: null,
     BASE: null,
-    ENABLED: false
+    ENABLED: false,
   },
 
   // Telegram
@@ -81,11 +88,13 @@ const CONFIG = {
     PASSKEY: process.env.MPESA_PASSKEY,
     CALLBACK_URL: process.env.MPESA_CALLBACK_URL,
     PAYBILL: process.env.MPESA_PAYBILL,
-    TILL: process.env.MPESA_TILL || process.env.SAFARICOM_TILL_NUMBER || "606215", // Safaricom Till Number
+    TILL:
+      process.env.MPESA_TILL || process.env.SAFARICOM_TILL_NUMBER || "606215", // Safaricom Till Number
     ACCOUNT: process.env.MPESA_ACCOUNT || "BETRIX",
-    API_BASE: (process.env.MPESA_ENV === "production")
-      ? "https://api.safaricom.co.ke"
-      : "https://sandbox.safaricom.co.ke",
+    API_BASE:
+      process.env.MPESA_ENV === "production"
+        ? "https://api.safaricom.co.ke"
+        : "https://sandbox.safaricom.co.ke",
   },
 
   // PayPal
@@ -97,9 +106,10 @@ const CONFIG = {
     WEBHOOK_ID: process.env.PAYPAL_WEBHOOK_ID,
     SUCCESS_URL: process.env.PAYPAL_SUCCESS_URL,
     CANCEL_URL: process.env.PAYPAL_CANCEL_URL,
-    API_BASE: (process.env.PAYPAL_ENV === "live")
-      ? "https://api-m.paypal.com"
-      : "https://api-m.sandbox.paypal.com",
+    API_BASE:
+      process.env.PAYPAL_ENV === "live"
+        ? "https://api-m.paypal.com"
+        : "https://api-m.sandbox.paypal.com",
   },
 
   // Binance
@@ -166,38 +176,57 @@ const CONFIG = {
 
   // Leagues mapping
   LEAGUES: {
-    epl: 39, premierleague: 39, england: 39,
-    laliga: 140, spain: 140,
-    seriea: 135, italy: 135,
-    bundesliga: 78, germany: 78,
-    ligue1: 61, france: 61,
-    ucl: 2, championsleague: 2,
+    epl: 39,
+    premierleague: 39,
+    england: 39,
+    laliga: 140,
+    spain: 140,
+    seriea: 135,
+    italy: 135,
+    bundesliga: 78,
+    germany: 78,
+    ligue1: 61,
+    france: 61,
+    ucl: 2,
+    championsleague: 2,
   },
 
   // Provider health & feature flags
   // SportMonks and Football-Data are ALWAYS enabled (trust Render env vars)
   PROVIDERS: {
-    SPORTSDATA: { enabled: process.env.PROVIDER_SPORTSDATA_ENABLED === 'true', priority: 1 },
+    SPORTSDATA: {
+      enabled: process.env.PROVIDER_SPORTSDATA_ENABLED === "true",
+      priority: 1,
+    },
     // SPORTSMONKS removed: disabled by default
     API_SPORTS: { enabled: false, priority: 3 },
     FOOTBALLDATA: { enabled: true, priority: 4 },
     SOFASCORE: { enabled: false, priority: 5 },
-    ALLSPORTS: { enabled: process.env.PROVIDER_ALLSPORTS_ENABLED === 'true', priority: 6 },
-    ESPN: { enabled: process.env.PROVIDER_ESPN_ENABLED === 'true', priority: 7 },
-    CLAUDE: { enabled: process.env.PROVIDER_CLAUDE_ENABLED === 'true', priority: 0 }
+    ALLSPORTS: {
+      enabled: process.env.PROVIDER_ALLSPORTS_ENABLED === "true",
+      priority: 6,
+    },
+    ESPN: {
+      enabled: process.env.PROVIDER_ESPN_ENABLED === "true",
+      priority: 7,
+    },
+    CLAUDE: {
+      enabled: process.env.PROVIDER_CLAUDE_ENABLED === "true",
+      priority: 0,
+    },
   },
 
   // Provider diagnostics (Redis key prefix)
   DIAGNOSTICS: {
-    PREFIX: 'betrix:provider:health:',
+    PREFIX: "betrix:provider:health:",
     TTL: 3600, // 1 hour
   },
   // Claude (Anthropic) Haiku model
   CLAUDE: {
-    ENABLED: process.env.CLAUDE_HAIKU_ENABLED !== 'false',
+    ENABLED: process.env.CLAUDE_HAIKU_ENABLED !== "false",
     API_KEY: process.env.CLAUDE_API_KEY || process.env.CLAUDE_HAIKU_KEY || null,
-    MODEL: process.env.CLAUDE_HAIKU_MODEL || 'claude-haiku-4.5',
-    TIMEOUT_MS: Number(process.env.CLAUDE_TIMEOUT_MS || 15000)
+    MODEL: process.env.CLAUDE_HAIKU_MODEL || "claude-haiku-4.5",
+    TIMEOUT_MS: Number(process.env.CLAUDE_TIMEOUT_MS || 15000),
   },
 };
 
@@ -206,17 +235,17 @@ const CONFIG = {
  */
 function validateConfig() {
   // Allow local developers to bypass strict checks by setting ALLOW_LOCAL_RUN=1
-  if (String(process.env.ALLOW_LOCAL_RUN) === '1') {
+  if (String(process.env.ALLOW_LOCAL_RUN) === "1") {
     return;
   }
 
   const required = ["REDIS_URL", "TELEGRAM_TOKEN"];
-  const missing = required.filter(k => !process.env[k]);
-  
+  const missing = required.filter((k) => !process.env[k]);
+
   // Main providers: SportsMonks and Football-Data are configured at startup
   // We trust that if Render environment has these keys set, they're available
   // Skip strict validation for optional API providers (StatPal, OpenLiga, etc are backfill only)
-  
+
   if (missing.length > 0) {
     throw new Error(`Missing required env vars: ${missing.join(", ")}`);
   }
@@ -224,9 +253,13 @@ function validateConfig() {
 
 // Startup initialization configuration
 CONFIG.STARTUP = {
-  FETCH_ON_START: process.env.FETCH_ON_START !== 'false', // Default: true
-  PRIORITY_SPORTS: (process.env.PRIORITY_SPORTS || 'soccer,nfl,nba,cricket,tennis').split(',').map(s => s.trim()),
-  USE_STATPAL_PRIORITY: process.env.USE_STATPAL_PRIORITY === 'true', // Default: false - do not prefer StatPal
+  FETCH_ON_START: process.env.FETCH_ON_START !== "false", // Default: true
+  PRIORITY_SPORTS: (
+    process.env.PRIORITY_SPORTS || "soccer,nfl,nba,cricket,tennis"
+  )
+    .split(",")
+    .map((s) => s.trim()),
+  USE_STATPAL_PRIORITY: process.env.USE_STATPAL_PRIORITY === "true", // Default: false - do not prefer StatPal
 };
 
 export { CONFIG, validateConfig };

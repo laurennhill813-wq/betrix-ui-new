@@ -35,13 +35,19 @@ class ResponseFormatter {
 
   static formatTable(headers, rows) {
     let text = "<code>";
-    const colWidths = headers.map((h, i) => Math.max(h.length, Math.max(...rows.map(r => String(r[i]).length))));
-    
+    const colWidths = headers.map((h, i) =>
+      Math.max(h.length, Math.max(...rows.map((r) => String(r[i]).length))),
+    );
+
     text += headers.map((h, i) => h.padEnd(colWidths[i])).join(" | ") + "\n";
-    text += colWidths.map(w => "─".repeat(w)).join("─┼─") + "\n";
-    text += rows.map(row => row.map((cell, i) => String(cell).padEnd(colWidths[i])).join(" | ")).join("\n");
+    text += colWidths.map((w) => "─".repeat(w)).join("─┼─") + "\n";
+    text += rows
+      .map((row) =>
+        row.map((cell, i) => String(cell).padEnd(colWidths[i])).join(" | "),
+      )
+      .join("\n");
     text += "</code>";
-    
+
     return text;
   }
 }

@@ -5,8 +5,8 @@
  * Run: node scripts/monitor-redis-health.js
  */
 
-import dotenv from 'dotenv';
-import Redis from 'ioredis';
+import dotenv from "dotenv";
+import Redis from "ioredis";
 
 dotenv.config();
 
@@ -19,7 +19,7 @@ const ALERT_THRESHOLD = process.env.REDIS_ALERT_THRESHOLD || 5; // Alert after 5
 // ============================================================================
 
 if (!REDIS_URL) {
-  console.error('❌ CRITICAL: REDIS_URL environment variable not set');
+  console.error("❌ CRITICAL: REDIS_URL environment variable not set");
   process.exit(1);
 }
 
@@ -31,7 +31,7 @@ const redis = new Redis(REDIS_URL, {
   retryStrategy: (times) => {
     if (times > 3) return null;
     return Math.min(times * 100, 1000);
-  }
+  },
 });
 
 let consecutiveFailures = 0;
@@ -68,7 +68,7 @@ class HealthMetrics {
     this.errors.push({
       timestamp: new Date().toISOString(),
       error: error.message,
-      code: error.code
+      code: error.code,
     });
     // Keep only last 10 errors
     if (this.errors.length > 10) {
@@ -77,7 +77,9 @@ class HealthMetrics {
   }
 
   getSuccessRate() {
-    return this.totalChecks === 0 ? 0 : ((this.successfulChecks / this.totalChecks) * 100).toFixed(1);
+    return this.totalChecks === 0
+      ? 0
+      : ((this.successfulChecks / this.totalChecks) * 100).toFixed(1);
   }
 
   getUptimeSeconds() {
@@ -92,11 +94,14 @@ class HealthMetrics {
       successRate: `${this.getSuccessRate()}%`,
       responseTime: {
         avg: `${this.avgResponseTime.toFixed(2)}ms`,
-        min: this.minResponseTime === Infinity ? 'N/A' : `${this.minResponseTime.toFixed(2)}ms`,
-        max: `${this.maxResponseTime.toFixed(2)}ms`
+        min:
+          this.minResponseTime === Infinity
+            ? "N/A"
+            : `${this.minResponseTime.toFixed(2)}ms`,
+        max: `${this.maxResponseTime.toFixed(2)}ms`,
       },
       uptime: `${this.getUptimeSeconds()}s`,
-      recentErrors: this.errors.slice(-3)
+      recentErrors: this.errors.slice(-3),
     };
   }
 }
@@ -113,23 +118,25 @@ async function performHealthCheck() {
   try {
     // Test 1: PING
     const pingResult = await redis.ping();
-    if (pingResult !== 'PONG') {
+    if (pingResult !== "PONG") {
       throw new Error(`PING returned ${pingResult} instead of PONG`);
     }
 
     // Test 2: GET/SET operation
     const testKey = `__health_check_${Date.now()}__`;
-    const testValue = 'ok';
+    const testValue = "ok";
     await redis.setex(testKey, 60, testValue);
     const retrievedValue = await redis.get(testKey);
-    
+
     if (retrievedValue !== testValue) {
-      throw new Error(`GET/SET test failed: expected '${testValue}', got '${retrievedValue}'`);
+      throw new Error(
+        `GET/SET test failed: expected '${testValue}', got '${retrievedValue}'`,
+      );
     }
 
     // Test 3: Database info
-    const info = await redis.info('stats');
-    
+    const info = await redis.info("stats");
+
     // Test 4: Command latency
     const latencyStart = Date.now();
     await redis.command();
@@ -142,18 +149,17 @@ async function performHealthCheck() {
     lastErrorTime = null;
 
     return {
-      status: 'healthy',
+      status: "healthy",
       timestamp: new Date().toISOString(),
       responseTime: `${responseTime}ms`,
       latency: `${latency}ms`,
       tests: {
-        ping: 'PASS',
-        getset: 'PASS',
-        info: 'PASS',
-        command: 'PASS'
-      }
+        ping: "PASS",
+        getset: "PASS",
+        info: "PASS",
+        command: "PASS",
+      },
     };
-
   } catch (error) {
     const responseTime = Date.now() - checkStartTime;
     metrics.recordFailure(error);
@@ -162,13 +168,13 @@ async function performHealthCheck() {
     isHealthy = false;
 
     return {
-      status: 'unhealthy',
+      status: "unhealthy",
       timestamp: new Date().toISOString(),
       responseTime: `${responseTime}ms`,
       error: error.message,
       code: error.code,
       consecutiveFailures: consecutiveFailures,
-      willAlert: consecutiveFailures >= ALERT_THRESHOLD
+      willAlert: consecutiveFailures >= ALERT_THRESHOLD,
     };
   }
 }
@@ -179,19 +185,25 @@ async function performHealthCheck() {
 
 function formatOutput(result) {
   const timestamp = new Date().toLocaleString();
-  const statusIcon = result.status === 'healthy' ? '✅' : '❌';
-  
+  const statusIcon = result.status === "healthy" ? "✅" : "❌";
+
   console.clear();
-  console.log('\n');
-  console.log('╔════════════════════════════════════════════════════════════════╗');
-  console.log('║         BETRIX REDIS HEALTH MONITOR - SEAMLESS STATUS          ║');
-  console.log('╚════════════════════════════════════════════════════════════════╝\n');
-  
+  console.log("\n");
+  console.log(
+    "╔════════════════════════════════════════════════════════════════╗",
+  );
+  console.log(
+    "║         BETRIX REDIS HEALTH MONITOR - SEAMLESS STATUS          ║",
+  );
+  console.log(
+    "╚════════════════════════════════════════════════════════════════╝\n",
+  );
+
   console.log(`${statusIcon} Status: ${result.status.toUpperCase()}`);
   console.log(`📅 Check Time: ${timestamp}`);
   console.log(`⏱️  Response Time: ${result.responseTime}`);
-  
-  if (result.status === 'healthy') {
+
+  if (result.status === "healthy") {
     console.log(`🔗 Latency: ${result.latency}`);
     console.log(`\n✨ All Tests Passed:`);
     Object.entries(result.tests).forEach(([test, status]) => {
@@ -206,10 +218,12 @@ function formatOutput(result) {
     }
   }
 
-  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-  
+  console.log(
+    "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n",
+  );
+
   const report = metrics.getReport();
-  console.log('📊 METRICS (Session Total):\n');
+  console.log("📊 METRICS (Session Total):\n");
   console.log(`   Total Checks: ${report.totalChecks}`);
   console.log(`   Success Rate: ${report.successRate}`);
   console.log(`   Response Time:`);
@@ -217,30 +231,34 @@ function formatOutput(result) {
   console.log(`     • Min: ${report.responseTime.min}`);
   console.log(`     • Max: ${report.responseTime.max}`);
   console.log(`   Uptime: ${report.uptime}`);
-  
+
   if (report.recentErrors.length > 0) {
     console.log(`\n   Last ${report.recentErrors.length} Error(s):`);
     report.recentErrors.forEach((err, idx) => {
-      console.log(`     ${idx + 1}. [${err.code}] ${err.error} (${err.timestamp})`);
+      console.log(
+        `     ${idx + 1}. [${err.code}] ${err.error} (${err.timestamp})`,
+      );
     });
   }
 
-  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-  
-  if (result.status === 'healthy') {
-    console.log('🎉 Redis connection is SEAMLESS and HEALTHY');
-    console.log('🚀 All BETRIX bot features are operational\n');
+  console.log(
+    "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n",
+  );
+
+  if (result.status === "healthy") {
+    console.log("🎉 Redis connection is SEAMLESS and HEALTHY");
+    console.log("🚀 All BETRIX bot features are operational\n");
   } else {
-    console.log('⚠️  Redis connection has ISSUES');
+    console.log("⚠️  Redis connection has ISSUES");
     if (consecutiveFailures >= ALERT_THRESHOLD) {
-      console.log('🚨 CRITICAL: Multiple failures detected');
+      console.log("🚨 CRITICAL: Multiple failures detected");
     }
-    console.log('📋 Recommendations:');
-    console.log('   1. Verify REDIS_URL is correctly set');
-    console.log('   2. Check network connectivity to Redis host');
-    console.log('   3. Verify Redis credentials are correct');
-    console.log('   4. Check firewall/security group rules');
-    console.log('   5. Restart worker: npm run worker\n');
+    console.log("📋 Recommendations:");
+    console.log("   1. Verify REDIS_URL is correctly set");
+    console.log("   2. Check network connectivity to Redis host");
+    console.log("   3. Verify Redis credentials are correct");
+    console.log("   4. Check firewall/security group rules");
+    console.log("   5. Restart worker: npm run worker\n");
   }
 }
 
@@ -249,7 +267,9 @@ function formatOutput(result) {
 // ============================================================================
 
 async function startMonitoring() {
-  console.log(`🔄 Starting Redis health monitoring every ${CHECK_INTERVAL / 1000}s...\n`);
+  console.log(
+    `🔄 Starting Redis health monitoring every ${CHECK_INTERVAL / 1000}s...\n`,
+  );
 
   // Initial check
   const result = await performHealthCheck();
@@ -258,26 +278,28 @@ async function startMonitoring() {
   // Continuous monitoring
   setInterval(async () => {
     const result = await performHealthCheck();
-    
+
     // Only display full output on status change or failure
-    if (result.status === 'unhealthy' || !isHealthy) {
+    if (result.status === "unhealthy" || !isHealthy) {
       formatOutput(result);
     } else {
       // Brief status for healthy checks
-      process.stdout.write(`\r✅ Healthy (${metrics.totalChecks} checks, ${metrics.getSuccessRate()}% success rate)`);
+      process.stdout.write(
+        `\r✅ Healthy (${metrics.totalChecks} checks, ${metrics.getSuccessRate()}% success rate)`,
+      );
     }
 
     // Send alert if threshold exceeded
     if (consecutiveFailures >= ALERT_THRESHOLD) {
-      console.error('\n🚨 ALERT: Redis connection threshold exceeded!');
+      console.error("\n🚨 ALERT: Redis connection threshold exceeded!");
       console.error(`Last error: ${lastErrorTime}`);
       console.error(`Consecutive failures: ${consecutiveFailures}\n`);
     }
   }, CHECK_INTERVAL);
 
   // Graceful shutdown
-  process.on('SIGINT', () => {
-    console.log('\n\n📋 Final Report:');
+  process.on("SIGINT", () => {
+    console.log("\n\n📋 Final Report:");
     console.log(JSON.stringify(metrics.getReport(), null, 2));
     redis.quit();
     process.exit(0);
@@ -288,16 +310,16 @@ async function startMonitoring() {
 // EVENT HANDLERS
 // ============================================================================
 
-redis.on('error', (err) => {
+redis.on("error", (err) => {
   // Errors are handled in performHealthCheck
 });
 
-redis.on('connect', () => {
-  console.log('[redis-health] ✅ Connected to Redis');
+redis.on("connect", () => {
+  console.log("[redis-health] ✅ Connected to Redis");
 });
 
-redis.on('end', () => {
-  console.log('[redis-health] ⚠️  Redis connection ended');
+redis.on("end", () => {
+  console.log("[redis-health] ⚠️  Redis connection ended");
 });
 
 // ============================================================================
@@ -305,6 +327,6 @@ redis.on('end', () => {
 // ============================================================================
 
 startMonitoring().catch((error) => {
-  console.error('❌ Failed to start health monitor:', error.message);
+  console.error("❌ Failed to start health monitor:", error.message);
   process.exit(1);
 });

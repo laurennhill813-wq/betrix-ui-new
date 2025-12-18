@@ -70,12 +70,11 @@ Provide: 2-sentence prediction with reasoning.`;
    */
   assessRisk(totalOdds, matches) {
     if (totalOdds > 8) {
-      retu  assessRisk(totalOdds, _matches) {
-    if (totalOdds > 8) {
       return {
         level: "🔴 HIGH",
         emoji: "⚠️",
-        message: "High odds = high payout but lower probability. Only if very confident.",
+        message:
+          "High odds = high payout but lower probability. Only if very confident.",
       };
     } else if (totalOdds > 4) {
       return {
@@ -87,7 +86,8 @@ Provide: 2-sentence prediction with reasoning.`;
       return {
         level: "🟡 MEDIUM",
         emoji: "✅",
-        message: "Safe bet with good returns. Recommended for building streaks.",
+        message:
+          "Safe bet with good returns. Recommended for building streaks.",
       };
     } else {
       return {
@@ -102,14 +102,15 @@ Provide: 2-sentence prediction with reasoning.`;
    * Format analysis for display
    */
   formatAnalysisDisplay(analysis, slip, _userStats) {
-S</b>\n\n`;
+    const risk = this.assessRisk(slip.totalOdds || 1, slip.matches || []);
+    let text = `🧠 <b>BETRIX Analysis</b>\n\n`;
     text += `🎯 <b>AI Verdict:</b>\n${analysis}\n\n`;
     text += `${risk.emoji} <b>Risk Level:</b> ${risk.level}\n`;
     text += `${risk.message}\n\n`;
     text += `💰 <b>Stake Calculator:</b>\n`;
-    text += `100 → ${(100 * slip.totalOdds).toFixed(0)}\n`;
-    text += `500 → ${(500 * slip.totalOdds).toFixed(0)}\n`;
-    text += `1000 → ${(1000 * slip.totalOdds).toFixed(0)}\n\n`;
+    text += `100 → ${(100 * (slip.totalOdds || 1)).toFixed(0)}\n`;
+    text += `500 → ${(500 * (slip.totalOdds || 1)).toFixed(0)}\n`;
+    text += `1000 → ${(1000 * (slip.totalOdds || 1)).toFixed(0)}\n\n`;
     text += `✅ Ready to place bet?`;
 
     return text;

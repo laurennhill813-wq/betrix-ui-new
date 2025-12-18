@@ -5,8 +5,8 @@
  * Complete integration with PostgreSQL, Redis, Bull queues
  */
 
-import createRedisAdapter from './utils/redis-adapter.js';
-import { getRedisAdapter } from './lib/redis-factory.js';
+import createRedisAdapter from "./utils/redis-adapter.js";
+import { getRedisAdapter } from "./lib/redis-factory.js";
 import { CONFIG, validateConfig } from "./config.js";
 import { Logger } from "./utils/logger.js";
 import { db } from "./database/db.js";
@@ -42,13 +42,14 @@ try {
 
 // Initialize Redis (central adapter)
 const redis = getRedisAdapter();
-if (redis && typeof redis.on === 'function') {
+if (redis && typeof redis.on === "function") {
   redis.on("connect", () => logger.info("✅ Redis connected"));
   redis.on("error", (err) => logger.error("Redis error", err));
 } else {
-  logger.info('Redis adapter initialized for DB worker');
+  logger.info("Redis adapter initialized for DB worker");
 }
-const redisAdapter = typeof createRedisAdapter === 'function' ? createRedisAdapter(redis) : redis;
+const redisAdapter =
+  typeof createRedisAdapter === "function" ? createRedisAdapter(redis) : redis;
 
 // Initialize services
 const telegram = new TelegramService(CONFIG.TELEGRAM_TOKEN);
@@ -62,15 +63,37 @@ const queue = new QueueService(redis);
 const transactions = new TransactionService();
 
 // Handlers
-const basicHandlers = new BotHandlers(telegram, userService, apiFootball, gemini, redis);
-const advancedHandler = new AdvancedHandler(basicHandlers, redis, telegram, userService, gemini);
-const tierHandlers = new TierAwareHandlers(basicHandlers, gatekeeper, userService);
-const newFeaturesHandlers = new NewFeaturesHandlers(telegram, userService, gemini);
+const basicHandlers = new BotHandlers(
+  telegram,
+  userService,
+  apiFootball,
+  gemini,
+  redis,
+);
+const advancedHandler = new AdvancedHandler(
+  basicHandlers,
+  redis,
+  telegram,
+  userService,
+  gemini,
+);
+const tierHandlers = new TierAwareHandlers(
+  basicHandlers,
+  gatekeeper,
+  userService,
+);
+const newFeaturesHandlers = new NewFeaturesHandlers(
+  telegram,
+  userService,
+  gemini,
+);
 const webFeaturesHandlers = new WebFeaturesHandlers(telegram);
 
 logger.info("🚀 BETRIX Database Worker - All Services Initialized");
 logger.info("✨ Premium Features: /meme, /crypto, /news, /tip");
-logger.info("✨ Web Features: /headlines, /reddit, /quote, /fact, /fixtures, /trending_bets");
+logger.info(
+  "✨ Web Features: /headlines, /reddit, /quote, /fact, /fixtures, /trending_bets",
+);
 
 // Start HTTP server with webhook
 startServer(telegram);
@@ -103,7 +126,7 @@ async function handleUpdate(update) {
       const chatId = chat.id;
 
       // Get user from database
-      const user = await userService.getUser(userId) || {};
+      const user = (await userService.getUser(userId)) || {};
       const tier = await gatekeeper.getUserTier(userId);
       const language = user.language || "en";
 
@@ -181,13 +204,13 @@ async function handleCommand(chatId, userId, cmd, args, tier, language) {
     "/today": () => basicHandlers.todayMatches(chatId),
     "/pricing": () => basicHandlers.pricing(chatId, userId),
     "/status": () => basicHandlers.status(chatId, userId),
-    
+
     // Premium Features (FREE!)
     "/meme": () => newFeaturesHandlers.handleMeme(chatId, userId),
     "/crypto": () => newFeaturesHandlers.handleCrypto(chatId, userId, args[0]),
     "/news": () => newFeaturesHandlers.handleNews(chatId, userId, args[0]),
     "/tip": () => newFeaturesHandlers.handleTip(chatId, userId),
-    
+
     // Web Features (ALL FREE)
     "/headlines": () => webFeaturesHandlers.handleHeadlines(chatId),
     "/reddit": () => webFeaturesHandlers.handleReddit(chatId),
@@ -195,17 +218,20 @@ async function handleCommand(chatId, userId, cmd, args, tier, language) {
     "/quote": () => webFeaturesHandlers.handleQuote(chatId),
     "/fact": () => webFeaturesHandlers.handleFact(chatId),
     "/betting_fact": () => webFeaturesHandlers.handleBettingFact(chatId),
-    "/stadium": () => webFeaturesHandlers.handleStadium(chatId, args[0] || "Old Trafford"),
+    "/stadium": () =>
+      webFeaturesHandlers.handleStadium(chatId, args[0] || "Old Trafford"),
     "/live": () => basicHandlers.liveMatches(chatId),
     "/fixtures": () => webFeaturesHandlers.handleFixtures(chatId),
     "/trending_bets": () => webFeaturesHandlers.handleTrendingBets(chatId),
     "/bet_rec": () => webFeaturesHandlers.handleBetRecommendation(chatId),
     "/standings": () => basicHandlers.standings(chatId, args[0]),
     "/odds": () => basicHandlers.odds(chatId, args[0]),
-    
+
     // Core Commands
-    "/analyze": () => tierHandlers.analysisWithTier(chatId, userId, args.join(" ")),
-    "/predict": () => tierHandlers.predictionsWithTier(chatId, userId, args.join(" ")),
+    "/analyze": () =>
+      tierHandlers.analysisWithTier(chatId, userId, args.join(" ")),
+    "/predict": () =>
+      tierHandlers.predictionsWithTier(chatId, userId, args.join(" ")),
     "/tips": () => basicHandlers.tips(chatId),
   };
 

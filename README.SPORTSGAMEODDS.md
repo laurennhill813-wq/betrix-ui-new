@@ -25,15 +25,25 @@ node .\tools\sgo-paginate.js --league=epl --what=odds --limit=100
 Examples: using the service programmatically
 
 ```javascript
-import { getRedis } from './src/lib/redis-factory.js';
-import { fetchAllEvents, fetchAllOdds } from './src/services/sportsgameodds.js';
+import { getRedis } from "./src/lib/redis-factory.js";
+import { fetchAllEvents, fetchAllOdds } from "./src/services/sportsgameodds.js";
 
 const redis = getRedis();
-const events = await fetchAllEvents({ league: 'nba', limit: 100, redis, forceFetch: true });
-console.log('events count', events.length);
+const events = await fetchAllEvents({
+  league: "nba",
+  limit: 100,
+  redis,
+  forceFetch: true,
+});
+console.log("events count", events.length);
 
-const odds = await fetchAllOdds({ league: 'nba', limit: 100, redis, forceFetch: true });
-console.log('odds count', odds.length);
+const odds = await fetchAllOdds({
+  league: "nba",
+  limit: 100,
+  redis,
+  forceFetch: true,
+});
+console.log("odds count", odds.length);
 ```
 
 Notes & recommendations

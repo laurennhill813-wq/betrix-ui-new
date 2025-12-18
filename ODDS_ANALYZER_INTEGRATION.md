@@ -9,52 +9,63 @@ The Betrix bot now features a comprehensive **OddsAnalyzer** service that provid
 ### Core Components
 
 #### 1. OddsAnalyzer Service (`src/services/odds-analyzer.js`)
+
 - **Purpose**: Analyze betting odds and generate intelligent predictions
 - **Size**: 390 lines of production-grade code
 - **Dependencies**: Redis, SportsAggregator, optional AI service
 
 #### 2. SportsAggregator Service (`src/services/sports-aggregator.js`)
+
 - **Purpose**: Aggregate real sports data from 6 different APIs
 - **Data Freshness**: 5-10 seconds (API) to 30 minutes (cache)
 - **Fallback Chain**: API-Sports → Football-Data → SofaScore → AllSports → SportsData.io → SportsMonks → Demo
 
 #### 3. Updated Command Handlers (`src/handlers/commands-v3.js`)
+
 - **`/odds`** - Display quick tips with best value plays
 - **`/analyze <team1> vs <team2>`** - Deep analysis of specific match
 
 #### 4. Worker Integration (`src/worker-final.js`)
+
 - OddsAnalyzer initialized and passed to all handlers
 - Receives Redis and SportsAggregator as dependencies
 
 ## Key Features
 
 ### 1. Probability Calculation
+
 Converts decimal odds to implied probabilities:
+
 ```
 Implied Probability = 1 / Decimal Odds
 Example: 2.1 odds = 47.6% implied probability
 ```
 
 ### 2. Outcome Prediction
+
 - Analyzes home/draw/away probabilities
 - Determines most likely outcome
 - Calculates confidence (50-95% range)
 - Accounts for probability spread
 
 ### 3. Value Detection
+
 - Calculates edge: `(True Probability - Implied Probability) × 100%`
 - Identifies bets with >5% edge as "value"
 - Calculates expected ROI per bet
 - Threshold: 5% minimum edge for action
 
 ### 4. Smart Recommendations
+
 Based on confidence and value:
+
 - **🟢 STRONG BET**: Confidence >70% AND Edge >10%
 - **🟡 MODERATE BET**: Confidence >60% AND Edge >5%
 - **🟠 CAUTIOUS BET**: Confidence >55% AND Edge >3%
 - **❌ SKIP**: Below thresholds - avoid betting
 
 ### 5. Multi-Bookmaker Comparison
+
 - Compares odds across multiple bookmakers
 - Highlights best odds for each outcome
 - Shows where to place each bet
@@ -62,7 +73,9 @@ Based on confidence and value:
 ## Usage Examples
 
 ### Command: `/odds`
+
 Returns today's best plays with value:
+
 ```
 🎯 *Today's Best Plays*
 
@@ -78,7 +91,9 @@ Returns today's best plays with value:
 ```
 
 ### Command: `/analyze Manchester United vs Liverpool`
+
 Detailed match analysis:
+
 ```
 🔍 *Odds Analysis*
 
@@ -105,6 +120,7 @@ Recommendation: *❌ No clear value*
 ## Implementation Details
 
 ### Method: `analyzeMatch(homeTeam, awayTeam, leagueId)`
+
 ```javascript
 const analysis = await oddsAnalyzer.analyzeMatch('Manchester United', 'Liverpool');
 
@@ -138,6 +154,7 @@ const analysis = await oddsAnalyzer.analyzeMatch('Manchester United', 'Liverpool
 ```
 
 ### Method: `analyzeLiveMatches(leagueId)`
+
 ```javascript
 const analyses = await oddsAnalyzer.analyzeLiveMatches();
 
@@ -149,6 +166,7 @@ const analyses = await oddsAnalyzer.analyzeLiveMatches();
 ```
 
 ### Method: `getQuickTips(leagueId)`
+
 ```javascript
 const tips = await oddsAnalyzer.getQuickTips();
 
@@ -157,14 +175,16 @@ const tips = await oddsAnalyzer.getQuickTips();
 ```
 
 ### Method: `compareOdds(homeTeam, awayTeam, leagueId)`
+
 ```javascript
-const comparison = await oddsAnalyzer.compareOdds('Man Utd', 'Liverpool');
+const comparison = await oddsAnalyzer.compareOdds("Man Utd", "Liverpool");
 
 // Returns formatted comparison across bookmakers:
 // "💰 *Odds Comparison*\n\n*Bet365:*\n  1: 2.1 ✅\n..."
 ```
 
 ### Method: `formatForTelegram(analysis)`
+
 ```javascript
 const formatted = oddsAnalyzer.formatForTelegram(analysis);
 
@@ -174,6 +194,7 @@ const formatted = oddsAnalyzer.formatForTelegram(analysis);
 ## Integration Points
 
 ### 1. Worker Initialization
+
 ```javascript
 // src/worker-final.js (Line 84)
 const oddsAnalyzer = new OddsAnalyzer(redis, sportsAggregator, null);
@@ -187,6 +208,7 @@ const services = {
 ```
 
 ### 2. Command Handlers
+
 ```javascript
 // src/handlers/commands-v3.js
 
@@ -235,11 +257,13 @@ User receives: Formatted recommendation with odds & confidence
 ## Testing
 
 ### Run OddsAnalyzer Tests
+
 ```bash
 node test-odds-analyzer.js
 ```
 
 **Test Results:**
+
 - ✅ Analyzes live matches (3/3 tested)
 - ✅ Calculates probabilities correctly
 - ✅ Detects value plays
@@ -251,11 +275,13 @@ node test-odds-analyzer.js
 ## Configuration
 
 ### Redis Caching
+
 - **Odds Cache TTL**: 10 minutes
 - **Live Matches Cache TTL**: 2 minutes
 - **Standings Cache TTL**: 30 minutes
 
 ### Analysis Thresholds
+
 - **Minimum Confidence**: 50%
 - **Value Edge Threshold**: 5%
 - **Strong Bet Threshold**: Confidence >70% AND Edge >10%
@@ -264,12 +290,15 @@ node test-odds-analyzer.js
 ## Error Handling
 
 ### Graceful Degradation
+
 If OddsAnalyzer is unavailable:
+
 - `/odds` falls back to basic fixture display
 - `/analyze` shows mock analysis
 - System continues functioning with reduced capabilities
 
 ### Data Validation
+
 - Filters out matches without valid team names
 - Handles missing odds data gracefully
 - Returns "error" status with descriptive message
@@ -307,6 +336,7 @@ If OddsAnalyzer is unavailable:
 ## Syntax Status
 
 ✅ All files passing Node.js syntax checks:
+
 - `src/services/odds-analyzer.js` ✓
 - `src/worker-final.js` ✓
 - `src/handlers/commands-v3.js` ✓
@@ -323,6 +353,7 @@ If OddsAnalyzer is unavailable:
 ## Support
 
 For issues or questions:
+
 - Check `API_KEYS_VERIFICATION.md` for configuration
 - Run `test-odds-analyzer.js` to verify functionality
 - Review `CURRENT_DATA_GUARANTEE.md` for data freshness

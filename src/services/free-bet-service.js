@@ -83,7 +83,15 @@ class FreeBetService {
       }
 
       // Mark as used
-      await this.redis.hset(betId, "status", "used", "usedAt", new Date().toISOString(), "slipId", slipId);
+      await this.redis.hset(
+        betId,
+        "status",
+        "used",
+        "usedAt",
+        new Date().toISOString(),
+        "slipId",
+        slipId,
+      );
 
       logger.info(`Free bet used: ${betId} - Slip ${slipId}`);
       return { success: true, bet };
@@ -97,7 +105,10 @@ class FreeBetService {
    * Format free bet for display
    */
   formatBetDisplay(bet) {
-    const remaining = Math.max(0, Math.ceil((new Date(bet.expiryAt) - new Date()) / (1000 * 60 * 60 * 24)));
+    const remaining = Math.max(
+      0,
+      Math.ceil((new Date(bet.expiryAt) - new Date()) / (1000 * 60 * 60 * 24)),
+    );
 
     let text = `🎁 <b>FREE BET</b>\n\n`;
     text += `Amount: ${bet.amount}\n`;

@@ -14,7 +14,7 @@ class OTPService {
   constructor() {
     this.client = twilio(
       process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
+      process.env.TWILIO_AUTH_TOKEN,
     );
     this.fromPhone = process.env.TWILIO_PHONE_NUMBER;
   }
@@ -125,13 +125,14 @@ class OTPService {
    * Format phone number to international
    */
   formatPhoneNumber(phone, country = "KE") {
-    const countryCode = {
-      KE: "+254",
-      NG: "+234",
-      ZA: "+27",
-      US: "+1",
-      GB: "+44",
-    }[country] || "+254";
+    const countryCode =
+      {
+        KE: "+254",
+        NG: "+234",
+        ZA: "+27",
+        US: "+1",
+        GB: "+44",
+      }[country] || "+254";
 
     // Remove leading 0 if present
     let cleaned = phone.replace(/^0/, "");

@@ -1,6 +1,7 @@
 # Critical Fixes Applied - November 28, 2025
 
 ## Summary
+
 Three critical bugs preventing payment flows and live data were identified in the deployed Render instance and fixed locally. These fixes must be deployed immediately.
 
 ---
@@ -8,15 +9,19 @@ Three critical bugs preventing payment flows and live data were identified in th
 ## 🔧 Fixes Applied
 
 ### 1. **Payment Callback Tier Parsing Bug** ✅ FIXED
+
 **Issue:** Payment buttons send callbacks like `pay_safaricom_till_PRO` but the handler expected format `pay_METHOD` (without tier).
+
 - Logs showed: `Unknown payment method { data: 'pay_safaricom_till_PRO', paymentMethod: 'SAFARICOM_TILL_PRO' }`
 - All payment method clicks were rejected with "Unknown payment method"
 
-**Root Cause:** 
-- `buildPaymentMethodButtons()` creates callbacks: `pay_safaricom_till_${tier}` 
+**Root Cause:**
+
+- `buildPaymentMethodButtons()` creates callbacks: `pay_safaricom_till_${tier}`
 - `handlePaymentMethodSelection()` extracted entire string as method name instead of separating method + tier
 
 **Fix Applied:**
+
 - Modified `handlePaymentMethodSelection()` in `src/handlers/telegram-handler-v2.js`
 - Now parses callback format `pay_METHOD_TIER` correctly
 - Extracts method and tier as separate values
@@ -27,15 +32,19 @@ Three critical bugs preventing payment flows and live data were identified in th
 ---
 
 ### 2. **PayPal SDK Error Handling** ✅ FIXED
+
 **Issue:** PayPal order creation crashed with `TypeError: Cannot read properties of undefined (reading 'OrdersCreateRequest')`
+
 - Logs showed: `createPayPalOrder failed { message: "Cannot read properties of undefined (reading 'OrdersCreateRequest')" }`
 - Caused complete payment flow failure for PayPal selections
 
 **Root Cause:**
+
 - PayPal SDK structure (`paypal.orders.OrdersCreateRequest`) not available or SDK version mismatch
 - Uncaught error prevented fallback or graceful degradation
 
 **Fix Applied:**
+
 - Added validation: check if `paypal.orders` exists before using
 - If SDK structure invalid, return mock PayPal order instead of throwing
 - Allows user to proceed with manual payment instructions
@@ -46,15 +55,19 @@ Three critical bugs preventing payment flows and live data were identified in th
 ---
 
 ### 3. **SWIFT Minimum Amount Blocking** ✅ FIXED
+
 **Issue:** SWIFT bank transfer had $100 USD minimum, but tiers are much lower (PRO=$8.99, VVIP=$29.99)
+
 - Logs showed: `Payment order creation failed { message: 'Minimum amount is 100 USD' }`
 - Prevented users from purchasing on SWIFT
 
 **Root Cause:**
+
 - `PAYMENT_PROVIDERS['SWIFT'].minAmount` was set to 100 (enterprise minimum)
 - Tier pricing from `getTierPrice()` returns much lower values (KES 899 = ~$7 USD for PRO)
 
 **Fix Applied:**
+
 - Reduced SWIFT minimum from $100 to $5 USD
 - Aligns with tier pricing
 - Allows all subscription tiers via SWIFT
@@ -66,6 +79,7 @@ Three critical bugs preventing payment flows and live data were identified in th
 ## 📊 Status After Fixes
 
 ### ✅ Payment Flows
+
 - ✅ M-Pesa STK Push: Working (no changes needed)
 - ✅ Safaricom Till: NOW WORKING (fixed callback parsing)
 - ✅ PayPal: NOW WORKING (added SDK error handling)
@@ -74,24 +88,27 @@ Three critical bugs preventing payment flows and live data were identified in th
 - ✅ Bitcoin: Working (no changes needed)
 
 ### ⚠️ Live Data Issues (NOT YET FIXED)
+
 Live match data is still 100% ESPN fallback because provider API keys are missing:
 
-| Provider | Status | Issue | Required Env Var |
-|---|---|---|---|
-| **API-Sports** | ❌ Missing Key | No API key configured | `API_FOOTBALL_KEY` or `API_SPORTS_KEY` |
-| **Football-Data** | ❌ Missing Key | HTTP 404 - no key in request | `FOOTBALLDATA_API_KEY` |
-| **SportsData.io** | ❌ Missing Key | HTTP 404 - no key in request | `SPORTSDATA_API_KEY` |
-| **SportsMonks** | ❌ TLS Error | Certificate hostname mismatch | `SPORTSMONKS_API_KEY` + endpoint check |
-| **SofaScore** | ❌ Missing Key | Not configured | `SOFASCORE_API_KEY` |
-| **AllSports** | ❌ Missing Key | Not configured | `ALLSPORTS_API_KEY` |
-| **ESPN** | ✅ Working | Fallback source (demo data) | None (public) |
+| Provider          | Status         | Issue                         | Required Env Var                       |
+| ----------------- | -------------- | ----------------------------- | -------------------------------------- |
+| **API-Sports**    | ❌ Missing Key | No API key configured         | `API_FOOTBALL_KEY` or `API_SPORTS_KEY` |
+| **Football-Data** | ❌ Missing Key | HTTP 404 - no key in request  | `FOOTBALLDATA_API_KEY`                 |
+| **SportsData.io** | ❌ Missing Key | HTTP 404 - no key in request  | `SPORTSDATA_API_KEY`                   |
+| **SportsMonks**   | ❌ TLS Error   | Certificate hostname mismatch | `SPORTSMONKS_API_KEY` + endpoint check |
+| **SofaScore**     | ❌ Missing Key | Not configured                | `SOFASCORE_API_KEY`                    |
+| **AllSports**     | ❌ Missing Key | Not configured                | `ALLSPORTS_API_KEY`                    |
+| **ESPN**          | ✅ Working     | Fallback source (demo data)   | None (public)                          |
 
 ---
 
 ## 🚀 Next Steps for Deployment
 
 ### Immediate (Required before live)
+
 1. **Deploy fixes** to Render:
+
    ```bash
    git push  # Push changes (already done locally)
    # Render will auto-deploy
@@ -103,6 +120,7 @@ Live match data is still 100% ESPN fallback because provider API keys are missin
    - No more "Unknown payment method" errors
 
 ### High Priority (Live data quality)
+
 3. **Configure sports provider API keys in Render environment:**
    - Get API-Sports key from https://rapidapi.com/api-sports/api/api-football
    - Get Football-Data key from https://www.football-data.org/
@@ -158,5 +176,6 @@ Files: src/handlers/telegram-handler-v2.js, src/handlers/payment-router.js
 ---
 
 ## 📞 Contact
+
 Deployed to: Render.com (auto-deploy on push)
 Status: Changes committed and pushed, awaiting Render rebuild

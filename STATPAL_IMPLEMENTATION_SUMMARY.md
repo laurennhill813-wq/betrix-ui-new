@@ -9,9 +9,11 @@
 ## 📦 What Was Implemented
 
 ### 1. **StatPal Service** (`src/services/statpal-service.js`)
+
 **Lines**: 385 | **Status**: ✅ Created
 
 Core service wrapper providing:
+
 - ✅ `getLiveScores(sport, version)` - Live match scores
 - ✅ `getLiveOdds(sport, version)` - Betting odds
 - ✅ `getFixtures(sport, version)` - Upcoming matches
@@ -27,15 +29,18 @@ Core service wrapper providing:
 - ✅ `healthCheck()` - API health verification
 
 **Features**:
+
 - Circuit-breaker health tracking via Redis
 - Automatic failure detection and disabling
 - HTTP status-based failure mapping (401/403/404 → 30min, 429 → 5min, 5xx → 1min)
 - Comprehensive error logging and handling
 
 ### 2. **Multi-Sport Handler** (`src/services/multi-sport-handler.js`)
+
 **Lines**: 320 | **Status**: ✅ Created
 
 High-level interface for:
+
 - ✅ All 13 supported sports operations
 - ✅ Unified API across sports
 - ✅ Multi-sport dashboard (all live games at once)
@@ -43,6 +48,7 @@ High-level interface for:
 - ✅ Health check and status reporting
 
 **Supported Sports**:
+
 1. Soccer/Football
 2. NFL (American Football)
 3. NBA (Basketball)
@@ -58,7 +64,9 @@ High-level interface for:
 13. Volleyball
 
 ### 3. **SportsAggregator Integration** (`src/services/sports-aggregator.js`)
-**Changes**: 
+
+**Changes**:
+
 - ✅ Added StatPal import
 - ✅ Added StatPal to constructor initialization
 - ✅ Added StatPal as Priority 0 (primary) data source
@@ -66,7 +74,9 @@ High-level interface for:
 - ✅ Cascading fallback: StatPal → API-Sports → Football-Data → SportsData.io → SportsMonks → Scrapers → Demo
 
 ### 4. **Configuration Updates** (`src/config.js`)
-**Changes**: 
+
+**Changes**:
+
 - ✅ Added `CONFIG.STATPAL` section
 - ✅ Configured API key (supports 3 env var names):
   - `STATPAL_API_KEY` (primary)
@@ -76,9 +86,11 @@ High-level interface for:
 - ✅ Version support: `v1`, `v2`
 
 ### 5. **Deployment Validation** (`validate-statpal-integration.js`)
+
 **Lines**: 290 | **Status**: ✅ Created
 
 Comprehensive validation script checking:
+
 - ✅ Configuration completeness
 - ✅ Service instantiation
 - ✅ Supported sports list
@@ -90,9 +102,11 @@ Comprehensive validation script checking:
 **Usage**: `node validate-statpal-integration.js`
 
 ### 6. **Integration Guide** (`STATPAL_INTEGRATION_GUIDE.md`)
+
 **Lines**: 600+ | **Status**: ✅ Created
 
 Comprehensive documentation including:
+
 - ✅ Feature overview
 - ✅ 13 supported sports with capability matrix
 - ✅ Deployment instructions (3 methods)
@@ -133,6 +147,7 @@ Cache & Return to User
 ## 📊 API Endpoints Called
 
 ### Soccer (v1)
+
 - `GET https://statpal.io/api/v1/soccer/livescores?access_key=...`
 - `GET https://statpal.io/api/v1/soccer/odds?access_key=...`
 - `GET https://statpal.io/api/v1/soccer/fixtures?access_key=...`
@@ -143,6 +158,7 @@ Cache & Return to User
 - And similar for: nfl, nba, nhl, mlb, cricket, tennis, f1, esports, handball, golf, horse-racing, volleyball
 
 ### Soccer (v2) - Advanced
+
 - All v1 endpoints available in v2 with advanced features
 
 ---
@@ -152,11 +168,13 @@ Cache & Return to User
 ### Environment Variables Required
 
 **Primary**:
+
 ```bash
 STATPAL_API_KEY=4c9cee6b-cf19-4b68-a122-48120fe855b5
 ```
 
 **Optional**:
+
 ```bash
 STATPAL_BASE=https://statpal.io/api
 STATPAL_V1=v1
@@ -166,6 +184,7 @@ STATPAL_V2=v2
 ### Where to Set (Render)
 
 **Dashboard**:
+
 1. Go to https://dashboard.render.com
 2. Select Betrix service
 3. Settings → Environment Variables
@@ -173,6 +192,7 @@ STATPAL_V2=v2
 5. Save (auto-redeploy)
 
 **CLI**:
+
 ```bash
 render env set STATPAL_API_KEY 4c9cee6b-cf19-4b68-a122-48120fe855b5
 render deploy
@@ -203,17 +223,20 @@ render deploy
 ## 📈 Performance Metrics
 
 ### Expected Response Times
+
 - **Live Scores**: 200-800ms
 - **Odds**: 300-900ms
 - **Standings**: 400-1000ms
 - **Health Check**: 200-600ms
 
 ### Rate Limits (Per StatPal Subscription)
+
 - **Live Scores & Play-by-Play**: Updated every 30 seconds → 120 calls/hour max
 - **Other Endpoints**: Updated several times/hour → ~10 calls/hour max
 - **Recommended Cache**: 30sec for live, 5min for other data
 
 ### Typical Load
+
 - 100 concurrent users → ~10-20 API calls/sec
 - Recommended request interval: 30 seconds between live data updates
 - Use Redis caching to reduce API calls by 80%+
@@ -223,6 +246,7 @@ render deploy
 ## 🚀 Deployment Steps
 
 ### Step 1: Verify Locally
+
 ```bash
 # Set environment variable
 export STATPAL_API_KEY="4c9cee6b-cf19-4b68-a122-48120fe855b5"
@@ -234,6 +258,7 @@ node validate-statpal-integration.js
 ```
 
 ### Step 2: Commit Changes
+
 ```bash
 git add -A
 git commit -m "feat: integrate StatPal Sports Data API for all sports"
@@ -241,6 +266,7 @@ git log --oneline | head -1  # Verify commit
 ```
 
 ### Step 3: Deploy to Render
+
 ```bash
 # Push to trigger Render deployment
 git push origin main
@@ -251,6 +277,7 @@ git push origin main
 ```
 
 ### Step 4: Verify Deployment
+
 ```bash
 # Open Render Shell
 # Run:
@@ -263,6 +290,7 @@ node -e "const S = require('./src/services/statpal-service'); new S().healthChec
 ```
 
 ### Step 5: Monitor
+
 ```bash
 # Watch logs in Render dashboard
 # Test Telegram bot: Send /live command
@@ -274,14 +302,15 @@ node -e "const S = require('./src/services/statpal-service'); new S().healthChec
 ## 📚 Code Examples
 
 ### Example 1: Get Live Soccer Scores
+
 ```javascript
-const MultiSportHandler = require('./src/services/multi-sport-handler');
+const MultiSportHandler = require("./src/services/multi-sport-handler");
 
 async function demo() {
   const handler = new MultiSportHandler();
-  const soccer = await handler.getLive('soccer', { limit: 5 });
+  const soccer = await handler.getLive("soccer", { limit: 5 });
   console.log(`${soccer.length} live soccer matches`);
-  soccer.forEach(m => {
+  soccer.forEach((m) => {
     console.log(`  ${m.homeTeam} vs ${m.awayTeam} - ${m.status}`);
   });
 }
@@ -289,11 +318,12 @@ demo();
 ```
 
 ### Example 2: Get All Sports
+
 ```javascript
 const handler = new MultiSportHandler();
 const all = await handler.getAllSportsLive({
-  sports: ['soccer', 'nfl', 'nba', 'nhl'],
-  limit: 5
+  sports: ["soccer", "nfl", "nba", "nhl"],
+  limit: 5,
 });
 Object.entries(all).forEach(([sport, data]) => {
   console.log(`${sport}: ${data.count} matches`);
@@ -301,22 +331,23 @@ Object.entries(all).forEach(([sport, data]) => {
 ```
 
 ### Example 3: Telegram Bot Command
+
 ```javascript
-bot.command('live', async (ctx) => {
+bot.command("live", async (ctx) => {
   const handler = new MultiSportHandler();
-  const matches = await handler.getLive('soccer', { limit: 10 });
-  
+  const matches = await handler.getLive("soccer", { limit: 10 });
+
   if (matches.length === 0) {
-    return ctx.reply('No live matches right now ⚽');
+    return ctx.reply("No live matches right now ⚽");
   }
-  
-  let text = '🏟️ **Live Football Matches**\n\n';
-  matches.forEach(m => {
+
+  let text = "🏟️ **Live Football Matches**\n\n";
+  matches.forEach((m) => {
     text += `${m.homeTeam} vs ${m.awayTeam}\n`;
     text += `⏱️ ${m.status}\n\n`;
   });
-  
-  ctx.reply(text, { parse_mode: 'Markdown' });
+
+  ctx.reply(text, { parse_mode: "Markdown" });
 });
 ```
 
@@ -325,6 +356,7 @@ bot.command('live', async (ctx) => {
 ## 🔧 Customization
 
 ### Add New Endpoint
+
 ```javascript
 // In StatPalService
 async getVidHighlights(sport = 'soccer', version = 'v1') {
@@ -335,17 +367,19 @@ async getVidHighlights(sport = 'soccer', version = 'v1') {
 ```
 
 ### Change Cache Duration
+
 ```javascript
 // In SportsAggregator
 this.cacheTTL = 10 * 60 * 1000; // 10 minutes instead of 5
 ```
 
 ### Add Rate Limiting
+
 ```javascript
 // In handler
-const Bottleneck = require('bottleneck');
-const limiter = new Bottleneck({ 
-  minTime: 1000 // 1 second between calls
+const Bottleneck = require("bottleneck");
+const limiter = new Bottleneck({
+  minTime: 1000, // 1 second between calls
 });
 const limitedCall = limiter.wrap(handler.getLive.bind(handler));
 ```
@@ -354,20 +388,21 @@ const limitedCall = limiter.wrap(handler.getLive.bind(handler));
 
 ## 📞 Support & Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| 401 Unauthorized | Check `STATPAL_API_KEY` env var is set correctly |
-| 404 Not Found | Verify sport code (soccer, nfl, nba, etc) |
-| 429 Too Many Requests | Increase cache TTL to 5min, wait 5min before retry |
-| Timeout | Check internet connection, increase timeout to 10s |
-| No data for sport | Check sport is in supported list, may have no live events |
-| Service not found | Run `npm install` to ensure all dependencies installed |
+| Problem               | Solution                                                  |
+| --------------------- | --------------------------------------------------------- |
+| 401 Unauthorized      | Check `STATPAL_API_KEY` env var is set correctly          |
+| 404 Not Found         | Verify sport code (soccer, nfl, nba, etc)                 |
+| 429 Too Many Requests | Increase cache TTL to 5min, wait 5min before retry        |
+| Timeout               | Check internet connection, increase timeout to 10s        |
+| No data for sport     | Check sport is in supported list, may have no live events |
+| Service not found     | Run `npm install` to ensure all dependencies installed    |
 
 ---
 
 ## 📋 Files Modified/Created
 
 **New Files** (5):
+
 - ✅ `src/services/statpal-service.js` (385 lines)
 - ✅ `src/services/multi-sport-handler.js` (320 lines)
 - ✅ `validate-statpal-integration.js` (290 lines)
@@ -375,6 +410,7 @@ const limitedCall = limiter.wrap(handler.getLive.bind(handler));
 - ✅ `STATPAL_IMPLEMENTATION_SUMMARY.md` (This file)
 
 **Modified Files** (2):
+
 - ✅ `src/config.js` (Added CONFIG.STATPAL section)
 - ✅ `src/services/sports-aggregator.js` (Added StatPal integration, 14 new methods, Priority 0)
 
@@ -383,27 +419,30 @@ const limitedCall = limiter.wrap(handler.getLive.bind(handler));
 ## ⚡ Performance Optimization Tips
 
 1. **Use Redis Caching**
+
    ```javascript
-   const redis = require('redis').createClient();
+   const redis = require("redis").createClient();
    const handler = new MultiSportHandler(redis);
    // Automatically caches responses
    ```
 
 2. **Batch Requests**
+
    ```javascript
    // Instead of separate calls
    const results = await Promise.all([
-     handler.getLive('soccer'),
-     handler.getLive('nfl'),
-     handler.getOdds('soccer')
+     handler.getLive("soccer"),
+     handler.getLive("nfl"),
+     handler.getOdds("soccer"),
    ]);
    ```
 
 3. **Implement Request Throttling**
+
    ```javascript
    // Max 1 live data refresh per 30 seconds
    setInterval(() => {
-     handler.getLive('soccer').catch(console.error);
+     handler.getLive("soccer").catch(console.error);
    }, 30000);
    ```
 
@@ -411,8 +450,8 @@ const limitedCall = limiter.wrap(handler.getLive.bind(handler));
    ```javascript
    // Periodically check API status
    setInterval(() => {
-     statpal.healthCheck().then(h => {
-       logger.info(`StatPal: ${h ? 'healthy' : 'degraded'}`);
+     statpal.healthCheck().then((h) => {
+       logger.info(`StatPal: ${h ? "healthy" : "degraded"}`);
      });
    }, 60000);
    ```
@@ -422,6 +461,7 @@ const limitedCall = limiter.wrap(handler.getLive.bind(handler));
 ## 🎉 Result
 
 **All sports data now available instantly**:
+
 - ✅ Live scores for 13 sports
 - ✅ Real-time odds and betting data
 - ✅ Upcoming fixtures and schedules
@@ -434,12 +474,14 @@ const limitedCall = limiter.wrap(handler.getLive.bind(handler));
 - ✅ Team rosters
 
 **Circuit-breaker protection**:
+
 - ✅ Automatic provider disabling on failures
 - ✅ Intelligent retry logic
 - ✅ Health tracking and reporting
 - ✅ Graceful degradation
 
 **Ready for production deployment**:
+
 - ✅ Full test coverage
 - ✅ Error handling
 - ✅ Performance optimization
@@ -467,6 +509,7 @@ const limitedCall = limiter.wrap(handler.getLive.bind(handler));
 **Deploy now** using the steps above and start accessing all sports data immediately!
 
 For questions, check:
+
 - STATPAL_INTEGRATION_GUIDE.md (comprehensive guide)
 - src/services/statpal-service.js (API reference)
 - validate-statpal-integration.js (validation examples)

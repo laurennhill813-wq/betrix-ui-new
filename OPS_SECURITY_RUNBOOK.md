@@ -1,5 +1,4 @@
-Operations & Security Runbook (Short)
-===================================
+# Operations & Security Runbook (Short)
 
 Immediate remediation steps applied:
 

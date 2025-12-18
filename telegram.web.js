@@ -15,7 +15,9 @@ function loadSecretFile() {
         console.log("SECRET_FILE_LOADED", { path: p, length: v.length });
       }
     }
-  } catch (e) { console.error("SECRET_FILE_LOAD_ERR", e && e.stack ? e.stack : String(e)); }
+  } catch (e) {
+    console.error("SECRET_FILE_LOAD_ERR", e && e.stack ? e.stack : String(e));
+  }
 }
 
 loadSecretFile();
@@ -24,7 +26,7 @@ console.log("ENTRY_ENV_SNAPSHOT", {
   TELEGRAM_WEBHOOK_SECRET_present: !!process.env.TELEGRAM_WEBHOOK_SECRET,
   TELEGRAM_TOKEN_present: !!process.env.TELEGRAM_TOKEN,
   WEBHOOK_SECRET_present: !!process.env.WEBHOOK_SECRET,
-  REDIS_URL_present: !!process.env.REDIS_URL
+  REDIS_URL_present: !!process.env.REDIS_URL,
 });
 
 let app;
@@ -46,31 +48,56 @@ try {
 
 // Ensure tolerant /telegram route if not already present
 try {
-  const hasTelegram = !!(app._router && app._router.stack && app._router.stack.some(s => s.route && s.route.path === "/telegram"));
+  const hasTelegram = !!(
+    app._router &&
+    app._router.stack &&
+    app._router.stack.some((s) => s.route && s.route.path === "/telegram")
+  );
   if (!hasTelegram) {
     const telegramJson = express.json({ limit: "256kb" });
     app.post("/telegram/:secret?", telegramJson, (req, res, next) => {
       try {
-        const expected = process.env.TELEGRAM_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET || process.env.TELEGRAM_TOKEN || "";
+        const expected =
+          process.env.TELEGRAM_WEBHOOK_SECRET ||
+          process.env.WEBHOOK_SECRET ||
+          process.env.TELEGRAM_TOKEN ||
+          "";
         const header = req.get("X-Telegram-Bot-Api-Secret-Token") || "";
-        const pathSecret = req.params && req.params.secret ? req.params.secret : "";
+        const pathSecret =
+          req.params && req.params.secret ? req.params.secret : "";
         console.log("TOLERANT_WEBHOOK_SEEN", {
-          header: header ? (header.length > 8 ? header.slice(0,8) + "..." : header) : "",
-          pathSecret: pathSecret ? (pathSecret.length > 8 ? pathSecret.slice(0,8) + "..." : pathSecret) : "",
-          expected_present: !!expected
+          header: header
+            ? header.length > 8
+              ? header.slice(0, 8) + "..."
+              : header
+            : "",
+          pathSecret: pathSecret
+            ? pathSecret.length > 8
+              ? pathSecret.slice(0, 8) + "..."
+              : pathSecret
+            : "",
+          expected_present: !!expected,
         });
         if (!expected || header === expected || pathSecret === expected) {
           try {
             const handler = require("./src/server/telegram-webhook");
             if (typeof handler === "function") return handler(req, res, next);
-            if (handler && typeof handler.handle === "function") return handler.handle(req, res, next);
+            if (handler && typeof handler.handle === "function")
+              return handler.handle(req, res, next);
           } catch (e) {
-            console.error("TOLERANT_HANDLER_MISSING", e && e.stack ? e.stack : String(e));
-            return res.status(200).json({ ok:true, note:"tolerant-accept-no-handler" });
+            console.error(
+              "TOLERANT_HANDLER_MISSING",
+              e && e.stack ? e.stack : String(e),
+            );
+            return res
+              .status(200)
+              .json({ ok: true, note: "tolerant-accept-no-handler" });
           }
         }
-        return res.status(403).json({ ok:false, error:"invalid token" });
-      } catch (err) { next(err); }
+        return res.status(403).json({ ok: false, error: "invalid token" });
+      } catch (err) {
+        next(err);
+      }
     });
     console.log("MOUNTED_TOLERANT_TELEGRAM_ROUTE");
   } else {

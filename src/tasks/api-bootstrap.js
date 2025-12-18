@@ -4,11 +4,11 @@
  * live matches, upcoming fixtures, and odds from all available providers
  */
 
-import { CONFIG } from '../config.js';
-import { Logger } from '../utils/logger.js';
-import { probeSportradarCapabilities } from '../services/providers/sportradar.js';
+import { CONFIG } from "../config.js";
+import { Logger } from "../utils/logger.js";
+import { probeSportradarCapabilities } from "../services/providers/sportradar.js";
 
-const logger = new Logger('APIBootstrap');
+const logger = new Logger("APIBootstrap");
 
 export class APIBootstrap {
   constructor(sportsAggregator, oddsAnalyzer, redis) {
@@ -25,23 +25,31 @@ export class APIBootstrap {
   async validateAPIKeys() {
     const status = {
       timestamp: new Date().toISOString(),
-      providers: {}
+      providers: {},
     };
 
-    logger.info('🚀 Initializing providers (Football-Data, SportMonks, Sportradar)');
+    logger.info(
+      "🚀 Initializing providers (Football-Data, SportMonks, Sportradar)",
+    );
 
     // Check Football-Data.org
     if (CONFIG.FOOTBALLDATA && CONFIG.FOOTBALLDATA.KEY) {
       status.providers.FOOTBALLDATA = {
         enabled: true,
         key: `${CONFIG.FOOTBALLDATA.KEY.substring(0, 8)}...${CONFIG.FOOTBALLDATA.KEY.substring(CONFIG.FOOTBALLDATA.KEY.length - 4)}`,
-        base: CONFIG.FOOTBALLDATA.BASE || 'https://api.football-data.org/v4'
+        base: CONFIG.FOOTBALLDATA.BASE || "https://api.football-data.org/v4",
       };
       this.providers.footballData = true;
-      logger.info('✅ Football-Data.org configured', status.providers.FOOTBALLDATA);
+      logger.info(
+        "✅ Football-Data.org configured",
+        status.providers.FOOTBALLDATA,
+      );
     } else {
-      status.providers.FOOTBALLDATA = { enabled: false, reason: 'FOOTBALLDATA_API_KEY not set' };
-      logger.warn('⚠️  Football-Data.org NOT configured');
+      status.providers.FOOTBALLDATA = {
+        enabled: false,
+        reason: "FOOTBALLDATA_API_KEY not set",
+      };
+      logger.warn("⚠️  Football-Data.org NOT configured");
     }
 
     // Check SportMonks
@@ -49,13 +57,16 @@ export class APIBootstrap {
       status.providers.SPORTSMONKS = {
         enabled: true,
         key: `${CONFIG.SPORTSMONKS.KEY.substring(0, 8)}...${CONFIG.SPORTSMONKS.KEY.substring(CONFIG.SPORTSMONKS.KEY.length - 4)}`,
-        base: CONFIG.SPORTSMONKS.BASE || 'https://api.sportmonks.com/v3'
+        base: CONFIG.SPORTSMONKS.BASE || "https://api.sportmonks.com/v3",
       };
       this.providers.sportMonks = true;
-      logger.info('✅ SportMonks configured', status.providers.SPORTSMONKS);
+      logger.info("✅ SportMonks configured", status.providers.SPORTSMONKS);
     } else {
-      status.providers.SPORTSMONKS = { enabled: false, reason: 'SPORTSMONKS_API_KEY not set' };
-      logger.warn('⚠️  SportMonks NOT configured');
+      status.providers.SPORTSMONKS = {
+        enabled: false,
+        reason: "SPORTSMONKS_API_KEY not set",
+      };
+      logger.warn("⚠️  SportMonks NOT configured");
     }
 
     // Check Sportradar (optional) — only enabled if SPORTRADAR_KEY provided
@@ -63,30 +74,39 @@ export class APIBootstrap {
       status.providers.SPORTRADAR = {
         enabled: true,
         key: `${CONFIG.SPORTRADAR.KEY.substring(0, 8)}...${CONFIG.SPORTRADAR.KEY.substring(CONFIG.SPORTRADAR.KEY.length - 4)}`,
-        base: CONFIG.SPORTRADAR.BASE || 'https://api.sportradar.com'
+        base: CONFIG.SPORTRADAR.BASE || "https://api.sportradar.com",
       };
       this.providers.sportradar = true;
-      logger.info('✅ Sportradar configured', status.providers.SPORTRADAR);
+      logger.info("✅ Sportradar configured", status.providers.SPORTRADAR);
 
       // Probe Sportradar endpoints and store capability info into Redis for monitoring
       try {
-        const probe = await probeSportradarCapabilities('soccer');
+        const probe = await probeSportradarCapabilities("soccer");
         status.providers.SPORTRADAR.capabilities = probe.summary;
         // write Redis health key with 1 hour TTL
         try {
-          this.redis.set('betrix:provider:health:sportradar', JSON.stringify(probe), 'EX', 3600);
+          this.redis.set(
+            "betrix:provider:health:sportradar",
+            JSON.stringify(probe),
+            "EX",
+            3600,
+          );
         } catch (e) {
-          logger.warn('Failed to write Sportradar health to Redis', e?.message);
+          logger.warn("Failed to write Sportradar health to Redis", e?.message);
         }
-        logger.info('🔎 Sportradar capability probe result', probe.summary);
+        logger.info("🔎 Sportradar capability probe result", probe.summary);
       } catch (e) {
-        logger.warn('🔎 Sportradar capability probe failed', e?.message);
-        status.providers.SPORTRADAR.capabilities = { error: e?.message || 'probe_failed' };
+        logger.warn("🔎 Sportradar capability probe failed", e?.message);
+        status.providers.SPORTRADAR.capabilities = {
+          error: e?.message || "probe_failed",
+        };
       }
-
     } else {
-      status.providers.SPORTRADAR = { enabled: false, reason: 'SPORTRADAR_KEY not set' };
-      logger.info('ℹ️  Sportradar not configured (SPORTRADAR_KEY missing)');
+      status.providers.SPORTRADAR = {
+        enabled: false,
+        reason: "SPORTRADAR_KEY not set",
+      };
+      logger.info("ℹ️  Sportradar not configured (SPORTRADAR_KEY missing)");
     }
 
     // Summary
@@ -94,16 +114,21 @@ export class APIBootstrap {
     status.summary = {
       enabledProviders: enabledCount,
       totalChecked: Object.keys(status.providers).length,
-      readyForLiveData: enabledCount > 0
+      readyForLiveData: enabledCount > 0,
     };
 
-    logger.info('📊 API Provider Status', status);
-    
+    logger.info("📊 API Provider Status", status);
+
     // Store in Redis for monitoring
     try {
-      this.redis.set('betrix:api:bootstrap:status', JSON.stringify(status), 'EX', 3600);
+      this.redis.set(
+        "betrix:api:bootstrap:status",
+        JSON.stringify(status),
+        "EX",
+        3600,
+      );
     } catch (e) {
-      logger.warn('Failed to store bootstrap status in Redis', e?.message);
+      logger.warn("Failed to store bootstrap status in Redis", e?.message);
     }
 
     return status;
@@ -113,11 +138,11 @@ export class APIBootstrap {
    * Immediately prefetch live matches from SportMonks and Football-Data
    */
   async prefetchLiveMatches() {
-    logger.info('🔄 Prefetching live matches from SportMonks/Football-Data...');
-    
+    logger.info("🔄 Prefetching live matches from SportMonks/Football-Data...");
+
     const results = {
       timestamp: new Date().toISOString(),
-      totalMatches: 0
+      totalMatches: 0,
     };
 
     try {
@@ -125,12 +150,14 @@ export class APIBootstrap {
       const matches = await this.sportsAggregator.getAllLiveMatches();
       if (matches && Array.isArray(matches) && matches.length > 0) {
         results.totalMatches = matches.length;
-        logger.info(`✅ Found ${matches.length} live matches from SportMonks/Football-Data`);
+        logger.info(
+          `✅ Found ${matches.length} live matches from SportMonks/Football-Data`,
+        );
       } else {
-        logger.info('ℹ️  No live matches available at this time');
+        logger.info("ℹ️  No live matches available at this time");
       }
     } catch (e) {
-      logger.warn('⚠️  Failed to prefetch live matches', e?.message);
+      logger.warn("⚠️  Failed to prefetch live matches", e?.message);
       results.error = e.message;
     }
 
@@ -141,25 +168,29 @@ export class APIBootstrap {
    * Immediately prefetch upcoming fixtures from SportMonks and Football-Data
    */
   async prefetchUpcomingFixtures() {
-    logger.info('🔄 Prefetching upcoming fixtures from SportMonks/Football-Data...');
-    
+    logger.info(
+      "🔄 Prefetching upcoming fixtures from SportMonks/Football-Data...",
+    );
+
     const results = {
       timestamp: new Date().toISOString(),
-      totalFixtures: 0
+      totalFixtures: 0,
     };
 
     try {
       // Call getFixtures without league ID to fetch from all major competitions
       const fixtures = await this.sportsAggregator.getFixtures();
-      
+
       if (fixtures && Array.isArray(fixtures) && fixtures.length > 0) {
         results.totalFixtures = fixtures.length;
-        logger.info(`✅ Found ${fixtures.length} upcoming fixtures from SportMonks/Football-Data`);
+        logger.info(
+          `✅ Found ${fixtures.length} upcoming fixtures from SportMonks/Football-Data`,
+        );
       } else {
-        logger.info('ℹ️  No upcoming fixtures available');
+        logger.info("ℹ️  No upcoming fixtures available");
       }
     } catch (e) {
-      logger.warn('⚠️  Failed to prefetch upcoming fixtures', e?.message);
+      logger.warn("⚠️  Failed to prefetch upcoming fixtures", e?.message);
       results.error = e.message;
     }
 
@@ -170,24 +201,28 @@ export class APIBootstrap {
    * Immediately prefetch odds from SportMonks and Football-Data
    */
   async prefetchOdds() {
-    logger.info('🔄 Prefetching odds from SportMonks/Football-Data...');
-    
+    logger.info("🔄 Prefetching odds from SportMonks/Football-Data...");
+
     const results = {
       timestamp: new Date().toISOString(),
-      totalOdds: 0
+      totalOdds: 0,
     };
 
     try {
-      const odds = await this.sportsAggregator.getOdds(39, { sport: 'football' });
-      
+      const odds = await this.sportsAggregator.getOdds(39, {
+        sport: "football",
+      });
+
       if (odds && Array.isArray(odds) && odds.length > 0) {
         results.totalOdds = odds.length;
-        logger.info(`✅ Found ${odds.length} odds entries from SportMonks/Football-Data`);
+        logger.info(
+          `✅ Found ${odds.length} odds entries from SportMonks/Football-Data`,
+        );
       } else {
-        logger.info('ℹ️  No odds available');
+        logger.info("ℹ️  No odds available");
       }
     } catch (e) {
-      logger.warn('⚠️  Failed to prefetch odds', e?.message);
+      logger.warn("⚠️  Failed to prefetch odds", e?.message);
       results.error = e.message;
     }
 
@@ -199,29 +234,31 @@ export class APIBootstrap {
    */
   async initialize() {
     if (this.isInitialized) {
-      logger.warn('API Bootstrap already initialized, skipping');
+      logger.warn("API Bootstrap already initialized, skipping");
       return;
     }
 
     try {
-      logger.info('🚀 Starting API Bootstrap...');
-      
+      logger.info("🚀 Starting API Bootstrap...");
+
       // Step 1: Validate all keys
       const keyStatus = await this.validateAPIKeys();
-      
+
       logger.info(`✅ Bootstrap found configured providers`);
 
       // Step 2: Immediately prefetch data
-      logger.info('⏱️  Starting immediate data prefetch (this may take 10-30 seconds)...');
+      logger.info(
+        "⏱️  Starting immediate data prefetch (this may take 10-30 seconds)...",
+      );
 
       const liveMatches = await this.prefetchLiveMatches();
       const upcomingFixtures = await this.prefetchUpcomingFixtures();
       const odds = await this.prefetchOdds();
 
-      logger.info('✅ API Bootstrap Complete!', {
+      logger.info("✅ API Bootstrap Complete!", {
         liveMatches: liveMatches.totalMatches || 0,
         upcomingFixtures: upcomingFixtures.totalFixtures || 0,
-        oddsAvailable: odds.totalOdds || 0
+        oddsAvailable: odds.totalOdds || 0,
       });
 
       this.isInitialized = true;
@@ -231,12 +268,11 @@ export class APIBootstrap {
         data: {
           liveMatches: liveMatches.totalMatches || 0,
           upcomingFixtures: upcomingFixtures.totalFixtures || 0,
-          oddsAvailable: odds.totalOdds || 0
-        }
+          oddsAvailable: odds.totalOdds || 0,
+        },
       };
-
     } catch (e) {
-      logger.error('❌ API Bootstrap failed', e);
+      logger.error("❌ API Bootstrap failed", e);
       return { success: false, error: e.message };
     }
   }
@@ -245,22 +281,29 @@ export class APIBootstrap {
    * Start continuous prefetch cycle (called after successful initialization)
    */
   startContinuousPrefetch(intervalSeconds = 60) {
-    logger.info(`🔁 Starting continuous prefetch cycle (every ${intervalSeconds}s)`);
+    logger.info(
+      `🔁 Starting continuous prefetch cycle (every ${intervalSeconds}s)`,
+    );
 
     setInterval(async () => {
       try {
         const liveMatches = await this.prefetchLiveMatches();
         const upcomingFixtures = await this.prefetchUpcomingFixtures();
-        
-        if ((liveMatches.totalMatches || 0) > 0 || (upcomingFixtures.totalFixtures || 0) > 0) {
-          logger.info(`🔄 Prefetch cycle: ${liveMatches.totalMatches || 0} live, ${upcomingFixtures.totalFixtures || 0} upcoming`);
+
+        if (
+          (liveMatches.totalMatches || 0) > 0 ||
+          (upcomingFixtures.totalFixtures || 0) > 0
+        ) {
+          logger.info(
+            `🔄 Prefetch cycle: ${liveMatches.totalMatches || 0} live, ${upcomingFixtures.totalFixtures || 0} upcoming`,
+          );
         }
       } catch (e) {
-        logger.warn('Continuous prefetch cycle failed', e?.message);
+        logger.warn("Continuous prefetch cycle failed", e?.message);
       }
     }, intervalSeconds * 1000);
 
-    logger.info('✅ Continuous prefetch cycle started');
+    logger.info("✅ Continuous prefetch cycle started");
   }
 }
 

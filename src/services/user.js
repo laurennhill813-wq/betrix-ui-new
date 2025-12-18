@@ -5,7 +5,7 @@
 
 import { Logger } from "../utils/logger.js";
 import { CONFIG } from "../config.js";
-import createRedisAdapter from '../utils/redis-adapter.js';
+import createRedisAdapter from "../utils/redis-adapter.js";
 
 const logger = new Logger("UserService");
 
@@ -61,16 +61,26 @@ class UserService {
         }
       } catch (e) {
         // ignore and continue with empty current
-        logger.warn("saveUser: failed to read existing key type", { key, err: e && e.message });
+        logger.warn("saveUser: failed to read existing key type", {
+          key,
+          err: e && e.message,
+        });
       }
 
-      const updated = { ...current, ...data, updatedAt: new Date().toISOString() };
+      const updated = {
+        ...current,
+        ...data,
+        updatedAt: new Date().toISOString(),
+      };
 
       // Ensure the key is a plain string before writing
       try {
         await this.redis.del(key);
       } catch (e) {
-        logger.warn("saveUser: failed to delete existing key before set", { key, err: e && e.message });
+        logger.warn("saveUser: failed to delete existing key before set", {
+          key,
+          err: e && e.message,
+        });
       }
 
       await this.redis.set(key, JSON.stringify(updated));
@@ -108,7 +118,9 @@ class UserService {
    * Generate referral code
    */
   generateReferralCode(userId) {
-    const base = Buffer.from(String(userId)).toString("base64").replace(/=+/g, "");
+    const base = Buffer.from(String(userId))
+      .toString("base64")
+      .replace(/=+/g, "");
     const rand = Math.random().toString(36).slice(2, 6);
     return `${base}-${rand}`;
   }
@@ -154,7 +166,7 @@ class UserService {
       const refUser = (await this.getUser(referrerId)) || {};
       const count = Number(refUser.referrals_count || 0) + 1;
       const points = Number(refUser.rewards_points || 0) + 10;
-      
+
       await this.saveUser(referrerId, {
         referrals_count: count,
         rewards_points: points,
@@ -193,8 +205,14 @@ class UserService {
    */
   async getLeaderboard(type = "referrals", limit = 10) {
     try {
-      const key = type === "referrals" ? "leaderboard:referrals" : "leaderboard:points";
-      const topIds = await this.redis.zrevrange(key, 0, limit - 1, "WITHSCORES");
+      const key =
+        type === "referrals" ? "leaderboard:referrals" : "leaderboard:points";
+      const topIds = await this.redis.zrevrange(
+        key,
+        0,
+        limit - 1,
+        "WITHSCORES",
+      );
 
       const users = [];
       for (let i = 0; i < topIds.length; i += 2) {

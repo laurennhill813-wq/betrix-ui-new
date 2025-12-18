@@ -27,6 +27,7 @@ Complete integration of **StatPal Sports Data API** into your Betrix sports bett
 Go to **https://dashboard.render.com**
 
 Settings → Environment Variables → Add:
+
 ```
 STATPAL_API_KEY=4c9cee6b-cf19-4b68-a122-48120fe855b5
 ```
@@ -34,6 +35,7 @@ STATPAL_API_KEY=4c9cee6b-cf19-4b68-a122-48120fe855b5
 ### Step 2: Verify (2 minutes)
 
 Wait for auto-redeploy, then run:
+
 ```bash
 node validate-statpal-integration.js
 ```
@@ -51,12 +53,14 @@ Expected: Live football scores appear ⚽
 ### Core Services
 
 **StatPalService** (`src/services/statpal-service.js`)
+
 - 12+ methods for data retrieval
 - All 13 sports supported
 - Circuit-breaker health tracking
 - Automatic failure detection
 
 **MultiSportHandler** (`src/services/multi-sport-handler.js`)
+
 - Unified API for all sports
 - Multi-sport dashboard
 - Health checks
@@ -65,6 +69,7 @@ Expected: Live football scores appear ⚽
 ### Integration
 
 **SportsAggregator** (`src/services/sports-aggregator.js`)
+
 - StatPal as primary data source
 - Cascading fallback to other providers
 - 14 new provider methods
@@ -73,6 +78,7 @@ Expected: Live football scores appear ⚽
 ### Configuration
 
 **Config** (`src/config.js`)
+
 - Environment variable support
 - Multiple aliases for API key
 - Base URL configuration
@@ -135,32 +141,33 @@ STATPAL_COMPLETION_SUMMARY.md
 
 ### Code Files (2)
 
-| File | Size | Purpose |
-|------|------|---------|
-| `src/services/statpal-service.js` | 17.5 KB | Core API wrapper |
+| File                                  | Size    | Purpose              |
+| ------------------------------------- | ------- | -------------------- |
+| `src/services/statpal-service.js`     | 17.5 KB | Core API wrapper     |
 | `src/services/multi-sport-handler.js` | 10.1 KB | High-level interface |
 
 ### Validation (1)
 
-| File | Size | Purpose |
-|------|------|---------|
+| File                              | Size   | Purpose                  |
+| --------------------------------- | ------ | ------------------------ |
 | `validate-statpal-integration.js` | 9.2 KB | Comprehensive validation |
 
 ### Documentation (5)
 
-| File | Size | Purpose |
-|------|------|---------|
-| `STATPAL_QUICKSTART.md` | 7.8 KB | 5-minute setup |
-| `STATPAL_INTEGRATION_GUIDE.md` | 14.4 KB | Complete reference |
-| `STATPAL_IMPLEMENTATION_SUMMARY.md` | 13.4 KB | Technical details |
-| `STATPAL_DEPLOYMENT_CHECKLIST.md` | 11.5 KB | Deployment steps |
-| `STATPAL_COMPLETION_SUMMARY.md` | 12.2 KB | Delivery summary |
+| File                                | Size    | Purpose            |
+| ----------------------------------- | ------- | ------------------ |
+| `STATPAL_QUICKSTART.md`             | 7.8 KB  | 5-minute setup     |
+| `STATPAL_INTEGRATION_GUIDE.md`      | 14.4 KB | Complete reference |
+| `STATPAL_IMPLEMENTATION_SUMMARY.md` | 13.4 KB | Technical details  |
+| `STATPAL_DEPLOYMENT_CHECKLIST.md`   | 11.5 KB | Deployment steps   |
+| `STATPAL_COMPLETION_SUMMARY.md`     | 12.2 KB | Delivery summary   |
 
 ---
 
 ## ✏️ Modified Files
 
 ### `src/config.js`
+
 ```javascript
 // Added:
 STATPAL: {
@@ -172,6 +179,7 @@ STATPAL: {
 ```
 
 ### `src/services/sports-aggregator.js`
+
 - Added StatPal import
 - Added StatPal initialization in constructor
 - Added StatPal as Priority 0 in `getLiveMatches()`
@@ -204,40 +212,40 @@ STATPAL: {
 
 ```javascript
 // In your Telegram handler
-const MultiSportHandler = require('./src/services/multi-sport-handler');
+const MultiSportHandler = require("./src/services/multi-sport-handler");
 
-bot.command('live', async (ctx) => {
+bot.command("live", async (ctx) => {
   const handler = new MultiSportHandler();
-  const matches = await handler.getLive('soccer', { limit: 10 });
-  
+  const matches = await handler.getLive("soccer", { limit: 10 });
+
   if (!matches.length) {
-    return ctx.reply('No live matches right now ⚽');
+    return ctx.reply("No live matches right now ⚽");
   }
-  
-  let text = '⚽ **LIVE FOOTBALL MATCHES**\n\n';
-  matches.forEach(m => {
+
+  let text = "⚽ **LIVE FOOTBALL MATCHES**\n\n";
+  matches.forEach((m) => {
     text += `${m.homeTeam} vs ${m.awayTeam}\n`;
     text += `Status: ${m.status}\n\n`;
   });
-  
-  ctx.reply(text, { parse_mode: 'Markdown' });
+
+  ctx.reply(text, { parse_mode: "Markdown" });
 });
 
-bot.command('odds', async (ctx) => {
+bot.command("odds", async (ctx) => {
   const handler = new MultiSportHandler();
-  const odds = await handler.getOdds('soccer', { limit: 10 });
-  
+  const odds = await handler.getOdds("soccer", { limit: 10 });
+
   if (!odds.length) {
-    return ctx.reply('No odds available 💰');
+    return ctx.reply("No odds available 💰");
   }
-  
-  let text = '💰 **SOCCER BETTING ODDS**\n\n';
-  odds.forEach(o => {
+
+  let text = "💰 **SOCCER BETTING ODDS**\n\n";
+  odds.forEach((o) => {
     text += `${o.match}\n`;
     text += `Home: ${o.homeOdds} | Draw: ${o.drawOdds} | Away: ${o.awayOdds}\n\n`;
   });
-  
-  ctx.reply(text, { parse_mode: 'Markdown' });
+
+  ctx.reply(text, { parse_mode: "Markdown" });
 });
 ```
 
@@ -277,6 +285,7 @@ node validate-statpal-integration.js
 ```
 
 **Tests**:
+
 - ✅ Configuration check
 - ✅ Service instantiation
 - ✅ Supported sports (13)
@@ -292,22 +301,24 @@ node validate-statpal-integration.js
 ## 💻 Code Examples
 
 ### Example 1: Get Live Scores
+
 ```javascript
-const StatPalService = require('./src/services/statpal-service');
+const StatPalService = require("./src/services/statpal-service");
 const statpal = new StatPalService();
 
-const soccer = await statpal.getLiveScores('soccer', 'v1');
+const soccer = await statpal.getLiveScores("soccer", "v1");
 console.log(`${soccer.length} live football matches`);
 ```
 
 ### Example 2: Get All Sports
+
 ```javascript
-const MultiSportHandler = require('./src/services/multi-sport-handler');
+const MultiSportHandler = require("./src/services/multi-sport-handler");
 const handler = new MultiSportHandler();
 
 const all = await handler.getAllSportsLive({
-  sports: ['soccer', 'nfl', 'nba', 'nhl', 'mlb'],
-  limit: 10
+  sports: ["soccer", "nfl", "nba", "nhl", "mlb"],
+  limit: 10,
 });
 
 Object.entries(all).forEach(([sport, data]) => {
@@ -316,9 +327,10 @@ Object.entries(all).forEach(([sport, data]) => {
 ```
 
 ### Example 3: Get Odds
+
 ```javascript
-const odds = await handler.getOdds('soccer', { limit: 20 });
-odds.forEach(o => {
+const odds = await handler.getOdds("soccer", { limit: 20 });
+odds.forEach((o) => {
   console.log(`${o.match}: ${o.homeOdds} - ${o.drawOdds} - ${o.awayOdds}`);
 });
 ```
@@ -328,17 +340,20 @@ odds.forEach(o => {
 ## 📊 Performance
 
 ### Expected Response Times
+
 - Soccer Live Scores: 250-400ms
 - Multi-Sport Dashboard: 800-1200ms
 - Odds: 300-500ms
 - Health Check: 200-300ms
 
 ### Caching
+
 - Live Data: 2-minute cache (80-90% hit rate)
 - Standings: 5-minute cache (95%+ hit rate)
 - Odds: 30-second cache (85-95% hit rate)
 
 ### Rate Limits
+
 - Live endpoints: Updated every 30 seconds
 - Other endpoints: 10+ calls per hour
 - Recommended cache: 30sec for live, 5min for other
@@ -359,24 +374,28 @@ odds.forEach(o => {
 ## 🆘 Troubleshooting
 
 ### API Key Issues
+
 ```
 Error: API key not found
 Fix: Set STATPAL_API_KEY in Render environment variables
 ```
 
 ### Connection Issues
+
 ```
 Error: 401 Unauthorized
 Fix: Check API key is correct and not expired
 ```
 
 ### Rate Limiting
+
 ```
 Error: 429 Too Many Requests
 Fix: Increase cache TTL to 5min, wait 5min before retrying
 ```
 
 ### No Data
+
 ```
 No matches returned
 Fix: Sport may have no live events, try different sport
@@ -427,6 +446,7 @@ See **STATPAL_INTEGRATION_GUIDE.md** for complete troubleshooting.
 ## ✨ Summary
 
 You now have:
+
 - ✅ **13 sports** with real-time data
 - ✅ **15 data categories** (scores, odds, stats, etc.)
 - ✅ **Production-ready** code (circuit-breaker, caching)

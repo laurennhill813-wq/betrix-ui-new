@@ -71,10 +71,10 @@ node scripts/validate-telegram-live.js
 
 ## Detailed Guides
 
-| Document | Purpose | Time |
-|----------|---------|------|
-| [QUICKSTART_DEPLOY.md](QUICKSTART_DEPLOY.md) | Fast deployment walkthrough | 15-30 min |
-| [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md) | Complete setup with all details | 30-45 min |
+| Document                                       | Purpose                         | Time      |
+| ---------------------------------------------- | ------------------------------- | --------- |
+| [QUICKSTART_DEPLOY.md](QUICKSTART_DEPLOY.md)   | Fast deployment walkthrough     | 15-30 min |
+| [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md)     | Complete setup with all details | 30-45 min |
 | [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md) | Enterprise deployment checklist | Reference |
 
 ---
@@ -115,12 +115,14 @@ node scripts/validate-telegram-live.js
 ## Before You Start
 
 **Required:**
+
 - ✅ Telegram bot token (from [@BotFather](https://t.me/botfather))
 - ✅ SportMonks API token (from [sportmonks.com](https://sportmonks.com))
 - ✅ Redis instance (local or cloud, with auth)
 - ✅ Node.js v20+
 
 **Optional:**
+
 - ⚠️ Proxy CA certificate (if behind corporate proxy)
 
 ---
@@ -128,6 +130,7 @@ node scripts/validate-telegram-live.js
 ## Common Issues & Fixes
 
 ### Issue: Bot shows "Unknown vs Unknown"
+
 ```bash
 # 1. Verify SportMonks token:
 echo "SPORTSMONKS_API: $SPORTSMONKS_API"
@@ -139,6 +142,7 @@ node scripts/test-sportmonks-axios.js
 ```
 
 ### Issue: "NOAUTH" errors in logs
+
 ```bash
 # Wrong password in REDIS_URL. Fix:
 .\scripts\setup-production-env.ps1
@@ -149,6 +153,7 @@ redis-cli -u "$REDIS_URL" PING
 ```
 
 ### Issue: TLS certificate errors
+
 ```bash
 # 1. Check certificate:
 node scripts/inspect-sportmonks-cert.js
@@ -158,6 +163,7 @@ node scripts/inspect-sportmonks-cert.js
 ```
 
 ### Issue: Bot doesn't respond
+
 ```bash
 # Check worker is running:
 redis-cli GET worker:heartbeat
@@ -315,12 +321,14 @@ betrix-ui-replit-/
 ## Support
 
 **Questions?** Check these in order:
+
 1. [QUICKSTART_DEPLOY.md](QUICKSTART_DEPLOY.md) — Most common issues
 2. [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md) — Detailed setup
 3. [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md) — Troubleshooting section
 4. Bot logs — `node src/worker-final.js` output
 
 **Key Diagnostics:**
+
 ```bash
 # Test SportMonks:
 node scripts/test-sportmonks-axios.js
@@ -348,7 +356,7 @@ node scripts/inspect-sportmonks-cert.js
 ✅ **No Redis authentication errors**  
 ✅ **No TLS certificate errors**  
 ✅ **Worker heartbeat** visible in Redis  
-✅ **Telegram webhook** functional (if used)  
+✅ **Telegram webhook** functional (if used)
 
 ---
 

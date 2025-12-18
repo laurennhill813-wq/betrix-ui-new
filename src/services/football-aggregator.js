@@ -4,11 +4,11 @@
  * With Redis caching (30s live, 1h fixtures)
  */
 
-import { Logger } from '../utils/logger.js';
-import SportMonksService from './sportmonks-service.js';
-import FootballDataService from './footballdata.js';
+import { Logger } from "../utils/logger.js";
+import SportMonksService from "./sportmonks-service.js";
+import FootballDataService from "./footballdata.js";
 
-const logger = new Logger('FootballAggregator');
+const logger = new Logger("FootballAggregator");
 
 class FootballAggregator {
   constructor(redis) {
@@ -23,14 +23,14 @@ class FootballAggregator {
    * Get live matches from SportMonks (cached 30s)
    */
   async getLiveMatches() {
-    const cacheKey = 'football:live:all';
+    const cacheKey = "football:live:all";
 
     try {
       // Check cache
       if (this.redis) {
         const cached = await this.redis.get(cacheKey);
         if (cached) {
-          logger.debug('Live matches from cache');
+          logger.debug("Live matches from cache");
           return JSON.parse(cached);
         }
       }
@@ -42,42 +42,46 @@ class FootballAggregator {
       }
 
       // Normalize to unified schema
-      const normalized = matches.map(m => ({
+      const normalized = matches.map((m) => ({
         id: m.id || String(Math.random()),
-        provider: 'SportMonks',
-        home: m.home_team || m.home || 'Unknown',
-        away: m.away_team || m.away || 'Unknown',
+        provider: "SportMonks",
+        home: m.home_team || m.home || "Unknown",
+        away: m.away_team || m.away || "Unknown",
         homeScore: m.homeScore !== undefined ? m.homeScore : m.score?.home,
         awayScore: m.awayScore !== undefined ? m.awayScore : m.score?.away,
-        status: m.status || 'LIVE',
-        league: m.league || 'Unknown League',
+        status: m.status || "LIVE",
+        league: m.league || "Unknown League",
         leagueId: m.league_id,
-        venue: m.venue || 'Unknown Venue',
+        venue: m.venue || "Unknown Venue",
         venueId: m.venue_id,
         time: m.time || new Date().toISOString(),
         timestamp: m.timestamp || Date.now(),
-        homeOdds: m.homeOdds || '1.95',
-        drawOdds: m.drawOdds || '3.60',
-        awayOdds: m.awayOdds || '4.10',
+        homeOdds: m.homeOdds || "1.95",
+        drawOdds: m.drawOdds || "3.60",
+        awayOdds: m.awayOdds || "4.10",
         hasOdds: !!m.homeOdds,
-        round: m.round || 'Unknown',
+        round: m.round || "Unknown",
         minute: m.minute,
         referee: m.referee,
-        attendance: m.attendance
+        attendance: m.attendance,
       }));
 
       // Cache for 30 seconds
       if (this.redis) {
         try {
-          await this.redis.setex(cacheKey, this.LIVE_CACHE_TTL, JSON.stringify(normalized));
+          await this.redis.setex(
+            cacheKey,
+            this.LIVE_CACHE_TTL,
+            JSON.stringify(normalized),
+          );
         } catch (e) {
-          logger.warn('Redis cache set failed for live matches', e?.message);
+          logger.warn("Redis cache set failed for live matches", e?.message);
         }
       }
 
       return normalized;
     } catch (e) {
-      logger.warn('getLiveMatches error', e?.message);
+      logger.warn("getLiveMatches error", e?.message);
       return [];
     }
   }
@@ -86,21 +90,23 @@ class FootballAggregator {
    * Get upcoming fixtures from Football-Data.org (cached 1h)
    */
   async getFixtures(dateFromStr = null, dateToStr = null) {
-    const cacheKey = 'football:fixtures:upcoming';
+    const cacheKey = "football:fixtures:upcoming";
 
     try {
       // Check cache
       if (this.redis) {
         const cached = await this.redis.get(cacheKey);
         if (cached) {
-          logger.debug('Fixtures from cache');
+          logger.debug("Fixtures from cache");
           return JSON.parse(cached);
         }
       }
 
       // Calculate date range if not provided (today + next 7 days)
-      const dateFrom = dateFromStr || new Date().toISOString().split('T')[0];
-      const dateTo = dateToStr || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+      const dateFrom = dateFromStr || new Date().toISOString().split("T")[0];
+      const dateTo =
+        dateToStr ||
+        new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
 
       // Fetch from Football-Data.org
       const fixtures = await this.footballData.getMatches({ dateFrom, dateTo });
@@ -109,37 +115,41 @@ class FootballAggregator {
       }
 
       // Normalize to unified schema
-      const normalized = fixtures.map(f => ({
+      const normalized = fixtures.map((f) => ({
         id: f.id || String(Math.random()),
-        provider: 'Football-Data.org',
-        home: f.homeTeam?.name || f.home || 'Unknown',
-        away: f.awayTeam?.name || f.away || 'Unknown',
+        provider: "Football-Data.org",
+        home: f.homeTeam?.name || f.home || "Unknown",
+        away: f.awayTeam?.name || f.away || "Unknown",
         homeId: f.homeTeam?.id,
         awayId: f.awayTeam?.id,
-        status: f.status || 'SCHEDULED',
-        league: f.competition?.name || 'Unknown',
+        status: f.status || "SCHEDULED",
+        league: f.competition?.name || "Unknown",
         leagueId: f.competition?.id,
-        venue: f.venue || 'Unknown Venue',
+        venue: f.venue || "Unknown Venue",
         kickoff: f.utcDate || new Date().toISOString(),
         timestamp: f.utcDate ? new Date(f.utcDate).getTime() : Date.now(),
         round: f.season?.currentMatchday || f.week,
         group: f.group,
         attendance: f.attendance,
-        referee: f.referees?.[0]?.name
+        referee: f.referees?.[0]?.name,
       }));
 
       // Cache for 1 hour
       if (this.redis) {
         try {
-          await this.redis.setex(cacheKey, this.FIXTURES_CACHE_TTL, JSON.stringify(normalized));
+          await this.redis.setex(
+            cacheKey,
+            this.FIXTURES_CACHE_TTL,
+            JSON.stringify(normalized),
+          );
         } catch (e) {
-          logger.warn('Redis cache set failed for fixtures', e?.message);
+          logger.warn("Redis cache set failed for fixtures", e?.message);
         }
       }
 
       return normalized;
     } catch (e) {
-      logger.warn('getFixtures error', e?.message);
+      logger.warn("getFixtures error", e?.message);
       return [];
     }
   }
@@ -154,10 +164,10 @@ class FootballAggregator {
 
       if (isLive) {
         const live = await this.getLiveMatches();
-        match = live.find(m => String(m.id) === String(matchId));
+        match = live.find((m) => String(m.id) === String(matchId));
       } else {
         const fixtures = await this.getFixtures();
-        match = fixtures.find(f => String(f.id) === String(matchId));
+        match = fixtures.find((f) => String(f.id) === String(matchId));
       }
 
       if (!match) {
@@ -167,16 +177,19 @@ class FootballAggregator {
       // Build analysis object
       const analysis = {
         ...match,
-        h2h: await this.getHeadToHead(match.homeId || match.id, match.awayId || match.id),
+        h2h: await this.getHeadToHead(
+          match.homeId || match.id,
+          match.awayId || match.id,
+        ),
         stats: {
           home: await this.getTeamStats(match.homeId || match.id),
-          away: await this.getTeamStats(match.awayId || match.id)
-        }
+          away: await this.getTeamStats(match.awayId || match.id),
+        },
       };
 
       return analysis;
     } catch (e) {
-      logger.warn('getMatchAnalysis error', e?.message);
+      logger.warn("getMatchAnalysis error", e?.message);
       return null;
     }
   }
@@ -186,10 +199,10 @@ class FootballAggregator {
    */
   async getHeadToHead(_homeId, _awayId) {
     return {
-      totalMatches: 'N/A',
-      homeWins: 'N/A',
-      awayWins: 'N/A',
-      draws: 'N/A'
+      totalMatches: "N/A",
+      homeWins: "N/A",
+      awayWins: "N/A",
+      draws: "N/A",
     };
   }
 
@@ -198,15 +211,15 @@ class FootballAggregator {
    */
   async getTeamStats(_teamId) {
     return {
-      position: 'N/A',
-      played: 'N/A',
-      won: 'N/A',
-      drawn: 'N/A',
-      lost: 'N/A',
-      goalsFor: 'N/A',
-      goalsAgainst: 'N/A',
-      goalDiff: 'N/A',
-      points: 'N/A'
+      position: "N/A",
+      played: "N/A",
+      won: "N/A",
+      drawn: "N/A",
+      lost: "N/A",
+      goalsFor: "N/A",
+      goalsAgainst: "N/A",
+      goalDiff: "N/A",
+      points: "N/A",
     };
   }
 
@@ -214,7 +227,10 @@ class FootballAggregator {
    * Format live match for display
    */
   formatLiveMatch(match) {
-    const score = match.homeScore !== undefined ? `${match.homeScore}-${match.awayScore}` : 'TBA';
+    const score =
+      match.homeScore !== undefined
+        ? `${match.homeScore}-${match.awayScore}`
+        : "TBA";
     return `⚽ *${match.home}* ${score} *${match.away}*\n⏱ ${match.status} | 🏟 ${match.league}`;
   }
 
@@ -223,7 +239,13 @@ class FootballAggregator {
    */
   formatFixture(fixture) {
     const kickoffDate = new Date(fixture.kickoff);
-    const timeStr = kickoffDate.toLocaleString('en-US', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+    const timeStr = kickoffDate.toLocaleString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "UTC",
+    });
     return `📅 *${fixture.home}* vs *${fixture.away}*\n⏰ ${timeStr} UTC | 🏟 ${fixture.league}`;
   }
 
@@ -237,7 +259,7 @@ class FootballAggregator {
     text += `📍 ${analysis.venue}\n`;
     text += `⏱ Status: ${analysis.status}\n\n`;
 
-    if (analysis.status === 'LIVE') {
+    if (analysis.status === "LIVE") {
       text += `*Score:* ${analysis.homeScore}-${analysis.awayScore}\n`;
       if (analysis.minute) text += `*Minute:* ${analysis.minute}\n`;
     } else {
@@ -250,8 +272,8 @@ class FootballAggregator {
     }
 
     text += `\n*Team Stats:*\n`;
-    text += `${analysis.home}: Pos ${analysis.stats?.home?.position || 'N/A'} | ${analysis.stats?.home?.points || 0} pts\n`;
-    text += `${analysis.away}: Pos ${analysis.stats?.away?.position || 'N/A'} | ${analysis.stats?.away?.points || 0} pts\n`;
+    text += `${analysis.home}: Pos ${analysis.stats?.home?.position || "N/A"} | ${analysis.stats?.home?.points || 0} pts\n`;
+    text += `${analysis.away}: Pos ${analysis.stats?.away?.position || "N/A"} | ${analysis.stats?.away?.points || 0} pts\n`;
 
     text += `\n_Provider: ${analysis.provider}_`;
 

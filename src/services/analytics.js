@@ -1,13 +1,13 @@
 /**
  * Lightweight analytics for betting: implied probability, Kelly fraction, simple model
  */
-import { Logger } from '../utils/logger.js';
+import { Logger } from "../utils/logger.js";
 
-const logger = new Logger('Analytics');
+const logger = new Logger("Analytics");
 
 function decimalToImplied(odd) {
   // odd can be string or number (decimal odds)
-  const o = Number(String(odd).replace(/[^0-9.]/g, ''));
+  const o = Number(String(odd).replace(/[^0-9.]/g, ""));
   if (!o || o <= 1) return null;
   return 1 / o;
 }
@@ -21,7 +21,11 @@ function kellyFraction(p, b) {
 }
 
 // Simple estimator combining standings points and basic home advantage
-function simpleModelProbability(homePointsPerGame, awayPointsPerGame, homeAdv = 0.06) {
+function simpleModelProbability(
+  homePointsPerGame,
+  awayPointsPerGame,
+  homeAdv = 0.06,
+) {
   // Convert to relative strength
   const h = homePointsPerGame || 0.5;
   const a = awayPointsPerGame || 0.5;
@@ -29,7 +33,14 @@ function simpleModelProbability(homePointsPerGame, awayPointsPerGame, homeAdv = 
   return Math.max(0.01, Math.min(0.99, raw));
 }
 
-async function predictMatch({ home, away, homeOdds = null, _awayOdds = null, homePtsPerGame = null, awayPtsPerGame = null }) {
+async function predictMatch({
+  home,
+  away,
+  homeOdds = null,
+  _awayOdds = null,
+  homePtsPerGame = null,
+  awayPtsPerGame = null,
+}) {
   try {
     // probability using points per game if available
     const pHome = simpleModelProbability(homePtsPerGame, awayPtsPerGame);
@@ -39,24 +50,32 @@ async function predictMatch({ home, away, homeOdds = null, _awayOdds = null, hom
     const edge = impliedHome ? pHome - impliedHome : null;
 
     const b = homeOdds ? Number(homeOdds) - 1 : null;
-    const kelly = (edge && b) ? kellyFraction(pHome, b) : 0;
+    const kelly = edge && b ? kellyFraction(pHome, b) : 0;
 
     return {
       home,
       away,
-      modelProbHome: Number((pHome).toFixed(3)),
+      modelProbHome: Number(pHome.toFixed(3)),
       impliedHome: impliedHome ? Number(impliedHome.toFixed(3)) : null,
       edge: edge ? Number(edge.toFixed(3)) : null,
       kellyFraction: Number(kelly.toFixed(3)),
-      recommended: kelly > 0.02 ? `Bet ${Math.round(kelly * 100)}% of bankroll on ${home}` : 'No clear value bet',
+      recommended:
+        kelly > 0.02
+          ? `Bet ${Math.round(kelly * 100)}% of bankroll on ${home}`
+          : "No clear value bet",
     };
   } catch (err) {
-    logger.warn('predictMatch failed', err?.message || String(err));
+    logger.warn("predictMatch failed", err?.message || String(err));
     return null;
   }
 }
 
-export { decimalToImplied, kellyFraction, simpleModelProbability, predictMatch };
+export {
+  decimalToImplied,
+  kellyFraction,
+  simpleModelProbability,
+  predictMatch,
+};
 
 class AnalyticsService {
   constructor(redis) {
@@ -72,7 +91,7 @@ class AnalyticsService {
       await this.redis.setex(
         key,
         86400 * 30, // 30 days
-        JSON.stringify({ prediction, confidence, timestamp: Date.now() })
+        JSON.stringify({ prediction, confidence, timestamp: Date.now() }),
       );
 
       // Track user accuracy
@@ -80,7 +99,7 @@ class AnalyticsService {
       await this.redis.hincrby(
         `user:${userId}:stats`,
         `confidence_${Math.floor(confidence * 10)}`,
-        1
+        1,
       );
     } catch (err) {
       logger.warn("Prediction tracking failed", err);
@@ -125,14 +144,14 @@ class AnalyticsService {
   async getTopCommands(limit = 10) {
     try {
       const keys = await this.redis.keys("command:*");
-      const stats = await Promise.all(keys.map(k => this.redis.hgetall(k)));
+      const stats = await Promise.all(keys.map((k) => this.redis.hgetall(k)));
 
       return keys
         .map((k, i) => ({
           command: k.replace("command:", ""),
           count: parseInt(stats[i].count || 0),
           avgTime: Math.round(
-            parseInt(stats[i].totalTime || 0) / parseInt(stats[i].count || 1)
+            parseInt(stats[i].totalTime || 0) / parseInt(stats[i].count || 1),
           ),
         }))
         .sort((a, b) => b.count - a.count)

@@ -3,84 +3,97 @@
  * Supports M-Pesa, Safaricom Till, PayPal, Binance, and SWIFT
  */
 
-import { Logger } from '../utils/logger.js';
-import * as paypal from '@paypal/checkout-server-sdk';
-import binanceClient from '../lib/binance-client.js';
+import { Logger } from "../utils/logger.js";
+import * as paypal from "@paypal/checkout-server-sdk";
+import binanceClient from "../lib/binance-client.js";
 
-const logger = new Logger('PaymentRouter');
+const logger = new Logger("PaymentRouter");
 void logger;
 
 // Payment providers configuration
 export const PAYMENT_PROVIDERS = {
   MPESA: {
-    name: 'M-Pesa',
-    symbol: '📱',
-    icon: 'mpesa',
-    regions: ['KE', 'TZ', 'UG'],
+    name: "M-Pesa",
+    symbol: "📱",
+    icon: "mpesa",
+    regions: ["KE", "TZ", "UG"],
     minAmount: 10,
     maxAmount: 150000,
     fee: 0.015, // 1.5%
-    currencies: ['KES'],
-    processor: 'safaricom'
+    currencies: ["KES"],
+    processor: "safaricom",
   },
   SAFARICOM_TILL: {
-    name: 'Safaricom Till',
-    symbol: '🏪',
-    icon: 'till',
-    tillNumber: process.env.MPESA_TILL || process.env.SAFARICOM_TILL_NUMBER || '606215',
-    regions: ['KE'],
+    name: "Safaricom Till",
+    symbol: "🏪",
+    icon: "till",
+    tillNumber:
+      process.env.MPESA_TILL || process.env.SAFARICOM_TILL_NUMBER || "606215",
+    regions: ["KE"],
     minAmount: 50,
     maxAmount: 500000,
     fee: 0.01, // 1%
-    currencies: ['KES'],
-    processor: 'safaricom',
-    description: 'Pay directly to BETRIX till for instant credit'
+    currencies: ["KES"],
+    processor: "safaricom",
+    description: "Pay directly to BETRIX till for instant credit",
   },
   PAYPAL: {
-    name: 'PayPal',
-    symbol: '💳',
-    icon: 'paypal',
-    regions: ['US', 'UK', 'CA', 'AU', 'DE', 'FR', 'IT', 'ES'],
+    name: "PayPal",
+    symbol: "💳",
+    icon: "paypal",
+    regions: ["US", "UK", "CA", "AU", "DE", "FR", "IT", "ES"],
     minAmount: 5,
     maxAmount: 10000,
     fee: 0.029, // 2.9% + $0.30
-    currencies: ['USD', 'EUR', 'GBP', 'AUD'],
-    processor: 'paypal'
+    currencies: ["USD", "EUR", "GBP", "AUD"],
+    processor: "paypal",
   },
   BINANCE: {
-    name: 'Binance Pay',
-    symbol: '₿',
-    icon: 'binance',
-    regions: ['GLOBAL'],
+    name: "Binance Pay",
+    symbol: "₿",
+    icon: "binance",
+    regions: ["GLOBAL"],
     minAmount: 5,
     maxAmount: 50000,
     fee: 0.001, // 0.1%
-    currencies: ['USDT', 'BTC', 'ETH', 'BNB'],
-    processor: 'binance'
+    currencies: ["USDT", "BTC", "ETH", "BNB"],
+    processor: "binance",
   },
   SWIFT: {
-    name: 'Bank Transfer (SWIFT)',
-    symbol: '🏦',
-    icon: 'swift',
-    regions: ['GLOBAL'],
+    name: "Bank Transfer (SWIFT)",
+    symbol: "🏦",
+    icon: "swift",
+    regions: ["GLOBAL"],
     minAmount: 5,
     maxAmount: 1000000,
     fee: 0.005, // 0.5%
-    currencies: ['USD', 'EUR', 'GBP'],
-    processor: 'swift',
-    description: 'International bank transfer'
+    currencies: ["USD", "EUR", "GBP"],
+    processor: "swift",
+    description: "International bank transfer",
   },
   BITCOIN: {
-    name: 'Bitcoin',
-    symbol: '₿',
-    icon: 'bitcoin',
-    regions: ['GLOBAL'],
+    name: "Bitcoin",
+    symbol: "₿",
+    icon: "bitcoin",
+    regions: ["GLOBAL"],
     minAmount: 0.0001,
     maxAmount: 100,
     fee: 0.001,
-    currencies: ['BTC'],
-    processor: 'bitcoin'
-  }
+    currencies: ["BTC"],
+    processor: "bitcoin",
+  },
+  NOWPAYMENTS: {
+    name: "NowPayments (Crypto)",
+    symbol: "💰",
+    icon: "crypto",
+    regions: ["GLOBAL"],
+    minAmount: 1,
+    maxAmount: 100000,
+    fee: 0.005,
+    currencies: ["USD", "BTC", "ETH", "USDT"],
+    processor: "nowpayments",
+    description: "Deposit crypto via NowPayments (BTC / ETH / USDT)",
+  },
 };
 
 // Normalize incoming payment method identifiers (accept common aliases)
@@ -88,21 +101,21 @@ export function normalizePaymentMethod(method) {
   if (!method) return null;
   const m = String(method).trim().toLowerCase();
   const aliasMap = {
-    'safaricom_till': 'SAFARICOM_TILL',
-    'safaricom': 'SAFARICOM_TILL',
-    'till': 'SAFARICOM_TILL',
-    'mpesa': 'MPESA',
-    'mpesa_stk': 'MPESA',
-    'stk': 'MPESA',
-    'paypal': 'PAYPAL',
-    'binance': 'BINANCE',
-    'binance_pay': 'BINANCE',
-    'swift': 'SWIFT',
-    'bank': 'SWIFT',
-    'bank_transfer': 'SWIFT',
-    'bitcoin': 'BITCOIN',
-    'btc': 'BITCOIN',
-    'eth': 'BITCOIN'
+    safaricom_till: "SAFARICOM_TILL",
+    safaricom: "SAFARICOM_TILL",
+    till: "SAFARICOM_TILL",
+    mpesa: "MPESA",
+    mpesa_stk: "MPESA",
+    stk: "MPESA",
+    paypal: "PAYPAL",
+    binance: "BINANCE",
+    binance_pay: "BINANCE",
+    swift: "SWIFT",
+    bank: "SWIFT",
+    bank_transfer: "SWIFT",
+    bitcoin: "BITCOIN",
+    btc: "BITCOIN",
+    eth: "BITCOIN",
   };
 
   // Direct uppercase match to keys
@@ -115,11 +128,14 @@ export function normalizePaymentMethod(method) {
 /**
  * Get available payment methods for user region
  */
-export function getAvailablePaymentMethods(userRegion = 'KE') {
+export function getAvailablePaymentMethods(userRegion = "KE") {
   void userRegion;
   // By default make all providers available (user requested global availability).
   // Keep env var for backward compatibility, but default to all providers.
-  return Object.entries(PAYMENT_PROVIDERS).map(([key, provider]) => ({ id: key, ...provider }));
+  return Object.entries(PAYMENT_PROVIDERS).map(([key, provider]) => ({
+    id: key,
+    ...provider,
+  }));
 }
 
 /**
@@ -127,36 +143,49 @@ export function getAvailablePaymentMethods(userRegion = 'KE') {
  * Guide includes title, short description, and step list suitable for the bot to display.
  */
 export function getPaymentGuide(paymentMethod) {
-  const pmKey = normalizePaymentMethod(paymentMethod) || String(paymentMethod).toUpperCase();
+  const pmKey =
+    normalizePaymentMethod(paymentMethod) ||
+    String(paymentMethod).toUpperCase();
   const provider = PAYMENT_PROVIDERS[pmKey];
   if (!provider) return null;
 
-  const title = `${provider.symbol || ''} ${provider.name}`.trim();
-  const description = provider.description || `${provider.name} payment instructions`;
+  const title = `${provider.symbol || ""} ${provider.name}`.trim();
+  const description =
+    provider.description || `${provider.name} payment instructions`;
 
   // Use existing instruction generators where available
   let steps = [];
   switch (pmKey) {
-    case 'MPESA':
-      steps = generateMPesaInstructions('ORDER_ID', provider.minAmount).manualSteps || [];
+    case "MPESA":
+      steps =
+        generateMPesaInstructions("ORDER_ID", provider.minAmount).manualSteps ||
+        [];
       break;
-    case 'SAFARICOM_TILL':
-      steps = generateSafaricomTillPayment('USER', provider.minAmount, 'member').manualSteps || [];
+    case "SAFARICOM_TILL":
+      steps =
+        generateSafaricomTillPayment("USER", provider.minAmount, "member")
+          .manualSteps || [];
       break;
-    case 'PAYPAL':
-      steps = generatePayPalInstructions('ORDER_ID', provider.minAmount).steps || [];
+    case "PAYPAL":
+      steps =
+        generatePayPalInstructions("ORDER_ID", provider.minAmount).steps || [];
       break;
-    case 'BINANCE':
-      steps = generateBinanceInstructions('ORDER_ID', provider.minAmount).steps || [];
+    case "BINANCE":
+      steps =
+        generateBinanceInstructions("ORDER_ID", provider.minAmount).steps || [];
       break;
-    case 'SWIFT':
-      steps = generateSwiftInstructions('ORDER_ID', provider.minAmount).steps || [];
+    case "SWIFT":
+      steps =
+        generateSwiftInstructions("ORDER_ID", provider.minAmount).steps || [];
       break;
-    case 'BITCOIN':
-      steps = generateBitcoinInstructions('ORDER_ID', provider.minAmount).steps || [];
+    case "BITCOIN":
+      steps =
+        generateBitcoinInstructions("ORDER_ID", provider.minAmount).steps || [];
       break;
     default:
-      steps = [`Use ${provider.name} to send ${provider.currencies && provider.currencies[0] ? provider.currencies[0] : 'the required currency'}.`];
+      steps = [
+        `Use ${provider.name} to send ${provider.currencies && provider.currencies[0] ? provider.currencies[0] : "the required currency"}.`,
+      ];
   }
 
   return { id: pmKey, title, description, steps };
@@ -167,7 +196,7 @@ export function getPaymentGuide(paymentMethod) {
  */
 export function calculatePaymentWithFees(baseAmount, paymentMethod) {
   const provider = PAYMENT_PROVIDERS[paymentMethod];
-  if (!provider) throw new Error('Invalid payment method');
+  if (!provider) throw new Error("Invalid payment method");
 
   const fee = baseAmount * provider.fee;
   const total = baseAmount + fee;
@@ -177,7 +206,7 @@ export function calculatePaymentWithFees(baseAmount, paymentMethod) {
     fee: Math.ceil(fee * 100) / 100,
     total: Math.ceil(total * 100) / 100,
     currency: provider.currencies[0],
-    provider: provider.name
+    provider: provider.name,
   };
 }
 
@@ -188,35 +217,37 @@ export function validatePaymentAmount(amount, paymentMethod) {
   const pmKey = normalizePaymentMethod(paymentMethod) || paymentMethod;
   const provider = PAYMENT_PROVIDERS[pmKey];
   if (!provider) {
-    return { valid: false, error: 'Invalid payment method' };
+    return { valid: false, error: "Invalid payment method" };
   }
 
   if (amount < provider.minAmount) {
-    return { 
-      valid: false, 
-      error: `Minimum amount is ${provider.minAmount} ${provider.currencies[0]}` 
+    return {
+      valid: false,
+      error: `Minimum amount is ${provider.minAmount} ${provider.currencies[0]}`,
     };
   }
 
   if (amount > provider.maxAmount) {
-    return { 
-      valid: false, 
-      error: `Maximum amount is ${provider.maxAmount} ${provider.currencies[0]}` 
+    return {
+      valid: false,
+      error: `Maximum amount is ${provider.maxAmount} ${provider.currencies[0]}`,
     };
   }
 
   return { valid: true };
-} 
+}
 
 /**
  * Generate Safaricom Till payment instruction
  */
 export function generateSafaricomTillPayment(userId, amount, tier) {
   const provider = PAYMENT_PROVIDERS.SAFARICOM_TILL;
-  const reference = `BETRIX${userId}${tier}${Date.now()}`.substring(0, 12).toUpperCase();
-  
+  const reference = `BETRIX${userId}${tier}${Date.now()}`
+    .substring(0, 12)
+    .toUpperCase();
+
   return {
-    method: 'safaricom_till',
+    method: "safaricom_till",
     tillNumber: provider.tillNumber,
     amount,
     reference,
@@ -242,8 +273,8 @@ export function generateSafaricomTillPayment(userId, amount, tier) {
       `• You'll receive an M-Pesa confirmation SMS`,
       `• Copy the full message you receive`,
       `• Paste it in this chat for instant verification`,
-      `• Or click "Verify Payment" button below`
-    ]
+      `• Or click "Verify Payment" button below`,
+    ],
   };
 }
 
@@ -262,32 +293,44 @@ function generateTillQRCode(till, amount, ref) {
  * Create payment order
  * metadata: optional object { phone, providerRef, metadata }
  */
-export async function createPaymentOrder(redis, userId, tier, paymentMethod, userRegion = 'KE', metadata = {}) {
+export async function createPaymentOrder(
+  redis,
+  userId,
+  tier,
+  paymentMethod,
+  userRegion = "KE",
+  metadata = {},
+) {
   try {
     // Normalize and validate inputs
-    if (!paymentMethod || String(paymentMethod).trim() === '') {
-      throw new Error('Payment method is required');
+    if (!paymentMethod || String(paymentMethod).trim() === "") {
+      throw new Error("Payment method is required");
     }
     const pmKey = normalizePaymentMethod(paymentMethod);
     if (!pmKey || !PAYMENT_PROVIDERS[pmKey]) {
       throw new Error(`Unknown payment method: ${paymentMethod}`);
     }
-    
+
     // Validate method is available for region (do not block - allow global availability)
     // User requested: make all payment systems available everywhere. Log if provider missing.
     try {
       const available = getAvailablePaymentMethods(userRegion);
-      const isAvailable = available.find(m => m.id === pmKey);
+      const isAvailable = available.find((m) => m.id === pmKey);
       if (!isAvailable) {
-        const availableMethods = available.map(m => m.name).join(', ');
-        logger.warn(`Requested payment method ${pmKey} not listed for region ${userRegion}; proceeding anyway. Available: ${availableMethods}`);
+        const availableMethods = available.map((m) => m.name).join(", ");
+        logger.warn(
+          `Requested payment method ${pmKey} not listed for region ${userRegion}; proceeding anyway. Available: ${availableMethods}`,
+        );
       }
     } catch (e) {
-      logger.warn('Failed to determine available payment methods, proceeding', e?.message || e);
+      logger.warn(
+        "Failed to determine available payment methods, proceeding",
+        e?.message || e,
+      );
     }
 
     // Use normalized key for subsequent logic
-    paymentMethod = pmKey; 
+    paymentMethod = pmKey;
 
     // Determine price in the currency appropriate for the selected payment method
     const tierPrice = getTierPrice(tier, pmKey);
@@ -308,30 +351,34 @@ export async function createPaymentOrder(redis, userId, tier, paymentMethod, use
       fee: payment.fee,
       totalAmount: payment.total,
       currency: payment.currency,
-      status: 'pending',
+      status: "pending",
       createdAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(), // 15 min expiry
-      region: userRegion
+      region: userRegion,
     };
 
     // If metadata provided, attach
-    if (metadata && typeof metadata === 'object') {
+    if (metadata && typeof metadata === "object") {
       orderData.metadata = metadata;
     }
 
     // For SAFARICOM_TILL, generate a provider reference (so user can include it when paying)
-    if (paymentMethod === 'SAFARICOM_TILL') {
+    if (paymentMethod === "SAFARICOM_TILL") {
       try {
-        const tillInstr = generateSafaricomTillPayment(userId, payment.total, tier);
+        const tillInstr = generateSafaricomTillPayment(
+          userId,
+          payment.total,
+          tier,
+        );
         orderData.providerRef = tillInstr.reference;
         orderData.instructions = tillInstr;
       } catch (e) {
-        logger.warn('Failed to generate till instructions', e);
+        logger.warn("Failed to generate till instructions", e);
       }
     }
 
     // For PayPal, create a server-side order and capture approval URL
-    if (paymentMethod === 'PAYPAL') {
+    if (paymentMethod === "PAYPAL") {
       try {
         const paypalResult = await createPayPalOrder(orderData);
         if (paypalResult && paypalResult.id) {
@@ -339,65 +386,147 @@ export async function createPaymentOrder(redis, userId, tier, paymentMethod, use
           orderData.metadata = orderData.metadata || {};
           orderData.metadata.checkoutUrl = paypalResult.approvalUrl;
           orderData.instructions = {
-            method: 'paypal',
+            method: "paypal",
             checkoutUrl: paypalResult.approvalUrl,
             amount: orderData.totalAmount,
-            description: 'Pay with PayPal'
+            description: "Pay with PayPal",
           };
         }
       } catch (e) {
-        logger.warn('Failed to create PayPal order', e);
+        logger.warn("Failed to create PayPal order", e);
       }
     }
 
     // For Binance, create a provider reference and checkout/qr instructions
-    if (paymentMethod === 'BINANCE') {
+    if (paymentMethod === "BINANCE") {
       try {
-        const binRes = await binanceClient.createBinanceOrder({ orderId, amount: orderData.totalAmount, currency: 'USDT' });
+        const binRes = await binanceClient.createBinanceOrder({
+          orderId,
+          amount: orderData.totalAmount,
+          currency: "USDT",
+        });
         if (binRes && binRes.providerRef) {
           orderData.providerRef = binRes.providerRef;
           orderData.metadata = orderData.metadata || {};
           orderData.metadata.checkoutUrl = binRes.checkoutUrl;
           orderData.instructions = {
-            method: 'binance_pay',
+            method: "binance_pay",
             checkoutUrl: binRes.checkoutUrl,
             qr: binRes.qr,
             amount: orderData.totalAmount,
-            description: 'Pay using Binance Pay and include merchant reference'
+            description: "Pay using Binance Pay and include merchant reference",
           };
         }
       } catch (e) {
-        logger.warn('Failed to create Binance order', e?.message || e);
+        logger.warn("Failed to create Binance order", e?.message || e);
+      }
+    }
+
+    // For NowPayments (crypto deposit), create an invoice and return address/amount
+    if (paymentMethod === "NOWPAYMENTS") {
+      try {
+        const nowSvc = await import("../payments/nowpayments.js");
+        const preferred = (metadata && metadata.crypto) || "BTC";
+        // Create invoice (30 minute expiry)
+        const inv = await nowSvc.default.createInvoice({
+          amount: orderData.totalAmount,
+          currency: orderData.currency || "USD",
+          orderId,
+          userId,
+          crypto: String(preferred).toUpperCase(),
+          expiresMinutes: 30,
+        });
+
+        if (inv && inv.providerRef) {
+          orderData.providerRef = inv.providerRef;
+          orderData.instructions = {
+            method: "nowpayments",
+            amount: inv.amount,
+            crypto: inv.cryptoCurrency,
+            address: inv.address,
+            checkoutUrl: inv.checkoutUrl,
+            expiresAt: inv.expiresAt,
+            description: `Send ${inv.amount} ${inv.cryptoCurrency} to address above. Invoice expires ${inv.expiresAt}`,
+            steps: [
+              `1) Send exactly *${inv.amount} ${inv.cryptoCurrency}* to address:`,
+              `${inv.address}`,
+              `2) Wait for network confirmations.`,
+              `3) Your deposit will be credited automatically on confirmation.`,
+            ],
+          };
+          orderData.metadata = orderData.metadata || {};
+          orderData.metadata.nowpayments = inv.raw || {};
+        }
+      } catch (e) {
+        logger.warn("Failed to create NowPayments invoice", e?.message || e);
       }
     }
 
     // Persist order to Postgres as a pending payment when possible (transitional)
     try {
-      const initDb = (await import('../db/client.js')).default;
-      const dbClient = await initDb();
-      try {
-        const paymentsSvc = await import('../services/payments.js');
-        const payload = Object.assign({}, orderData, { status: 'pending', providerRef: orderData.providerRef });
+      if (process.env.DATABASE_URL && String(process.env.DATABASE_URL).trim() !== "") {
+        const initDb = (await import("../db/client.js")).default;
+        const dbClient = await initDb();
         try {
-          const inserted = await paymentsSvc.createPaymentRecord(dbClient, redis, payload);
-          if (inserted && inserted.id) orderData.dbId = inserted.id;
-        } catch (innerErr) {
-          // Log the full payload (safely) to help diagnose malformed fields
-          let payloadStr = '';
-          try { payloadStr = JSON.stringify(payload); } catch (se) { payloadStr = String(payload); }
-          logger.warn('Failed to persist order to Postgres (pending)', innerErr?.message || String(innerErr), { payload: payloadStr });
+          const paymentsSvc = await import("../services/payments.js");
+          const payload = Object.assign({}, orderData, {
+            status: "pending",
+            providerRef: orderData.providerRef,
+          });
+          try {
+            const inserted = await paymentsSvc.createPaymentRecord(
+              dbClient,
+              redis,
+              payload,
+            );
+            if (inserted && inserted.id) orderData.dbId = inserted.id;
+          } catch (innerErr) {
+            // Log the full payload (safely) to help diagnose malformed fields
+            let payloadStr = "";
+            try {
+              payloadStr = JSON.stringify(payload);
+            } catch (se) {
+              payloadStr = String(payload);
+            }
+            logger.warn(
+              "Failed to persist order to Postgres (pending)",
+              innerErr?.message || String(innerErr),
+              { payload: payloadStr },
+            );
+          }
+        } catch (e) {
+          logger.warn(
+            "Failed to import payments service for Postgres persistence",
+            e?.message || String(e),
+          );
         }
-      } catch (e) {
-        logger.warn('Failed to import payments service for Postgres persistence', e?.message || String(e));
+        try {
+          if (
+            dbClient &&
+            dbClient.pool &&
+            typeof dbClient.pool.end === "function"
+          )
+            await dbClient.pool.end();
+        } catch (e) {
+          void e;
+        }
+      } else {
+        logger.debug("DATABASE_URL not set; skipping Postgres persistence (pending order)");
       }
-      try { if (dbClient && dbClient.pool && typeof dbClient.pool.end === 'function') await dbClient.pool.end(); } catch(e){ void e; }
     } catch (e) {
       // ignore db init failures
-      logger.debug('DB not available for order persistence', e?.message || String(e));
+      logger.debug(
+        "DB not available for order persistence",
+        e?.message || String(e),
+      );
     }
 
     // Store order in Redis (15 min TTL)
-    await redis.setex(`payment:order:${orderId}`, 900, JSON.stringify(orderData));
+    await redis.setex(
+      `payment:order:${orderId}`,
+      900,
+      JSON.stringify(orderData),
+    );
 
     // Create quick lookup mappings
     try {
@@ -406,27 +535,35 @@ export async function createPaymentOrder(redis, userId, tier, paymentMethod, use
 
       // Map by providerRef if present (keep mapping to orderId for existing flows)
       if (orderData.providerRef) {
-        await redis.setex(`payment:by_provider_ref:${paymentMethod}:${orderData.providerRef}`, 900, orderId);
+        await redis.setex(
+          `payment:by_provider_ref:${paymentMethod}:${orderData.providerRef}`,
+          900,
+          orderId,
+        );
         // Also store transitional mapping with DB id when available
         if (orderData.dbId) {
-          await redis.setex(`payment:by_provider_ref:${paymentMethod}:${orderData.providerRef}:meta`, 30 * 24 * 60 * 60, JSON.stringify({ orderId, dbId: orderData.dbId }));
+          await redis.setex(
+            `payment:by_provider_ref:${paymentMethod}:${orderData.providerRef}:meta`,
+            30 * 24 * 60 * 60,
+            JSON.stringify({ orderId, dbId: orderData.dbId }),
+          );
         }
       }
 
       // Map by phone if provided in metadata
       if (metadata && metadata.phone) {
-        const phone = String(metadata.phone).replace(/\s|\+|-/g, '');
+        const phone = String(metadata.phone).replace(/\s|\+|-/g, "");
         await redis.setex(`payment:by_phone:${phone}`, 900, orderId);
       }
     } catch (e) {
-      logger.warn('Failed to write quick lookup mappings for order', e);
+      logger.warn("Failed to write quick lookup mappings for order", e);
     }
 
-    logger.info('Payment order created', { orderId, userId, paymentMethod });
+    logger.info("Payment order created", { orderId, userId, paymentMethod });
 
     return orderData;
   } catch (err) {
-    logger.error('Payment order creation failed', err);
+    logger.error("Payment order creation failed", err);
     throw err;
   }
 }
@@ -434,17 +571,28 @@ export async function createPaymentOrder(redis, userId, tier, paymentMethod, use
 /**
  * Create a custom payment order for arbitrary amounts (used for signup fees)
  */
-export async function createCustomPaymentOrder(redis, userId, amount, paymentMethod, userRegion = 'KE', metadata = {}) {
+export async function createCustomPaymentOrder(
+  redis,
+  userId,
+  amount,
+  paymentMethod,
+  userRegion = "KE",
+  metadata = {},
+) {
   try {
-    if (!paymentMethod || String(paymentMethod).trim() === '') throw new Error('Payment method is required');
+    if (!paymentMethod || String(paymentMethod).trim() === "")
+      throw new Error("Payment method is required");
     const pmKey = normalizePaymentMethod(paymentMethod);
-    if (!pmKey || !PAYMENT_PROVIDERS[pmKey]) throw new Error(`Unknown payment method: ${paymentMethod}`);
+    if (!pmKey || !PAYMENT_PROVIDERS[pmKey])
+      throw new Error(`Unknown payment method: ${paymentMethod}`);
 
     // Validate method availability
     const available = getAvailablePaymentMethods(userRegion);
-    if (!available.find(m => m.id === pmKey)) {
-      const availableNames = available.map(m => m.name).join(', ');
-      throw new Error(`${paymentMethod} is not available in ${userRegion}. Available: ${availableNames}`);
+    if (!available.find((m) => m.id === pmKey)) {
+      const availableNames = available.map((m) => m.name).join(", ");
+      throw new Error(
+        `${paymentMethod} is not available in ${userRegion}. Available: ${availableNames}`,
+      );
     }
 
     // Use normalized key
@@ -459,41 +607,49 @@ export async function createCustomPaymentOrder(redis, userId, amount, paymentMet
     const orderData = {
       orderId,
       userId,
-      tier: 'SIGNUP',
+      tier: "SIGNUP",
       paymentMethod,
       baseAmount: amount,
       fee: payment.fee,
       totalAmount: payment.total,
       currency: payment.currency,
-      status: 'pending',
+      status: "pending",
       createdAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
       region: userRegion,
-      metadata: metadata || {}
+      metadata: metadata || {},
     };
 
     // Provider-specific instructions
-    if (paymentMethod === 'SAFARICOM_TILL') {
+    if (paymentMethod === "SAFARICOM_TILL") {
       try {
-        const tillInstr = generateSafaricomTillPayment(userId, orderData.totalAmount, 'SIGNUP');
+        const tillInstr = generateSafaricomTillPayment(
+          userId,
+          orderData.totalAmount,
+          "SIGNUP",
+        );
         orderData.providerRef = tillInstr.reference;
         orderData.instructions = tillInstr;
       } catch (e) {
-        logger.warn('Failed to generate till instructions', e);
+        logger.warn("Failed to generate till instructions", e);
       }
     }
 
-    if (paymentMethod === 'PAYPAL') {
+    if (paymentMethod === "PAYPAL") {
       try {
         const paypalResult = await createPayPalOrder(orderData);
         if (paypalResult && paypalResult.id) {
           orderData.providerRef = paypalResult.id;
           orderData.metadata = orderData.metadata || {};
           orderData.metadata.checkoutUrl = paypalResult.approvalUrl;
-          orderData.instructions = { method: 'paypal', checkoutUrl: paypalResult.approvalUrl, amount: orderData.totalAmount };
+          orderData.instructions = {
+            method: "paypal",
+            checkoutUrl: paypalResult.approvalUrl,
+            amount: orderData.totalAmount,
+          };
         }
       } catch (e) {
-        logger.warn('Failed to create PayPal order', e.message);
+        logger.warn("Failed to create PayPal order", e.message);
       }
     }
 
@@ -501,38 +657,91 @@ export async function createCustomPaymentOrder(redis, userId, amount, paymentMet
 
     // Persist order to Postgres as pending if available
     try {
-      const initDb = (await import('../db/client.js')).default;
-      const dbClient = await initDb();
-      try {
-        const paymentsSvc = await import('../services/payments.js');
-        const payload = Object.assign({}, orderData, { status: 'pending' });
+      if (process.env.DATABASE_URL && String(process.env.DATABASE_URL).trim() !== "") {
+        const initDb = (await import("../db/client.js")).default;
+        const dbClient = await initDb();
         try {
-          const inserted = await paymentsSvc.createPaymentRecord(dbClient, redis, payload);
-          if (inserted && inserted.id) orderData.dbId = inserted.id;
-        } catch (innerErr) {
-          let payloadStr = '';
-          try { payloadStr = JSON.stringify(payload); } catch (se) { payloadStr = String(payload); }
-          logger.warn('Failed to persist custom order to Postgres (pending)', innerErr?.message || String(innerErr), { payload: payloadStr });
+          const paymentsSvc = await import("../services/payments.js");
+          const payload = Object.assign({}, orderData, { status: "pending" });
+          try {
+            const inserted = await paymentsSvc.createPaymentRecord(
+              dbClient,
+              redis,
+              payload,
+            );
+            if (inserted && inserted.id) orderData.dbId = inserted.id;
+          } catch (innerErr) {
+            let payloadStr = "";
+            try {
+              payloadStr = JSON.stringify(payload);
+            } catch (se) {
+              payloadStr = String(payload);
+            }
+            logger.warn(
+              "Failed to persist custom order to Postgres (pending)",
+              innerErr?.message || String(innerErr),
+              { payload: payloadStr },
+            );
+          }
+        } catch (e) {
+          logger.warn(
+            "Failed to import payments service for custom order persistence",
+            e?.message || String(e),
+          );
         }
-      } catch (e) { logger.warn('Failed to import payments service for custom order persistence', e?.message || String(e)); }
-      try { if (dbClient && dbClient.pool && typeof dbClient.pool.end === 'function') await dbClient.pool.end(); } catch(e){ void e; }
+        try {
+          if (
+            dbClient &&
+            dbClient.pool &&
+            typeof dbClient.pool.end === "function"
+          )
+            await dbClient.pool.end();
+        } catch (e) {
+          void e;
+        }
+      } else {
+        logger.debug("DATABASE_URL not set; skipping Postgres persistence (custom order)");
+      }
     } catch (e) {
-      logger.debug('DB not available for custom order persistence', e?.message || String(e));
+      logger.debug(
+        "DB not available for custom order persistence",
+        e?.message || String(e),
+      );
     }
 
-    await redis.setex(`payment:order:${orderId}`, 900, JSON.stringify(orderData));
+    await redis.setex(
+      `payment:order:${orderId}`,
+      900,
+      JSON.stringify(orderData),
+    );
     try {
       await redis.setex(`payment:by_user:${userId}:pending`, 900, orderId);
       if (orderData.providerRef) {
-        await redis.setex(`payment:by_provider_ref:${paymentMethod}:${orderData.providerRef}`, 900, orderId);
-        if (orderData.dbId) await redis.setex(`payment:by_provider_ref:${paymentMethod}:${orderData.providerRef}:meta`, 30 * 24 * 60 * 60, JSON.stringify({ orderId, dbId: orderData.dbId }));
+        await redis.setex(
+          `payment:by_provider_ref:${paymentMethod}:${orderData.providerRef}`,
+          900,
+          orderId,
+        );
+        if (orderData.dbId)
+          await redis.setex(
+            `payment:by_provider_ref:${paymentMethod}:${orderData.providerRef}:meta`,
+            30 * 24 * 60 * 60,
+            JSON.stringify({ orderId, dbId: orderData.dbId }),
+          );
       }
-    } catch (e) { logger.warn('Failed to write quick lookup for custom order', e); }
+    } catch (e) {
+      logger.warn("Failed to write quick lookup for custom order", e);
+    }
 
-    logger.info('Custom payment order created', { orderId, userId, paymentMethod, amount });
+    logger.info("Custom payment order created", {
+      orderId,
+      userId,
+      paymentMethod,
+      amount,
+    });
     return orderData;
   } catch (err) {
-    logger.error('createCustomPaymentOrder failed', err);
+    logger.error("createCustomPaymentOrder failed", err);
     throw err;
   }
 }
@@ -543,7 +752,7 @@ export async function createCustomPaymentOrder(redis, userId, amount, paymentMet
 export async function getPaymentInstructions(redis, orderId, paymentMethod) {
   try {
     const order = await redis.get(`payment:order:${orderId}`);
-    if (!order) throw new Error('Order not found');
+    if (!order) throw new Error("Order not found");
 
     const orderData = JSON.parse(order);
     const { totalAmount, tier, userId } = orderData;
@@ -556,16 +765,33 @@ export async function getPaymentInstructions(redis, orderId, paymentMethod) {
     const instructions = {
       MPESA: generateMPesaInstructions(orderId, totalAmount),
       SAFARICOM_TILL: generateSafaricomTillPayment(userId, totalAmount, tier),
-      PAYPAL: (orderData.metadata && orderData.metadata.checkoutUrl) ? { method: 'paypal', amount: totalAmount, orderId, checkoutUrl: orderData.metadata.checkoutUrl, description: 'Click to open PayPal', steps: ['Click the PayPal link to complete payment'] } : generatePayPalInstructions(orderId, totalAmount, orderData.providerRef),
+      PAYPAL:
+        orderData.metadata && orderData.metadata.checkoutUrl
+          ? {
+              method: "paypal",
+              amount: totalAmount,
+              orderId,
+              checkoutUrl: orderData.metadata.checkoutUrl,
+              description: "Click to open PayPal",
+              steps: ["Click the PayPal link to complete payment"],
+            }
+          : generatePayPalInstructions(
+              orderId,
+              totalAmount,
+              orderData.providerRef,
+            ),
       BINANCE: generateBinanceInstructions(orderId, totalAmount),
+      NOWPAYMENTS:
+        orderData.instructions ||
+        generateBitcoinInstructions(orderId, totalAmount),
       SWIFT: generateSwiftInstructions(orderId, totalAmount),
-      BITCOIN: generateBitcoinInstructions(orderId, totalAmount)
+      BITCOIN: generateBitcoinInstructions(orderId, totalAmount),
     };
 
     const pmKey = normalizePaymentMethod(paymentMethod) || paymentMethod;
     return instructions[pmKey] || null;
   } catch (err) {
-    logger.error('Failed to get payment instructions', err);
+    logger.error("Failed to get payment instructions", err);
     throw err;
   }
 }
@@ -576,15 +802,16 @@ export async function getPaymentInstructions(redis, orderId, paymentMethod) {
 function paypalClient() {
   const clientId = process.env.PAYPAL_CLIENT_ID;
   const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
-  const mode = (process.env.PAYPAL_MODE || 'sandbox').toLowerCase();
+  const mode = (process.env.PAYPAL_MODE || "sandbox").toLowerCase();
 
   if (!clientId || !clientSecret) {
-    throw new Error('PayPal credentials not configured');
+    throw new Error("PayPal credentials not configured");
   }
 
-  const env = mode === 'live'
-    ? new paypal.core.LiveEnvironment(clientId, clientSecret)
-    : new paypal.core.SandboxEnvironment(clientId, clientSecret);
+  const env =
+    mode === "live"
+      ? new paypal.core.LiveEnvironment(clientId, clientSecret)
+      : new paypal.core.SandboxEnvironment(clientId, clientSecret);
 
   return new paypal.core.PayPalHttpClient(env);
 }
@@ -596,55 +823,76 @@ async function createPayPalOrder(orderData) {
       client = paypalClient();
     } catch (credErr) {
       // If PayPal credentials are missing and we're in demo mode, return a mock approval URL
-      if (process.env.ENABLE_DEMO === '1' || process.env.MOCK_PAYMENTS === '1') {
+      if (
+        process.env.ENABLE_DEMO === "1" ||
+        process.env.MOCK_PAYMENTS === "1"
+      ) {
         const mockId = `MOCKPAY-${Date.now()}`;
-        return { id: mockId, approvalUrl: `${process.env.PUBLIC_URL || 'https://betrix.app'}/mock-pay/${mockId}` };
+        return {
+          id: mockId,
+          approvalUrl: `${process.env.PUBLIC_URL || "https://betrix.app"}/mock-pay/${mockId}`,
+        };
       }
       throw credErr;
     }
-    
+
     // Check if paypal.orders exists (from SDK), otherwise use fallback
     if (!paypal || !paypal.orders || !paypal.orders.OrdersCreateRequest) {
-      logger.warn('PayPal SDK structure unexpected, returning mock order', { paypalStructure: Object.keys(paypal || {}) });
+      logger.warn("PayPal SDK structure unexpected, returning mock order", {
+        paypalStructure: Object.keys(paypal || {}),
+      });
       const mockId = `MOCKPAY-${Date.now()}`;
-      return { id: mockId, approvalUrl: `${process.env.PUBLIC_URL || 'https://betrix.app'}/mock-pay/${mockId}` };
+      return {
+        id: mockId,
+        approvalUrl: `${process.env.PUBLIC_URL || "https://betrix.app"}/mock-pay/${mockId}`,
+      };
     }
-    
+
     const request = new paypal.orders.OrdersCreateRequest();
-    request.prefer('return=representation');
+    request.prefer("return=representation");
 
     // Use currency from orderData or default to USD
-    const currency = orderData.currency || 'USD';
+    const currency = orderData.currency || "USD";
     const value = String(Number(orderData.totalAmount).toFixed(2));
 
     request.requestBody({
-      intent: 'CAPTURE',
+      intent: "CAPTURE",
       purchase_units: [
         {
           reference_id: orderData.orderId,
           amount: {
             currency_code: currency,
-            value: value
+            value: value,
           },
-          description: `BETRIX ${orderData.tier} subscription`
-        }
+          description: `BETRIX ${orderData.tier} subscription`,
+        },
       ],
       application_context: {
-        brand_name: 'BETRIX',
-        return_url: process.env.PAYPAL_RETURN_URL || `${process.env.PUBLIC_URL || 'https://betrix.app'}/pay/complete`,
-        cancel_url: process.env.PAYPAL_CANCEL_URL || `${process.env.PUBLIC_URL || 'https://betrix.app'}/pay/cancel`
-      }
+        brand_name: "BETRIX",
+        return_url:
+          process.env.PAYPAL_RETURN_URL ||
+          `${process.env.PUBLIC_URL || "https://betrix.app"}/pay/complete`,
+        cancel_url:
+          process.env.PAYPAL_CANCEL_URL ||
+          `${process.env.PUBLIC_URL || "https://betrix.app"}/pay/cancel`,
+      },
     });
 
     const response = await client.execute(request);
     const result = response.result || {};
-    const approveLink = (result.links || []).find(l => l.rel === 'approve');
-    return { id: result.id, approvalUrl: approveLink ? approveLink.href : null };
+    const approveLink = (result.links || []).find((l) => l.rel === "approve");
+    return {
+      id: result.id,
+      approvalUrl: approveLink ? approveLink.href : null,
+    };
   } catch (err) {
-    logger.error('createPayPalOrder failed', err);
+    logger.error("createPayPalOrder failed", err);
     // Return mock order on PayPal SDK error to prevent complete payment flow failure
     const mockId = `MOCKPAY-${Date.now()}`;
-    return { id: mockId, approvalUrl: `${process.env.PUBLIC_URL || 'https://betrix.app'}/mock-pay/${mockId}` };
+    return {
+      id: mockId,
+      approvalUrl: `${process.env.PUBLIC_URL || "https://betrix.app"}/mock-pay/${mockId}`,
+    };
   }
 }
 
@@ -653,11 +901,11 @@ async function createPayPalOrder(orderData) {
  */
 function generateMPesaInstructions(orderId, amount) {
   return {
-    method: 'mpesa_stk',
+    method: "mpesa_stk",
     amount,
-    currency: 'KES',
+    currency: "KES",
     orderId,
-    description: '📱 M-Pesa Payment - STK Push',
+    description: "📱 M-Pesa Payment - STK Push",
     manualSteps: [
       `📱 *M-PESA PAYMENT INSTRUCTIONS*`,
       ``,
@@ -682,8 +930,8 @@ function generateMPesaInstructions(orderId, amount) {
       `• Paste it back in this chat for instant activation`,
       `• OR click "Verify Payment" button below`,
       ``,
-      `⏰ *Payment expires in 15 minutes*`
-    ]
+      `⏰ *Payment expires in 15 minutes*`,
+    ],
   };
 }
 
@@ -693,19 +941,19 @@ function generateMPesaInstructions(orderId, amount) {
 function generatePayPalInstructions(orderId, amount, providerRef) {
   const token = providerRef || orderId;
   const paypalUrl = `https://www.paypal.com/checkoutnow?token=${token}`;
-  
+
   return {
-    method: 'paypal',
+    method: "paypal",
     amount,
     orderId,
     checkoutUrl: paypalUrl,
-    description: 'Click button below to open PayPal',
+    description: "Click button below to open PayPal",
     steps: [
       'Click "Pay with PayPal" button',
-      'Log in to your PayPal account',
-      'Review payment and confirm',
-      'Return to BETRIX to activate subscription'
-    ]
+      "Log in to your PayPal account",
+      "Review payment and confirm",
+      "Return to BETRIX to activate subscription",
+    ],
   };
 }
 
@@ -714,16 +962,16 @@ function generatePayPalInstructions(orderId, amount, providerRef) {
  */
 function generateBinanceInstructions(orderId, amount) {
   return {
-    method: 'binance_pay',
+    method: "binance_pay",
     amount,
     orderId,
-    description: 'Send payment to Binance Pay',
+    description: "Send payment to Binance Pay",
     steps: [
-      'Open Binance Pay app',
+      "Open Binance Pay app",
       `Search for merchant: ${orderId}`,
       `Send ${amount} USDT or equivalent`,
-      'Wait for payment confirmation (instant)'
-    ]
+      "Wait for payment confirmation (instant)",
+    ],
   };
 }
 
@@ -732,25 +980,25 @@ function generateBinanceInstructions(orderId, amount) {
  */
 function generateSwiftInstructions(orderId, amount) {
   return {
-    method: 'swift',
+    method: "swift",
     amount,
     orderId,
     bankDetails: {
-      accountName: 'BETRIX Limited',
-      bankName: 'Bank of East Africa',
-      accountNumber: 'BETRIX2025',
-      swiftCode: 'BEAKEZKX',
-      iban: 'KE93BEAK0000123456789'
+      accountName: "BETRIX Limited",
+      bankName: "Bank of East Africa",
+      accountNumber: "BETRIX2025",
+      swiftCode: "BEAKEZKX",
+      iban: "KE93BEAK0000123456789",
     },
-    description: 'Make a bank transfer with reference below',
+    description: "Make a bank transfer with reference below",
     reference: orderId,
     steps: [
-      'Log in to your bank',
+      "Log in to your bank",
       'Select "International Transfer"',
-      'Use details above',
-      'Reference: ' + orderId,
-      'Send and wait for 2-3 business days'
-    ]
+      "Use details above",
+      "Reference: " + orderId,
+      "Send and wait for 2-3 business days",
+    ],
   };
 }
 
@@ -760,19 +1008,19 @@ function generateSwiftInstructions(orderId, amount) {
 function generateBitcoinInstructions(orderId, amount) {
   // In production, this would generate a unique Bitcoin address
   const btcAmount = (amount / 60000).toFixed(6); // Mock conversion
-  
+
   return {
-    method: 'bitcoin',
+    method: "bitcoin",
     amount: btcAmount,
     orderId,
-    network: 'Bitcoin',
-    description: 'Send Bitcoin to address below',
+    network: "Bitcoin",
+    description: "Send Bitcoin to address below",
     steps: [
       `Send exactly ${btcAmount} BTC to address:`,
-      '1A7g6UTh2x3KxxxFffX7LxxxXxxxxxXxxx',
-      'Wait for 1-3 confirmations (10-30 minutes)',
-      'Your subscription will activate automatically'
-    ]
+      "1A7g6UTh2x3KxxxFffX7LxxxXxxxxxXxxx",
+      "Wait for 1-3 confirmations (10-30 minutes)",
+      "Your subscription will activate automatically",
+    ],
   };
 }
 
@@ -782,97 +1030,186 @@ function generateBitcoinInstructions(orderId, amount) {
 export async function verifyAndActivatePayment(redis, orderId, transactionId) {
   try {
     const order = await redis.get(`payment:order:${orderId}`);
-    if (!order) throw new Error('Order not found');
+    if (!order) throw new Error("Order not found");
 
     const orderData = JSON.parse(order);
     const { userId, tier, status } = orderData;
 
-    if (status !== 'pending') {
-      throw new Error('Order already processed');
+    if (status !== "pending") {
+      throw new Error("Order already processed");
     }
 
     // Update order status
-    orderData.status = 'completed';
+    orderData.status = "completed";
     orderData.transactionId = transactionId;
     orderData.completedAt = new Date().toISOString();
 
     // Activate user subscription
-    if (tier === 'SIGNUP') {
+    if (tier === "SIGNUP") {
       // One-time signup fee: grant analysis access without changing main tier
-      await redis.hset(`user:${userId}`, 'signupPaid', '1');
-      await redis.hset(`user:${userId}`, 'analysisAccessUntil', new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString());
-      // Do not overwrite existing tier; keep user's tier (default FREE)
-    } else {
-      await redis.hset(`user:${userId}`, 'tier', tier);
+      await redis.hset(`user:${userId}`, "signupPaid", "1");
       await redis.hset(
         `user:${userId}`,
-        'subscriptionExpiry',
-        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        "analysisAccessUntil",
+        new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      );
+      // Do not overwrite existing tier; keep user's tier (default FREE)
+    } else {
+      await redis.hset(`user:${userId}`, "tier", tier);
+      await redis.hset(
+        `user:${userId}`,
+        "subscriptionExpiry",
+        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       );
     }
 
     // Store transaction
-    try { await redis.setex(`transaction:${transactionId}`, 30 * 24 * 60 * 60, JSON.stringify(orderData)); } catch(e) { logger.warn('redis.setex transaction failed', e?.message || String(e)); }
+    try {
+      await redis.setex(
+        `transaction:${transactionId}`,
+        30 * 24 * 60 * 60,
+        JSON.stringify(orderData),
+      );
+    } catch (e) {
+      logger.warn("redis.setex transaction failed", e?.message || String(e));
+    }
 
     // Store order completion
-    try { await redis.setex(`payment:order:${orderId}`, 86400, JSON.stringify(orderData)); } catch(e) { logger.warn('redis.setex payment:order failed', e?.message || String(e)); }
+    try {
+      await redis.setex(
+        `payment:order:${orderId}`,
+        86400,
+        JSON.stringify(orderData),
+      );
+    } catch (e) {
+      logger.warn("redis.setex payment:order failed", e?.message || String(e));
+    }
 
     // Persist to Postgres (drizzle/pg) if available and create transitional mappings
     try {
-      const initDb = (await import('../db/client.js')).default;
-      const dbClient = await initDb();
-      try {
-        const paymentsSvc = await import('../services/payments.js');
+      // Only attempt DB initialization if a DATABASE_URL is configured
+      if (process.env.DATABASE_URL && String(process.env.DATABASE_URL).trim() !== "") {
+        const initDb = (await import("../db/client.js")).default;
+        const dbClient = await initDb();
+        try {
+        const paymentsSvc = await import("../services/payments.js");
         // If order was previously inserted (dbId present), update it; otherwise create or insert completed record
         if (orderData.dbId) {
           try {
-            await paymentsSvc.updatePaymentRecord(dbClient, { id: orderData.dbId }, { status: 'completed', transaction_id: transactionId, metadata: orderData.metadata || {} });
+            await paymentsSvc.updatePaymentRecord(
+              dbClient,
+              { id: orderData.dbId },
+              {
+                status: "completed",
+                transaction_id: transactionId,
+                metadata: orderData.metadata || {},
+              },
+            );
           } catch (e) {
             // fallback to inserting a completed record
-            const payload = Object.assign({}, orderData, { transactionId, status: 'completed' });
+            const payload = Object.assign({}, orderData, {
+              transactionId,
+              status: "completed",
+            });
             try {
               await paymentsSvc.createPaymentRecord(dbClient, redis, payload);
             } catch (innerErr) {
-              let payloadStr = '';
-              try { payloadStr = JSON.stringify(payload); } catch (se) { payloadStr = String(payload); }
-              logger.warn('Failed to create completed payment record as fallback', innerErr?.message || String(innerErr), { payload: payloadStr });
+              let payloadStr = "";
+              try {
+                payloadStr = JSON.stringify(payload);
+              } catch (se) {
+                payloadStr = String(payload);
+              }
+              logger.warn(
+                "Failed to create completed payment record as fallback",
+                innerErr?.message || String(innerErr),
+                { payload: payloadStr },
+              );
             }
           }
         } else if (orderData.providerRef) {
           // try to update by provider_ref
           try {
-            await paymentsSvc.updatePaymentRecord(dbClient, { provider: orderData.paymentMethod || orderData.provider || null, provider_ref: orderData.providerRef }, { status: 'completed', transaction_id: transactionId, metadata: orderData.metadata || {} });
+            await paymentsSvc.updatePaymentRecord(
+              dbClient,
+              {
+                provider: orderData.paymentMethod || orderData.provider || null,
+                provider_ref: orderData.providerRef,
+              },
+              {
+                status: "completed",
+                transaction_id: transactionId,
+                metadata: orderData.metadata || {},
+              },
+            );
           } catch (e) {
-            const payload = Object.assign({}, orderData, { transactionId, status: 'completed' });
+            const payload = Object.assign({}, orderData, {
+              transactionId,
+              status: "completed",
+            });
             try {
               await paymentsSvc.createPaymentRecord(dbClient, redis, payload);
             } catch (innerErr) {
-              let payloadStr = '';
-              try { payloadStr = JSON.stringify(payload); } catch (se) { payloadStr = String(payload); }
-              logger.warn('Failed to create completed payment record (provider_ref path)', innerErr?.message || String(innerErr), { payload: payloadStr });
+              let payloadStr = "";
+              try {
+                payloadStr = JSON.stringify(payload);
+              } catch (se) {
+                payloadStr = String(payload);
+              }
+              logger.warn(
+                "Failed to create completed payment record (provider_ref path)",
+                innerErr?.message || String(innerErr),
+                { payload: payloadStr },
+              );
             }
           }
         } else {
-          await paymentsSvc.createPaymentRecord(dbClient, redis, Object.assign({}, orderData, { transactionId, status: 'completed' }));
+          await paymentsSvc.createPaymentRecord(
+            dbClient,
+            redis,
+            Object.assign({}, orderData, {
+              transactionId,
+              status: "completed",
+            }),
+          );
         }
-      } catch (e) {
-        logger.warn('Failed to persist payment to Postgres', e?.message || String(e));
+        } catch (e) {
+          logger.warn(
+            "Failed to persist payment to Postgres",
+            e?.message || String(e),
+            { error: String(e), stack: e?.stack },
+          );
+        }
+        // close pool if provided
+        try {
+          if (
+            dbClient &&
+            dbClient.pool &&
+            typeof dbClient.pool.end === "function"
+          )
+            await dbClient.pool.end();
+        } catch (e) {
+          void e;
+        }
+      } else {
+        logger.debug("DATABASE_URL not set; skipping Postgres persistence");
       }
-      // close pool if provided
-      try { if (dbClient && dbClient.pool && typeof dbClient.pool.end === 'function') await dbClient.pool.end(); } catch(e){ void e; }
     } catch (e) {
-      logger.debug('DB client not initialized; skipping payment persistence', e?.message || String(e));
+      logger.debug(
+        "DB client not initialized; skipping payment persistence",
+        e?.message || String(e),
+      );
     }
 
-    logger.info('Payment verified and activated', { orderId, userId, tier });
+    logger.info("Payment verified and activated", { orderId, userId, tier });
 
     return {
       success: true,
       tier,
-      message: `🎉 Welcome to BETRIX ${tier}! Your subscription is now active.`
+      message: `🎉 Welcome to BETRIX ${tier}! Your subscription is now active.`,
     };
   } catch (err) {
-    logger.error('Payment verification failed', err);
+    logger.error("Payment verification failed", err);
     throw err;
   }
 }
@@ -889,7 +1226,7 @@ export async function simulatePaymentComplete(redis, orderId) {
 /**
  * Get tier pricing
  */
-function getTierPrice(tier, paymentMethod = 'PAYPAL') {
+function getTierPrice(tier, paymentMethod = "PAYPAL") {
   // Prices defined with KES and USD values
   const prices = {
     SIGNUP: { KES: 150, USD: 1 },
@@ -898,16 +1235,16 @@ function getTierPrice(tier, paymentMethod = 'PAYPAL') {
     PLUS: { KES: 8999, USD: 99.99 },
     FIXED_BRONZE: { KES: 499, USD: 4.99 },
     FIXED_SILVER: { KES: 1299, USD: 12.99 },
-    FIXED_GOLD: { KES: 4499, USD: 44.99 }
+    FIXED_GOLD: { KES: 4499, USD: 44.99 },
   };
 
   const tierObj = prices[tier];
   if (!tierObj) return 0;
 
   const provider = PAYMENT_PROVIDERS[paymentMethod];
-  const currency = provider ? provider.currencies[0] : 'USD';
+  const currency = provider ? provider.currencies[0] : "USD";
 
-  if (currency === 'KES' || currency === 'KSH') return tierObj.KES;
+  if (currency === "KES" || currency === "KSH") return tierObj.KES;
   return tierObj.USD;
 }
 
@@ -918,13 +1255,55 @@ export { getTierPrice };
  */
 export function getAvailablePackages() {
   return {
-    SIGNUP: { id: 'SIGNUP', name: 'Signup Fee (One-time)', description: 'Activate analyze & core features', price: { KES: 150, USD: 1 }, currency: 'KES' },
-    PRO: { id: 'PRO', name: 'Pro Monthly', description: 'Enhanced analytics', price: { KES: 899, USD: 8.99 }, currency: 'KES' },
-    VVIP: { id: 'VVIP', name: 'VVIP Monthly', description: 'Unlimited AI analysis & alerts', price: { KES: 2699, USD: 29.99 }, currency: 'KES' },
-    PLUS: { id: 'PLUS', name: 'BETRIX Plus', description: 'Enterprise bundle', price: { KES: 8999, USD: 99.99 }, currency: 'KES' },
-    FIXED_BRONZE: { id: 'FIXED_BRONZE', name: 'Fixed Bronze', description: '5 fixed-odds tips / month', price: { KES: 499, USD: 4.99 }, currency: 'KES' },
-    FIXED_SILVER: { id: 'FIXED_SILVER', name: 'Fixed Silver', description: '15 fixed-odds tips / month', price: { KES: 1299, USD: 12.99 }, currency: 'KES' },
-    FIXED_GOLD: { id: 'FIXED_GOLD', name: 'Fixed Gold', description: '50 fixed-odds tips / month', price: { KES: 4499, USD: 44.99 }, currency: 'KES' }
+    SIGNUP: {
+      id: "SIGNUP",
+      name: "Signup Fee (One-time)",
+      description: "Activate analyze & core features",
+      price: { KES: 150, USD: 1 },
+      currency: "KES",
+    },
+    PRO: {
+      id: "PRO",
+      name: "Pro Monthly",
+      description: "Enhanced analytics",
+      price: { KES: 899, USD: 8.99 },
+      currency: "KES",
+    },
+    VVIP: {
+      id: "VVIP",
+      name: "VVIP Monthly",
+      description: "Unlimited AI analysis & alerts",
+      price: { KES: 2699, USD: 29.99 },
+      currency: "KES",
+    },
+    PLUS: {
+      id: "PLUS",
+      name: "BETRIX Plus",
+      description: "Enterprise bundle",
+      price: { KES: 8999, USD: 99.99 },
+      currency: "KES",
+    },
+    FIXED_BRONZE: {
+      id: "FIXED_BRONZE",
+      name: "Fixed Bronze",
+      description: "5 fixed-odds tips / month",
+      price: { KES: 499, USD: 4.99 },
+      currency: "KES",
+    },
+    FIXED_SILVER: {
+      id: "FIXED_SILVER",
+      name: "Fixed Silver",
+      description: "15 fixed-odds tips / month",
+      price: { KES: 1299, USD: 12.99 },
+      currency: "KES",
+    },
+    FIXED_GOLD: {
+      id: "FIXED_GOLD",
+      name: "Fixed Gold",
+      description: "50 fixed-odds tips / month",
+      price: { KES: 4499, USD: 44.99 },
+      currency: "KES",
+    },
   };
 }
 
@@ -933,20 +1312,24 @@ export function getAvailablePackages() {
  * Supports common M-Pesa / Till / PayPal plaintext confirmations
  */
 export function parseTransactionMessage(text) {
-  if (!text || typeof text !== 'string') return {};
+  if (!text || typeof text !== "string") return {};
 
-  const normalized = text.replace(/[\n\r]/g, ' ').trim();
+  const normalized = text.replace(/[\n\r]/g, " ").trim();
 
   // Try to extract amount
-  const amountMatch = normalized.match(/(?:Ksh|KES|KES\.|KES|USD|\$|\b)(\s?\d{1,3}(?:[.,]\d{1,2})?)/i);
+  const amountMatch = normalized.match(
+    /(?:Ksh|KES|KES\.|KES|USD|\$|\b)(\s?\d{1,3}(?:[.,]\d{1,2})?)/i,
+  );
   let amount = null;
   if (amountMatch) {
-    const num = amountMatch[1].replace(/[,]/g, '.').replace(/\s/g, '');
+    const num = amountMatch[1].replace(/[,]/g, ".").replace(/\s/g, "");
     amount = parseFloat(num);
   }
 
   // Try to find reference tokens e.g., Ref, Reference, Till
-  const refMatch = normalized.match(/(?:Ref(?:erence)?|Reference|Till|Trx|Transaction|Receipt)[:\s]*([A-Z0-9-]{3,32})/i);
+  const refMatch = normalized.match(
+    /(?:Ref(?:erence)?|Reference|Till|Trx|Transaction|Receipt)[:\s]*([A-Z0-9-]{3,32})/i,
+  );
   const reference = refMatch ? refMatch[1] : null;
 
   // Try to find phone number
@@ -975,7 +1358,9 @@ export async function verifyPaymentFromMessage(redis, userId, text) {
   if (reference) {
     for (const key of Object.keys(PAYMENT_PROVIDERS)) {
       try {
-        const oid = await redis.get(`payment:by_provider_ref:${key}:${reference}`);
+        const oid = await redis.get(
+          `payment:by_provider_ref:${key}:${reference}`,
+        );
         if (oid) {
           // Use reference as transactionId if none
           const tx = transactionId || reference;
@@ -989,10 +1374,10 @@ export async function verifyPaymentFromMessage(redis, userId, text) {
 
   // 2) Phone lookup
   if (phone) {
-    const phoneNorm = String(phone).replace(/\+|\s|-/g, '');
+    const phoneNorm = String(phone).replace(/\+|\s|-/g, "");
     const oid = await redis.get(`payment:by_phone:${phoneNorm}`);
     if (oid) {
-      const tx = transactionId || (`PHONE-${Date.now()}`);
+      const tx = transactionId || `PHONE-${Date.now()}`;
       return await verifyAndActivatePayment(redis, oid, tx);
     }
   }
@@ -1005,13 +1390,15 @@ export async function verifyPaymentFromMessage(redis, userId, text) {
       const order = JSON.parse(orderRaw);
       // Compare amounts (allow small rounding differences)
       if (amount && Math.abs(Number(order.totalAmount) - Number(amount)) <= 1) {
-        const tx = transactionId || (`MSG-${Date.now()}`);
+        const tx = transactionId || `MSG-${Date.now()}`;
         return await verifyAndActivatePayment(redis, pending, tx);
       }
     }
   }
 
-  throw new Error('Could not match the pasted transaction to any pending order. Please ensure your payment included the reference or pay the exact amount shown in the payment instructions.');
+  throw new Error(
+    "Could not match the pasted transaction to any pending order. Please ensure your payment included the reference or pay the exact amount shown in the payment instructions.",
+  );
 }
 
 export default {
@@ -1026,5 +1413,5 @@ export default {
   verifyAndActivatePayment,
   getTierPrice,
   parseTransactionMessage,
-  verifyPaymentFromMessage
+  verifyPaymentFromMessage,
 };

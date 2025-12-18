@@ -7,22 +7,86 @@ import { Logger } from "../utils/logger.js";
 
 const logger = new Logger("GlobalService");
 
-const Cvoid logger;
-
 const COUNTRIES = {
-  KE: { name: "Kenya", flag: "🇰🇪", language: "sw", currency: "KES", phone: "+254" },
-  NG: { name: "Nigeria", flag: "🇳🇬", language: "en", currency: "NGN", phone: "+234" },
-  ZA: { name: "South Africa", flag: "🇿🇦", language: "en", currency: "ZAR", phone: "+27" },
-  TZ: { name: "Tanzania", flag: "🇹🇿", language: "sw", currency: "TZS", phone: "+255" },
-  UG: { name: "Uganda", flag: "🇺🇬", language: "en", currency: "UGX", phone: "+256" },
-  GH: { name: "Ghana", flag: "🇬🇭", language: "en", currency: "GHS", phone: "+233" },
-  ZM: { name: "Zambia", flag: "🇿🇲", language: "en", currency: "ZMW", phone: "+260" },
-  BW: { name: "Botswana", flag: "🇧🇼", language: "en", currency: "BWP", phone: "+267" },
+  KE: {
+    name: "Kenya",
+    flag: "🇰🇪",
+    language: "sw",
+    currency: "KES",
+    phone: "+254",
+  },
+  NG: {
+    name: "Nigeria",
+    flag: "🇳🇬",
+    language: "en",
+    currency: "NGN",
+    phone: "+234",
+  },
+  ZA: {
+    name: "South Africa",
+    flag: "🇿🇦",
+    language: "en",
+    currency: "ZAR",
+    phone: "+27",
+  },
+  TZ: {
+    name: "Tanzania",
+    flag: "🇹🇿",
+    language: "sw",
+    currency: "TZS",
+    phone: "+255",
+  },
+  UG: {
+    name: "Uganda",
+    flag: "🇺🇬",
+    language: "en",
+    currency: "UGX",
+    phone: "+256",
+  },
+  GH: {
+    name: "Ghana",
+    flag: "🇬🇭",
+    language: "en",
+    currency: "GHS",
+    phone: "+233",
+  },
+  ZM: {
+    name: "Zambia",
+    flag: "🇿🇲",
+    language: "en",
+    currency: "ZMW",
+    phone: "+260",
+  },
+  BW: {
+    name: "Botswana",
+    flag: "🇧🇼",
+    language: "en",
+    currency: "BWP",
+    phone: "+267",
+  },
   US: { name: "USA", flag: "🇺🇸", language: "en", currency: "USD", phone: "+1" },
   GB: { name: "UK", flag: "🇬🇧", language: "en", currency: "GBP", phone: "+44" },
-  FR: { name: "France", flag: "🇫🇷", language: "fr", currency: "EUR", phone: "+33" },
-  CA: { name: "Canada", flag: "🇨🇦", language: "en", currency: "CAD", phone: "+1" },
-  AU: { name: "Australia", flag: "🇦🇺", language: "en", currency: "AUD", phone: "+61" },
+  FR: {
+    name: "France",
+    flag: "🇫🇷",
+    language: "fr",
+    currency: "EUR",
+    phone: "+33",
+  },
+  CA: {
+    name: "Canada",
+    flag: "🇨🇦",
+    language: "en",
+    currency: "CAD",
+    phone: "+1",
+  },
+  AU: {
+    name: "Australia",
+    flag: "🇦🇺",
+    language: "en",
+    currency: "AUD",
+    phone: "+61",
+  },
 };
 
 const PAYMENT_METHODS = {
@@ -188,11 +252,14 @@ class GlobalService {
       sw: { flag: "🇰🇪", label: "Swahili" },
       fr: { flag: "🇫🇷", label: "Français" },
     };
-
-    void _languages;
-  [
-          { text: "🇫🇷 Français", callback_data: "lang:fr" },
+    // Build simple language selector keyboard
+    return {
+      inline_keyboard: [
+        [
+          { text: "🇬🇧 English", callback_data: "lang:en" },
+          { text: "🇰🇪 Swahili", callback_data: "lang:sw" },
         ],
+        [{ text: "🇫🇷 Français", callback_data: "lang:fr" }],
       ],
     };
   }

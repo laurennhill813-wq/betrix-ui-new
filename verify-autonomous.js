@@ -2,7 +2,7 @@
  * Verify BETRIX Autonomous Operation
  */
 
-impo// Logger not required for this quick verification script
+impo; // Logger not required for this quick verification script
 e.log("🔍 BETRIX Autonomous Operation Verification\n");
 
 // Check 1: Worker exists
@@ -31,11 +31,7 @@ for (const svc of services) {
 }
 
 // Check 3: Environment
-const required = [
-  "GEMINI_API_KEY",
-  "TELEGRAM_TOKEN",
-  "REDIS_URL",
-];
+const required = ["GEMINI_API_KEY", "TELEGRAM_TOKEN", "REDIS_URL"];
 
 console.log("\n✅ Environment Secrets:");
 for (const key of required) {

@@ -3,7 +3,7 @@
 **Status**: ✅ **READY FOR PRODUCTION**  
 **Date**: 2025-11-29  
 **Version**: 1.0  
-**Time to Deploy**: 15–30 minutes  
+**Time to Deploy**: 15–30 minutes
 
 ---
 
@@ -76,6 +76,7 @@ TLS configuration, Redis authentication, comprehensive monitoring and error hand
 ### New Services
 
 **`src/services/sportmonks-service.js`**
+
 - Axios-based SportMonks API wrapper
 - Per-service TLS configuration
 - Automatic retry/backoff logic
@@ -84,6 +85,7 @@ TLS configuration, Redis authentication, comprehensive monitoring and error hand
 ### Updated Services
 
 **`src/services/sports-aggregator.js`**
+
 - SportMonks now primary for football matches
 - StatPal fallback if SportMonks unavailable
 - Internal normalization to consistent format
@@ -92,6 +94,7 @@ TLS configuration, Redis authentication, comprehensive monitoring and error hand
 ### New Handlers
 
 **`src/handlers/telegram-handler-v2-clean.js`**
+
 - `/live` command handler
 - Match details callback support
 - Telegram message editing integration
@@ -100,11 +103,13 @@ TLS configuration, Redis authentication, comprehensive monitoring and error hand
 ### Updated Core
 
 **`src/worker-final.js`**
+
 - Per-service TLS options (SPORTSMONKS_INSECURE flag)
 - Global TLS verification enabled by default
 - Production-safe configuration
 
 **`worker.js`**
+
 - Redis error handler (prevents unhandled NOAUTH)
 - REDIS_URL fallback support
 - Improved error logging
@@ -114,31 +119,40 @@ TLS configuration, Redis authentication, comprehensive monitoring and error hand
 ## Deployment Scripts Created
 
 ### Interactive Setup
+
 **`scripts/setup-production-env.ps1`**
+
 - Guided environment variable configuration
 - Secret input masking
 - Redis connectivity verification
 - Saves to .env file option
 
 ### Validation & Testing
+
 **`scripts/validate-telegram-live.js`**
+
 - End-to-end deployment validation
 - Checks: Redis, SportMonks, handler, Telegram
 - Detailed success/failure reporting
 
 ### TLS Troubleshooting
+
 **`docs/dev-scripts/install-proxy-ca.ps1`**
+
 - Windows proxy CA installation
 - Trust store management
 - Verification checks
 
 **`scripts/inspect-sportmonks-cert.js`**
+
 - Certificate chain inspection
 - TLS handshake diagnostics
 - HTTPS response checking
 
 ### Local Development Relay
+
 **`docs/dev-scripts/sportmonks-relay.js`**
+
 - PowerShell-based SportMonks proxy
 - Dev-only workaround for TLS issues
 - Safe, non-production tool
@@ -180,16 +194,19 @@ SPORTSMONKS_INSECURE=true  # TLS bypass for testing only
 ## Quick Start (3 Steps)
 
 ### Step 1: Resolve TLS (if behind proxy)
+
 ```powershell
 .\docs\dev-scripts\install-proxy-ca.ps1 -CertPath 'C:\path\to\proxy-ca.cer'
 ```
 
 ### Step 2: Configure Environment
+
 ```powershell
 .\scripts\setup-production-env.ps1
 ```
 
 ### Step 3: Start & Validate
+
 ```bash
 # Terminal 1: Start worker
 node src/worker-final.js
@@ -231,13 +248,14 @@ Response → Telegram API → Message Edit → User Sees Real Data ✅
 ✅ **Railway** (with railway.json)  
 ✅ **Render** (with render.yaml)  
 ✅ **Self-Hosted Linux** (systemd service)  
-✅ **Docker** (containerized deployment)  
+✅ **Docker** (containerized deployment)
 
 ---
 
 ## Monitoring & Health
 
 ### Daily Checks
+
 ```bash
 # Worker is running
 redis-cli GET worker:heartbeat
@@ -253,6 +271,7 @@ node scripts/inspect-sportmonks-cert.js
 ```
 
 ### Success Criteria
+
 - ✅ Bot responds within 2 seconds
 - ✅ Real team names displayed
 - ✅ Clickable match buttons work
@@ -265,19 +284,20 @@ node scripts/inspect-sportmonks-cert.js
 
 ## Troubleshooting Quick Reference
 
-| Problem | Solution |
-|---------|----------|
-| Bot shows "Unknown vs Unknown" | Verify `SPORTSMONKS_API` token; run `node scripts/test-sportmonks-axios.js` |
-| Bot doesn't respond to `/live` | Ensure worker is running; check `redis-cli GET worker:heartbeat` |
-| "NOAUTH" errors in logs | Verify Redis password in `REDIS_URL`; re-run `.\scripts\setup-production-env.ps1` |
-| TLS certificate errors | Run `.\docs\dev-scripts\install-proxy-ca.ps1` to install proxy CA |
-| Redis connection refused | Check Redis is running; verify host/port in `REDIS_URL` |
+| Problem                        | Solution                                                                          |
+| ------------------------------ | --------------------------------------------------------------------------------- |
+| Bot shows "Unknown vs Unknown" | Verify `SPORTSMONKS_API` token; run `node scripts/test-sportmonks-axios.js`       |
+| Bot doesn't respond to `/live` | Ensure worker is running; check `redis-cli GET worker:heartbeat`                  |
+| "NOAUTH" errors in logs        | Verify Redis password in `REDIS_URL`; re-run `.\scripts\setup-production-env.ps1` |
+| TLS certificate errors         | Run `.\docs\dev-scripts\install-proxy-ca.ps1` to install proxy CA                 |
+| Redis connection refused       | Check Redis is running; verify host/port in `REDIS_URL`                           |
 
 ---
 
 ## Files Changed/Created
 
 ### Core Changes
+
 - ✅ `src/services/sportmonks-service.js` (NEW)
 - ✅ `src/services/sports-aggregator.js` (UPDATED: SportMonks primary)
 - ✅ `src/handlers/telegram-handler-v2-clean.js` (NEW: /live support)
@@ -285,6 +305,7 @@ node scripts/inspect-sportmonks-cert.js
 - ✅ `worker.js` (UPDATED: Redis error handler)
 
 ### Deployment & Docs
+
 - ✅ `DEPLOYMENT_INDEX.md` (NEW: Navigation guide)
 - ✅ `QUICKSTART_DEPLOY.md` (NEW: Fast start)
 - ✅ `PRODUCTION_SETUP.md` (NEW: Detailed setup)
@@ -295,6 +316,7 @@ node scripts/inspect-sportmonks-cert.js
 - ✅ `README.md` (UPDATED: TLS/Redis docs)
 
 ### Scripts & Tools
+
 - ✅ `scripts/setup-production-env.ps1` (NEW: Env config)
 - ✅ `scripts/validate-telegram-live.js` (NEW: Validation)
 - ✅ `docs/dev-scripts/install-proxy-ca.ps1` (NEW: TLS setup)
@@ -302,6 +324,7 @@ node scripts/inspect-sportmonks-cert.js
 - ✅ `docs/dev-scripts/sportmonks-relay.js` (NEW: Dev relay)
 
 ### Cleanup
+
 - ✅ `.history/` directory removed from repo
 - ✅ `.gitignore` updated to exclude `.history/`
 
@@ -314,7 +337,7 @@ node scripts/inspect-sportmonks-cert.js
 ✅ **Enterprise Path**: DEPLOYMENT_RUNBOOK.md  
 ✅ **Visual Reference**: ARCHITECTURE_DEPLOYMENT.md  
 ✅ **Quick Lookup**: DEPLOYMENT_SUMMARY.md  
-✅ **Navigation**: DEPLOYMENT_INDEX.md  
+✅ **Navigation**: DEPLOYMENT_INDEX.md
 
 ---
 
@@ -361,15 +384,15 @@ node scripts/inspect-sportmonks-cert.js
 
 ## Support Resources
 
-| Resource | Purpose |
-|----------|---------|
-| [DEPLOYMENT_INDEX.md](DEPLOYMENT_INDEX.md) | Start here — navigation |
-| [QUICKSTART_DEPLOY.md](QUICKSTART_DEPLOY.md) | Fastest path to deployment |
-| [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md) | Detailed, step-by-step guide |
+| Resource                                       | Purpose                                |
+| ---------------------------------------------- | -------------------------------------- |
+| [DEPLOYMENT_INDEX.md](DEPLOYMENT_INDEX.md)     | Start here — navigation                |
+| [QUICKSTART_DEPLOY.md](QUICKSTART_DEPLOY.md)   | Fastest path to deployment             |
+| [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md)     | Detailed, step-by-step guide           |
 | [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md) | Enterprise checklist & troubleshooting |
-| `node scripts/validate-telegram-live.js` | End-to-end validation test |
-| `node scripts/inspect-sportmonks-cert.js` | TLS diagnostic tool |
-| `.\scripts\setup-production-env.ps1` | Interactive environment setup |
+| `node scripts/validate-telegram-live.js`       | End-to-end validation test             |
+| `node scripts/inspect-sportmonks-cert.js`      | TLS diagnostic tool                    |
+| `.\scripts\setup-production-env.ps1`           | Interactive environment setup          |
 
 ---
 
@@ -390,7 +413,7 @@ node scripts/inspect-sportmonks-cert.js
 
 All code is merged to `main` branch.  
 All documentation is in place.  
-All validation tools are ready.  
+All validation tools are ready.
 
 **Next step**: Open [DEPLOYMENT_INDEX.md](DEPLOYMENT_INDEX.md) and choose your deployment path.
 
@@ -400,8 +423,8 @@ All validation tools are ready.
 
 **Good luck! 🎉**
 
-*Questions?* → Check the guide for your deployment scenario in [DEPLOYMENT_INDEX.md](DEPLOYMENT_INDEX.md)
+_Questions?_ → Check the guide for your deployment scenario in [DEPLOYMENT_INDEX.md](DEPLOYMENT_INDEX.md)
 
-*Stuck?* → Run `node scripts/validate-telegram-live.js` for diagnostics
+_Stuck?_ → Run `node scripts/validate-telegram-live.js` for diagnostics
 
-*Still issues?* → See troubleshooting in [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md)
+_Still issues?_ → See troubleshooting in [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md)

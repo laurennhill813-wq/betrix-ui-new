@@ -1,4 +1,4 @@
-import { incrWithTTL, getRaw } from '../lib/redis-cache.js';
+import { incrWithTTL, getRaw } from "../lib/redis-cache.js";
 
 // Event mention counters used to compute short-term velocity/trending
 // Each bump increments a counter with a short TTL so counts decay automatically.

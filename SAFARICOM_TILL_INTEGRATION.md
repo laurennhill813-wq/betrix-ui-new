@@ -24,6 +24,7 @@ Payment Methods Menu:
 **User clicks: 📱 Till (M-Pesa)**
 
 Bot shows:
+
 ```
 📱 Safaricom Till Payment
 
@@ -43,18 +44,19 @@ Follow these steps:
 
 ### 💰 Till Details
 
-| Field | Value |
-|-------|-------|
-| Till Number | **606215** |
-| Business | BETRIX |
-| Account | BETRIX |
-| Method | M-Pesa Lipa na M-Pesa |
-| Type | Merchant Till |
-| Processing | Instant |
+| Field       | Value                 |
+| ----------- | --------------------- |
+| Till Number | **606215**            |
+| Business    | BETRIX                |
+| Account     | BETRIX                |
+| Method      | M-Pesa Lipa na M-Pesa |
+| Type        | Merchant Till         |
+| Processing  | Instant               |
 
 ### 🔧 Configuration
 
 **In `src/config.js`:**
+
 ```javascript
 MPESA: {
    TILL: process.env.MPESA_TILL || "606215",
@@ -63,6 +65,7 @@ MPESA: {
 ```
 
 **Environment Variable (optional):**
+
 ```bash
 export MPESA_TILL=6062105
 ```
@@ -97,6 +100,7 @@ const confirmation = till.formatPaymentConfirmation(150, "member", ref);
 **In `src/utils/payment-presenter.js`:**
 
 Payment menu now includes:
+
 - 📱 Till (M-Pesa) - NEW
 - 🏧 Lipa STK Push
 - 💳 PayPal
@@ -127,16 +131,17 @@ Payment menu now includes:
 
 ### 💡 Till Tier Pricing
 
-| Tier | Amount | Duration |
-|------|--------|----------|
-| Member | KES 150 | Lifetime |
-| VVIP Daily | KES 200 | 24 hours |
-| VVIP Weekly | KES 800 | 7 days |
-| VVIP Monthly | KES 2,500 | 30 days |
+| Tier         | Amount    | Duration |
+| ------------ | --------- | -------- |
+| Member       | KES 150   | Lifetime |
+| VVIP Daily   | KES 200   | 24 hours |
+| VVIP Weekly  | KES 800   | 7 days   |
+| VVIP Monthly | KES 2,500 | 30 days  |
 
 ### 📞 Support
 
 Users can:
+
 - `/pricing` - See till option
 - `/help` - Get till instructions
 - `/contact` - Report till issues
@@ -144,11 +149,13 @@ Users can:
 ### 🚀 Test It
 
 Start the bot:
+
 ```bash
 bash start.sh
 ```
 
 Users can now:
+
 1. `/pricing` → Select tier
 2. Click **📱 Till (M-Pesa)**
 3. Follow on-screen instructions

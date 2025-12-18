@@ -1,9 +1,11 @@
 # BETRIX API Reference
 
 ## Overview
+
 RESTful API endpoints for the BETRIX sports betting bot system.
 
 ## Base URL
+
 ```
 https://<your-domain>
 ```
@@ -15,7 +17,9 @@ https://<your-domain>
 ### Health & System
 
 #### `GET /`
+
 Returns system status and available endpoints.
+
 ```json
 {
   "brand": { "name": "BETRIX", "version": "3.0.0", "slogan": "..." },
@@ -27,7 +31,9 @@ Returns system status and available endpoints.
 ```
 
 #### `GET /health`
+
 System health check.
+
 ```json
 {
   "success": true,
@@ -42,7 +48,9 @@ System health check.
 ```
 
 #### `GET /metrics`
+
 Uptime and log count metrics.
+
 ```json
 {
   "success": true,
@@ -59,9 +67,11 @@ Uptime and log count metrics.
 ### Monitoring
 
 #### `GET /monitor`
+
 Comprehensive system monitoring endpoint (public, no auth).
 
 Returns:
+
 - Worker process heartbeat and health
 - Current active AI provider
 - WebSocket connection count
@@ -71,6 +81,7 @@ Returns:
 - System uptime and response times
 
 **Response Example:**
+
 ```json
 {
   "success": true,
@@ -121,6 +132,7 @@ Returns:
 ```
 
 #### Web Dashboard
+
 Visit `/monitor.html` for a real-time visual dashboard (auto-refreshes every 10 seconds).
 
 ---
@@ -128,7 +140,9 @@ Visit `/monitor.html` for a real-time visual dashboard (auto-refreshes every 10 
 ### Free Data Sources
 
 #### `GET /openligadb/leagues`
+
 List available OpenLigaDB leagues.
+
 ```json
 {
   "success": true,
@@ -144,7 +158,9 @@ List available OpenLigaDB leagues.
 ```
 
 #### `GET /openligadb/matchdata?league=bl1&season=2025`
+
 Fetch match data for a league and season.
+
 ```json
 {
   "success": true,
@@ -154,14 +170,18 @@ Fetch match data for a league and season.
       "matchDateTime": "2025-01-15T20:30:00",
       "team1": { "teamId": 1, "teamName": "Bayern Munich" },
       "team2": { "teamId": 2, "teamName": "Borussia Dortmund" },
-      "matchResults": [{ "resultTypeID": 1, "pointsTeam1": 2, "pointsTeam2": 1 }]
+      "matchResults": [
+        { "resultTypeID": 1, "pointsTeam1": 2, "pointsTeam2": 1 }
+      ]
     }
   ]
 }
 ```
 
 #### `GET /live`
+
 Real-time live matches (with free-data fallback).
+
 ```json
 {
   "success": true,
@@ -174,7 +194,9 @@ Real-time live matches (with free-data fallback).
 ```
 
 #### `GET /standings?league=bl1&season=2025`
+
 League standings and match data (combined from multiple sources).
+
 ```json
 {
   "success": true,
@@ -187,7 +209,9 @@ League standings and match data (combined from multiple sources).
 ```
 
 #### `GET /news`
+
 Latest football news headlines from RSS feeds.
+
 ```json
 {
   "success": true,
@@ -211,7 +235,9 @@ Latest football news headlines from RSS feeds.
 ```
 
 #### `GET /highlights`
+
 Latest football highlights from ScoreBat.
+
 ```json
 {
   "success": true,
@@ -222,7 +248,9 @@ Latest football highlights from ScoreBat.
 ```
 
 #### `GET /fixtures?competition=E0&season=2324`
+
 Fetch fixtures and odds from football-data.co.uk CSVs.
+
 ```json
 {
   "success": true,
@@ -245,13 +273,17 @@ Fetch fixtures and odds from football-data.co.uk CSVs.
 ### Admin Endpoints
 
 #### Authentication
+
 All admin endpoints require HTTP Basic Auth:
+
 ```
 Authorization: Basic base64(username:password)
 ```
 
 #### `GET /admin/queue` (authenticated)
+
 Queue status and worker heartbeat.
+
 ```json
 {
   "success": true,
@@ -265,13 +297,17 @@ Queue status and worker heartbeat.
 ```
 
 #### `GET /admin/webhook-info` (authenticated)
+
 Current Telegram webhook configuration.
 
 #### `GET /admin/gemini-debug` (authenticated)
+
 Test Gemini API with a sample message.
 
 #### `GET /audit` (authenticated)
+
 Last 20 system audit logs.
+
 ```json
 {
   "success": true,
@@ -294,12 +330,15 @@ Last 20 system audit logs.
 ### Telegram Webhook
 
 #### `POST /webhook/:token?`
+
 Receive Telegram updates. Requires secret header validation:
+
 ```
 X-Telegram-Bot-Api-Secret-Token: <TELEGRAM_WEBHOOK_SECRET>
 ```
 
 **Request Body:**
+
 ```json
 {
   "update_id": 123456789,
@@ -320,6 +359,7 @@ X-Telegram-Bot-Api-Secret-Token: <TELEGRAM_WEBHOOK_SECRET>
 Monitor these Redis channels in real-time:
 
 - **`prefetch:updates`**: Published when a data source successfully prefetches
+
   ```json
   { "type": "rss", "ts": 1700000000000 }
   ```
@@ -336,16 +376,19 @@ Monitor these Redis channels in real-time:
 Connect to the WebSocket server to receive real-time updates:
 
 ### Connection
+
 ```javascript
-const ws = new WebSocket('ws://localhost:5000/');
+const ws = new WebSocket("ws://localhost:5000/");
 ```
 
 ### Subscribe to Updates
+
 ```json
 { "type": "subscribe", "channels": ["prefetch:updates", "prefetch:error"] }
 ```
 
 ### Receive Updates
+
 ```json
 { "type": "prefetch:updates", "data": { "type": "rss", "ts": 1700000000000 } }
 ```
@@ -355,6 +398,7 @@ const ws = new WebSocket('ws://localhost:5000/');
 ## Error Response Format
 
 All errors follow a standard format:
+
 ```json
 {
   "success": false,
@@ -365,6 +409,7 @@ All errors follow a standard format:
 ```
 
 **HTTP Status Codes:**
+
 - `200`: Success
 - `400`: Bad request
 - `401`: Unauthorized
@@ -378,12 +423,14 @@ All errors follow a standard format:
 ## Rate Limiting
 
 Rate limits are applied per tier:
+
 - **Free**: 30 requests/minute
 - **Member**: 60 requests/minute
 - **VVIP**: 150 requests/minute
 - **Admin**: 300 requests/minute
 
 Include header to specify user tier:
+
 ```
 X-User-ID: <user_id>
 ```
@@ -393,21 +440,25 @@ X-User-ID: <user_id>
 ## Examples
 
 ### Get Live Matches
+
 ```bash
 curl -X GET http://localhost:5000/live
 ```
 
 ### Monitor System Health
+
 ```bash
 curl -X GET http://localhost:5000/monitor
 ```
 
 ### View Dashboard
+
 ```
 Open: http://localhost:5000/monitor.html
 ```
 
 ### Receive Webhook Update
+
 ```bash
 curl -X POST http://localhost:5000/webhook \
   -H "Content-Type: application/json" \
@@ -418,6 +469,7 @@ curl -X POST http://localhost:5000/webhook \
 ---
 
 ## See Also
+
 - `INFRASTRUCTURE_GUIDE.md` - Setup and troubleshooting
 - `LEGAL.md` - Data reuse and compliance
 - `PREFETCH_POLICY.md` - Caching and prefetch policies

@@ -1,8 +1,8 @@
-import AWS from 'aws-sdk';
-import path from 'path';
-import fs from 'fs/promises';
-import express from 'express';
-import { config } from './config.js';
+import AWS from "aws-sdk";
+import path from "path";
+import fs from "fs/promises";
+import express from "express";
+import { config } from "./config.js";
 
 // If BUCKET_NAME is provided, use S3. Otherwise use a local filesystem fallback
 let useS3 = Boolean(config.bucket && config.bucket.name);
@@ -11,16 +11,28 @@ if (useS3) {
   AWS.config.update({
     accessKeyId: config.bucket.accessKey,
     secretAccessKey: config.bucket.secretKey,
-    region: config.bucket.region
+    region: config.bucket.region,
   });
   s3 = new AWS.S3();
 }
 
-const LOCAL_TMP_DIR = path.join(process.cwd(), 'sportradar-signer-tmp');
+const LOCAL_TMP_DIR = path.join(process.cwd(), "sportradar-signer-tmp");
 
-export async function uploadTempBuffer(buffer, key, contentType = 'application/octet-stream') {
+export async function uploadTempBuffer(
+  buffer,
+  key,
+  contentType = "application/octet-stream",
+) {
   if (useS3) {
-    await s3.putObject({ Bucket: config.bucket.name, Key: key, Body: buffer, ContentType: contentType, ACL: 'private' }).promise();
+    await s3
+      .putObject({
+        Bucket: config.bucket.name,
+        Key: key,
+        Body: buffer,
+        ContentType: contentType,
+        ACL: "private",
+      })
+      .promise();
     return;
   }
 
@@ -32,7 +44,11 @@ export async function uploadTempBuffer(buffer, key, contentType = 'application/o
 
 export function getPresignedUrl(key, expiresSec = 60) {
   if (useS3) {
-    return s3.getSignedUrl('getObject', { Bucket: config.bucket.name, Key: key, Expires: expiresSec });
+    return s3.getSignedUrl("getObject", {
+      Bucket: config.bucket.name,
+      Key: key,
+      Expires: expiresSec,
+    });
   }
 
   // filesystem fallback: serve via local signer server route

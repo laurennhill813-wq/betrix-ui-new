@@ -5,7 +5,7 @@
  * Refactored with modular architecture, better error handling, and clean code
  */
 
-import { getRedisAdapter } from './lib/redis-factory.js';
+import { getRedisAdapter } from "./lib/redis-factory.js";
 import { CONFIG, validateConfig } from "./config.js";
 import { Logger } from "./utils/logger.js";
 import { TelegramService } from "./services/telegram.js";
@@ -25,16 +25,20 @@ try {
 
 // Initialize Redis (central adapter)
 const redis = getRedisAdapter();
-if (redis && typeof redis.on === 'function') {
-  redis.on("error", err => logger.error("Redis error", err));
+if (redis && typeof redis.on === "function") {
+  redis.on("error", (err) => logger.error("Redis error", err));
   // ioredis emits 'connect' but adapter/mock may not
-  if (typeof redis.on === 'function') redis.on("connect", () => logger.info("Redis connected"));
+  if (typeof redis.on === "function")
+    redis.on("connect", () => logger.info("Redis connected"));
 } else {
-  logger.info('Redis adapter initialized (eventless adapter)');
+  logger.info("Redis adapter initialized (eventless adapter)");
 }
 
 // Initialize services
-const telegram = new TelegramService(CONFIG.TELEGRAM_TOKEN, CONFIG.TELEGRAM.SAFE_CHUNK);
+const telegram = new TelegramService(
+  CONFIG.TELEGRAM_TOKEN,
+  CONFIG.TELEGRAM.SAFE_CHUNK,
+);
 const userService = new UserService(redis);
 const apiFootball = new APIFootballService(redis);
 
@@ -52,7 +56,7 @@ async function main() {
       // Pop update from queue
       const update = await redis.lpop("telegram:updates");
       if (!update) {
-        await new Promise(r => setTimeout(r, 100));
+        await new Promise((r) => setTimeout(r, 100));
         continue;
       }
 
@@ -60,7 +64,7 @@ async function main() {
       await handleUpdate(data);
     } catch (err) {
       logger.error("Worker error", err);
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 1000));
     }
   }
 }
@@ -148,7 +152,10 @@ async function handleCommand(chatId, userId, cmd, args) {
     }
 
     // Unknown command
-    await telegram.sendMessage(chatId, "❓ Unknown command. Try /help or /menu");
+    await telegram.sendMessage(
+      chatId,
+      "❓ Unknown command. Try /help or /menu",
+    );
   } catch (err) {
     logger.error(`Command ${cmd} failed`, err);
     await telegram.sendMessage(chatId, `❌ Error: ${err.message}`);
@@ -187,11 +194,13 @@ async function handleStart(chatId, userId) {
   const user = await userService.getUser(userId);
 
   if (user?.signupComplete) {
-    const text = `👋 Welcome back, ${user.name || "User"}!\n\n` +
+    const text =
+      `👋 Welcome back, ${user.name || "User"}!\n\n` +
       `You're all set. Use /menu to see available commands.`;
     await telegram.sendMessage(chatId, text);
   } else {
-    const text = `🚀 <b>Welcome to BETRIX</b>\n\n` +
+    const text =
+      `🚀 <b>Welcome to BETRIX</b>\n\n` +
       `Your neutral AI sports analyst. No hype, just insights.\n\n` +
       `Get started: /signup`;
     await telegram.sendMessage(chatId, text);
@@ -205,7 +214,8 @@ async function handleMenu(chatId, userId) {
   const user = await userService.getUser(userId);
   const isVVIP = user && userService.isVVIP(user);
 
-  const text = `${"🧭"} <b>BETRIX Menu</b>\n\n` +
+  const text =
+    `${"🧭"} <b>BETRIX Menu</b>\n\n` +
     `<b>Free Commands:</b>\n` +
     `/live - Live matches now\n` +
     `/ standings - League standings\n` +
@@ -232,7 +242,8 @@ async function handleMenu(chatId, userId) {
  * /help - Help and commands
  */
 async function handleHelp(chatId) {
-  const text = `📚 <b>BETRIX Commands</b>\n\n` +
+  const text =
+    `📚 <b>BETRIX Commands</b>\n\n` +
     `<b>Matches & Data:</b>\n` +
     `/live - Live matches\n` +
     `/standings [league] - League table\n` +
@@ -253,7 +264,8 @@ async function handleHelp(chatId) {
  * /pricing - Show pricing tiers
  */
 async function handlePricing(chatId) {
-  const text = `💵 <b>BETRIX Pricing</b>\n\n` +
+  const text =
+    `💵 <b>BETRIX Pricing</b>\n\n` +
     `<b>Member Signup</b>\n` +
     `KES ${CONFIG.PRICING.SIGNUP_FEE.KES} / USD ${CONFIG.PRICING.SIGNUP_FEE.USD}\n` +
     `Access to Member-only features\n\n` +
@@ -278,23 +290,32 @@ async function handleLive(chatId, league = null) {
     const data = await apiFootball.getLive();
 
     if (!data.response || !data.response.length) {
-      return await telegram.sendMessage(chatId, "⚽ No live matches right now.");
+      return await telegram.sendMessage(
+        chatId,
+        "⚽ No live matches right now.",
+      );
     }
 
     const matches = data.response.slice(0, CONFIG.PAGE_SIZE);
-    const text = `🔴 <b>Live Matches (${data.response.length} total)</b>\n\n` +
-      matches.map((m, i) => {
-        const home = m.teams?.home?.name || "Home";
-        const away = m.teams?.away?.name || "Away";
-        const hs = m.goals?.home ?? "-";
-        const as = m.goals?.away ?? "-";
-        return `${i + 1}. ${home} ${hs}-${as} ${away}`;
-      }).join("\n");
+    const text =
+      `🔴 <b>Live Matches (${data.response.length} total)</b>\n\n` +
+      matches
+        .map((m, i) => {
+          const home = m.teams?.home?.name || "Home";
+          const away = m.teams?.away?.name || "Away";
+          const hs = m.goals?.home ?? "-";
+          const as = m.goals?.away ?? "-";
+          return `${i + 1}. ${home} ${hs}-${as} ${away}`;
+        })
+        .join("\n");
 
     await telegram.sendMessage(chatId, text);
   } catch (err) {
     logger.error("Live matches error", err);
-    await telegram.sendMessage(chatId, `❌ Could not fetch live matches: ${err.message}`);
+    await telegram.sendMessage(
+      chatId,
+      `❌ Could not fetch live matches: ${err.message}`,
+    );
   }
 }
 
@@ -309,22 +330,32 @@ async function handleStandings(chatId, league = "39") {
     const data = await apiFootball.getStandings(leagueId, season);
 
     if (!data.response || !data.response.length) {
-      return await telegram.sendMessage(chatId, "📊 No standings data available.");
+      return await telegram.sendMessage(
+        chatId,
+        "📊 No standings data available.",
+      );
     }
 
     const standings = data.response[0]?.league?.standings?.[0] || [];
-    const text = `📊 <b>League Standings</b>\n\n` +
-      standings.slice(0, CONFIG.MAX_TABLE_ROWS).map(t => {
-        const rank = t.rank || "-";
-        const name = t.team?.name || "Team";
-        const pts = t.points || 0;
-        return `${rank}. ${name} - ${pts}pts`;
-      }).join("\n");
+    const text =
+      `📊 <b>League Standings</b>\n\n` +
+      standings
+        .slice(0, CONFIG.MAX_TABLE_ROWS)
+        .map((t) => {
+          const rank = t.rank || "-";
+          const name = t.team?.name || "Team";
+          const pts = t.points || 0;
+          return `${rank}. ${name} - ${pts}pts`;
+        })
+        .join("\n");
 
     await telegram.sendMessage(chatId, text);
   } catch (err) {
     logger.error("Standings error", err);
-    await telegram.sendMessage(chatId, `❌ Could not fetch standings: ${err.message}`);
+    await telegram.sendMessage(
+      chatId,
+      `❌ Could not fetch standings: ${err.message}`,
+    );
   }
 }
 
@@ -332,7 +363,8 @@ async function handleStandings(chatId, league = "39") {
  * /signup - User signup flow
  */
 async function handleSignup(chatId, userId) {
-  const text = `📝 <b>Create Your Account</b>\n\n` +
+  const text =
+    `📝 <b>Create Your Account</b>\n\n` +
     `Let's get you set up with BETRIX.\n\n` +
     `Reply with your name to continue.`;
 
@@ -348,13 +380,13 @@ process.on("unhandledRejection", (reason, promise) => {
   logger.error("Unhandled rejection", { reason, promise });
 });
 
-process.on("uncaughtException", err => {
+process.on("uncaughtException", (err) => {
   logger.error("Uncaught exception", err);
   process.exit(1);
 });
 
 // Start worker
-main().catch(err => {
+main().catch((err) => {
   logger.error("Fatal error", err);
   process.exit(1);
 });

@@ -1,34 +1,38 @@
 #!/usr/bin/env node
-import fetch from 'node-fetch';
+import fetch from "node-fetch";
 
 const key = process.env.OPENROUTER_API_KEY;
 if (!key) {
-  console.error('OPENROUTER_API_KEY not set');
+  console.error("OPENROUTER_API_KEY not set");
   process.exit(1);
 }
 
-const url = 'https://openrouter.ai/api/v1/chat/completions';
+const url = "https://openrouter.ai/api/v1/chat/completions";
 const body = {
-  model: process.env.OPENROUTER_MODEL || 'qwen/qwen-2.5-72b-instruct',
-  messages: [ { role: 'user', content: 'Say: BETRIX routing test successful.' } ]
+  model: process.env.OPENROUTER_MODEL || "qwen/qwen-2.5-72b-instruct",
+  messages: [{ role: "user", content: "Say: BETRIX routing test successful." }],
 };
 
 async function run() {
   try {
     const res = await fetch(url, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
       },
       body: JSON.stringify(body),
-      timeout: 20000
+      timeout: 20000,
     });
-    console.log('Status:', res.status);
+    console.log("Status:", res.status);
     const txt = await res.text();
-    try { console.log('Body:', JSON.stringify(JSON.parse(txt), null, 2)); } catch { console.log('Body:', txt); }
+    try {
+      console.log("Body:", JSON.stringify(JSON.parse(txt), null, 2));
+    } catch {
+      console.log("Body:", txt);
+    }
   } catch (e) {
-    console.error('Request failed:', e.message || e);
+    console.error("Request failed:", e.message || e);
     process.exit(2);
   }
 }

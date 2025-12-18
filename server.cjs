@@ -40,7 +40,7 @@ app.post("/webhook/mpesa", async (req, res) => {
         req.body.message,
         req.body.timestamp,
         req.body, // full JSON payload
-      ]
+      ],
     );
     res.status(200).send("OK");
   } catch (err) {

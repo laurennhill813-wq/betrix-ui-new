@@ -1,9 +1,18 @@
-import persona from './persona.js';
-import createRag from './rag.js';
-import structured from './structured.js';
-import metrics from '../utils/metrics.js';
+import persona from "./persona.js";
+import createRag from "./rag.js";
+import structured from "./structured.js";
+import metrics from "../utils/metrics.js";
 
-export function createAIWrapper({ azure, gemini, huggingface, localAI, claude, groq, redis, logger }) {
+export function createAIWrapper({
+  azure,
+  gemini,
+  huggingface,
+  localAI,
+  claude,
+  groq,
+  redis,
+  logger,
+}) {
   const rag = createRag({ redis, azure, logger });
 
   // Temporary in-memory provider blocklist to avoid repeatedly calling rate-limited providers
@@ -18,11 +27,18 @@ export function createAIWrapper({ azure, gemini, huggingface, localAI, claude, g
 
   function blockProvider(name, ttlSeconds = 30) {
     try {
-      const unblockAt = Date.now() + (ttlSeconds * 1000);
+      const unblockAt = Date.now() + ttlSeconds * 1000;
       blockedProviders.set(name, unblockAt);
       if (redis && redis.set) {
         // set a short-lived key so other workers can notice (best-effort)
-        try { redis.set(`ai:block:${name}`, '1', 'EX', Math.max(5, Math.floor(ttlSeconds))); } catch(e) {}
+        try {
+          redis.set(
+            `ai:block:${name}`,
+            "1",
+            "EX",
+            Math.max(5, Math.floor(ttlSeconds)),
+          );
+        } catch (e) {}
       }
     } catch (e) {}
   }
@@ -30,14 +46,19 @@ export function createAIWrapper({ azure, gemini, huggingface, localAI, claude, g
   function isRateLimitError(err) {
     if (!err) return false;
     if (err.status === 429) return true;
-    const msg = String(err.message || '').toLowerCase();
-    if (msg.includes('quota') || msg.includes('rate limit') || msg.includes('too many requests')) return true;
+    const msg = String(err.message || "").toLowerCase();
+    if (
+      msg.includes("quota") ||
+      msg.includes("rate limit") ||
+      msg.includes("too many requests")
+    )
+      return true;
     return false;
   }
 
   function parseRetrySeconds(err) {
     if (!err) return null;
-    const msg = String(err.message || '');
+    const msg = String(err.message || "");
     // look for patterns like 'Please retry in 16.920189641s' or 'retryDelay":"16s' or 'Retry-After: 16'
     const m1 = msg.match(/retry in\s*(\d+(?:\.\d+)?)s/i);
     if (m1 && m1[1]) return Math.ceil(parseFloat(m1[1]));
@@ -56,171 +77,373 @@ export function createAIWrapper({ azure, gemini, huggingface, localAI, claude, g
       context = context || {};
       // ensure persona
       if (!context.system) {
-        context.system = persona.getSystemPrompt({ includeContext: { id: context.id, name: context.name, role: context.role } });
+        context.system = persona.getSystemPrompt({
+          includeContext: {
+            id: context.id,
+            name: context.name,
+            role: context.role,
+          },
+        });
       }
 
       // RAG: retrieve relevant passages if enabled
       let augmented = String(message);
       try {
-        const top = await rag.retrieveRelevant(context.id || 'global', message, { topK: 3 });
+        const top = await rag.retrieveRelevant(
+          context.id || "global",
+          message,
+          { topK: 3 },
+        );
         if (top && top.length) {
-          const prefix = top.map((t,i) => `Passage ${i+1}: ${t}`).join('\n\n');
-          augmented = prefix + '\n\n' + augmented;
+          const prefix = top
+            .map((t, i) => `Passage ${i + 1}: ${t}`)
+            .join("\n\n");
+          augmented = prefix + "\n\n" + augmented;
         }
       } catch (e) {
-        logger && logger.warn && logger.warn('RAG retrieval failed', e && e.message);
+        logger &&
+          logger.warn &&
+          logger.warn("RAG retrieval failed", e && e.message);
       }
 
       // Prefer Azure as brain (unless configured to prefer Claude/Anthropic)
-      const FORCE_AZURE = (String(process.env.FORCE_AZURE || process.env.FORCE_AZURE_PROVIDER || process.env.PREFER_AZURE || '').toLowerCase() === '1' || String(process.env.FORCE_AZURE || process.env.FORCE_AZURE_PROVIDER || process.env.PREFER_AZURE || '').toLowerCase() === 'true');
-      const FORCE_CLAUDE = (String(process.env.FORCE_CLAUDE || process.env.PREFER_CLAUDE || process.env.PROVIDER_CLAUDE_ONLY || '').toLowerCase() === '1' || String(process.env.FORCE_CLAUDE || process.env.PREFER_CLAUDE || process.env.PROVIDER_CLAUDE_ONLY || '').toLowerCase() === 'true');
-      const FORCE_GROQ = (String(process.env.FORCE_GROQ || process.env.PREFER_GROQ || process.env.PROVIDER_GROQ_ONLY || '').toLowerCase() === '1' || String(process.env.FORCE_GROQ || process.env.PREFER_GROQ || process.env.PROVIDER_GROQ_ONLY || '').toLowerCase() === 'true');
+      const FORCE_AZURE =
+        String(
+          process.env.FORCE_AZURE ||
+            process.env.FORCE_AZURE_PROVIDER ||
+            process.env.PREFER_AZURE ||
+            "",
+        ).toLowerCase() === "1" ||
+        String(
+          process.env.FORCE_AZURE ||
+            process.env.FORCE_AZURE_PROVIDER ||
+            process.env.PREFER_AZURE ||
+            "",
+        ).toLowerCase() === "true";
+      const FORCE_CLAUDE =
+        String(
+          process.env.FORCE_CLAUDE ||
+            process.env.PREFER_CLAUDE ||
+            process.env.PROVIDER_CLAUDE_ONLY ||
+            "",
+        ).toLowerCase() === "1" ||
+        String(
+          process.env.FORCE_CLAUDE ||
+            process.env.PREFER_CLAUDE ||
+            process.env.PROVIDER_CLAUDE_ONLY ||
+            "",
+        ).toLowerCase() === "true";
+      const FORCE_GROQ =
+        String(
+          process.env.FORCE_GROQ ||
+            process.env.PREFER_GROQ ||
+            process.env.PROVIDER_GROQ_ONLY ||
+            "",
+        ).toLowerCase() === "1" ||
+        String(
+          process.env.FORCE_GROQ ||
+            process.env.PREFER_GROQ ||
+            process.env.PROVIDER_GROQ_ONLY ||
+            "",
+        ).toLowerCase() === "true";
 
-      if (FORCE_AZURE && azure && azure.isHealthy() && !isBlocked('azure')) {
+      if (FORCE_AZURE && azure && azure.isHealthy() && !isBlocked("azure")) {
         try {
           if (!context.few_shot) context.few_shot = true;
           const out = await azure.chat(augmented, context);
-          metrics && metrics.incRequest && metrics.incRequest('azure');
-          logger && logger.info && logger.info('AI provider used (force)', { provider: 'azure' });
+          metrics && metrics.incRequest && metrics.incRequest("azure");
+          logger &&
+            logger.info &&
+            logger.info("AI provider used (force)", { provider: "azure" });
           // Also log via console to ensure provider choice surfaces in environments
-          try { console.info('AI provider used (force)', JSON.stringify({ provider: 'azure' })); } catch (e) { /* ignore */ }
+          try {
+            console.info(
+              "AI provider used (force)",
+              JSON.stringify({ provider: "azure" }),
+            );
+          } catch (e) {
+            /* ignore */
+          }
           return out;
         } catch (err) {
-          logger && logger.warn && logger.warn('Azure.chat forced failed — falling through', err && err.message, { code: err && err.code });
+          logger &&
+            logger.warn &&
+            logger.warn(
+              "Azure.chat forced failed — falling through",
+              err && err.message,
+              { code: err && err.code },
+            );
           if (isRateLimitError(err)) {
             const ttl = parseRetrySeconds(err) || 60;
-            blockProvider('azure', ttl);
-            logger && logger.info && logger.info('Blocking azure due to rate-limit', { ttl });
+            blockProvider("azure", ttl);
+            logger &&
+              logger.info &&
+              logger.info("Blocking azure due to rate-limit", { ttl });
           }
-          metrics && metrics.incError && metrics.incError('azure');
+          metrics && metrics.incError && metrics.incError("azure");
         }
       }
 
-      if (FORCE_GROQ && groq && groq.isHealthy() && !isBlocked('groq')) {
+      if (FORCE_GROQ && groq && groq.isHealthy() && !isBlocked("groq")) {
         try {
           const out = await groq.chat(augmented, context);
-          metrics && metrics.incRequest && metrics.incRequest('groq');
-          logger && logger.info && logger.info('AI provider used (force)', { provider: 'groq' });
-          try { console.info('AI provider used (force)', JSON.stringify({ provider: 'groq' })); } catch (e) {}
+          metrics && metrics.incRequest && metrics.incRequest("groq");
+          logger &&
+            logger.info &&
+            logger.info("AI provider used (force)", { provider: "groq" });
+          try {
+            console.info(
+              "AI provider used (force)",
+              JSON.stringify({ provider: "groq" }),
+            );
+          } catch (e) {}
           return out;
         } catch (err) {
-          logger && logger.warn && logger.warn('Groq.chat forced failed — falling through', err && err.message);
-          if (isRateLimitError(err)) { const ttl = parseRetrySeconds(err) || 60; blockProvider('groq', ttl); logger && logger.info && logger.info('Blocking groq due to rate-limit', { ttl }); }
-          metrics && metrics.incError && metrics.incError('groq');
+          logger &&
+            logger.warn &&
+            logger.warn(
+              "Groq.chat forced failed — falling through",
+              err && err.message,
+            );
+          if (isRateLimitError(err)) {
+            const ttl = parseRetrySeconds(err) || 60;
+            blockProvider("groq", ttl);
+            logger &&
+              logger.info &&
+              logger.info("Blocking groq due to rate-limit", { ttl });
+          }
+          metrics && metrics.incError && metrics.incError("groq");
         }
       }
 
-      if (azure && azure.isHealthy() && !isBlocked('azure')) {
+      if (azure && azure.isHealthy() && !isBlocked("azure")) {
         try {
           if (!context.few_shot) context.few_shot = true;
           // If caller expects structured JSON, request a JSON-only output and validate
-          if (context.expect === 'json:recommendation') {
+          if (context.expect === "json:recommendation") {
             // first attempt
-            let out = await azure.chat(augmented + '\n\nPlease respond with ONLY a single valid JSON object matching the recommendation schema.', context);
+            let out = await azure.chat(
+              augmented +
+                "\n\nPlease respond with ONLY a single valid JSON object matching the recommendation schema.",
+              context,
+            );
             try {
               const parsed = JSON.parse(out.trim());
               const v = structured.validateRecommendation(parsed);
               if (v.valid) {
-                  metrics && metrics.incRequest && metrics.incRequest('azure');
-                  logger && logger.info && logger.info('AI provider used', { provider: 'azure', mode: 'json-validated' });
-                  return parsed;
-                } else {
-                  logger && logger.warn && logger.warn('AI returned invalid recommendation JSON (attempt1):', v.reason || v.errors);
-                }
+                metrics && metrics.incRequest && metrics.incRequest("azure");
+                logger &&
+                  logger.info &&
+                  logger.info("AI provider used", {
+                    provider: "azure",
+                    mode: "json-validated",
+                  });
+                return parsed;
+              } else {
+                logger &&
+                  logger.warn &&
+                  logger.warn(
+                    "AI returned invalid recommendation JSON (attempt1):",
+                    v.reason || v.errors,
+                  );
+              }
             } catch (e) {
-              logger && logger.warn && logger.warn('AI returned non-JSON on first attempt', e && e.message);
+              logger &&
+                logger.warn &&
+                logger.warn(
+                  "AI returned non-JSON on first attempt",
+                  e && e.message,
+                );
             }
             // retry once with stronger instruction
-            let out2 = await azure.chat(augmented + '\n\nReturn ONLY a JSON object (no explanation). The object must match the schema: {type,match_id,market,selection,odds,confidence,stake_recommendation,rationale}.', context);
+            let out2 = await azure.chat(
+              augmented +
+                "\n\nReturn ONLY a JSON object (no explanation). The object must match the schema: {type,match_id,market,selection,odds,confidence,stake_recommendation,rationale}.",
+              context,
+            );
             try {
               const parsed2 = JSON.parse(out2.trim());
               const v2 = structured.validateRecommendation(parsed2);
               if (v2.valid) {
-                  metrics && metrics.incRequest && metrics.incRequest('azure');
-                  logger && logger.info && logger.info('AI provider used', { provider: 'azure', mode: 'json-validated-retry' });
-                  return parsed2;
-                } else {
-                  logger && logger.warn && logger.warn('AI returned invalid recommendation JSON (attempt2):', v2.reason || v2.errors);
-                }
+                metrics && metrics.incRequest && metrics.incRequest("azure");
+                logger &&
+                  logger.info &&
+                  logger.info("AI provider used", {
+                    provider: "azure",
+                    mode: "json-validated-retry",
+                  });
+                return parsed2;
+              } else {
+                logger &&
+                  logger.warn &&
+                  logger.warn(
+                    "AI returned invalid recommendation JSON (attempt2):",
+                    v2.reason || v2.errors,
+                  );
+              }
             } catch (e) {
-              logger && logger.warn && logger.warn('AI returned non-JSON on second attempt', e && e.message);
+              logger &&
+                logger.warn &&
+                logger.warn(
+                  "AI returned non-JSON on second attempt",
+                  e && e.message,
+                );
             }
             // fallback to plain text if JSON not produced
-            metrics && metrics.incError && metrics.incError('azure');
+            metrics && metrics.incError && metrics.incError("azure");
             return "";
           }
           const out = await azure.chat(augmented, context);
-          metrics && metrics.incRequest && metrics.incRequest('azure');
-          logger && logger.info && logger.info('AI provider used', { provider: 'azure' });
-          try { console.info('AI provider used', JSON.stringify({ provider: 'azure' })); } catch (e) { /* ignore */ }
+          metrics && metrics.incRequest && metrics.incRequest("azure");
+          logger &&
+            logger.info &&
+            logger.info("AI provider used", { provider: "azure" });
+          try {
+            console.info(
+              "AI provider used",
+              JSON.stringify({ provider: "azure" }),
+            );
+          } catch (e) {
+            /* ignore */
+          }
           return out;
         } catch (err) {
-          logger && logger.warn && logger.warn('Azure.chat failed in wrapper — falling back', err && err.message);
+          logger &&
+            logger.warn &&
+            logger.warn(
+              "Azure.chat failed in wrapper — falling back",
+              err && err.message,
+            );
           if (isRateLimitError(err)) {
             const ttl = parseRetrySeconds(err) || 60;
-            blockProvider('azure', ttl);
-            logger && logger.info && logger.info('Blocking azure due to rate-limit', { ttl });
+            blockProvider("azure", ttl);
+            logger &&
+              logger.info &&
+              logger.info("Blocking azure due to rate-limit", { ttl });
           }
-          metrics && metrics.incError && metrics.incError('azure');
+          metrics && metrics.incError && metrics.incError("azure");
         }
       }
       // Fallback chain — skip providers currently blocked by recent rate-limits
       // If FORCE_AZURE is set, prefer Azure and avoid using Gemini to prevent Gemini quota errors
       const skipGeminiBecauseForced = FORCE_AZURE;
-      if (claude && claude.enabled && !isBlocked('claude')) {
+      if (claude && claude.enabled && !isBlocked("claude")) {
         try {
           // pass augmented input (with RAG + persona system prompt in context)
           const out = await claude.chat(augmented, context);
-          try { console.info('AI provider used', JSON.stringify({ provider: 'claude' })); } catch (e) {}
-          logger && logger.info && logger.info('AI provider used', { provider: 'claude' });
+          try {
+            console.info(
+              "AI provider used",
+              JSON.stringify({ provider: "claude" }),
+            );
+          } catch (e) {}
+          logger &&
+            logger.info &&
+            logger.info("AI provider used", { provider: "claude" });
           return out;
-        } catch(e) {
-          logger && logger.warn && logger.warn('Claude failed', e && e.message);
+        } catch (e) {
+          logger && logger.warn && logger.warn("Claude failed", e && e.message);
           // billing-specific handling: surface a clear message and avoid retrying
-          if (e && e.code === 'billing') {
-            logger && logger.error && logger.error('Anthropic billing/credits issue detected — disabling Claude until resolved');
+          if (e && e.code === "billing") {
+            logger &&
+              logger.error &&
+              logger.error(
+                "Anthropic billing/credits issue detected — disabling Claude until resolved",
+              );
             // block for a long time to allow operator fix (best-effort)
-            blockProvider('claude', 60 * 60);
+            blockProvider("claude", 60 * 60);
             return "Anthropic (Claude) billing issue: please enable billing or top up credits so BETRIX can generate responses.";
           }
-          if (isRateLimitError(e)) blockProvider('claude', 60);
+          if (isRateLimitError(e)) blockProvider("claude", 60);
         }
       }
-      if (!skipGeminiBecauseForced && gemini && gemini.enabled && !isBlocked('gemini')) {
+      if (
+        !skipGeminiBecauseForced &&
+        gemini &&
+        gemini.enabled &&
+        !isBlocked("gemini")
+      ) {
         try {
           const out = await gemini.chat(message, context);
-          logger && logger.info && logger.info('AI provider used', { provider: 'gemini' });
-          try { console.info('AI provider used', JSON.stringify({ provider: 'gemini' })); } catch(e) {}
+          logger &&
+            logger.info &&
+            logger.info("AI provider used", { provider: "gemini" });
+          try {
+            console.info(
+              "AI provider used",
+              JSON.stringify({ provider: "gemini" }),
+            );
+          } catch (e) {}
           return out;
-        } catch(e) { logger && logger.warn && logger.warn('Gemini failed', e && e.message); if (isRateLimitError(e)) { const ttl = parseRetrySeconds(e) || 90; blockProvider('gemini', ttl); logger && logger.info && logger.info('Blocking gemini due to rate-limit', { ttl }); } }
+        } catch (e) {
+          logger && logger.warn && logger.warn("Gemini failed", e && e.message);
+          if (isRateLimitError(e)) {
+            const ttl = parseRetrySeconds(e) || 90;
+            blockProvider("gemini", ttl);
+            logger &&
+              logger.info &&
+              logger.info("Blocking gemini due to rate-limit", { ttl });
+          }
+        }
       }
-      if (huggingface && huggingface.isHealthy() && !isBlocked('huggingface')) {
+      if (huggingface && huggingface.isHealthy() && !isBlocked("huggingface")) {
         try {
           const out = await huggingface.chat(message, context);
-          try { console.info('AI provider used', JSON.stringify({ provider: 'huggingface' })); } catch(e) {}
-          logger && logger.info && logger.info('AI provider used', { provider: 'huggingface' });
+          try {
+            console.info(
+              "AI provider used",
+              JSON.stringify({ provider: "huggingface" }),
+            );
+          } catch (e) {}
+          logger &&
+            logger.info &&
+            logger.info("AI provider used", { provider: "huggingface" });
           return out;
-        } catch(e) { logger && logger.warn && logger.warn('HuggingFace failed', e && e.message); if (isRateLimitError(e)) blockProvider('huggingface', 60); }
+        } catch (e) {
+          logger &&
+            logger.warn &&
+            logger.warn("HuggingFace failed", e && e.message);
+          if (isRateLimitError(e)) blockProvider("huggingface", 60);
+        }
       }
       // As a final fallback try Groq (if available and not blocked)
-      if (groq && groq.isHealthy() && !isBlocked('groq')) {
+      if (groq && groq.isHealthy() && !isBlocked("groq")) {
         try {
           const out = await groq.chat(augmented, context);
-          try { console.info('AI provider used', JSON.stringify({ provider: 'groq' })); } catch(e) {}
-          logger && logger.info && logger.info('AI provider used', { provider: 'groq' });
+          try {
+            console.info(
+              "AI provider used",
+              JSON.stringify({ provider: "groq" }),
+            );
+          } catch (e) {}
+          logger &&
+            logger.info &&
+            logger.info("AI provider used", { provider: "groq" });
           return out;
-        } catch (e) { logger && logger.warn && logger.warn('Groq failed', e && e.message); if (isRateLimitError(e)) blockProvider('groq', 60); }
+        } catch (e) {
+          logger && logger.warn && logger.warn("Groq failed", e && e.message);
+          if (isRateLimitError(e)) blockProvider("groq", 60);
+        }
       }
 
       try {
         const out = await localAI.chat(message, context);
-        try { console.info('AI provider used', JSON.stringify({ provider: 'localAI' })); } catch(e) {}
-        logger && logger.info && logger.info('AI provider used', { provider: 'localAI' });
+        try {
+          console.info(
+            "AI provider used",
+            JSON.stringify({ provider: "localAI" }),
+          );
+        } catch (e) {}
+        logger &&
+          logger.info &&
+          logger.info("AI provider used", { provider: "localAI" });
         return out;
-      } catch(e) { logger && logger.warn && logger.warn('LocalAI failed', e && e.message); }
+      } catch (e) {
+        logger && logger.warn && logger.warn("LocalAI failed", e && e.message);
+      }
 
       return "I'm having trouble right now. Try again later.";
-    }
+    },
   };
 }
 

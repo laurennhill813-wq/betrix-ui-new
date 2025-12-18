@@ -23,6 +23,7 @@ node scripts/test-payment-harness.js
 ```
 
 Checklist:
+
 - Verify `payment:order:{orderId}` and `payment:by_provider_ref:{provider}:{ref}` are created in Redis.
 - Simulate webhook (if needed) and confirm user receives Telegram notification and subscription active.
 

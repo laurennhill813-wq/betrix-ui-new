@@ -1,3 +1,9 @@
-import('../src/app.js')
-  .then(()=>{ console.log('Imported OK'); process.exit(0); })
-  .catch(e=>{ console.error(e); process.exit(1); });
+import("../src/app.js")
+  .then(() => {
+    console.log("Imported OK");
+    process.exit(0);
+  })
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });

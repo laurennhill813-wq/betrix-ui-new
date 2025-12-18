@@ -15,13 +15,13 @@ class WebhookHandler {
   async handleWebhook(req, res) {
     try {
       const update = req.body;
-      
+
       if (!update || !update.update_id) {
         return res.status(200).json({ ok: true });
       }
 
       await this.redis.rpush("telegram:updates", JSON.stringify(update));
-      
+
       return res.status(200).json({ ok: true });
     } catch (err) {
       logger.error("Webhook error", err);
@@ -32,7 +32,10 @@ class WebhookHandler {
   async handleCallback(callbackQuery) {
     try {
       const { id, from, data } = callbackQuery;
-      await this.redis.rpush("telegram:callbacks", JSON.stringify({ id, from, data, timestamp: Date.now() }));
+      await this.redis.rpush(
+        "telegram:callbacks",
+        JSON.stringify({ id, from, data, timestamp: Date.now() }),
+      );
     } catch (err) {
       logger.error("Callback handling failed", err);
     }

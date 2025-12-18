@@ -13,11 +13,17 @@ class AIFallbackService {
    */
   static async queryHuggingFace(prompt) {
     try {
-      const response = await fetch("https://api-inference.huggingface.co/models/gpt2", {
-        headers: { "Content-Type": "application/json" },
-        method: "POST",
-        body: JSON.stringify({ inputs: prompt, parameters: { max_length: 100 } }),
-      });
+      const response = await fetch(
+        "https://api-inference.huggingface.co/models/gpt2",
+        {
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+          body: JSON.stringify({
+            inputs: prompt,
+            parameters: { max_length: 100 },
+          }),
+        },
+      );
 
       const result = await response.json();
       if (result[0]?.generated_text) {

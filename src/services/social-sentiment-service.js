@@ -7,8 +7,6 @@ import { Logger } from "../utils/logger.js";
 
 const logger = new Logger("SocialSentiment");
 
-class Svoid logger;
-
 class SocialSentimentService {
   /**
    * Get trending sports topics
@@ -16,8 +14,16 @@ class SocialSentimentService {
   static getTrendingTopics() {
     return [
       { topic: "Manchester City", sentiment: "🟢 Positive", mentions: 12450 },
-      { topic: "Liverpool vs Man United", sentiment: "🟡 Mixed", mentions: 8932 },
-      { topic: "Premier League Title Race", sentiment: "🟢 Positive", mentions: 7654 },
+      {
+        topic: "Liverpool vs Man United",
+        sentiment: "🟡 Mixed",
+        mentions: 8932,
+      },
+      {
+        topic: "Premier League Title Race",
+        sentiment: "🟢 Positive",
+        mentions: 7654,
+      },
       { topic: "Champions League", sentiment: "🟢 Positive", mentions: 6543 },
       { topic: "World Cup 2026", sentiment: "🟢 Positive", mentions: 5234 },
       { topic: "Transfer Rumors", sentiment: "🟡 Mixed", mentions: 4123 },
@@ -30,7 +36,8 @@ class SocialSentimentService {
    * Analyze public sentiment for match
    */
   static analyzeMatchSentiment(_team1, _team2) {
- positive: ["excited", "confidence", "strong form", "unstoppable"],
+    const sentiments = {
+      positive: ["excited", "confidence", "strong form", "unstoppable"],
       negative: ["struggling", "injuries", "poor form", "defensive issues"],
       neutral: ["balanced", "competitive", "even match", "unpredictable"],
     };
@@ -40,10 +47,16 @@ class SocialSentimentService {
     let emoji = "🟡";
 
     if (random > 0.6) {
-      sentiment = sentiments.positive[Math.floor(Math.random() * sentiments.positive.length)];
+      sentiment =
+        sentiments.positive[
+          Math.floor(Math.random() * sentiments.positive.length)
+        ];
       emoji = "🟢";
     } else if (random < 0.4) {
-      sentiment = sentiments.negative[Math.floor(Math.random() * sentiments.negative.length)];
+      sentiment =
+        sentiments.negative[
+          Math.floor(Math.random() * sentiments.negative.length)
+        ];
       emoji = "🔴";
     }
 
@@ -73,9 +86,11 @@ class SocialSentimentService {
    */
   static formatMatchSentiment(team1, team2) {
     const sentiment = this.analyzeMatchSentiment(team1, team2);
-    return `📊 <b>Public Sentiment: ${team1} vs ${team2}</b>\n\n` +
+    return (
+      `📊 <b>Public Sentiment: ${team1} vs ${team2}</b>\n\n` +
       `${sentiment.emoji} ${sentiment.sentiment}\n` +
-      `Confidence: ${sentiment.confidence}%`;
+      `Confidence: ${sentiment.confidence}%`
+    );
   }
 }
 

@@ -2,7 +2,11 @@
   "location": "Global",
   "sku": { "name": "Standard", "capacity": 1 },
   "properties": {
-    "model": { "format": "OpenAI", "name": "text-embedding-ada-002", "version": "2" },
+    "model": {
+      "format": "OpenAI",
+      "name": "text-embedding-ada-002",
+      "version": "2"
+    },
     "versionUpgradeOption": "OnceNewDefaultVersionAvailable"
   }
 }

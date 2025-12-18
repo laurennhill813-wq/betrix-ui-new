@@ -1,34 +1,41 @@
 # Telegram Message Edit & Live Feed Stability Fixes
+
 **November 29, 2025**
 
 ## Problems Fixed
 
 ### 1. Telegram "message is not modified" (400) Loop
+
 **Symptom**: Worker logs show repeated `editMessageText` failures when users tap the same menu button.  
 **Root Cause**: Sending identical text+markup to the same message returns HTTP 400.  
 **Solution**: `TelegramService.editMessage()` now catches "not modified" and silently no-ops; also handles "message to edit not found" by falling back to `sendMessage()`.
 
 ### 2. SportMonks 404 Spam & Live Menu Reliability
+
 **Symptom**: Per-league SportMonks calls (league 39, 140, etc.) return 404 "Page Not Found | B2C Solutions".  
 **Root Cause**: SportMonks DNS resolves to B2C Solutions infrastructure on Render; per-league calls are unreliable.  
 **Solution**: Refactored `getAllLiveMatches()` to use Football-Data global matches endpoint first (`/matches?dateFrom=…&dateTo=…`), only falling back to SportMonks if FD returns nothing.
 
 ### 3. Menu Text Collisions
+
 **Symptom**: Re-sending the same "🏟 Live Matches" text+markup multiple times causes edit failures.  
 **Solution**: `safeEdit()` utility adds a freshness stamp (_Refreshed HH:MM:SS_) to every message text, ensuring distinct content on each refresh.
 
 ## Files Modified
 
 ### `src/services/sports-aggregator.js`
+
 - **Added** `_getLiveFromFootballDataGlobal()`: Fetches all live matches across all leagues for a date range; returns up to 200 matches.
 - **Updated** `getAllLiveMatches()`: Now tries Football-Data global endpoint first → per-league fallback → SportMonks fallback → cache.
 - **Outcome**: Eliminates per-league 404s, reduces API noise, reliable live match population.
 
 ### `src/services/telegram.js`
+
 - **Updated** `editMessage()`: Added try-catch to detect "message is not modified" (no-op) and "message to edit not found" (fallback to sendMessage).
 - **Result**: Graceful handling; no more 400 error bubbling.
 
 ### `src/bot/utils/safeEdit.js` (NEW)
+
 - Standalone utility for ctx-level edits in Telegraf-style handlers.
 - Adds HH:MM:SS refresh stamp to ensure distinct content.
 - Handles not-modified + cant-edit scenarios.
@@ -49,6 +56,7 @@
 ## Expected Behavior After Deploy
 
 ### Scenario: User taps `/live` → "Live Matches" menu
+
 1. Worker calls `sportsAggregator.getAllLiveMatches()`.
 2. FD global endpoint returns live matches (or empty).
 3. Falls back to per-league FD (if global empty).
@@ -57,6 +65,7 @@
 6. Message edits with fresh timestamp; no 400 errors.
 
 ### Scenario: User re-taps the same button
+
 1. New text generated with updated HH:MM:SS stamp.
 2. `editMessage()` succeeds or recognizes "not modified".
 3. No error spam in logs.
@@ -72,6 +81,7 @@
 ## Testing Commands
 
 After deploy, test in Telegram:
+
 ```
 /live            → Should show live matches with distinct timestamps
 [Tap same button again] → Should see updated timestamp, no error spam
@@ -80,6 +90,7 @@ After deploy, test in Telegram:
 ```
 
 Check logs:
+
 ```bash
 # Should see
 ✅ Football-Data (global): Found X live matches
@@ -92,6 +103,7 @@ Football-Data live for 39 failed: 404
 ## Rollback Plan
 
 If issues arise, revert the three files:
+
 - `git checkout src/services/sports-aggregator.js`
 - `git checkout src/services/telegram.js`
 - `git rm src/bot/utils/safeEdit.js` (optional; new file)

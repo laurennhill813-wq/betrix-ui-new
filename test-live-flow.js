@@ -1,19 +1,19 @@
-import { Logger } from './src/utils/logger.js';
-import { SportsAggregator } from './src/services/sports-aggregator.js';
+import { Logger } from "./src/utils/logger.js";
+import { SportsAggregator } from "./src/services/sports-aggregator.js";
 
-const logger = new Logger('LiveFlowTest');
+const logger = new Logger("LiveFlowTest");
 void logger;
 
 async function testLiveFlow() {
   try {
-    logger.info('Testing live flow...');
-    
+    logger.info("Testing live flow...");
+
     // Initialize aggregator
     const sportsAggregator = new SportsAggregator();
-    
+
     // Test fetching live matches from popular leagues
-    const popularLeagues = ['39', '140', '135', '61', '78', '2', '3'];
-    
+    const popularLeagues = ["39", "140", "135", "61", "78", "2", "3"];
+
     let totalMatches = 0;
     for (const leagueId of popularLeagues) {
       try {
@@ -27,12 +27,12 @@ async function testLiveFlow() {
         logger.warn(`League ${leagueId} fetch failed: ${e.message}`);
       }
     }
-    
+
     logger.info(`✅ Total live matches found: ${totalMatches}`);
-    logger.info('Live flow test completed');
+    logger.info("Live flow test completed");
     process.exit(0);
   } catch (e) {
-    logger.error('Test failed:', e);
+    logger.error("Test failed:", e);
     process.exit(1);
   }
 }

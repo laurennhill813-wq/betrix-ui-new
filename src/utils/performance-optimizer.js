@@ -3,10 +3,10 @@
  * Smart caching, prefetching, and performance monitoring for superior speed
  */
 
-import { Logger } from '../utils/logger.js';
-import createRedisAdapter from './redis-adapter.js';
+import { Logger } from "../utils/logger.js";
+import createRedisAdapter from "./redis-adapter.js";
 
-const logger = new Logger('PerformanceOptimizer');
+const logger = new Logger("PerformanceOptimizer");
 
 export class PerformanceOptimizer {
   constructor(redis) {
@@ -17,7 +17,7 @@ export class PerformanceOptimizer {
       cacheHits: 0,
       cacheMisses: 0,
       avgResponseTime: 0,
-      slowRequests: 0
+      slowRequests: 0,
     };
     this.requestTimes = [];
   }
@@ -44,7 +44,10 @@ export class PerformanceOptimizer {
         if (redisCached) {
           const value = JSON.parse(redisCached);
           // Update local cache
-          this.localCache.set(key, { value, expiry: Date.now() + ttlSeconds * 1000 });
+          this.localCache.set(key, {
+            value,
+            expiry: Date.now() + ttlSeconds * 1000,
+          });
           this.metrics.cacheHits++;
           return value;
         }
@@ -60,9 +63,14 @@ export class PerformanceOptimizer {
       this.trackResponseTime(responseTime);
 
       // Store in both caches
-      this.localCache.set(key, { value, expiry: Date.now() + ttlSeconds * 1000 });
+      this.localCache.set(key, {
+        value,
+        expiry: Date.now() + ttlSeconds * 1000,
+      });
       if (this.redisAdapter) {
-        await this.redisAdapter.setex(key, ttlSeconds, JSON.stringify(value)).catch(() => {});
+        await this.redisAdapter
+          .setex(key, ttlSeconds, JSON.stringify(value))
+          .catch(() => {});
       }
 
       return value;
@@ -86,10 +94,10 @@ export class PerformanceOptimizer {
 
       requests.forEach((req, _idx) => {
         const promise = this.smartCache(req.key, req.fetchFn, ttlSeconds)
-          .then(value => {
+          .then((value) => {
             results[req.key] = value;
           })
-          .catch(err => {
+          .catch((err) => {
             logger.warn(`Batch cache error for ${req.key}`, err);
             results[req.key] = null;
           });
@@ -99,7 +107,7 @@ export class PerformanceOptimizer {
       await Promise.all(promises);
       return results;
     } catch (err) {
-      logger.error('Batch cache error', err);
+      logger.error("Batch cache error", err);
       return {};
     }
   }
@@ -113,37 +121,42 @@ export class PerformanceOptimizer {
 
       // Prefetch favorite teams
       if (preferences.favoriteTeams && preferences.favoriteTeams.length > 0) {
-        preferences.favoriteTeams.forEach(teamId => {
+        preferences.favoriteTeams.forEach((teamId) => {
           prefetchQueue.push({
             key: `team:${teamId}:stats`,
             fetchFn: () => ({ team: teamId, stats: {} }),
-            ttl: 600
+            ttl: 600,
           });
         });
       }
 
       // Prefetch favorite leagues
-      if (preferences.favoriteLeagues && preferences.favoriteLeagues.length > 0) {
-        preferences.favoriteLeagues.forEach(leagueId => {
+      if (
+        preferences.favoriteLeagues &&
+        preferences.favoriteLeagues.length > 0
+      ) {
+        preferences.favoriteLeagues.forEach((leagueId) => {
           prefetchQueue.push({
             key: `league:${leagueId}:live`,
             fetchFn: () => ({ league: leagueId, matches: [] }),
-            ttl: 120
+            ttl: 120,
           });
         });
       }
 
       // Execute prefetches in parallel
       const prefetchResults = await Promise.allSettled(
-        prefetchQueue.map(item =>
-          this.smartCache(item.key, item.fetchFn, item.ttl)
-        )
+        prefetchQueue.map((item) =>
+          this.smartCache(item.key, item.fetchFn, item.ttl),
+        ),
       );
 
-      logger.info(`Prefetched ${prefetchResults.length} items for user ${userId}`);
+      logger.info(
+        `Prefetched ${prefetchResults.length} items for user ${userId}`,
+      );
       return prefetchResults;
     } catch (err) {
-      logger.error('Prefetch error', err);
+      logger.error("Prefetch error", err);
       return [];
     }
   }
@@ -173,9 +186,14 @@ export class PerformanceOptimizer {
    * Get performance metrics
    */
   getMetrics() {
-    const cacheHitRate = this.metrics.cacheHits + this.metrics.cacheMisses > 0
-      ? ((this.metrics.cacheHits / (this.metrics.cacheHits + this.metrics.cacheMisses)) * 100).toFixed(1)
-      : 0;
+    const cacheHitRate =
+      this.metrics.cacheHits + this.metrics.cacheMisses > 0
+        ? (
+            (this.metrics.cacheHits /
+              (this.metrics.cacheHits + this.metrics.cacheMisses)) *
+            100
+          ).toFixed(1)
+        : 0;
 
     return {
       cacheHitRate: `${cacheHitRate}%`,
@@ -183,7 +201,7 @@ export class PerformanceOptimizer {
       totalCacheMisses: this.metrics.cacheMisses,
       avgResponseTime: `${this.metrics.avgResponseTime.toFixed(0)}ms`,
       slowRequests: this.metrics.slowRequests,
-      localCacheSize: this.localCache.size
+      localCacheSize: this.localCache.size,
     };
   }
 
@@ -195,7 +213,7 @@ export class PerformanceOptimizer {
       cacheHits: 0,
       cacheMisses: 0,
       avgResponseTime: 0,
-      slowRequests: 0
+      slowRequests: 0,
     };
     this.requestTimes = [];
   }
@@ -208,26 +226,26 @@ export class PerformanceOptimizer {
       this.localCache.clear();
       if (this.redisAdapter) {
         // Clear BETRIX-related keys
-        const pattern = 'betrix:*';
+        const pattern = "betrix:*";
         const keys = await this.redisAdapter.keys(pattern).catch(() => []);
         if (keys.length > 0) {
           await this.redisAdapter.del(...keys).catch(() => {});
         }
       }
-      logger.info('Caches cleared');
+      logger.info("Caches cleared");
     } catch (err) {
-      logger.error('Clear caches error', err);
+      logger.error("Clear caches error", err);
     }
   }
 
   /**
    * Optimize data payload (compression/filtering)
    */
-  optimizePayload(data, tier = 'FREE') {
+  optimizePayload(data, tier = "FREE") {
     // Remove unnecessary fields based on tier
     const optimized = { ...data };
 
-    if (tier === 'FREE') {
+    if (tier === "FREE") {
       // Free tier: minimal data
       delete optimized.advanced_stats;
       delete optimized.predictions;
@@ -244,12 +262,12 @@ export class PerformanceOptimizer {
   /**
    * Create response with optimal encoding
    */
-  encodeResponse(data, format = 'json') {
-    if (format === 'json') {
+  encodeResponse(data, format = "json") {
+    if (format === "json") {
       return JSON.stringify(data);
-    } else if (format === 'compact') {
+    } else if (format === "compact") {
       // Remove whitespace for smaller payload
-      return JSON.stringify(data).replace(/\s/g, '');
+      return JSON.stringify(data).replace(/\s/g, "");
     }
     return data;
   }
@@ -259,7 +277,7 @@ export class PerformanceOptimizer {
    */
   createDebounce(fn, delayMs = 300) {
     let timeoutId;
-    return function(...args) {
+    return function (...args) {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => fn(...args), delayMs);
     };
@@ -270,7 +288,7 @@ export class PerformanceOptimizer {
    */
   createThrottle(fn, intervalMs = 1000) {
     let lastCall = 0;
-    return function(...args) {
+    return function (...args) {
       const now = Date.now();
       if (now - lastCall >= intervalMs) {
         lastCall = now;
@@ -289,8 +307,8 @@ export class PerformanceOptimizer {
       heapTotal: `${(memUsage.heapTotal / 1024 / 1024).toFixed(2)} MB`,
       rss: `${(memUsage.rss / 1024 / 1024).toFixed(2)} MB`,
       external: `${(memUsage.external / 1024 / 1024).toFixed(2)} MB`,
-      cacheSize: `${(this.localCache.size)}`,
-      cacheMemory: `${(Array.from(this.localCache.values()).reduce((sum, item) => sum + JSON.stringify(item).length, 0) / 1024).toFixed(2)} KB`
+      cacheSize: `${this.localCache.size}`,
+      cacheMemory: `${(Array.from(this.localCache.values()).reduce((sum, item) => sum + JSON.stringify(item).length, 0) / 1024).toFixed(2)} KB`,
     };
   }
 
@@ -329,13 +347,15 @@ export class PerformanceOptimizer {
       const userRequests = requests.get(userId) || [];
 
       // Remove old requests outside window
-      const recentRequests = userRequests.filter(time => now - time < windowMs);
+      const recentRequests = userRequests.filter(
+        (time) => now - time < windowMs,
+      );
 
       if (recentRequests.length >= maxRequests) {
         const resetTime = recentRequests[0] + windowMs;
         return {
           allowed: false,
-          retryAfter: Math.ceil((resetTime - now) / 1000)
+          retryAfter: Math.ceil((resetTime - now) / 1000),
         };
       }
 

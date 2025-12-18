@@ -1,4 +1,4 @@
-import Redis from 'ioredis';
+import Redis from "ioredis";
 
 let _instance = null;
 
@@ -8,9 +8,17 @@ class MockRedis {
     this.zsets = new Map();
   }
 
-  async get(key) { return this.kv.has(key) ? this.kv.get(key) : null; }
-  async set(key, value) { this.kv.set(key, value); return 'OK'; }
-  async del(key) { this.kv.delete(key); return 1; }
+  async get(key) {
+    return this.kv.has(key) ? this.kv.get(key) : null;
+  }
+  async set(key, value) {
+    this.kv.set(key, value);
+    return "OK";
+  }
+  async del(key) {
+    this.kv.delete(key);
+    return 1;
+  }
 
   async lpop(key) {
     const arr = this.kv.get(key) || [];
@@ -49,15 +57,20 @@ class MockRedis {
 
   async zrevrange(key, start, stop, withscores) {
     const set = this.zsets.get(key) || new Map();
-    const items = Array.from(set.entries()).map(([member, score]) => ({ member, score }));
+    const items = Array.from(set.entries()).map(([member, score]) => ({
+      member,
+      score,
+    }));
     items.sort((a, b) => b.score - a.score);
     const slice = items.slice(start, stop === -1 ? undefined : stop + 1);
-    if (withscores === 'WITHSCORES') {
+    if (withscores === "WITHSCORES") {
       const out = [];
-      for (const it of slice) { out.push(it.member, String(it.score)); }
+      for (const it of slice) {
+        out.push(it.member, String(it.score));
+      }
       return out;
     }
-    return slice.map(i => i.member);
+    return slice.map((i) => i.member);
   }
 
   async zcard(key) {
@@ -67,10 +80,13 @@ class MockRedis {
 
   async zrange(key, start, stop) {
     const set = this.zsets.get(key) || new Map();
-    const items = Array.from(set.entries()).map(([member, score]) => ({ member, score }));
+    const items = Array.from(set.entries()).map(([member, score]) => ({
+      member,
+      score,
+    }));
     items.sort((a, b) => a.score - b.score);
     const slice = items.slice(start, stop === -1 ? undefined : stop + 1);
-    return slice.map(i => i.member);
+    return slice.map((i) => i.member);
   }
 
   async incr(key) {
@@ -81,7 +97,7 @@ class MockRedis {
 
   async setex(key, seconds, value) {
     this.kv.set(key, value);
-    return 'OK';
+    return "OK";
   }
 
   async rpoplpush(source, dest) {
@@ -100,17 +116,21 @@ class MockRedis {
     return await this.rpoplpush(source, dest);
   }
 
-  async ping() { return 'PONG'; }
+  async ping() {
+    return "PONG";
+  }
 }
 
 export function getRedis(opts = {}) {
   if (_instance) return _instance;
 
   const redisUrl = process.env.REDIS_URL;
-  const useMock = process.env.USE_MOCK_REDIS === '1' || !redisUrl;
-  
+  const useMock = process.env.USE_MOCK_REDIS === "1" || !redisUrl;
+
   if (useMock) {
-    console.log('[redis-factory] ⚠️  Using MockRedis (no REDIS_URL or USE_MOCK_REDIS=1)');
+    console.log(
+      "[redis-factory] ⚠️  Using MockRedis (no REDIS_URL or USE_MOCK_REDIS=1)",
+    );
     _instance = new MockRedis();
     return _instance;
   }
@@ -118,9 +138,11 @@ export function getRedis(opts = {}) {
   // Parse Redis URL for logging (safe, never logs password)
   try {
     const url = new URL(redisUrl);
-    console.log(`[redis-factory] 🔗 Connecting to Redis: ${url.protocol}//${url.hostname}:${url.port} (${url.pathname})`);
+    console.log(
+      `[redis-factory] 🔗 Connecting to Redis: ${url.protocol}//${url.hostname}:${url.port} (${url.pathname})`,
+    );
   } catch (e) {
-    console.log('[redis-factory] 🔗 Connecting to Redis with provided URL');
+    console.log("[redis-factory] 🔗 Connecting to Redis with provided URL");
   }
 
   // Create ioredis instance with proper configuration
@@ -131,54 +153,62 @@ export function getRedis(opts = {}) {
     enableReadyCheck: true,
     enableOfflineQueue: true,
     lazyConnect: false,
-    
+
     // Merge with provided options
     ...(opts || {}),
-    
+
     // These options cannot be overridden
-    retryStrategy: opts.retryStrategy || ((times) => {
-      const delay = Math.min(times * 50, 5000);
-      if (times === 1) {
-        console.log('[redis-factory] 🔄 Redis connection failed, attempting reconnect...');
-      }
-      if (times % 5 === 0) {
-        console.log(`[redis-factory] 🔄 Retry attempt ${times}, waiting ${delay}ms...`);
-      }
-      return delay;
-    })
+    retryStrategy:
+      opts.retryStrategy ||
+      ((times) => {
+        const delay = Math.min(times * 50, 5000);
+        if (times === 1) {
+          console.log(
+            "[redis-factory] 🔄 Redis connection failed, attempting reconnect...",
+          );
+        }
+        if (times % 5 === 0) {
+          console.log(
+            `[redis-factory] 🔄 Retry attempt ${times}, waiting ${delay}ms...`,
+          );
+        }
+        return delay;
+      }),
   });
 
   // Connection event handlers
-  _instance.on('error', (err) => {
+  _instance.on("error", (err) => {
     if (err && err.message) {
-      if (err.message.includes('NOAUTH')) {
-        console.error('[redis-factory] ❌ NOAUTH: Invalid Redis password/auth');
-      } else if (err.message.includes('ECONNREFUSED')) {
-        console.error('[redis-factory] ❌ ECONNREFUSED: Cannot connect to Redis host');
-      } else if (err.message.includes('ETIMEDOUT')) {
-        console.error('[redis-factory] ❌ ETIMEDOUT: Redis connection timeout');
+      if (err.message.includes("NOAUTH")) {
+        console.error("[redis-factory] ❌ NOAUTH: Invalid Redis password/auth");
+      } else if (err.message.includes("ECONNREFUSED")) {
+        console.error(
+          "[redis-factory] ❌ ECONNREFUSED: Cannot connect to Redis host",
+        );
+      } else if (err.message.includes("ETIMEDOUT")) {
+        console.error("[redis-factory] ❌ ETIMEDOUT: Redis connection timeout");
       } else {
         console.error(`[redis-factory] ❌ Redis error: ${err.message}`);
       }
     } else {
-      console.error('[redis-factory] ❌ Unknown Redis error:', err);
+      console.error("[redis-factory] ❌ Unknown Redis error:", err);
     }
   });
 
-  _instance.on('connect', () => {
-    console.log('[redis-factory] ✅ Connected to Redis successfully');
+  _instance.on("connect", () => {
+    console.log("[redis-factory] ✅ Connected to Redis successfully");
   });
 
-  _instance.on('ready', () => {
-    console.log('[redis-factory] ✅ Redis client is ready for operations');
+  _instance.on("ready", () => {
+    console.log("[redis-factory] ✅ Redis client is ready for operations");
   });
 
-  _instance.on('reconnecting', () => {
-    console.log('[redis-factory] 🔄 Redis reconnecting...');
+  _instance.on("reconnecting", () => {
+    console.log("[redis-factory] 🔄 Redis reconnecting...");
   });
 
-  _instance.on('end', () => {
-    console.log('[redis-factory] ⚠️  Redis connection ended');
+  _instance.on("end", () => {
+    console.log("[redis-factory] ⚠️  Redis connection ended");
   });
 
   return _instance;
@@ -190,7 +220,7 @@ export { MockRedis };
 // Provide an adapter-wrapped client for application code that prefers a
 // stable, normalized Redis API surface. This uses the existing
 // utils/redis-adapter.js shim to adapt either MockRedis or a real client.
-import createRedisAdapter from '../utils/redis-adapter.js';
+import createRedisAdapter from "../utils/redis-adapter.js";
 
 export function getRedisAdapter(opts = {}) {
   try {

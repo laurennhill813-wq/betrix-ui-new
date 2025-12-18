@@ -10,8 +10,7 @@ import { CONFIG } from "../config.js";
 
 const logger = new Logger("APIFootball");
 
-class APIFvoid logger;
-ootballService {
+class APIFootballService {
   constructor(redis) {
     this.redis = redis;
     this.cache = new CacheService(redis);
@@ -31,7 +30,7 @@ ootballService {
     const data = await HttpClient.fetch(
       `${this.baseUrl}/fixtures?live=all&timezone=${encodeURIComponent(this.tz)}`,
       { headers: { "x-apisports-key": this.apiKey } },
-      "APIFootball.live"
+      "APIFootball.live",
     );
 
     await this.cache.set(cacheKey, data, 30);
@@ -49,7 +48,7 @@ ootballService {
     const data = await HttpClient.fetch(
       `${this.baseUrl}/fixtures?league=${league}&season=${season}&timezone=${encodeURIComponent(this.tz)}`,
       { headers: { "x-apisports-key": this.apiKey } },
-      "APIFootball.fixtures"
+      "APIFootball.fixtures",
     );
 
     await this.cache.set(cacheKey, data, 300);
@@ -71,7 +70,7 @@ ootballService {
     const data = await HttpClient.fetch(
       url,
       { headers: { "x-apisports-key": this.apiKey } },
-      "APIFootball.fixturesByDate"
+      "APIFootball.fixturesByDate",
     );
 
     await this.cache.set(cacheKey, data, 300);
@@ -93,7 +92,7 @@ ootballService {
     const data = await HttpClient.fetch(
       url,
       { headers: { "x-apisports-key": this.apiKey } },
-      "APIFootball.nextFixtures"
+      "APIFootball.nextFixtures",
     );
 
     await this.cache.set(cacheKey, data, 300);
@@ -111,7 +110,7 @@ ootballService {
     const data = await HttpClient.fetch(
       `${this.baseUrl}/standings?league=${league}&season=${season}`,
       { headers: { "x-apisports-key": this.apiKey } },
-      "APIFootball.standings"
+      "APIFootball.standings",
     );
 
     await this.cache.set(cacheKey, data, 21600); // 6 hours
@@ -129,7 +128,7 @@ ootballService {
     const data = await HttpClient.fetch(
       `${this.baseUrl}/odds?fixture=${fixtureId}&timezone=${encodeURIComponent(this.tz)}`,
       { headers: { "x-apisports-key": this.apiKey } },
-      "APIFootball.odds"
+      "APIFootball.odds",
     );
 
     await this.cache.set(cacheKey, data, 120); // 2 minutes
@@ -151,7 +150,7 @@ ootballService {
     const data = await HttpClient.fetch(
       url,
       { headers: { "x-apisports-key": this.apiKey } },
-      "APIFootball.oddsByDate"
+      "APIFootball.oddsByDate",
     );
 
     await this.cache.set(cacheKey, data, 120);

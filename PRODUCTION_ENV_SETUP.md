@@ -60,6 +60,7 @@ node scripts/check-providers.js
 ```
 
 Expected output (critical providers):
+
 ```
 REDIS: OK
 TELEGRAM: OK
@@ -127,9 +128,11 @@ az webapp config appsettings set --name your-app-name \
 After setting the environment variables and redeploying:
 
 1. **SSH into the production environment** (or access the logs) and run:
+
    ```bash
    node scripts/check-providers.js
    ```
+
    All critical providers (Redis, Telegram, API-Football, SportsData) should show **OK**.
 
 2. **Test the bot in Telegram**:
@@ -145,34 +148,39 @@ After setting the environment variables and redeploying:
 
 The codebase accepts multiple names for the same credential to support different naming conventions:
 
-| Internal Name | Accepted Environment Names |
-|---|---|
-| `API_FOOTBALL_KEY` | `API_FOOTBALL_KEY`, `API_SPORTS_KEY` |
-| `API_FOOTBALL_BASE` | `API_FOOTBALL_BASE`, `API_SPORTS_BASE` |
-| `ALLSPORTS_API` | `ALLSPORTS_API`, `ALLSPORTS_API_KEY`, `RAPIDAPI_KEY` |
+| Internal Name        | Accepted Environment Names                                |
+| -------------------- | --------------------------------------------------------- |
+| `API_FOOTBALL_KEY`   | `API_FOOTBALL_KEY`, `API_SPORTS_KEY`                      |
+| `API_FOOTBALL_BASE`  | `API_FOOTBALL_BASE`, `API_SPORTS_BASE`                    |
+| `ALLSPORTS_API`      | `ALLSPORTS_API`, `ALLSPORTS_API_KEY`, `RAPIDAPI_KEY`      |
 | `SPORTSDATA_API_KEY` | `SPORTSDATA_API_KEY`, `SPORTSDATA_KEY`, `SPORTS_DATA_KEY` |
 
 ## Troubleshooting
 
 ### "Redis connection failed"
+
 - Verify `REDIS_URL` is correct and includes the password.
 - Check that your network allows connections to the Redis host.
 - Ensure Redis TLS is properly configured if using TLS.
 
 ### "Telegram bot not responding"
+
 - Confirm `TELEGRAM_TOKEN` is correct (no spaces or typos).
 - Verify your webhook URL is set correctly in the Telegram Bot API.
 - Check logs for `[WEBHOOK]` messages indicating webhook reception.
 
 ### "API-Football returns 401"
+
 - Verify `API_SPORTS_KEY` is correct and not expired.
 - Check your api-sports.io account for rate limits or subscription status.
 
 ### "SportsData returns 401"
+
 - Confirm `SPORTSDATA_API_KEY` is correct.
 - Verify your SportsData.io subscription is active.
 
 ### "PayPal payment fails"
+
 - In sandbox mode, only test PayPal accounts work.
 - Verify `PAYPAL_MODE=sandbox` for testing, or switch to `live` after testing.
 - Check that PayPal credentials are from the same sandbox/production account.

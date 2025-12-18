@@ -6,9 +6,19 @@ export default class SportMonksService {
     this.redis = redis;
   }
 
-  async getLeagues() { return []; }
-  async getLivescores() { return []; }
-  async getFixtures() { return []; }
-  async getOdds() { return []; }
-  async fetch() { return null; }
+  async getLeagues() {
+    return [];
+  }
+  async getLivescores() {
+    return [];
+  }
+  async getFixtures() {
+    return [];
+  }
+  async getOdds() {
+    return [];
+  }
+  async fetch() {
+    return null;
+  }
 }

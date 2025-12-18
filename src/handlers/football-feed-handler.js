@@ -3,10 +3,10 @@
  * Live matches, fixtures, and match analysis with callback routing
  */
 
-import { Logger } from '../utils/logger.js';
-import FootballAggregator from './football-aggregator.js';
+import { Logger } from "../utils/logger.js";
+import FootballAggregator from "./football-aggregator.js";
 
-const logger = new Logger('FootballFeedHandler');
+const logger = new Logger("FootballFeedHandler");
 
 /**
  * Build live matches menu
@@ -14,19 +14,19 @@ const logger = new Logger('FootballFeedHandler');
 export async function buildLiveMatchesMenu(redis, page = 1) {
   const pageSize = 5;
   const aggregator = new FootballAggregator(redis);
-  
+
   try {
     const matches = await aggregator.getLiveMatches();
-    
+
     if (!matches || matches.length === 0) {
       return {
         text: `🌀 *BETRIX* - Live Matches\n\n⚠️ *No live matches at the moment.*\n\nCheck back soon for exciting fixtures! ⚽`,
         reply_markup: {
           inline_keyboard: [
-            [{ text: '📅 View Fixtures', callback_data: 'football_fixtures' }],
-            [{ text: '🔙 Back to Menu', callback_data: 'menu_main' }]
-          ]
-        }
+            [{ text: "📅 View Fixtures", callback_data: "football_fixtures" }],
+            [{ text: "🔙 Back to Menu", callback_data: "menu_main" }],
+          ],
+        },
       };
     }
 
@@ -40,7 +40,10 @@ export async function buildLiveMatchesMenu(redis, page = 1) {
     let text = `🌀 *BETRIX* - Live Matches\n\n🟢 *LIVE NOW* (${matches.length} total)\n\n`;
     pageMatches.forEach((match, idx) => {
       const num = start + idx + 1;
-      const score = match.homeScore !== undefined ? `${match.homeScore}-${match.awayScore}` : 'TBA';
+      const score =
+        match.homeScore !== undefined
+          ? `${match.homeScore}-${match.awayScore}`
+          : "TBA";
       text += `${num}. *${match.home}* ${score} *${match.away}*\n`;
       text += `   🏟 ${match.league} | ⏱ ${match.status}\n`;
       if (match.minute) text += `   ⏳ Min ${match.minute}\n`;
@@ -53,41 +56,53 @@ export async function buildLiveMatchesMenu(redis, page = 1) {
     const keyboard = [];
     pageMatches.forEach((match) => {
       keyboard.push([
-        { text: `⚽ ${match.home} vs ${match.away}`, callback_data: `football_match:${match.id}:live` }
+        {
+          text: `⚽ ${match.home} vs ${match.away}`,
+          callback_data: `football_match:${match.id}:live`,
+        },
       ]);
     });
 
     // Navigation row
     const navRow = [];
     if (currentPage > 1) {
-      navRow.push({ text: '◀ Prev', callback_data: `football_live:${currentPage - 1}` });
+      navRow.push({
+        text: "◀ Prev",
+        callback_data: `football_live:${currentPage - 1}`,
+      });
     }
-    navRow.push({ text: '🔄 Refresh', callback_data: `football_live:${currentPage}` });
+    navRow.push({
+      text: "🔄 Refresh",
+      callback_data: `football_live:${currentPage}`,
+    });
     if (currentPage < totalPages) {
-      navRow.push({ text: 'Next ▶', callback_data: `football_live:${currentPage + 1}` });
+      navRow.push({
+        text: "Next ▶",
+        callback_data: `football_live:${currentPage + 1}`,
+      });
     }
     if (navRow.length > 0) keyboard.push(navRow);
 
     // Bottom navigation
     keyboard.push([
-      { text: '📅 Fixtures', callback_data: 'football_fixtures' },
-      { text: '🔙 Menu', callback_data: 'menu_main' }
+      { text: "📅 Fixtures", callback_data: "football_fixtures" },
+      { text: "🔙 Menu", callback_data: "menu_main" },
     ]);
 
     return {
       text,
-      reply_markup: { inline_keyboard: keyboard }
+      reply_markup: { inline_keyboard: keyboard },
     };
   } catch (e) {
-    logger.warn('buildLiveMatchesMenu error', e?.message);
+    logger.warn("buildLiveMatchesMenu error", e?.message);
     return {
       text: `🌀 *BETRIX* - Live Matches\n\n❌ Error loading live matches. Try again.`,
       reply_markup: {
         inline_keyboard: [
-          [{ text: '🔄 Retry', callback_data: 'football_live:1' }],
-          [{ text: '🔙 Back', callback_data: 'menu_main' }]
-        ]
-      }
+          [{ text: "🔄 Retry", callback_data: "football_live:1" }],
+          [{ text: "🔙 Back", callback_data: "menu_main" }],
+        ],
+      },
     };
   }
 }
@@ -98,36 +113,46 @@ export async function buildLiveMatchesMenu(redis, page = 1) {
 export async function buildFixturesMenu(redis, page = 1) {
   const pageSize = 5;
   const aggregator = new FootballAggregator(redis);
-  
+
   try {
     const fixtures = await aggregator.getFixtures();
-    
+
     if (!fixtures || fixtures.length === 0) {
       return {
         text: `🌀 *BETRIX* - Upcoming Fixtures\n\n⚠️ *No upcoming fixtures in the next 7 days.*`,
         reply_markup: {
           inline_keyboard: [
-            [{ text: '⚽ View Live', callback_data: 'football_live:1' }],
-            [{ text: '🔙 Back to Menu', callback_data: 'menu_main' }]
-          ]
-        }
+            [{ text: "⚽ View Live", callback_data: "football_live:1" }],
+            [{ text: "🔙 Back to Menu", callback_data: "menu_main" }],
+          ],
+        },
       };
     }
 
-      // Pagination: treat page <= 0 as 'show all'
-      const totalPages = Math.max(1, Math.ceil(fixtures.length / pageSize));
-      const showAll = Number(page) <= 0;
-      const currentPage = showAll ? 1 : Math.min(Math.max(1, page), totalPages);
-      const start = (currentPage - 1) * pageSize;
-      const pageFixtures = showAll ? fixtures.slice() : fixtures.slice(start, start + pageSize);
+    // Pagination: treat page <= 0 as 'show all'
+    const totalPages = Math.max(1, Math.ceil(fixtures.length / pageSize));
+    const showAll = Number(page) <= 0;
+    const currentPage = showAll ? 1 : Math.min(Math.max(1, page), totalPages);
+    const start = (currentPage - 1) * pageSize;
+    const pageFixtures = showAll
+      ? fixtures.slice()
+      : fixtures.slice(start, start + pageSize);
 
     // Build text with fixture list
-      const headerCountLabel = showAll ? `${fixtures.length} total (All)` : `${fixtures.length} total`;
-      let text = `🌀 *BETRIX* - Upcoming Fixtures\n\n📅 *${showAll ? 'ALL' : 'NEXT 7 DAYS'}* (${headerCountLabel})\n\n`;
+    const headerCountLabel = showAll
+      ? `${fixtures.length} total (All)`
+      : `${fixtures.length} total`;
+    let text = `🌀 *BETRIX* - Upcoming Fixtures\n\n📅 *${showAll ? "ALL" : "NEXT 7 DAYS"}* (${headerCountLabel})\n\n`;
     pageFixtures.forEach((fixture, idx) => {
       const num = start + idx + 1;
       const kickoffDate = new Date(fixture.kickoff);
-      const timeStr = kickoffDate.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+      const timeStr = kickoffDate.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "UTC",
+      });
       text += `${num}. *${fixture.home}* vs *${fixture.away}*\n`;
       text += `   📅 ${timeStr} UTC | 🏟 ${fixture.league}\n`;
       text += `\n`;
@@ -137,55 +162,73 @@ export async function buildFixturesMenu(redis, page = 1) {
 
     // Build keyboard with fixture buttons + navigation
     const keyboard = [];
-      pageFixtures.forEach((fixture) => {
-        // Primary label row (opens fixture details)
-        keyboard.push([
-          { text: `📅 ${fixture.home} vs ${fixture.away}`, callback_data: `football_match:${fixture.id}:fixture` }
-        ]);
-        // Action row: Analyze (targets upcoming fixtures), Odds, Favourite
-        keyboard.push([
-          { text: '🤖 Analyze', callback_data: `analyze_match_upcoming_${fixture.id}` },
-          { text: '💰 Odds', callback_data: `odds_compare_${fixture.id}` },
-          { text: '⭐ Fav', callback_data: `fav_add_${fixture.id}` }
-        ]);
-      });
+    pageFixtures.forEach((fixture) => {
+      // Primary label row (opens fixture details)
+      keyboard.push([
+        {
+          text: `📅 ${fixture.home} vs ${fixture.away}`,
+          callback_data: `football_match:${fixture.id}:fixture`,
+        },
+      ]);
+      // Action row: Analyze (targets upcoming fixtures), Odds, Favourite
+      keyboard.push([
+        {
+          text: "🤖 Analyze",
+          callback_data: `analyze_match_upcoming_${fixture.id}`,
+        },
+        { text: "💰 Odds", callback_data: `odds_compare_${fixture.id}` },
+        { text: "⭐ Fav", callback_data: `fav_add_${fixture.id}` },
+      ]);
+    });
 
     // Navigation row
     const navRow = [];
     if (currentPage > 1) {
-      navRow.push({ text: '◀ Prev', callback_data: `football_fixtures:${currentPage - 1}` });
+      navRow.push({
+        text: "◀ Prev",
+        callback_data: `football_fixtures:${currentPage - 1}`,
+      });
     }
-    navRow.push({ text: '🔄 Refresh', callback_data: `football_fixtures:${currentPage}` });
+    navRow.push({
+      text: "🔄 Refresh",
+      callback_data: `football_fixtures:${currentPage}`,
+    });
     if (currentPage < totalPages) {
-      navRow.push({ text: 'Next ▶', callback_data: `football_fixtures:${currentPage + 1}` });
+      navRow.push({
+        text: "Next ▶",
+        callback_data: `football_fixtures:${currentPage + 1}`,
+      });
     }
     if (navRow.length > 0) keyboard.push(navRow);
 
     // Bottom navigation
     keyboard.push([
-      { text: '⚽ Live Matches', callback_data: 'football_live:1' },
-      { text: '🔙 Menu', callback_data: 'menu_main' }
+      { text: "⚽ Live Matches", callback_data: "football_live:1" },
+      { text: "🔙 Menu", callback_data: "menu_main" },
     ]);
 
     // Show all fixtures quick action
     keyboard.push([
-      { text: `📋 Show All (${fixtures.length})`, callback_data: 'football_fixtures_all' }
+      {
+        text: `📋 Show All (${fixtures.length})`,
+        callback_data: "football_fixtures_all",
+      },
     ]);
 
     return {
       text,
-      reply_markup: { inline_keyboard: keyboard }
+      reply_markup: { inline_keyboard: keyboard },
     };
   } catch (e) {
-    logger.warn('buildFixturesMenu error', e?.message);
+    logger.warn("buildFixturesMenu error", e?.message);
     return {
       text: `🌀 *BETRIX* - Upcoming Fixtures\n\n❌ Error loading fixtures. Try again.`,
       reply_markup: {
         inline_keyboard: [
-          [{ text: '🔄 Retry', callback_data: 'football_fixtures:1' }],
-          [{ text: '🔙 Back', callback_data: 'menu_main' }]
-        ]
-      }
+          [{ text: "🔄 Retry", callback_data: "football_fixtures:1" }],
+          [{ text: "🔙 Back", callback_data: "menu_main" }],
+        ],
+      },
     };
   }
 }
@@ -195,18 +238,25 @@ export async function buildFixturesMenu(redis, page = 1) {
  */
 export async function buildMatchAnalysisMenu(matchId, isLive = true, redis) {
   const aggregator = new FootballAggregator(redis);
-  
+
   try {
     const analysis = await aggregator.getMatchAnalysis(matchId, isLive);
-    
+
     if (!analysis) {
       return {
         text: `🌀 *BETRIX* - Match Analysis\n\n❌ *Match not found.*`,
         reply_markup: {
           inline_keyboard: [
-            [{ text: '⬅️ Back', callback_data: isLive ? 'football_live:1' : 'football_fixtures:1' }]
-          ]
-        }
+            [
+              {
+                text: "⬅️ Back",
+                callback_data: isLive
+                  ? "football_live:1"
+                  : "football_fixtures:1",
+              },
+            ],
+          ],
+        },
       };
     }
 
@@ -217,21 +267,45 @@ export async function buildMatchAnalysisMenu(matchId, isLive = true, redis) {
       reply_markup: {
         inline_keyboard: [
           // Provide Analyze for scheduled fixtures (not live)
-          ...(isLive ? [] : [[{ text: '🤖 Analyze', callback_data: `analyze_match_upcoming_${matchId}` }]]),
-          [{ text: '📊 Full Stats', callback_data: `football_stats:${matchId}` }],
-          [{ text: '⬅️ Back', callback_data: isLive ? 'football_live:1' : 'football_fixtures:1' }]
-        ]
-      }
+          ...(isLive
+            ? []
+            : [
+                [
+                  {
+                    text: "🤖 Analyze",
+                    callback_data: `analyze_match_upcoming_${matchId}`,
+                  },
+                ],
+              ]),
+          [
+            {
+              text: "📊 Full Stats",
+              callback_data: `football_stats:${matchId}`,
+            },
+          ],
+          [
+            {
+              text: "⬅️ Back",
+              callback_data: isLive ? "football_live:1" : "football_fixtures:1",
+            },
+          ],
+        ],
+      },
     };
   } catch (e) {
-    logger.warn('buildMatchAnalysisMenu error', e?.message);
+    logger.warn("buildMatchAnalysisMenu error", e?.message);
     return {
       text: `🌀 *BETRIX* - Match Analysis\n\n❌ Error loading match analysis.`,
       reply_markup: {
         inline_keyboard: [
-          [{ text: '⬅️ Back', callback_data: isLive ? 'football_live:1' : 'football_fixtures:1' }]
-        ]
-      }
+          [
+            {
+              text: "⬅️ Back",
+              callback_data: isLive ? "football_live:1" : "football_fixtures:1",
+            },
+          ],
+        ],
+      },
     };
   }
 }
@@ -243,42 +317,47 @@ export async function handleFootballCallback(data, redis) {
   logger.info(`Football callback: ${data}`);
 
   // Football live matches
-  if (data === 'football_live:1' || data.startsWith('football_live:')) {
-    const page = parseInt(data.split(':')[1], 10) || 1;
+  if (data === "football_live:1" || data.startsWith("football_live:")) {
+    const page = parseInt(data.split(":")[1], 10) || 1;
     return await buildLiveMatchesMenu(redis, page);
   }
 
   // Football fixtures
-  if (data === 'football_fixtures' || data.startsWith('football_fixtures:')) {
-    const page = parseInt(data.split(':')[1], 10) || 1;
+  if (data === "football_fixtures" || data.startsWith("football_fixtures:")) {
+    const page = parseInt(data.split(":")[1], 10) || 1;
     return await buildFixturesMenu(redis, page);
   }
 
   // Show all upcoming fixtures
-  if (data === 'football_fixtures_all') {
+  if (data === "football_fixtures_all") {
     // Build full fixtures view (no pagination)
     return await buildFixturesMenu(redis, 0);
   }
 
   // Football match analysis
-  if (data.startsWith('football_match:')) {
-    const parts = data.split(':');
+  if (data.startsWith("football_match:")) {
+    const parts = data.split(":");
     const matchId = parts[1];
-    const type = parts[2] || 'live';
-    const isLive = type === 'live';
+    const type = parts[2] || "live";
+    const isLive = type === "live";
     return await buildMatchAnalysisMenu(matchId, isLive, redis);
   }
 
   // Football match stats (stub)
-  if (data.startsWith('football_stats:')) {
-    const matchId = data.split(':')[1];
+  if (data.startsWith("football_stats:")) {
+    const matchId = data.split(":")[1];
     return {
       text: `📊 *Match Stats*\n\nDetailed statistics for match ${matchId}.\n\n_Coming soon: full team stats, player performance, possession, shots, etc._`,
       reply_markup: {
         inline_keyboard: [
-          [{ text: '⬅️ Back', callback_data: `football_match:${matchId}:live` }]
-        ]
-      }
+          [
+            {
+              text: "⬅️ Back",
+              callback_data: `football_match:${matchId}:live`,
+            },
+          ],
+        ],
+      },
     };
   }
 
@@ -289,5 +368,5 @@ export default {
   buildLiveMatchesMenu,
   buildFixturesMenu,
   buildMatchAnalysisMenu,
-  handleFootballCallback
+  handleFootballCallback,
 };

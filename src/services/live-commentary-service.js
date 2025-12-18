@@ -7,8 +7,7 @@ import { Logger } from "../utils/logger.js";
 
 const logger = new Logger("Commentary");
 
-class Lvoid logger;
-iveCommentaryService {
+class LiveCommentaryService {
   static EVENTS = [
     "🟡 Yellow card - harsh decision!",
     "⚽ GOAL! GOALLLL! The crowd is going mad!",
@@ -71,11 +70,13 @@ iveCommentaryService {
     const minute = Math.floor(Math.random() * 90) + 1;
     const update = this.simulateMinute(minute);
 
-    return `⚽ <b>LIVE: ${team1} vs ${team2}</b>\n` +
+    return (
+      `⚽ <b>LIVE: ${team1} vs ${team2}</b>\n` +
       `Score: ${score1} - ${score2}\n` +
       `⏱️ ${minute}'\n\n` +
       (update.event ? `${update.event}\n` : "") +
-      `📻 ${update.commentary}`;
+      `📻 ${update.commentary}`
+    );
   }
 }
 

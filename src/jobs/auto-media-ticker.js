@@ -2,10 +2,12 @@ import mediaAggregator from "../services/media-aggregator.js";
 import { sendPhotoWithCaption } from "../services/telegram-sender.js";
 import { canPostNow, markPosted } from "../lib/liveliness.js";
 
-const SPORTS_ROTATION = (process.env.SPORTS_ROTATION && process.env.SPORTS_ROTATION.split(',')) || ["soccer","nba","nfl","tennis"];
+const SPORTS_ROTATION = (process.env.SPORTS_ROTATION &&
+  process.env.SPORTS_ROTATION.split(",")) || ["soccer", "nba", "nfl", "tennis"];
 
 function pickRotatingSport() {
-  const idx = Math.floor(Date.now() / (10 * 60 * 1000)) % SPORTS_ROTATION.length;
+  const idx =
+    Math.floor(Date.now() / (10 * 60 * 1000)) % SPORTS_ROTATION.length;
   return SPORTS_ROTATION[idx];
 }
 
@@ -17,11 +19,15 @@ function buildCaption(media) {
 
 export async function runAutoMediaTick() {
   const chatId = process.env.BOT_BROADCAST_CHAT_ID;
-  if (!chatId) return console.warn('BOT_BROADCAST_CHAT_ID not set - skipping auto-media tick');
+  if (!chatId)
+    return console.warn(
+      "BOT_BROADCAST_CHAT_ID not set - skipping auto-media tick",
+    );
 
   try {
     const ok = await canPostNow();
-    if (!ok) return console.info('Skipping auto-media tick due to liveliness policy');
+    if (!ok)
+      return console.info("Skipping auto-media tick due to liveliness policy");
 
     const sport = pickRotatingSport();
     const media = await mediaAggregator.fetchRandomMediaItem({ sport });
@@ -31,7 +37,10 @@ export async function runAutoMediaTick() {
     await sendPhotoWithCaption({ chatId, photoUrl: media.url, caption });
     await markPosted();
   } catch (err) {
-    console.error('runAutoMediaTick failed', err && err.message ? err.message : err);
+    console.error(
+      "runAutoMediaTick failed",
+      err && err.message ? err.message : err,
+    );
   }
 }
 

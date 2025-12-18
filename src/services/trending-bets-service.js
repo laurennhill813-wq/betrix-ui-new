@@ -7,8 +7,7 @@ import { Logger } from "../utils/logger.js";
 
 const logger = new Logger("TrendingBets");
 
-class Tvoid logger;
-rendingBetsService {
+class TrendingBetsService {
   static TRENDING = [
     {
       name: "Correct Score",
@@ -81,12 +80,16 @@ rendingBetsService {
   static formatTrending() {
     let text = `📊 <b>Trending Bet Types</b>\n\n`;
 
-    this.getTrendingBets().slice(0, 5).forEach((b) => {
-      const bar = "█".repeat(Math.floor(b.popularity / 20)) + "░".repeat(5 - Math.floor(b.popularity / 20));
-      text += `<b>${b.name}</b> ${bar} ${b.popularity}%\n`;
-      text += `   ${b.description}\n`;
-      text += `   ROI: ${b.roi}\n\n`;
-    });
+    this.getTrendingBets()
+      .slice(0, 5)
+      .forEach((b) => {
+        const bar =
+          "█".repeat(Math.floor(b.popularity / 20)) +
+          "░".repeat(5 - Math.floor(b.popularity / 20));
+        text += `<b>${b.name}</b> ${bar} ${b.popularity}%\n`;
+        text += `   ${b.description}\n`;
+        text += `   ROI: ${b.roi}\n\n`;
+      });
 
     return text;
   }
@@ -96,11 +99,13 @@ rendingBetsService {
    */
   static formatRecommendation() {
     const rec = this.getRecommendation();
-    return `💡 <b>Bet Type Recommendation</b>\n\n` +
+    return (
+      `💡 <b>Bet Type Recommendation</b>\n\n` +
       `🎯 ${rec.name}\n` +
       `${rec.description}\n\n` +
       `Average ROI: ${rec.roi}\n` +
-      `Popularity: ${rec.popularity}%`;
+      `Popularity: ${rec.popularity}%`
+    );
   }
 }
 

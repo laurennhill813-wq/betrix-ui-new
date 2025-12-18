@@ -1,25 +1,25 @@
-import fetch from 'node-fetch';
-import { getEnv } from '../utils/env.js';
-import { getCache, setCache } from '../utils/cache.js';
-import logger from '../utils/logger.js';
-import createRateLimiter from '../utils/rate-limiter.js';
-import { tryProviders } from '../utils/provider-fallback.js';
+import fetch from "node-fetch";
+import { getEnv } from "../utils/env.js";
+import { getCache, setCache } from "../utils/cache.js";
+import logger from "../utils/logger.js";
+import createRateLimiter from "../utils/rate-limiter.js";
+import { tryProviders } from "../utils/provider-fallback.js";
 
 const rateLimiter = createRateLimiter(null);
 
 const DEFAULT_LIMIT = 3;
 
 function getKey() {
-  const key = getEnv('SERPAPI_KEY', { required: false });
+  const key = getEnv("SERPAPI_KEY", { required: false });
   return key || null;
 }
 
 async function fetchTeamNews(team, limit = DEFAULT_LIMIT) {
   const key = getKey();
-  if (!key) return { error: 'Missing SERPAPI_KEY' };
+  if (!key) return { error: "Missing SERPAPI_KEY" };
   // Rate limit per team to avoid provider quota abuse
   const allowed = await rateLimiter.allow(`serpapi:team:${team}`, 5, 60);
-  if (!allowed) return { error: 'Rate limit exceeded, try again later' };
+  if (!allowed) return { error: "Rate limit exceeded, try again later" };
   const cacheKey = `serpapi:team:${team}:limit:${limit}`;
   const cached = getCache(cacheKey);
   if (cached) return cached;
@@ -32,9 +32,14 @@ async function fetchTeamNews(team, limit = DEFAULT_LIMIT) {
       const res = await fetch(url, { timeout: 10000 });
       const data = await res.json();
       const articles = data.news_results || [];
-      const out = articles.slice(0, limit).map(a => ({ title: a.title, link: a.link, source: a.source, published: a.date }));
+      const out = articles.slice(0, limit).map((a) => ({
+        title: a.title,
+        link: a.link,
+        source: a.source,
+        published: a.date,
+      }));
       return out;
-    }
+    },
   ];
 
   try {
@@ -44,14 +49,16 @@ async function fetchTeamNews(team, limit = DEFAULT_LIMIT) {
     setCache(cacheKey, out, 60 * 1000);
     return out;
   } catch (err) {
-    logger.warn('SerpApi fetchTeamNews error', err?.message || String(err));
+    logger.warn("SerpApi fetchTeamNews error", err?.message || String(err));
     return { error: String(err.message || err) };
   }
 }
 
 async function fetchFavoritesNews(favorites = [], perTeam = DEFAULT_LIMIT) {
   if (!Array.isArray(favorites) || favorites.length === 0) {
-    return { text: 'You have no favorite teams yet. Add some using /favorites.' };
+    return {
+      text: "You have no favorite teams yet. Add some using /favorites.",
+    };
   }
 
   const parts = [];
@@ -62,15 +69,19 @@ async function fetchFavoritesNews(favorites = [], perTeam = DEFAULT_LIMIT) {
         parts.push(`⚽ ${team}\n⚠️ Unable to fetch news: ${r.error}`);
         continue;
       }
-      const lines = (r || []).map((a, i) => `📰 ${i + 1}. ${a.title}\n${a.link}`);
+      const lines = (r || []).map(
+        (a, i) => `📰 ${i + 1}. ${a.title}\n${a.link}`,
+      );
       if (lines.length === 0) parts.push(`⚽ ${team}\n_No recent news found._`);
-      else parts.push(`⚽ ${team}\n${lines.join('\n\n')}`);
+      else parts.push(`⚽ ${team}\n${lines.join("\n\n")}`);
     } catch (e) {
       parts.push(`⚽ ${team}\n⚠️ Error fetching news`);
     }
   }
 
-  return { text: `🔥 Your Personalized BETRIX News Feed:\n\n${parts.join('\n\n')}` };
+  return {
+    text: `🔥 Your Personalized BETRIX News Feed:\n\n${parts.join("\n\n")}`,
+  };
 }
 
 export { fetchTeamNews, fetchFavoritesNews };

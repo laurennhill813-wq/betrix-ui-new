@@ -11,27 +11,27 @@ const EMOJIS = {
   member: "👤",
   vvip: "💎",
   locked: "🔒",
-  
+
   // Navigation
   back: "⬅️",
   next: "▶️",
   prev: "◀️",
   home: "🏠",
-  
+
   // Actions
   buy: "💳",
   watch: "👁️",
   analyze: "🔍",
   predict: "🎯",
   compare: "⚖️",
-  
+
   // Odds
   home_team: "🏠",
   draw: "🤝",
   away_team: "🏁",
   total: "📊",
   margin: "📈",
-  
+
   // Sections
   live: "🔴",
   standings: "📊",
@@ -41,7 +41,7 @@ const EMOJIS = {
   tips: "💡",
   alerts: "🔔",
   premium: "⭐",
-  
+
   // Status
   available: "✅",
   unavailable: "❌",
@@ -79,7 +79,7 @@ class UIBuilder {
       text += `📊 Implied Home: ${(100 / parseFloat(home)).toFixed(1)}%\n`;
       text += `📊 Implied Draw: ${(100 / parseFloat(draw)).toFixed(1)}%\n`;
       text += `📊 Implied Away: ${(100 / parseFloat(away)).toFixed(1)}%\n`;
-      text += `💰 Vig: ${(((100 / parseFloat(home) + 100 / parseFloat(draw) + 100 / parseFloat(away)) - 100)).toFixed(1)}%`;
+      text += `💰 Vig: ${(100 / parseFloat(home) + 100 / parseFloat(draw) + 100 / parseFloat(away) - 100).toFixed(1)}%`;
     } else if (tier === "member") {
       text += `\n💡 Upgrade to VVIP for advanced odds analysis`;
     }
@@ -94,7 +94,10 @@ class UIBuilder {
     const baseButtons = [
       [
         { text: `${EMOJIS.live} Live`, callback_data: "menu:live" },
-        { text: `${EMOJIS.standings} Standings`, callback_data: "menu:standings" },
+        {
+          text: `${EMOJIS.standings} Standings`,
+          callback_data: "menu:standings",
+        },
       ],
       [
         { text: `${EMOJIS.odds} Odds`, callback_data: "menu:odds" },
@@ -105,12 +108,18 @@ class UIBuilder {
     if (tier === "member") {
       baseButtons.push([
         { text: `${EMOJIS.analyze} Analysis`, callback_data: "menu:analysis" },
-        { text: `${EMOJIS.predictions} Predictions`, callback_data: "menu:predict" },
+        {
+          text: `${EMOJIS.predictions} Predictions`,
+          callback_data: "menu:predict",
+        },
       ]);
     } else if (tier === "vvip") {
       baseButtons.push([
         { text: `${EMOJIS.analyze} Analysis`, callback_data: "menu:analysis" },
-        { text: `${EMOJIS.predictions} Predictions`, callback_data: "menu:predict" },
+        {
+          text: `${EMOJIS.predictions} Predictions`,
+          callback_data: "menu:predict",
+        },
       ]);
       baseButtons.push([
         { text: `${EMOJIS.premium} Premium`, callback_data: "menu:premium" },
@@ -119,7 +128,10 @@ class UIBuilder {
     }
 
     baseButtons.push([
-      { text: `${tier === "free" ? EMOJIS.buy : EMOJIS.member} Account`, callback_data: "menu:account" },
+      {
+        text: `${tier === "free" ? EMOJIS.buy : EMOJIS.member} Account`,
+        callback_data: "menu:account",
+      },
       { text: `🧭 Settings`, callback_data: "menu:settings" },
     ]);
 
@@ -133,7 +145,10 @@ class UIBuilder {
     const home = escapeHtml(match.teams?.home?.name || "Home");
     const away = escapeHtml(match.teams?.away?.name || "Away");
     const date = new Date(match.fixture?.date);
-    const time = date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    const time = date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
     const dateStr = date.toLocaleDateString();
 
     let text = `${home} vs ${away}\n`;
@@ -208,16 +223,26 @@ class UIBuilder {
     return {
       inline_keyboard: [
         [
-          { text: `${EMOJIS.member} Member (KES 150)`, callback_data: "sub:member" },
-          { text: `${EMOJIS.vvip} VVIP (KES 200/day)`, callback_data: "sub:vvip_day" },
+          {
+            text: `${EMOJIS.member} Member (KES 150)`,
+            callback_data: "sub:member",
+          },
+          {
+            text: `${EMOJIS.vvip} VVIP (KES 200/day)`,
+            callback_data: "sub:vvip_day",
+          },
         ],
         [
-          { text: `${EMOJIS.vvip} VVIP Weekly (KES 800)`, callback_data: "sub:vvip_week" },
-          { text: `${EMOJIS.vvip} VVIP Monthly (KES 2500)`, callback_data: "sub:vvip_month" },
+          {
+            text: `${EMOJIS.vvip} VVIP Weekly (KES 800)`,
+            callback_data: "sub:vvip_week",
+          },
+          {
+            text: `${EMOJIS.vvip} VVIP Monthly (KES 2500)`,
+            callback_data: "sub:vvip_month",
+          },
         ],
-        [
-          { text: `${EMOJIS.back} Back to Menu`, callback_data: "menu:main" },
-        ],
+        [{ text: `${EMOJIS.back} Back to Menu`, callback_data: "menu:main" }],
       ],
     };
   }
@@ -245,7 +270,12 @@ class UIBuilder {
     for (const [key, feature] of Object.entries(features)) {
       const hasAccess = tierLevels[tier] >= tierLevels[feature.tier];
       const icon = hasAccess ? EMOJIS.available : EMOJIS.unavailable;
-      const descriptor = feature.tier === 'free' ? 'Free' : feature.tier === 'member' ? 'Member' : 'VVIP';
+      const descriptor =
+        feature.tier === "free"
+          ? "Free"
+          : feature.tier === "member"
+            ? "Member"
+            : "VVIP";
       text += `${icon} ${feature.name} — ${descriptor}\n`;
     }
 
@@ -254,6 +284,7 @@ class UIBuilder {
     }
 
     return text;
+  }
 
   /**
    * Build payment methods menu
@@ -269,9 +300,7 @@ class UIBuilder {
           { text: "₿ Binance", callback_data: "pay:binance" },
           { text: "🏦 Bank Transfer", callback_data: "pay:bank" },
         ],
-        [
-          { text: `${EMOJIS.back} Back`, callback_data: "menu:main" },
-        ],
+        [{ text: `${EMOJIS.back} Back`, callback_data: "menu:main" }],
       ],
     };
   }

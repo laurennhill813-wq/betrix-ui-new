@@ -18,7 +18,11 @@ class AchievementsService {
   getAchievements() {
     return {
       // Prediction milestones
-      first_1: { emoji: "🎯", name: "First Step", desc: "Make your first prediction" },
+      first_1: {
+        emoji: "🎯",
+        name: "First Step",
+        desc: "Make your first prediction",
+      },
       first_10: { emoji: "📊", name: "Starter Pack", desc: "10 predictions" },
       first_50: { emoji: "🔥", name: "On Fire", desc: "50 predictions" },
       first_100: { emoji: "👑", name: "Century Club", desc: "100 predictions" },
@@ -34,7 +38,11 @@ class AchievementsService {
       streak_3: { emoji: "⭐", name: "Hot Hands", desc: "3-win streak" },
       streak_5: { emoji: "✨", name: "On Fire", desc: "5-win streak" },
       streak_10: { emoji: "🔥", name: "Untouchable", desc: "10-win streak" },
-      streak_20: { emoji: "👑", name: "Legendary Streak", desc: "20-win streak" },
+      streak_20: {
+        emoji: "👑",
+        name: "Legendary Streak",
+        desc: "20-win streak",
+      },
 
       // Social achievements
       referral_1: { emoji: "👥", name: "Connector", desc: "1 referral" },
@@ -47,9 +55,17 @@ class AchievementsService {
       vvip_premium: { emoji: "💰", name: "Premium", desc: "VVIP subscriber" },
 
       // Special achievements
-      perfect_day: { emoji: "💯", name: "Perfect Day", desc: "100% accuracy in a day" },
+      perfect_day: {
+        emoji: "💯",
+        name: "Perfect Day",
+        desc: "100% accuracy in a day",
+      },
       double_roi: { emoji: "📈", name: "Double Return", desc: "200%+ ROI" },
-      comeback_5: { emoji: "🎯", name: "Comeback King", desc: "Win after 5-loss streak" },
+      comeback_5: {
+        emoji: "🎯",
+        name: "Comeback King",
+        desc: "Win after 5-loss streak",
+      },
     };
   }
 
@@ -59,7 +75,8 @@ class AchievementsService {
   async checkAndAward(userId, stats) {
     try {
       const achievements = this.getAchievements();
-      const userAchievements = await this.redis.smembers(`user:${userId}:achievements`) || [];
+      const userAchievements =
+        (await this.redis.smembers(`user:${userId}:achievements`)) || [];
       const newAchievements = [];
 
       // Check prediction milestones
@@ -103,9 +120,11 @@ class AchievementsService {
         await this.redis.sadd(`user:${userId}:achievements`, id);
       }
 
-      logger.info(`Achievements awarded: ${userId} - ${newAchievements.join(", ")}`);
-      
-      return newAchievements.map(id => ({
+      logger.info(
+        `Achievements awarded: ${userId} - ${newAchievements.join(", ")}`,
+      );
+
+      return newAchievements.map((id) => ({
         id,
         ...achievements[id],
       }));
@@ -120,13 +139,16 @@ class AchievementsService {
    */
   async getUserAchievements(userId) {
     try {
-      const achievementIds = await this.redis.smembers(`user:${userId}:achievements`) || [];
+      const achievementIds =
+        (await this.redis.smembers(`user:${userId}:achievements`)) || [];
       const achievements = this.getAchievements();
-      
-      return achievementIds.map(id => ({
-        id,
-        ...achievements[id],
-      })).filter(a => a.name);
+
+      return achievementIds
+        .map((id) => ({
+          id,
+          ...achievements[id],
+        }))
+        .filter((a) => a.name);
     } catch (err) {
       logger.error("Get user achievements failed", err);
       return [];
@@ -139,13 +161,13 @@ class AchievementsService {
   async formatAchievementsDisplay(userId) {
     try {
       const achievements = await this.getUserAchievements(userId);
-      
+
       if (achievements.length === 0) {
         return `🏆 <b>Achievements</b>\n\nMake predictions to earn achievements!`;
       }
 
       let text = `🏆 <b>Achievements (${achievements.length})</b>\n\n`;
-      
+
       achievements.forEach((a, i) => {
         text += `${a.emoji} <b>${a.name}</b>\n   ${a.desc}\n`;
         if (i < achievements.length - 1) text += "\n";

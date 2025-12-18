@@ -3,7 +3,17 @@
  * Type-safe database design
  */
 
-import { pgTable, text, integer, timestamp, boolean, numeric, jsonb, index, primaryKey } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  integer,
+  timestamp,
+  boolean,
+  numeric,
+  jsonb,
+  index,
+  primaryKey,
+} from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 // Users table - complete user data
@@ -31,7 +41,7 @@ const users = pgTable(
     index("idx_telegram_id").on(table.telegramId),
     index("idx_tier").on(table.tier),
     index("idx_phone_verified").on(table.isPhoneVerified),
-  ]
+  ],
 );
 
 // Subscriptions table - track all tier upgrades
@@ -39,7 +49,9 @@ const subscriptions = pgTable(
   "subscriptions",
   {
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    userId: integer().notNull().references(() => users.id),
+    userId: integer()
+      .notNull()
+      .references(() => users.id),
     tier: text().notNull(), // member, vvip
     plan: text(), // daily, weekly, monthly
     amount: numeric().notNull(),
@@ -54,7 +66,7 @@ const subscriptions = pgTable(
     index("idx_user_id").on(table.userId),
     index("idx_tier").on(table.tier),
     index("idx_status").on(table.status),
-  ]
+  ],
 );
 
 // Payments table - transaction history
@@ -62,7 +74,9 @@ const payments = pgTable(
   "payments",
   {
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    userId: integer().notNull().references(() => users.id),
+    userId: integer()
+      .notNull()
+      .references(() => users.id),
     subscriptionId: integer().references(() => subscriptions.id),
     amount: numeric().notNull(),
     currency: text().default("KES"),
@@ -81,7 +95,7 @@ const payments = pgTable(
     index("idx_status").on(table.status),
     index("idx_method").on(table.method),
     index("idx_reference").on(table.reference),
-  ]
+  ],
 );
 
 // Phone verification OTPs
@@ -89,7 +103,9 @@ const phoneVerifications = pgTable(
   "phone_verifications",
   {
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    userId: integer().notNull().references(() => users.id),
+    userId: integer()
+      .notNull()
+      .references(() => users.id),
     phone: text().notNull(),
     code: text().notNull(),
     attempts: integer().default(0),
@@ -101,7 +117,7 @@ const phoneVerifications = pgTable(
     index("idx_user_id").on(table.userId),
     index("idx_phone").on(table.phone),
     index("idx_code").on(table.code),
-  ]
+  ],
 );
 
 // Match subscriptions - /watch implementation
@@ -109,7 +125,9 @@ const matchSubscriptions = pgTable(
   "match_subscriptions",
   {
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    userId: integer().notNull().references(() => users.id),
+    userId: integer()
+      .notNull()
+      .references(() => users.id),
     fixtureId: integer().notNull(),
     matchTitle: text(),
     teams: text(), // "Team A vs Team B"
@@ -125,7 +143,7 @@ const matchSubscriptions = pgTable(
     index("idx_user_id").on(table.userId),
     index("idx_fixture_id").on(table.fixtureId),
     primaryKey({ columns: [table.userId, table.fixtureId] }),
-  ]
+  ],
 );
 
 // Referrals - track user referrals
@@ -133,8 +151,12 @@ const referrals = pgTable(
   "referrals",
   {
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    referrerId: integer().notNull().references(() => users.id),
-    referredUserId: integer().notNull().references(() => users.id),
+    referrerId: integer()
+      .notNull()
+      .references(() => users.id),
+    referredUserId: integer()
+      .notNull()
+      .references(() => users.id),
     referralCode: text().notNull(),
     pointsEarned: integer().default(0),
     status: text().default("pending"), // pending, confirmed, converted
@@ -146,7 +168,7 @@ const referrals = pgTable(
     index("idx_referrer_id").on(table.referrerId),
     index("idx_code").on(table.referralCode),
     index("idx_status").on(table.status),
-  ]
+  ],
 );
 
 // Predictions history - track user predictions
@@ -154,7 +176,9 @@ const predictions = pgTable(
   "predictions",
   {
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    userId: integer().notNull().references(() => users.id),
+    userId: integer()
+      .notNull()
+      .references(() => users.id),
     fixtureId: integer().notNull(),
     prediction: text().notNull(),
     confidence: numeric().notNull(), // 0-1
@@ -166,7 +190,7 @@ const predictions = pgTable(
   (table) => [
     index("idx_user_id").on(table.userId),
     index("idx_fixture_id").on(table.fixtureId),
-  ]
+  ],
 );
 
 // User preferences - favorites, language, etc
@@ -174,7 +198,10 @@ const userPreferences = pgTable(
   "user_preferences",
   {
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    userId: integer().notNull().unique().references(() => users.id),
+    userId: integer()
+      .notNull()
+      .unique()
+      .references(() => users.id),
     language: text().default("en"),
     favoriteTeams: jsonb(), // array of team IDs
     favoriteLeagues: jsonb(), // array of league IDs
@@ -185,7 +212,7 @@ const userPreferences = pgTable(
     createdAt: timestamp().defaultNow(),
     updatedAt: timestamp().defaultNow(),
   },
-  (table) => [index("idx_user_id").on(table.userId)]
+  (table) => [index("idx_user_id").on(table.userId)],
 );
 
 // Audit log - track all important actions
@@ -206,7 +233,7 @@ const auditLogs = pgTable(
     index("idx_user_id").on(table.userId),
     index("idx_action").on(table.action),
     index("idx_created_at").on(table.createdAt),
-  ]
+  ],
 );
 
 // Relations

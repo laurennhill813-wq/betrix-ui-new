@@ -143,6 +143,7 @@ Solution: Install Proxy CA into Windows Trust Store
 ```
 
 **Action Required:**
+
 ```powershell
 .\docs\dev-scripts\install-proxy-ca.ps1 -CertPath 'C:\path\to\proxy-ca.cer'
 ```
@@ -304,16 +305,16 @@ src/worker-final.js (MAIN WORKER)
 
 ## Success Criteria
 
-| Check | Status | How to Verify |
-|-------|--------|---------------|
-| Environment vars set | ✅ | `echo $TELEGRAM_TOKEN; echo $REDIS_URL; echo $SPORTSMONKS_API` |
-| Redis connected | ✅ | `redis-cli PING` → PONG |
-| TLS working | ✅ | `node scripts/inspect-sportmonks-cert.js` → SportMonks CA |
-| SportMonks API responding | ✅ | `node scripts/test-sportmonks-axios.js` → live matches |
-| Worker running | ✅ | `redis-cli GET worker:heartbeat` → timestamp |
-| Handler wired correctly | ✅ | `node scripts/test-match-callback.js` → response payload |
-| Telegram responds to /live | ✅ | Send `/live` in Telegram → see real match names |
-| Match buttons work | ✅ | Click match → message edits with details |
+| Check                      | Status | How to Verify                                                  |
+| -------------------------- | ------ | -------------------------------------------------------------- |
+| Environment vars set       | ✅     | `echo $TELEGRAM_TOKEN; echo $REDIS_URL; echo $SPORTSMONKS_API` |
+| Redis connected            | ✅     | `redis-cli PING` → PONG                                        |
+| TLS working                | ✅     | `node scripts/inspect-sportmonks-cert.js` → SportMonks CA      |
+| SportMonks API responding  | ✅     | `node scripts/test-sportmonks-axios.js` → live matches         |
+| Worker running             | ✅     | `redis-cli GET worker:heartbeat` → timestamp                   |
+| Handler wired correctly    | ✅     | `node scripts/test-match-callback.js` → response payload       |
+| Telegram responds to /live | ✅     | Send `/live` in Telegram → see real match names                |
+| Match buttons work         | ✅     | Click match → message edits with details                       |
 
 ---
 

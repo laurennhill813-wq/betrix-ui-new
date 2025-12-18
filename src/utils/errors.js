@@ -47,4 +47,11 @@ class TimeoutError extends BetrixError {
   }
 }
 
-export { BetrixError, ValidationError, NotFoundError, PaymentError, APIError, TimeoutError };
+export {
+  BetrixError,
+  ValidationError,
+  NotFoundError,
+  PaymentError,
+  APIError,
+  TimeoutError,
+};

@@ -13,11 +13,13 @@
 ## Environment Setup
 
 1. **Create `.env` from template:**
+
 ```bash
 cp .env.example .env
 ```
 
 2. **Fill in all variables:**
+
 ```bash
 # Database
 DATABASE_URL=postgresql://user:password@host:5432/betrix
@@ -49,11 +51,13 @@ PAYPAL_CLIENT_SECRET=your_secret
 ## Deployment Steps
 
 ### Step 1: Install Dependencies
+
 ```bash
 npm install
 ```
 
 ### Step 2: Set Telegram Webhook
+
 ```bash
 curl -X POST \
   https://api.telegram.org/bot<TOKEN>/setWebhook \
@@ -62,11 +66,13 @@ curl -X POST \
 ```
 
 ### Step 3: Start the Bot
+
 ```bash
 bash start.sh
 ```
 
 This will:
+
 - Connect to PostgreSQL
 - Initialize Redis
 - Start Express on port 5000
@@ -75,6 +81,7 @@ This will:
 - Start background job queue
 
 ### Step 4: Test
+
 ```bash
 # Health check
 curl http://localhost:5000/health
@@ -85,11 +92,13 @@ curl http://localhost:5000/health
 ## Production Deployment Options
 
 ### Option 1: Replit (Easiest)
+
 1. Connect GitHub repo
 2. Set all secrets in Replit Secrets pane
 3. Click "Run" - uses `start.sh`
 
 ### Option 2: Docker
+
 ```dockerfile
 FROM node:20-alpine
 WORKDIR /app
@@ -100,6 +109,7 @@ CMD ["bash", "start.sh"]
 ```
 
 ### Option 3: Traditional Server
+
 ```bash
 # SSH into server
 npm install
@@ -121,13 +131,13 @@ curl http://localhost:5000/health
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| Bot not responding | Check TELEGRAM_TOKEN, verify webhook |
-| Payment fails | Check M-Pesa credentials, callback URL |
-| Phone OTP fails | Check TWILIO_* credentials |
-| Database error | Verify DATABASE_URL, check PostgreSQL |
-| Queue issues | Check REDIS_URL, verify Redis running |
+| Issue              | Solution                               |
+| ------------------ | -------------------------------------- |
+| Bot not responding | Check TELEGRAM_TOKEN, verify webhook   |
+| Payment fails      | Check M-Pesa credentials, callback URL |
+| Phone OTP fails    | Check TWILIO\_\* credentials           |
+| Database error     | Verify DATABASE_URL, check PostgreSQL  |
+| Queue issues       | Check REDIS_URL, verify Redis running  |
 
 ## Security Checklist
 
@@ -151,6 +161,7 @@ curl http://localhost:5000/health
 ## Support
 
 Check these files for help:
+
 - `PRODUCTION_BUILD_COMPLETE.md` - Features list
 - `GAPS_ANALYSIS.md` - Architecture details
 - `CHECKLIST.md` - Completeness verification

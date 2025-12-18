@@ -19,11 +19,12 @@ The Data Exposure API provides comprehensive access to all cached sports data fr
 ✅ Available leagues from each provider  
 ✅ Cache status and memory usage information  
 ✅ Data export as JSON files  
-✅ Automatic cache cleanup  
+✅ Automatic cache cleanup
 
 ## API Endpoints
 
 ### Base URL
+
 ```
 https://betrix.example.com/api/data
 ```
@@ -35,6 +36,7 @@ https://betrix.example.com/api/data
 Returns overview of cached data from all sources.
 
 **Response**:
+
 ```json
 {
   "timestamp": "2024-12-19T15:30:00.000Z",
@@ -60,9 +62,11 @@ Returns overview of cached data from all sources.
 **Endpoint**: `GET /api/data/live?source=sportsmonks`
 
 **Parameters**:
+
 - `source` (string): `sportsmonks` or `footballdata` (default: `sportsmonks`)
 
 **Response**:
+
 ```json
 {
   "source": "sportsmonks",
@@ -92,10 +96,12 @@ Returns overview of cached data from all sources.
 **Endpoint**: `GET /api/data/fixtures?source=sportsmonks&league=39`
 
 **Parameters**:
+
 - `source` (string): `sportsmonks` or `footballdata` (default: `sportsmonks`)
 - `league` (string): League ID (default: `39` = Premier League)
 
 **League IDs**:
+
 - `39` - Premier League (England)
 - `140` - La Liga (Spain)
 - `135` - Serie A (Italy)
@@ -104,6 +110,7 @@ Returns overview of cached data from all sources.
 - `2` - Champions League (Europe)
 
 **Response**:
+
 ```json
 {
   "source": "sportsmonks",
@@ -130,10 +137,12 @@ Returns overview of cached data from all sources.
 **Endpoint**: `GET /api/data/match/:matchId?source=sportsmonks`
 
 **Parameters**:
+
 - `matchId` (string): Match ID from the provider
 - `source` (string, optional): `sportsmonks` or `footballdata`. If omitted, returns data from all available sources.
 
 **Response (single source)**:
+
 ```json
 {
   "matchId": "12345",
@@ -152,19 +161,36 @@ Returns overview of cached data from all sources.
     "venue": "Old Traditonal Arena",
     "league": { "id": 39, "name": "Premier League" },
     "events": [
-      { "minute": 10, "type": "goal", "team": "home", "player": "Bruno Fernandes", "assist": "Marcus Rashford" },
-      { "minute": 25, "type": "card", "team": "away", "player": "Mohamed Salah", "card": "yellow" }
+      {
+        "minute": 10,
+        "type": "goal",
+        "team": "home",
+        "player": "Bruno Fernandes",
+        "assist": "Marcus Rashford"
+      },
+      {
+        "minute": 25,
+        "type": "card",
+        "team": "away",
+        "player": "Mohamed Salah",
+        "card": "yellow"
+      }
     ]
   }
 }
 ```
 
 **Response (all sources)**:
+
 ```json
 {
   "id": "12345",
-  "sportsmonks": { /* full match data from SportMonks */ },
-  "footballdata": { /* full match data from Football-Data */ },
+  "sportsmonks": {
+    /* full match data from SportMonks */
+  },
+  "footballdata": {
+    /* full match data from Football-Data */
+  },
   "retrieved": "2024-12-19T15:30:00.000Z"
 }
 ```
@@ -174,10 +200,12 @@ Returns overview of cached data from all sources.
 **Endpoint**: `GET /api/data/standings/:leagueId?source=sportsmonks`
 
 **Parameters**:
+
 - `leagueId` (string): League ID (e.g., `39` for Premier League)
 - `source` (string): `sportsmonks` or `footballdata` (default: `sportsmonks`)
 
 **Response**:
+
 ```json
 {
   "leagueId": "39",
@@ -210,9 +238,11 @@ Returns overview of cached data from all sources.
 **Endpoint**: `GET /api/data/leagues?source=sportsmonks`
 
 **Parameters**:
+
 - `source` (string): `sportsmonks` or `footballdata` (default: `sportsmonks`)
 
 **Response**:
+
 ```json
 {
   "source": "sportsmonks",
@@ -237,6 +267,7 @@ Returns overview of cached data from all sources.
 Returns detailed cache status, memory usage, and TTL information.
 
 **Response**:
+
 ```json
 {
   "timestamp": "2024-12-19T15:30:00.000Z",
@@ -268,6 +299,7 @@ Returns detailed cache status, memory usage, and TTL information.
 Manually removes expired cache entries.
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -283,20 +315,29 @@ Manually removes expired cache entries.
 Returns all cached data as a JSON file download.
 
 **Response**:
+
 ```json
 {
   "exportedAt": "2024-12-19T15:30:00.000Z",
   "summary": {
     "timestamp": "2024-12-19T15:30:00.000Z",
-    "sources": { /* ... */ }
+    "sources": {
+      /* ... */
+    }
   },
   "data": {
     "sportsmonks": {
-      "live": [ /* all live matches */ ],
-      "leagues": [ /* all leagues */ ]
+      "live": [
+        /* all live matches */
+      ],
+      "leagues": [
+        /* all leagues */
+      ]
     },
     "footballdata": {
-      "live": [ /* all live matches */ ]
+      "live": [
+        /* all live matches */
+      ]
     }
   }
 }
@@ -309,6 +350,7 @@ Returns all cached data as a JSON file download.
 Returns the complete API schema and documentation.
 
 **Response**:
+
 ```json
 {
   "version": "1.0",
@@ -317,7 +359,7 @@ Returns the complete API schema and documentation.
     "GET /api/data/summary": {
       "description": "Overview of all cached data",
       "response": { "summary": "object" }
-    },
+    }
     // ... all other endpoints documented
   },
   "sources": ["sportsmonks", "footballdata"],
@@ -335,31 +377,37 @@ Returns the complete API schema and documentation.
 ## Usage Examples
 
 ### Get All Live Matches
+
 ```bash
 curl https://betrix.example.com/api/data/live?source=sportsmonks
 ```
 
 ### Get Premier League Fixtures
+
 ```bash
 curl https://betrix.example.com/api/data/fixtures?source=sportsmonks&league=39
 ```
 
 ### Get Specific Match Details
+
 ```bash
 curl https://betrix.example.com/api/data/match/12345?source=sportsmonks
 ```
 
 ### Get Premier League Standings
+
 ```bash
 curl https://betrix.example.com/api/data/standings/39?source=sportsmonks
 ```
 
 ### Export All Data
+
 ```bash
 curl https://betrix.example.com/api/data/export > sports-data.json
 ```
 
 ### Check Cache Status
+
 ```bash
 curl https://betrix.example.com/api/data/cache-info
 ```
@@ -368,12 +416,12 @@ curl https://betrix.example.com/api/data/cache-info
 
 The Data Exposure API uses automatic TTL-based caching:
 
-| Data Type | TTL | Purpose |
-|-----------|-----|---------|
-| Live Matches | 2 minutes | Real-time updates |
-| Fixtures/Upcoming | 5 minutes | Regular updates |
-| Standings | 10 minutes | Less frequent changes |
-| Leagues | 24 hours | Rarely changes |
+| Data Type         | TTL        | Purpose               |
+| ----------------- | ---------- | --------------------- |
+| Live Matches      | 2 minutes  | Real-time updates     |
+| Fixtures/Upcoming | 5 minutes  | Regular updates       |
+| Standings         | 10 minutes | Less frequent changes |
+| Leagues           | 24 hours   | Rarely changes        |
 
 ## Data Flow
 
@@ -395,21 +443,21 @@ The `RawDataCache` service preserves all raw API responses with metadata:
 ```typescript
 class RawDataCache {
   // Store raw API data with TTL
-  store(key: string, data: any, ttl: number)
-  
+  store(key: string, data: any, ttl: number);
+
   // Retrieve with expiration check
-  get(key: string): Promise<CachedData>
-  
+  get(key: string): Promise<CachedData>;
+
   // Specialized storage methods
-  storeLiveMatches(source: string, matches: array)
-  storeFixtures(source: string, leagueId: string, fixtures: array)
-  storeMatch(matchId: string, source: string, matchData: object)
-  storeStandings(leagueId: string, source: string, standings: object)
-  storeLeagues(source: string, leagues: array)
-  
+  storeLiveMatches(source: string, matches: array);
+  storeFixtures(source: string, leagueId: string, fixtures: array);
+  storeMatch(matchId: string, source: string, matchData: object);
+  storeStandings(leagueId: string, source: string, standings: object);
+  storeLeagues(source: string, leagues: array);
+
   // Cleanup and export
-  cleanup(): Promise<number>
-  exportAll(): Promise<CacheExport>
+  cleanup(): Promise<number>;
+  exportAll(): Promise<CacheExport>;
 }
 ```
 
@@ -419,9 +467,9 @@ The `DataExposureHandler` class registers all REST endpoints:
 
 ```typescript
 class DataExposureHandler {
-  constructor(router: express.Router, sportsAggregator: SportsAggregator)
-  
-  registerRoutes()  // Registers all /api/data/* endpoints
+  constructor(router: express.Router, sportsAggregator: SportsAggregator);
+
+  registerRoutes(); // Registers all /api/data/* endpoints
 }
 ```
 
@@ -472,4 +520,4 @@ For issues or questions about the Data Exposure API:
 ---
 
 **BETRIX Data Exposure API v1.0**  
-*Last Updated: 2024-12-19*
+_Last Updated: 2024-12-19_

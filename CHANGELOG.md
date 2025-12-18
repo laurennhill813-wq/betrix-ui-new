@@ -12,7 +12,7 @@
 - Moved developer-only helper scripts into `docs/dev-scripts/` (copies created).
 - README: documentation for TLS interception, Redis troubleshooting, and pointer to `docs/dev-scripts/`.
 
-
 ## Notes
+
 - Do NOT enable `SPORTSMONKS_INSECURE` in production. Install proxy CA or allowlist hosts instead.
 - After review, merge `prefer-sportmonks-20251129` to `main` and deploy the worker. Validate `/live` flows.

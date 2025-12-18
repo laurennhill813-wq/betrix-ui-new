@@ -51,6 +51,7 @@
 ## 🔄 Data Flow Examples
 
 ### Example 1: /live Command
+
 ```
 User: /live
    ↓
@@ -72,6 +73,7 @@ Send to Telegram
 ```
 
 ### Example 2: /odds Command
+
 ```
 User: /odds
    ↓
@@ -93,6 +95,7 @@ Send to Telegram
 ```
 
 ### Example 3: /standings Command
+
 ```
 User: /standings Premier League
    ↓
@@ -118,6 +121,7 @@ Send to Telegram
 ## 📊 Data Structure Reference
 
 ### Live Match Object
+
 ```javascript
 {
   id: 1,                      // Unique match ID
@@ -132,6 +136,7 @@ Send to Telegram
 ```
 
 ### Odds Object
+
 ```javascript
 {
   home: "Manchester United",  // Home team
@@ -144,6 +149,7 @@ Send to Telegram
 ```
 
 ### Standing Object
+
 ```javascript
 {
   position: 1,               // League position
@@ -164,46 +170,50 @@ Send to Telegram
 ✅ **Handler Updated**: `src/handlers/telegram-handler-v2.js`
 ✅ **Worker Initialized**: `src/worker-final.js`
 ✅ **Commands Integrated**:
-   - ✅ /live
-   - ✅ /odds
-   - ✅ /standings
-   - ✅ /menu
-   - ✅ Callback queries
-✅ **Data Sources Connected**:
-   - ✅ API-Sports (Primary)
-   - ✅ Football-Data.org (Secondary)
-   - ✅ Demo Data (Fallback)
-✅ **Caching Implemented**: Redis with configurable TTL
-✅ **Error Handling**: Graceful fallbacks and logging
-✅ **Testing**: All tests passing ✅
+
+- ✅ /live
+- ✅ /odds
+- ✅ /standings
+- ✅ /menu
+- ✅ Callback queries
+  ✅ **Data Sources Connected**:
+- ✅ API-Sports (Primary)
+- ✅ Football-Data.org (Secondary)
+- ✅ Demo Data (Fallback)
+  ✅ **Caching Implemented**: Redis with configurable TTL
+  ✅ **Error Handling**: Graceful fallbacks and logging
+  ✅ **Testing**: All tests passing ✅
 
 ---
 
 ## 🚀 Usage in Commands
 
 ### In /live handler
+
 ```javascript
 const liveMatches = await sportsAggregator.getLiveMatches();
-liveMatches.forEach(match => {
+liveMatches.forEach((match) => {
   const msg = `⚽ ${match.home} vs ${match.away}\n📊 ${match.homeScore}-${match.awayScore}`;
   telegram.sendMessage(chatId, msg);
 });
 ```
 
 ### In /odds handler
+
 ```javascript
 const odds = await sportsAggregator.getOdds();
-odds.forEach(odd => {
+odds.forEach((odd) => {
   const msg = `💰 ${odd.home} vs ${odd.away}\n1: ${odd.homeOdds} X: ${odd.drawOdds} 2: ${odd.awayOdds}`;
   telegram.sendMessage(chatId, msg);
 });
 ```
 
 ### In /standings handler
+
 ```javascript
-const standings = await sportsAggregator.getStandings('Premier League');
+const standings = await sportsAggregator.getStandings("Premier League");
 standings.forEach((team, idx) => {
-  const msg = `${idx+1}. ${team.team} (${team.points}pts)`;
+  const msg = `${idx + 1}. ${team.team} (${team.points}pts)`;
   telegram.sendMessage(chatId, msg);
 });
 ```
@@ -223,6 +233,7 @@ standings.forEach((team, idx) => {
 ## 🔧 Configuration
 
 ### Environment Variables
+
 ```env
 REDIS_URL=redis://localhost:6379
 API_FOOTBALL_KEY=your_api_sports_key
@@ -230,11 +241,12 @@ FOOTBALLDATA_KEY=your_football_data_key
 ```
 
 ### Cache TTL Settings
+
 ```javascript
 // In SportsAggregator
-const cacheTTL = 5 * 60 * 1000;           // 5 min (general cache)
-const liveTTL = 2 * 60 * 1000;            // 2 min (live data)
-const oddsTTL = 10 * 60 * 1000;           // 10 min (odds)
+const cacheTTL = 5 * 60 * 1000; // 5 min (general cache)
+const liveTTL = 2 * 60 * 1000; // 2 min (live data)
+const oddsTTL = 10 * 60 * 1000; // 10 min (odds)
 ```
 
 ---
@@ -242,11 +254,13 @@ const oddsTTL = 10 * 60 * 1000;           // 10 min (odds)
 ## ✅ Testing
 
 Run the test suite:
+
 ```bash
 node test-sports-aggregator.js
 ```
 
 Test coverage includes:
+
 - Live matches fetching ✅
 - Odds retrieval ✅
 - Standings data ✅

@@ -9,6 +9,7 @@
 The BETRIX Telegram bot has been updated to use **SportMonks** as the primary football live data provider. This runbook guides you through deploying the bot to production with real-time match data.
 
 **What's new:**
+
 - ✅ SportMonks integration (preferred provider for football matches)
 - ✅ Real team names displayed (no more "Unknown vs Unknown")
 - ✅ Clickable match details with Telegram callbacks
@@ -98,11 +99,13 @@ echo "SPORTSMONKS_API: ${SPORTSMONKS_API:0:10}***"
 1. **Obtain proxy CA certificate** (`.cer` or `.pem`) from your IT/security team
 
 2. **Run installation helper:**
+
    ```powershell
    .\docs\dev-scripts\install-proxy-ca.ps1 -CertPath 'C:\path\to\proxy-ca.cer'
    ```
 
 3. **Verify installation:**
+
    ```bash
    node scripts/inspect-sportmonks-cert.js
    ```
@@ -124,6 +127,7 @@ node src/worker-final.js
 ```
 
 **Expected startup logs:**
+
 ```
 [Worker] Started: BRPOPLPUSH queue handler
 [Redis] Connected to redis://default:...@host:6379
@@ -146,6 +150,7 @@ node scripts/validate-telegram-live.js
 ```
 
 **Expected output:**
+
 ```
 ✅ All required env vars set
 ✅ Redis connected: PONG
@@ -155,6 +160,7 @@ node scripts/validate-telegram-live.js
 ```
 
 **If validation fails:**
+
 - Check error message carefully (see Troubleshooting section below)
 - Ensure worker is still running in the other terminal
 - Review worker logs for errors
@@ -168,13 +174,14 @@ node scripts/validate-telegram-live.js
 2. **Send command**: `/live`
 
 3. **Expected response**:
+
    ```
    📊 Live Matches (Football):
-   
+
    1️⃣ Manchester City vs Liverpool
    2️⃣ Bayern Munich vs Borussia Dortmund
    3️⃣ Real Madrid vs Barcelona
-   
+
    [Button: Details] [Button: Details] [Button: Details]
    ```
 
@@ -223,6 +230,7 @@ redis-cli GET worker:heartbeat
 ### Problem: `/live` returns "Unknown vs Unknown"
 
 **Diagnosis:**
+
 ```bash
 # 1. Check SportMonks API is reachable:
 node scripts/test-sportmonks-axios.js
@@ -232,6 +240,7 @@ echo "Token: $SPORTSMONKS_API"
 ```
 
 **Solutions:**
+
 - [ ] Verify `SPORTSMONKS_API` token is correct
 - [ ] Check SportMonks API is returning data (run diagnostics above)
 - [ ] Ensure worker is running (`redis-cli GET worker:heartbeat` shows timestamp)
@@ -240,6 +249,7 @@ echo "Token: $SPORTSMONKS_API"
 ### Problem: Bot doesn't respond to `/live`
 
 **Diagnosis:**
+
 ```bash
 # 1. Check worker is running:
 redis-cli GET worker:heartbeat
@@ -253,6 +263,7 @@ redis-cli LLEN telegram:processing
 ```
 
 **Solutions:**
+
 - [ ] Ensure worker process is running
 - [ ] Verify `TELEGRAM_TOKEN` is correct
 - [ ] Check webhook is registered with Telegram
@@ -261,6 +272,7 @@ redis-cli LLEN telegram:processing
 ### Problem: "NOAUTH" errors in logs
 
 **Diagnosis:**
+
 ```bash
 # Test Redis connection directly:
 redis-cli PING
@@ -271,6 +283,7 @@ redis-cli -u "redis://default:wrongpassword@host:6379" PING
 ```
 
 **Solutions:**
+
 - [ ] Verify `REDIS_URL` format: `redis://default:PASSWORD@HOST:PORT`
 - [ ] Check password is correct (no typos)
 - [ ] Re-run setup script: `.\scripts\setup-production-env.ps1`
@@ -279,12 +292,14 @@ redis-cli -u "redis://default:wrongpassword@host:6379" PING
 ### Problem: TLS Certificate Errors
 
 **Example error:**
+
 ```
 Error: unable to verify the first certificate
 ...at Protocol.getError (/usr/lib/node_modules/axios/...)
 ```
 
 **Diagnosis:**
+
 ```bash
 # Check certificate chain:
 node scripts/inspect-sportmonks-cert.js
@@ -296,6 +311,7 @@ node scripts/inspect-sportmonks-cert.js
 **Solutions:**
 
 **Option A: Install Proxy CA (Windows)**
+
 ```powershell
 # Get .cer file from your IT team
 .\docs\dev-scripts\install-proxy-ca.ps1 -CertPath 'C:\path\to\proxy-ca.cer'
@@ -305,20 +321,24 @@ node scripts/inspect-sportmonks-cert.js
 ```
 
 **Option B: Allowlist SportMonks Host**
+
 - Ask your network/proxy team to allowlist `api.sportmonks.com`
 - This prevents the proxy from re-signing requests to that host
 - Restart worker after allowlisting
 
 **Option C: Temporary Workaround (Dev Only)**
+
 ```bash
 export SPORTSMONKS_INSECURE=true
 node src/worker-final.js
 ```
+
 ⚠️ **DO NOT use in production.** Unset after TLS is fixed.
 
 ### Problem: Redis Connection Refused
 
 **Diagnosis:**
+
 ```bash
 # Check Redis is running and accessible:
 redis-cli PING
@@ -328,6 +348,7 @@ redis-cli -u "$REDIS_URL" PING
 ```
 
 **Solutions:**
+
 - [ ] Ensure Redis server is running
 - [ ] Verify `REDIS_URL` is correct (host, port, password)
 - [ ] Check firewall allows connection to Redis host
@@ -340,6 +361,7 @@ redis-cli -u "$REDIS_URL" PING
 ### Heroku / Railway / Render
 
 1. **Set Config Variables** in platform dashboard:
+
    ```
    TELEGRAM_TOKEN=...
    REDIS_URL=...
@@ -348,6 +370,7 @@ redis-cli -u "$REDIS_URL" PING
    ```
 
 2. **Deploy**:
+
    ```bash
    git push heroku main
    # or: git push railway main
@@ -362,12 +385,13 @@ redis-cli -u "$REDIS_URL" PING
 ### Self-Hosted Linux (systemd)
 
 1. **Create service file** (`/etc/systemd/system/betrix-worker.service`):
+
    ```ini
    [Unit]
    Description=BETRIX Telegram Bot Worker
    After=network.target redis.service
    Wants=redis.service
-   
+
    [Service]
    Type=simple
    User=betrix
@@ -380,12 +404,13 @@ redis-cli -u "$REDIS_URL" PING
    StandardOutput=journal
    StandardError=journal
    SyslogIdentifier=betrix-worker
-   
+
    [Install]
    WantedBy=multi-user.target
    ```
 
 2. **Enable and start**:
+
    ```bash
    sudo systemctl daemon-reload
    sudo systemctl enable betrix-worker
@@ -402,11 +427,13 @@ redis-cli -u "$REDIS_URL" PING
 ### Docker
 
 1. **Build image**:
+
    ```bash
    docker build -t betrix-bot:latest .
    ```
 
 2. **Run container**:
+
    ```bash
    docker run -d \
      --name betrix-worker \
@@ -471,13 +498,13 @@ node src/worker-final.js
 
 ## Support & Escalation
 
-| Issue | Owner | Contact |
-|-------|-------|---------|
-| Telegram bot not responding | Dev team | Check logs, validate webhook |
-| Redis authentication error | DevOps/DBA | Verify credentials, check Redis server |
-| TLS certificate errors | Network/Security | Install proxy CA or allowlist host |
-| SportMonks API errors | External | Check SportMonks status page |
-| Performance degradation | Dev team + DevOps | Monitor worker logs and resource usage |
+| Issue                       | Owner             | Contact                                |
+| --------------------------- | ----------------- | -------------------------------------- |
+| Telegram bot not responding | Dev team          | Check logs, validate webhook           |
+| Redis authentication error  | DevOps/DBA        | Verify credentials, check Redis server |
+| TLS certificate errors      | Network/Security  | Install proxy CA or allowlist host     |
+| SportMonks API errors       | External          | Check SportMonks status page           |
+| Performance degradation     | Dev team + DevOps | Monitor worker logs and resource usage |
 
 ---
 

@@ -10,8 +10,11 @@ class HuggingFaceService {
       this.models = [];
     } else if (Array.isArray(models)) {
       this.models = models.filter(Boolean);
-    } else if (typeof models === 'string') {
-      this.models = models.split(',').map(s => s.trim()).filter(Boolean);
+    } else if (typeof models === "string") {
+      this.models = models
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
     } else {
       this.models = [];
     }
@@ -27,7 +30,12 @@ class HuggingFaceService {
     const headers = { "Content-Type": "application/json" };
     if (this.token) headers["Authorization"] = `Bearer ${this.token}`;
 
-    const res = await fetch(base, { method: "POST", headers, body: JSON.stringify(body), timeout: 20000 });
+    const res = await fetch(base, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      timeout: 20000,
+    });
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
       throw new Error(`HF ${res.status}: ${txt}`);
@@ -37,11 +45,12 @@ class HuggingFaceService {
     // normalize
     if (Array.isArray(data)) {
       const first = data[0];
-      if (first && typeof first.generated_text === "string") return first.generated_text;
+      if (first && typeof first.generated_text === "string")
+        return first.generated_text;
       if (first && typeof first === "string") return first;
     }
     if (typeof data.generated_text === "string") return data.generated_text;
-    if (typeof data === 'string') return data;
+    if (typeof data === "string") return data;
     if (data && data.error) throw new Error(data.error);
     // fallback to JSON string
     return JSON.stringify(data).slice(0, 2000);
@@ -57,11 +66,17 @@ class HuggingFaceService {
         return out;
       } catch (err) {
         lastErr = err;
-        logger.warn(`HuggingFace model ${m} failed`, err?.message || String(err));
+        logger.warn(
+          `HuggingFace model ${m} failed`,
+          err?.message || String(err),
+        );
         // try next model
       }
     }
-    logger.warn("All HuggingFace models failed", lastErr?.message || String(lastErr));
+    logger.warn(
+      "All HuggingFace models failed",
+      lastErr?.message || String(lastErr),
+    );
     throw lastErr || new Error("No HuggingFace models available");
   }
 

@@ -1,5 +1,4 @@
-Data Model (Overview)
-======================
+# Data Model (Overview)
 
 Core entities introduced in Postgres (see `migrations/001_create_core_tables.sql`):
 

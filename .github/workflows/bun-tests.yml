@@ -3,9 +3,9 @@ name: Run tests with Bun
 on:
   workflow_dispatch: {}
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   bun-tests:
@@ -17,7 +17,7 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 'latest'
+          bun-version: "latest"
 
       - name: Show bun and node versions
         run: |

@@ -1,18 +1,18 @@
 // Simple heuristic-based interest scorer for events
-import { getEventVelocity } from './trending.js';
+import { getEventVelocity } from "./trending.js";
 
 export async function scoreEvent(event = {}) {
   try {
     let score = 0;
     if (!event) return 0;
-    const status = String(event.status || '').toUpperCase();
+    const status = String(event.status || "").toUpperCase();
     // LIVE events are highly interesting
-    if (status === 'LIVE') score += 50;
+    if (status === "LIVE") score += 50;
     // Newly started / just kicked off
-    if (status === 'STARTED' || status === 'IN_PLAY') score += 20;
+    if (status === "STARTED" || status === "IN_PLAY") score += 20;
     // importance flag from aggregator
-    if (event.importance === 'high') score += 30;
-    if (event.importance === 'medium') score += 10;
+    if (event.importance === "high") score += 30;
+    if (event.importance === "medium") score += 10;
     // close scorelines in later stages are interesting
     try {
       const s = event.score || {};
@@ -20,16 +20,23 @@ export async function scoreEvent(event = {}) {
       const a = Number(s.away || s.awayScore || s.away_score || 0);
       if (!isNaN(h) && !isNaN(a)) {
         const diff = Math.abs(h - a);
-        if (status === 'LIVE' && diff <= 2) score += 15;
-        if (status === 'LIVE' && diff === 0) score += 10; // tie games are extra spicy
+        if (status === "LIVE" && diff <= 2) score += 15;
+        if (status === "LIVE" && diff === 0) score += 10; // tie games are extra spicy
       }
     } catch (e) {}
     // competition/stage importance
-    const comp = (event.league || '') .toString().toLowerCase();
-    if (comp.includes('final') || comp.includes('champions') || comp.includes('world cup') || comp.includes('playoff')) score += 25;
+    const comp = (event.league || "").toString().toLowerCase();
+    if (
+      comp.includes("final") ||
+      comp.includes("champions") ||
+      comp.includes("world cup") ||
+      comp.includes("playoff")
+    )
+      score += 25;
     // trending / velocity: if many mentions in short window, boost
     try {
-      const evtId = event.id || (event.raw && event.raw.id) || (event._eventId || null);
+      const evtId =
+        event.id || (event.raw && event.raw.id) || event._eventId || null;
       const vel = await getEventVelocity(evtId).catch(() => 0);
       if (vel && Number(vel) > 0) {
         // small multiplier: each recent mention adds 5 points, cap at 30

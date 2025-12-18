@@ -20,9 +20,7 @@ class PaymentPresenter {
           { text: "🏧 Lipa STK Push", callback_data: "pay:stk_push" },
           { text: "₿ Binance (Crypto)", callback_data: "pay:binance" },
         ],
-        [
-          { text: "🏦 Bank Transfer", callback_data: "pay:bank" },
-        ],
+        [{ text: "🏦 Bank Transfer", callback_data: "pay:bank" }],
         [{ text: "⬅️ Back", callback_data: "menu:main" }],
       ],
     };
@@ -32,7 +30,8 @@ class PaymentPresenter {
    * Format subscription tier comparison
    */
   static formatTierComparison() {
-    const text = `${EMOJIS.premium} <b>BETRIX Subscription Plans</b>\n\n` +
+    const text =
+      `${EMOJIS.premium} <b>BETRIX Subscription Plans</b>\n\n` +
       `<b>🎁 FREE TIER</b>\n` +
       `✓ Live matches\n` +
       `✓ League standings\n` +
@@ -183,20 +182,21 @@ class PaymentPresenter {
       month: "30 days",
     };
 
-    let text = `✅ <b>Payment Successful!</b>\n\n` +
+    let text =
+      `✅ <b>Payment Successful!</b>\n\n` +
       `🎉 Welcome to ${tier === "vvip" ? "💎 VVIP" : "👤 Member"} tier\n\n` +
       `⏰ Access: ${durationText[duration] || "Lifetime"}\n` +
       `📅 Activated: ${new Date().toLocaleDateString()}\n\n` +
       `Now you can use:\n` +
       `/analyze - Match analysis\n` +
       `/predict - AI predictions\n`;
-    
+
     if (tier === "vvip") {
       text += `/dossier - Pro analysis\n/coach - Betting coach\n`;
     }
-    
-    text += `/insights - Personal recommendations\n\n` +
-      `Type /menu to get started!`;
+
+    text +=
+      `/insights - Personal recommendations\n\n` + `Type /menu to get started!`;
 
     return text;
   }

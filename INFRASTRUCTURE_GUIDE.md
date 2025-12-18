@@ -7,12 +7,14 @@ This repository contains a fully resilient, production-ready Telegram bot with i
 ## Key Features
 
 ### 1. Resilient Multi-Provider AI Pipeline
+
 - **Primary**: Google Gemini (with defensive handling for empty responses and MAX_TOKENS retry)
 - **Fallback Chain**: Azure AI → HuggingFace → LocalAI (graceful degradation)
 - **Per-user token trimming** to stay within model prompt budgets
 - **Observability**: Redis key `ai:active` tracks which provider is currently active
 
 ### 2. Free Live Data Integration
+
 - **OpenLigaDB**: No-auth JSON API for matches, leagues, standings (30-second cache TTL)
 - **RSS Feeds**: BBC, Guardian, ESPN football headlines (60-second cache TTL)
 - **ScoreBat**: Free video highlights and featured feeds (60-second cache TTL)
@@ -20,6 +22,7 @@ This repository contains a fully resilient, production-ready Telegram bot with i
 - **Polite Scrapers**: FBref/Understat with robots.txt respect (optional, low TTL)
 
 ### 3. Prefetch Scheduler
+
 - Runs in the worker process on configurable interval (default 60 seconds)
 - Warms caches in Redis for all free-data sources
 - Publishes `prefetch:updates` and `prefetch:error` events via pub/sub
@@ -27,17 +30,20 @@ This repository contains a fully resilient, production-ready Telegram bot with i
 - Publishes per-source failure counts and next-retry timestamps
 
 ### 4. Centralized Cache Service
+
 - `src/services/cache.js`: Simple wrapper around Redis for `get`, `set`, and `rateLimit`
 - Built-in token-bucket rate limiting per source/host
 - Standardized TTL handling and error recovery
 - Wired into `OpenLigaDBService` and `RSSAggregator` for consistent caching
 
 ### 5. Real-time WebSocket Integration
+
 - Web server (`src/app.js`) subscribes to `prefetch:updates` and `prefetch:error`
 - Broadcasts prefetch events to connected WebSocket clients in real-time
 - Enables dashboards and UIs to stay synchronized with data freshness
 
 ### 6. Unit Tests
+
 - `tests/rss-aggregator.test.js`: Instantiation and cache setup tests
 - `tests/openligadb.test.js`: Configuration and cache injection tests
 - Run tests with `npm test` (uses Node.js built-in test runner)
@@ -47,6 +53,7 @@ This repository contains a fully resilient, production-ready Telegram bot with i
 ## Configuration & Environment Variables
 
 ### Core Bot & Services
+
 ```env
 # Telegram
 TELEGRAM_TOKEN=your_bot_token
@@ -70,6 +77,7 @@ NODE_ENV=production
 ```
 
 ### Prefetch Scheduler (optional, use defaults)
+
 ```env
 # Interval between prefetch runs (seconds). Warning: <10s may stress providers.
 PREFETCH_INTERVAL_SECONDS=60
@@ -80,6 +88,7 @@ PREFETCH_MAX_BACKOFF_SECONDS=3600     # Maximum backoff (1 hour)
 ```
 
 ### Optional: ScoreBat & Scraper Tokens
+
 ```env
 SCOREBAT_TOKEN=your_scorebat_token    # Optional; free tier works without it
 ```
@@ -89,16 +98,19 @@ SCOREBAT_TOKEN=your_scorebat_token    # Optional; free tier works without it
 ## Running the Application
 
 ### Install Dependencies
+
 ```bash
 npm install
 ```
 
 ### Run Tests
+
 ```bash
 npm test
 ```
 
 Expected output:
+
 ```
 ✔ OpenLigaDBService instantiates without cache (6.7ms)
 ✔ OpenLigaDBService instantiates with CacheService (0.7ms)
@@ -107,11 +119,13 @@ Expected output:
 ```
 
 ### Start the Worker (Background Queue Processor)
+
 ```bash
 node src/worker-final.js
 ```
 
 The worker will:
+
 1. Connect to Redis and establish heartbeat (`worker:heartbeat` key, refreshed every 10 seconds)
 2. Start the prefetch scheduler (interval: `PREFETCH_INTERVAL_SECONDS`)
 3. Listen for Telegram updates on the Redis queue `telegram:updates`
@@ -119,6 +133,7 @@ The worker will:
 5. Subscribe to prefetch pub/sub channels for internal observability
 
 ### Start the Web Server (Express + WebSocket)
+
 ```bash
 node src/app.js
 # or via npm script (if defined):
@@ -126,6 +141,7 @@ npm start
 ```
 
 The server will:
+
 1. Serve HTTP endpoints: `/live`, `/standings`, `/fixtures`, `/news`, `/highlights`
 2. Accept WebSocket connections at `ws://<host>:<port>/`
 3. Subscribe to `prefetch:updates` and `prefetch:error` channels
@@ -136,6 +152,7 @@ The server will:
 ## Architecture & Data Flow
 
 ### Prefetch Pipeline
+
 ```
 Worker → Prefetch Scheduler (every 60s)
   ├─ RSS Aggregator (BBC/Guardian/ESPN)
@@ -162,6 +179,7 @@ On Failure (all sources):
 ```
 
 ### Redis Pub/Sub Subscribers
+
 1. **Web Process** (`src/app.js`):
    - Subscribes to `prefetch:updates`, `prefetch:error`
    - Broadcasts to connected WebSocket clients
@@ -171,6 +189,7 @@ On Failure (all sources):
    - Logs events and optionally performs reactive caching (example: touch `prefetch:last:openligadb`)
 
 ### Telegram Update Queue
+
 - **Queue Key**: `telegram:updates` (Redis list)
 - **Processing Key**: `telegram:processing` (BRPOPLPUSH for at-least-once delivery)
 - **Workflow**:
@@ -185,34 +204,36 @@ On Failure (all sources):
 ## Cache Service & Rate Limiting
 
 ### CacheService API
+
 ```javascript
-import CacheService from './src/services/cache.js';
+import CacheService from "./src/services/cache.js";
 
 const cache = new CacheService(redisInstance);
 
 // Simple get/set
-await cache.get(key);              // → value or null
-await cache.set(key, value, 60);   // → store with 60s TTL
+await cache.get(key); // → value or null
+await cache.set(key, value, 60); // → store with 60s TTL
 
 // Token-bucket rate limiting
-const allowed = await cache.rateLimit('mykey', 30, 60); // 30 reqs per 60s
+const allowed = await cache.rateLimit("mykey", 30, 60); // 30 reqs per 60s
 // → true if allowed, false if exceeded
 ```
 
 ### Integration in Services
+
 ```javascript
 // OpenLigaDB with cache
 const openLiga = new OpenLigaDBService(baseUrl, cache, {
   ttlSeconds: 30,
-  rateLimit: 60,           // requests per window
-  rateWindowSeconds: 60    // window duration
+  rateLimit: 60, // requests per window
+  rateWindowSeconds: 60, // window duration
 });
 
 // RSSAggregator with cache
 const rss = new RSSAggregator(cache, {
   ttlSeconds: 60,
   rateLimit: 30,
-  rateWindowSeconds: 60
+  rateWindowSeconds: 60,
 });
 ```
 
@@ -221,6 +242,7 @@ const rss = new RSSAggregator(cache, {
 ## Monitoring & Observability
 
 ### Key Redis Keys to Watch
+
 ```redis
 # Prefetch scheduler state
 GET prefetch:last:openligadb
@@ -238,19 +260,22 @@ LRANGE system:logs 0 -100       # → last 100 log entries
 ```
 
 ### WebSocket Client Example
-```javascript
-const ws = new WebSocket('ws://localhost:5000/');
 
-ws.addEventListener('open', () => {
-  ws.send(JSON.stringify({
-    type: 'subscribe',
-    channels: ['prefetch:updates', 'prefetch:error']
-  }));
+```javascript
+const ws = new WebSocket("ws://localhost:5000/");
+
+ws.addEventListener("open", () => {
+  ws.send(
+    JSON.stringify({
+      type: "subscribe",
+      channels: ["prefetch:updates", "prefetch:error"],
+    }),
+  );
 });
 
-ws.addEventListener('message', (e) => {
+ws.addEventListener("message", (e) => {
   const msg = JSON.parse(e.data);
-  console.log('Event:', msg.type, msg.data);
+  console.log("Event:", msg.type, msg.data);
   // → {type: 'prefetch:updates', data: {type: 'rss', ts: 1700000000}}
 });
 ```
@@ -260,6 +285,7 @@ ws.addEventListener('message', (e) => {
 ## Legal & Compliance
 
 See `LEGAL.md` for high-level reuse guidance on integrated free data sources:
+
 - Wikipedia (CC BY-SA): attribute and use short summaries
 - OpenLigaDB: check license and attribution requirements
 - RSS feeds (BBC/Guardian): snippet usage OK, full article reuse restricted
@@ -272,6 +298,7 @@ See `LEGAL.md` for high-level reuse guidance on integrated free data sources:
 ## Prefetch Policy
 
 See `PREFETCH_POLICY.md` for recommended intervals and operational guidance:
+
 - **Default**: 60 seconds (balanced)
 - **Recommended range**: 15–60 seconds
 - **Aggressive** (<10s): not recommended without provider permission
@@ -282,22 +309,26 @@ See `PREFETCH_POLICY.md` for recommended intervals and operational guidance:
 ## Troubleshooting
 
 ### Prefetch Scheduler Not Running
+
 1. Check worker logs: `node src/worker-final.js`
 2. Verify Redis connection: `redis-cli PING`
 3. Check `PREFETCH_INTERVAL_SECONDS` env var (should be a number)
 
 ### Bot Returns "No Live Data"
+
 1. Check if prefetch caches are warming: `LRANGE system:logs 0 -5`
 2. Verify free data sources are responding: check `PREFETCH_ERROR` pub/sub events
 3. Increase `PREFETCH_INTERVAL_SECONDS` and restart worker if providers are rate-limiting
 
 ### AI Responses Empty
+
 1. Check `ai:active` key to see which provider is being used
 2. If Gemini: verify `GEMINI_API_KEY` is set
 3. Check admin endpoint: `GET /admin/gemini-debug` (requires basic auth)
 4. Fallback to LocalAI if all paid providers fail
 
 ### WebSocket Clients Not Receiving Prefetch Events
+
 1. Verify web server is running: `curl http://localhost:5000/health`
 2. Check WebSocket connection: browser DevTools → Network → WS
 3. Ensure you're sending subscribe message after connection
@@ -341,4 +372,4 @@ See `PREFETCH_POLICY.md` for recommended intervals and operational guidance:
 
 ---
 
-*BETRIX Production Bot v3.0 — Intelligent Sports Betting Analytics*
+_BETRIX Production Bot v3.0 — Intelligent Sports Betting Analytics_

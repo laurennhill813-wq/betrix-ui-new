@@ -14,7 +14,7 @@ class BetslipGenerator {
     try {
       const matches = slip.matches || [];
       const totalOdds = slip.totalOdds || 1;
-      
+
       // Create professional betslip text representation
       let betslip = `
 ╔════════════════════════════════════════════════════════╗
@@ -94,13 +94,15 @@ Confidence: ${this.calculateConfidence(matches)}%
   static generateBetslipSVG(slip, user) {
     const matches = slip.matches || [];
     const totalOdds = slip.totalOdds || 1;
-    
+
     const matchesHTML = matches
-      .map((m, i) => `
+      .map(
+        (m, i) => `
         <text x="20" y="${200 + i * 60}" font-size="14" fill="#333">
           ${i + 1}. ${m.team} - ${m.prediction} @ ${m.odds}
         </text>
-      `)
+      `,
+      )
       .join("");
 
     const svg = `
@@ -155,7 +157,9 @@ Confidence: ${this.calculateConfidence(matches)}%
     if (!matches || matches.length === 0) return 50;
     // Simple average of match confidence if available
     const confidences = matches.map((m) => m.confidence || 70);
-    return Math.round(confidences.reduce((a, b) => a + b, 0) / confidences.length);
+    return Math.round(
+      confidences.reduce((a, b) => a + b, 0) / confidences.length,
+    );
   }
 
   /**
@@ -163,7 +167,7 @@ Confidence: ${this.calculateConfidence(matches)}%
    */
   static formatForSharing(slip, user, currency) {
     const betslip = this.formatBetslipAsImage(slip, user, currency);
-    
+
     return `
 📋 BETRIX BETSLIP
 ${betslip}

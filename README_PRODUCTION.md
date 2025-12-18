@@ -33,11 +33,13 @@ bash start.sh
 ## 📊 Subscription Tiers
 
 ### 🎁 FREE
+
 - Live matches, odds, standings
 - General tips
 - Referral rewards
 
 ### 👤 MEMBER (KES 150)
+
 - Everything in Free +
 - Match analysis
 - AI predictions
@@ -45,6 +47,7 @@ bash start.sh
 - Leaderboard
 
 ### 💎 VVIP (from KES 200/day)
+
 - Everything in Member +
 - Professional match dossier
 - Betting coach
@@ -55,16 +58,19 @@ bash start.sh
 ## 🎮 Commands
 
 **Free:**
+
 ```
 /start /menu /live /standings /odds /tips /help /pricing /refer
 ```
 
 **Member:**
+
 ```
 /analyze /predict /stats /insights /compete /watch
 ```
 
 **VVIP:**
+
 ```
 /dossier /coach /trends /alerts /live_commentary
 ```
@@ -129,4 +135,3 @@ src/
 ✅ Payment integration ready
 
 **Deploy with confidence!** 🚀
-

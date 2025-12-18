@@ -32,21 +32,24 @@ const participants = m.participants || m.teams || [];
 if (Array.isArray(participants) && participants.length >= 2) {
   // Multiple fallback paths for team name extraction
   homeName = safe(
-    (home.name || home.fullName || (home.meta && home.meta.name) || 
-     (home.team && home.team.name) || (home.data && home.data.name)),
-    'Home'
+    home.name ||
+      home.fullName ||
+      (home.meta && home.meta.name) ||
+      (home.team && home.team.name) ||
+      (home.data && home.data.name),
+    "Home",
   );
   // ... repeat for away team
 }
 
 // Strategy 2: Try teams object if participants failed
-if (homeName === 'Home' && m.teams && typeof m.teams === 'object') {
-  homeName = safe(m.teams.home.name || m.teams.home.fullName, 'Home');
+if (homeName === "Home" && m.teams && typeof m.teams === "object") {
+  homeName = safe(m.teams.home.name || m.teams.home.fullName, "Home");
 }
 
 // Strategy 3: Try direct properties
-if (homeName === 'Home' && (m.homeTeam || m.home_team)) {
-  homeName = safe(ht.name || ht.fullName, 'Home');
+if (homeName === "Home" && (m.homeTeam || m.home_team)) {
+  homeName = safe(ht.name || ht.fullName, "Home");
 }
 ```
 
@@ -61,7 +64,7 @@ if (m.score && m.score.fullTime) {
   homeScore = m.score.fullTime.home;
 } else if (m.score && m.score.current) {
   homeScore = m.score.current.home;
-} else if (typeof m.homeTeamScore === 'number') {
+} else if (typeof m.homeTeamScore === "number") {
   homeScore = m.homeTeamScore;
 }
 // ... also added fallback for team names across 3 different property paths
@@ -72,10 +75,10 @@ if (m.score && m.score.fullTime) {
 - **Added import**: `import { SportsAggregator } from "./services/sports-aggregator.js";`
 - **Instantiated service**:
   ```javascript
-  const sportsAggregator = new SportsAggregator(redis, { 
+  const sportsAggregator = new SportsAggregator(redis, {
     scorebat,
     rss: rssAggregator,
-    openLiga
+    openLiga,
   });
   ```
 - **Exported for use**: `export { sportsAggregator };`
@@ -89,7 +92,7 @@ if (m.score && m.score.fullTime) {
     const matches = await sportsAggregator.getAllLiveMatches();
     // Format with proper team names, scores, and league info
     const text = matches.slice(0, PAGE_SIZE).map((m, i) => {
-      const score = m.homeScore !== null && m.awayScore !== null 
+      const score = m.homeScore !== null && m.awayScore !== null
         ? `${m.homeScore}-${m.awayScore}` : 'vs';
       const league = m.league ? ` 🏆 ${m.league}` : '';
       return `${i + 1}. ${escapeHtml(m.home)} <b>${score}</b> ${escapeHtml(m.away)}${league}`;

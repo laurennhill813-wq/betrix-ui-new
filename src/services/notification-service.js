@@ -15,12 +15,19 @@ class NotificationService {
 
   async sendNotification(userId, title, message, type = "info") {
     try {
-      const notification = { userId, title, message, type, timestamp: Date.now(), read: false };
+      const notification = {
+        userId,
+        title,
+        message,
+        type,
+        timestamp: Date.now(),
+        read: false,
+      };
       const key = `notifications:${userId}`;
-      
+
       await this.redis.rpush(key, JSON.stringify(notification));
       await this.redis.ltrim(key, -100, -1); // Keep last 100
-      
+
       return notification;
     } catch (err) {
       logger.error("Send notification failed", err);
@@ -33,7 +40,7 @@ class NotificationService {
       if (this.telegram) {
         await this.telegram.sendMessage(userId, text);
       }
-      
+
       const icons = {
         warning: "⚠️",
         error: "❌",
@@ -45,7 +52,7 @@ class NotificationService {
 
       const icon = icons[alertType] || "📢";
       const fullText = `${icon} ${text}`;
-      
+
       await this.sendNotification(userId, alertType.toUpperCase(), fullText);
     } catch (err) {
       logger.error("Send alert failed", err);
@@ -62,7 +69,7 @@ class NotificationService {
         if (!user) continue;
 
         const userData = JSON.parse(user);
-        
+
         // Apply filter if specified
         if (filter.tier && userData.tier !== filter.tier) continue;
         if (filter.active && !userData.active) continue;
@@ -86,7 +93,7 @@ class NotificationService {
     try {
       const key = `notifications:${userId}`;
       const notifications = await this.redis.lrange(key, -limit, -1);
-      return notifications.map(n => JSON.parse(n));
+      return notifications.map((n) => JSON.parse(n));
     } catch (err) {
       return [];
     }

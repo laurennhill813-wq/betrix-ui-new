@@ -14,11 +14,16 @@ async function callRapidOpenAI(userText, opts = {}) {
     const body = {
       model: opts.model || "gpt-4o-mini",
       messages: [
-        { role: "system", content: opts.system || "You are BETRIX assistant. Keep replies concise." },
-        { role: "user", content: userText }
+        {
+          role: "system",
+          content:
+            opts.system || "You are BETRIX assistant. Keep replies concise.",
+        },
+        { role: "user", content: userText },
       ],
       max_tokens: opts.max_tokens || 300,
-      temperature: typeof opts.temperature === "number" ? opts.temperature : 0.2
+      temperature:
+        typeof opts.temperature === "number" ? opts.temperature : 0.2,
     };
 
     const resp = await fetch(url, {
@@ -26,17 +31,22 @@ async function callRapidOpenAI(userText, opts = {}) {
       headers: {
         "Content-Type": "application/json",
         "X-RapidAPI-Host": host,
-        "X-RapidAPI-Key": key
+        "X-RapidAPI-Key": key,
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     });
     const data = await resp.json();
 
-    const aiText = data?.choices?.[0]?.message?.content || data?.choices?.[0]?.text || null;
+    const aiText =
+      data?.choices?.[0]?.message?.content || data?.choices?.[0]?.text || null;
     if (!aiText) return { ok: false, error: "no-ai-text", raw: data };
     return { ok: true, text: String(aiText).trim(), raw: data };
   } catch (err) {
-    return { ok: false, error: "exception", message: err && (err.message || err.stack) };
+    return {
+      ok: false,
+      error: "exception",
+      message: err && (err.message || err.stack),
+    };
   }
 }
 

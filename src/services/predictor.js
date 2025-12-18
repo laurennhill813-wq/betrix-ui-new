@@ -4,7 +4,7 @@
  */
 
 import { Logger } from "../utils/logger.js";
-import createRedisAdapter from '../utils/redis-adapter.js';
+import createRedisAdapter from "../utils/redis-adapter.js";
 
 const logger = new Logger("Predictor");
 
@@ -27,7 +27,7 @@ class PredictionEngine {
       // AI prediction
       const aiPrediction = await this.gemini.chat(
         `Predict ${homeTeam} vs ${awayTeam}. Form: ${formScore}. H2H: ${headToHead}. Odds: ${JSON.stringify(bookmakerOdds)}. Give: winner, confidence (0-1), key factors.`,
-        {}
+        {},
       );
 
       // Parse confidence from AI response
@@ -81,7 +81,9 @@ class PredictionEngine {
    * Extract confidence score from AI text
    */
   extractConfidence(text) {
-    const matches = text.match(/(\d+(?:\.\d+)?)\s*%|confidence[:\s]+(\d+(?:\.\d+)?)/i);
+    const matches = text.match(
+      /(\d+(?:\.\d+)?)\s*%|confidence[:\s]+(\d+(?:\.\d+)?)/i,
+    );
     if (matches) {
       const value = parseFloat(matches[1] || matches[2]) / 100;
       return Math.min(1, Math.max(0.5, value));

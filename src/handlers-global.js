@@ -21,7 +21,8 @@ class GlobalSignupHandler {
    * Step 1: Ask for country
    */
   async askCountry(chatId, userId) {
-    const text = `🌍 <b>Welcome to BETRIX</b>\n\n` +
+    const text =
+      `🌍 <b>Welcome to BETRIX</b>\n\n` +
       `Where are you joining from?\n\n` +
       `This helps us show the right currency and payment methods.`;
 
@@ -41,8 +42,8 @@ class GlobalSignupHandler {
 
     await this.userService.saveUser(userId, { country: countryCode });
 
-    const text = `${country.flag} <b>${country.name}</b>\n\n` +
-      `Choose your language:`;
+    const text =
+      `${country.flag} <b>${country.name}</b>\n\n` + `Choose your language:`;
 
     const kb = GlobalService.buildLanguageKeyboard(countryCode);
     await this.telegram.sendMessage(chatId, text, { reply_markup: kb });
@@ -63,7 +64,8 @@ class GlobalSignupHandler {
       vvip_month: GlobalService.getLocalPricing("vvip_month", user.country),
     };
 
-    const text = `💎 <b>Choose Your Plan</b>\n\n` +
+    const text =
+      `💎 <b>Choose Your Plan</b>\n\n` +
       `🎁 <b>Free</b>\n` +
       `├─ Live matches\n` +
       `├─ Basic odds\n` +
@@ -82,15 +84,29 @@ class GlobalSignupHandler {
     const kb = {
       inline_keyboard: [
         [{ text: "🎁 Free", callback_data: "plan:free" }],
-        [{ text: `👤 Member - ${pricing.member.currency} ${pricing.member.amount}`, callback_data: "plan:member" }],
         [
-          { text: `💎 Day - ${pricing.vvip_day.currency} ${pricing.vvip_day.amount}`, callback_data: "plan:vvip_day" },
+          {
+            text: `👤 Member - ${pricing.member.currency} ${pricing.member.amount}`,
+            callback_data: "plan:member",
+          },
         ],
         [
-          { text: `💎 Week - ${pricing.vvip_week.currency} ${pricing.vvip_week.amount}`, callback_data: "plan:vvip_week" },
+          {
+            text: `💎 Day - ${pricing.vvip_day.currency} ${pricing.vvip_day.amount}`,
+            callback_data: "plan:vvip_day",
+          },
         ],
         [
-          { text: `💎 Month - ${pricing.vvip_month.currency} ${pricing.vvip_month.amount}`, callback_data: "plan:vvip_month" },
+          {
+            text: `💎 Week - ${pricing.vvip_week.currency} ${pricing.vvip_week.amount}`,
+            callback_data: "plan:vvip_week",
+          },
+        ],
+        [
+          {
+            text: `💎 Month - ${pricing.vvip_month.currency} ${pricing.vvip_month.amount}`,
+            callback_data: "plan:vvip_month",
+          },
         ],
       ],
     };
@@ -109,7 +125,8 @@ class GlobalSignupHandler {
       return this.completeSignup(chatId, userId, "free", null);
     }
 
-    const text = `💳 <b>How do you want to pay?</b>\n\n` +
+    const text =
+      `💳 <b>How do you want to pay?</b>\n\n` +
       `Available for ${GlobalService.getCountry(user.country).name}:`;
 
     const kb = GlobalService.buildPaymentKeyboard(user.country);
@@ -123,7 +140,8 @@ class GlobalSignupHandler {
     const user = await this.userService.getUser(userId);
     await this.userService.saveUser(userId, { paymentMethod });
 
-    const text = `📱 <b>Verify Your Phone</b>\n\n` +
+    const text =
+      `📱 <b>Verify Your Phone</b>\n\n` +
       `Enter your phone number (with country code or local format):`;
 
     await this.telegram.sendMessage(chatId, text);
@@ -139,7 +157,10 @@ class GlobalSignupHandler {
     // Validate & format phone
     const isValid = GlobalService.validatePhone(phone, user.country);
     if (!isValid) {
-      await this.telegram.sendMessage(chatId, `❌ Invalid phone format for ${GlobalService.getCountry(user.country).name}`);
+      await this.telegram.sendMessage(
+        chatId,
+        `❌ Invalid phone format for ${GlobalService.getCountry(user.country).name}`,
+      );
       return this.askPhone(chatId, userId, user.paymentMethod);
     }
 
@@ -147,13 +168,16 @@ class GlobalSignupHandler {
     const result = await this.otp.sendOTP(userId, formatted);
 
     if (!result.success) {
-      await this.telegram.sendMessage(chatId, `❌ Failed to send OTP: ${result.error}`);
+      await this.telegram.sendMessage(
+        chatId,
+        `❌ Failed to send OTP: ${result.error}`,
+      );
       return this.askPhone(chatId, userId, user.paymentMethod);
     }
 
-    await this.telegram.sendMessage(chatId,
-      `✅ OTP sent to ${formatted}\n\n` +
-      `Enter the 6-digit code:`,
+    await this.telegram.sendMessage(
+      chatId,
+      `✅ OTP sent to ${formatted}\n\n` + `Enter the 6-digit code:`,
     );
     await this.userService.saveUser(userId, { phone: formatted });
   }
@@ -166,25 +190,30 @@ class GlobalSignupHandler {
     const country = GlobalService.getCountry(user.country);
 
     if (plan === "free") {
-      await this.userService.saveUser(userId, { tier: "free", signupComplete: true });
-      await this.telegram.sendMessage(chatId,
+      await this.userService.saveUser(userId, {
+        tier: "free",
+        signupComplete: true,
+      });
+      await this.telegram.sendMessage(
+        chatId,
         `✅ <b>Welcome to BETRIX!</b>\n\n` +
-        `🎁 Free tier activated\n` +
-        `📍 ${country.flag} ${country.name}\n` +
-        `🌐 Language: ${I18n.supportedLanguages().includes(user.language) ? user.language : 'English'}\n\n` +
-        `Get started:\n` +
-        `/menu - Main menu\n` +
-        `/live - Live matches\n` +
-        `/pricing - Upgrade to Member/VVIP`,
+          `🎁 Free tier activated\n` +
+          `📍 ${country.flag} ${country.name}\n` +
+          `🌐 Language: ${I18n.supportedLanguages().includes(user.language) ? user.language : "English"}\n\n` +
+          `Get started:\n` +
+          `/menu - Main menu\n` +
+          `/live - Live matches\n` +
+          `/pricing - Upgrade to Member/VVIP`,
       );
     } else {
       const pricing = GlobalService.getLocalPricing(plan, user.country);
-      await this.telegram.sendMessage(chatId,
+      await this.telegram.sendMessage(
+        chatId,
         `⏳ <b>Processing Payment</b>\n\n` +
-        `Amount: ${pricing.displayText}\n` +
-        `Method: ${paymentMethod}\n` +
-        `Status: Awaiting confirmation...\n\n` +
-        `This usually takes less than 1 minute.`,
+          `Amount: ${pricing.displayText}\n` +
+          `Method: ${paymentMethod}\n` +
+          `Status: Awaiting confirmation...\n\n` +
+          `This usually takes less than 1 minute.`,
       );
 
       // In production, integrate actual payment processing here
@@ -195,14 +224,15 @@ class GlobalSignupHandler {
         paymentMethod,
       });
 
-      await this.telegram.sendMessage(chatId,
+      await this.telegram.sendMessage(
+        chatId,
         `✅ <b>Success!</b>\n\n` +
-        `💎 ${plan === "member" ? "Member" : "VVIP"} tier activated\n` +
-        `📍 ${country.flag} ${country.name}\n` +
-        `💰 Amount: ${pricing.displayText}\n` +
-        `🌐 Language: ${user.language.toUpperCase()}\n\n` +
-        `Now you have access to all premium features!\n\n` +
-        `/menu - Start exploring`,
+          `💎 ${plan === "member" ? "Member" : "VVIP"} tier activated\n` +
+          `📍 ${country.flag} ${country.name}\n` +
+          `💰 Amount: ${pricing.displayText}\n` +
+          `🌐 Language: ${user.language.toUpperCase()}\n\n` +
+          `Now you have access to all premium features!\n\n` +
+          `/menu - Start exploring`,
       );
     }
   }

@@ -7,18 +7,21 @@ Your Betrix application is now fully integrated with **StatPal (All Sports Data 
 ### 🎯 What's New
 
 #### 1. **StatPal Service** (`src/services/statpal-service.js`)
+
 - Complete wrapper for StatPal Sports Data API
 - Supports **13 sports** with live data, odds, fixtures, standings, player/team stats, injuries, and more
 - Built-in circuit-breaker health checking
 - Redis-backed caching and failure tracking
 
 #### 2. **Multi-Sport Handler** (`src/services/multi-sport-handler.js`)
+
 - High-level interface for all sports operations
 - Unified API for live scores, odds, fixtures, standings across all sports
 - Multi-sport dashboard to fetch all live games at once
 - Health check system
 
 #### 3. **SportsAggregator Integration** (`src/services/sports-aggregator.js`)
+
 - StatPal now primary data source (Priority 0)
 - Falls back to API-Sports, Football-Data, SportsData.io, SportsMonks, etc.
 - All methods available for each sport
@@ -30,21 +33,21 @@ Your Betrix application is now fully integrated with **StatPal (All Sports Data 
 
 StatPal provides real-time data for:
 
-| Sport | Code | API Version | Live Data | Odds | Fixtures | Standings | Stats |
-|-------|------|-------------|-----------|------|----------|-----------|-------|
-| **Soccer/Football** | `soccer` | v1, v2 | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **NFL** | `nfl` | v1 | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **NBA** | `nba` | v1 | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **NHL** | `nhl` | v1 | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **MLB** | `mlb` | v1 | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Cricket** | `cricket` | v1 | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Tennis** | `tennis` | v1 | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Esports** | `esports` | v1 | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Formula 1** | `f1` | v1 | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Handball** | `handball` | v1 | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Golf** | `golf` | v1 | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Horse Racing** | `horse-racing` | v1 | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Volleyball** | `volleyball` | v1 | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Sport               | Code           | API Version | Live Data | Odds | Fixtures | Standings | Stats |
+| ------------------- | -------------- | ----------- | --------- | ---- | -------- | --------- | ----- |
+| **Soccer/Football** | `soccer`       | v1, v2      | ✅        | ✅   | ✅       | ✅        | ✅    |
+| **NFL**             | `nfl`          | v1          | ✅        | ✅   | ✅       | ✅        | ✅    |
+| **NBA**             | `nba`          | v1          | ✅        | ✅   | ✅       | ✅        | ✅    |
+| **NHL**             | `nhl`          | v1          | ✅        | ✅   | ✅       | ✅        | ✅    |
+| **MLB**             | `mlb`          | v1          | ✅        | ✅   | ✅       | ✅        | ✅    |
+| **Cricket**         | `cricket`      | v1          | ✅        | ✅   | ✅       | ✅        | ✅    |
+| **Tennis**          | `tennis`       | v1          | ✅        | ✅   | ✅       | ✅        | ✅    |
+| **Esports**         | `esports`      | v1          | ✅        | ✅   | ✅       | ✅        | ✅    |
+| **Formula 1**       | `f1`           | v1          | ✅        | ✅   | ✅       | ✅        | ✅    |
+| **Handball**        | `handball`     | v1          | ✅        | ✅   | ✅       | ✅        | ✅    |
+| **Golf**            | `golf`         | v1          | ✅        | ✅   | ✅       | ✅        | ✅    |
+| **Horse Racing**    | `horse-racing` | v1          | ✅        | ✅   | ✅       | ✅        | ✅    |
+| **Volleyball**      | `volleyball`   | v1          | ✅        | ✅   | ✅       | ✅        | ✅    |
 
 ---
 
@@ -113,50 +116,51 @@ node verify-api-keys.js
 **Create test file: `test-statpal.js`**
 
 ```javascript
-const StatPalService = require('./src/services/statpal-service');
+const StatPalService = require("./src/services/statpal-service");
 
 async function testStatPal() {
   const statpal = new StatPalService();
 
-  console.log('🧪 Testing StatPal API...\n');
+  console.log("🧪 Testing StatPal API...\n");
 
   // Test Soccer Live Scores
-  console.log('📊 Soccer Live Scores:');
-  const soccerLive = await statpal.getLiveScores('soccer', 'v1');
+  console.log("📊 Soccer Live Scores:");
+  const soccerLive = await statpal.getLiveScores("soccer", "v1");
   console.log(`  Found: ${soccerLive?.length || 0} matches`);
 
   // Test NFL Live Scores
-  console.log('\n🏈 NFL Live Scores:');
-  const nflLive = await statpal.getLiveScores('nfl', 'v1');
+  console.log("\n🏈 NFL Live Scores:");
+  const nflLive = await statpal.getLiveScores("nfl", "v1");
   console.log(`  Found: ${nflLive?.length || 0} matches`);
 
   // Test NBA Live Scores
-  console.log('\n🏀 NBA Live Scores:');
-  const nbaLive = await statpal.getLiveScores('nba', 'v1');
+  console.log("\n🏀 NBA Live Scores:");
+  const nbaLive = await statpal.getLiveScores("nba", "v1");
   console.log(`  Found: ${nbaLive?.length || 0} matches`);
 
   // Test Odds
-  console.log('\n💰 Soccer Odds:');
-  const odds = await statpal.getLiveOdds('soccer', 'v1');
+  console.log("\n💰 Soccer Odds:");
+  const odds = await statpal.getLiveOdds("soccer", "v1");
   console.log(`  Found: ${odds?.length || 0} odds`);
 
   // Test Standings
-  console.log('\n🏆 Soccer Standings:');
-  const standings = await statpal.getStandings('soccer', null, 'v1');
+  console.log("\n🏆 Soccer Standings:");
+  const standings = await statpal.getStandings("soccer", null, "v1");
   console.log(`  Found: ${standings?.length || 0} teams`);
 
   // Health Check
-  console.log('\n🏥 Health Check:');
+  console.log("\n🏥 Health Check:");
   const healthy = await statpal.healthCheck();
-  console.log(`  Status: ${healthy ? '✅ Healthy' : '❌ Unhealthy'}`);
+  console.log(`  Status: ${healthy ? "✅ Healthy" : "❌ Unhealthy"}`);
 
-  console.log('\n✅ Tests complete!');
+  console.log("\n✅ Tests complete!");
 }
 
 testStatPal().catch(console.error);
 ```
 
 **Run test:**
+
 ```bash
 node test-statpal.js
 ```
@@ -168,16 +172,16 @@ node test-statpal.js
 #### **Example 1: Get Live Soccer Scores**
 
 ```javascript
-const MultiSportHandler = require('./src/services/multi-sport-handler');
+const MultiSportHandler = require("./src/services/multi-sport-handler");
 
 async function showLiveFootball() {
   const handler = new MultiSportHandler();
-  
+
   // Get live soccer matches
-  const matches = await handler.getLive('soccer', { limit: 10, version: 'v1' });
-  
+  const matches = await handler.getLive("soccer", { limit: 10, version: "v1" });
+
   console.log(`Live Soccer Matches: ${matches.length}`);
-  matches.forEach(match => {
+  matches.forEach((match) => {
     console.log(`  ${match.homeTeam} vs ${match.awayTeam} - ${match.status}`);
   });
 }
@@ -188,17 +192,17 @@ showLiveFootball();
 #### **Example 2: Get Multi-Sport Dashboard**
 
 ```javascript
-const MultiSportHandler = require('./src/services/multi-sport-handler');
+const MultiSportHandler = require("./src/services/multi-sport-handler");
 
 async function showAllSports() {
   const handler = new MultiSportHandler();
-  
+
   const allSports = await handler.getAllSportsLive({
-    sports: ['soccer', 'nfl', 'nba', 'nhl', 'mlb', 'cricket'],
-    limit: 10
+    sports: ["soccer", "nfl", "nba", "nhl", "mlb", "cricket"],
+    limit: 10,
   });
-  
-  console.log('Live Sports Dashboard:');
+
+  console.log("Live Sports Dashboard:");
   console.table(allSports);
 }
 
@@ -208,16 +212,16 @@ showAllSports();
 #### **Example 3: Get Odds for Betting**
 
 ```javascript
-const MultiSportHandler = require('./src/services/multi-sport-handler');
+const MultiSportHandler = require("./src/services/multi-sport-handler");
 
 async function showBettingOdds() {
   const handler = new MultiSportHandler();
-  
+
   // Get soccer odds
-  const odds = await handler.getOdds('soccer', { limit: 20, version: 'v1' });
-  
+  const odds = await handler.getOdds("soccer", { limit: 20, version: "v1" });
+
   console.log(`Available Betting Odds: ${odds.length}`);
-  odds.forEach(odd => {
+  odds.forEach((odd) => {
     console.log(`  ${odd.match} - ${JSON.stringify(odd.odds)}`);
   });
 }
@@ -228,15 +232,15 @@ showBettingOdds();
 #### **Example 4: Get Player Statistics**
 
 ```javascript
-const MultiSportHandler = require('./src/services/multi-sport-handler');
+const MultiSportHandler = require("./src/services/multi-sport-handler");
 
 async function getPlayerStats() {
   const handler = new MultiSportHandler();
-  
+
   // Get player stats (replace with real player ID from API)
-  const playerStats = await handler.getPlayerStats('soccer', 'player_123');
-  
-  console.log('Player Statistics:', playerStats);
+  const playerStats = await handler.getPlayerStats("soccer", "player_123");
+
+  console.log("Player Statistics:", playerStats);
 }
 
 getPlayerStats();
@@ -246,35 +250,35 @@ getPlayerStats();
 
 ```javascript
 // In your Telegram handler
-const MultiSportHandler = require('./src/services/multi-sport-handler');
+const MultiSportHandler = require("./src/services/multi-sport-handler");
 
-async function handleLiveCommand(ctx, sport = 'soccer') {
+async function handleLiveCommand(ctx, sport = "soccer") {
   const handler = new MultiSportHandler();
-  
+
   try {
     const matches = await handler.getLive(sport);
-    
+
     let message = `⚽ **Live ${sport.toUpperCase()} Matches**\n\n`;
-    
+
     if (matches.length === 0) {
-      message += 'No live matches at the moment.';
+      message += "No live matches at the moment.";
     } else {
-      matches.slice(0, 5).forEach(match => {
+      matches.slice(0, 5).forEach((match) => {
         message += `🎯 ${match.homeTeam} vs ${match.awayTeam}\n`;
         message += `⏱️ Status: ${match.status}\n\n`;
       });
     }
-    
-    await ctx.reply(message, { parse_mode: 'Markdown' });
+
+    await ctx.reply(message, { parse_mode: "Markdown" });
   } catch (error) {
-    await ctx.reply('❌ Error fetching live matches. Try again later.');
+    await ctx.reply("❌ Error fetching live matches. Try again later.");
   }
 }
 
 // In command handler
-bot.command('live', (ctx) => handleLiveCommand(ctx, 'soccer'));
-bot.command('nfl', (ctx) => handleLiveCommand(ctx, 'nfl'));
-bot.command('nba', (ctx) => handleLiveCommand(ctx, 'nba'));
+bot.command("live", (ctx) => handleLiveCommand(ctx, "soccer"));
+bot.command("nfl", (ctx) => handleLiveCommand(ctx, "nfl"));
+bot.command("nba", (ctx) => handleLiveCommand(ctx, "nba"));
 ```
 
 ---
@@ -395,6 +399,7 @@ STATPAL_V2=v2
 ## ⚡ Features
 
 ### ✅ Circuit Breaker
+
 - Automatic provider disabling on failures
 - Redis-backed health tracking
 - Status-code-based failure handling:
@@ -403,19 +408,23 @@ STATPAL_V2=v2
   - **5xx**: 1-minute disable (server error)
 
 ### ✅ Cascading Fallback
+
 - StatPal → API-Sports → Football-Data → SportsData.io → SportsMonks → Scrapers → Demo
 
 ### ✅ Intelligent Retries
+
 - Non-retryable errors: Skip immediately
 - Rate-limits: Longer backoff (2000ms)
 - Transient errors: Graduated backoff
 
 ### ✅ Caching
+
 - 5-minute default cache for aggregated data
 - 2-minute cache for live scores
 - Redis-backed for distributed systems
 
 ### ✅ Error Handling
+
 - Graceful degradation
 - Detailed error logging
 - Health status tracking
@@ -429,29 +438,29 @@ STATPAL_V2=v2
 Create `test/statpal.test.js`:
 
 ```javascript
-const assert = require('assert');
-const StatPalService = require('../src/services/statpal-service');
+const assert = require("assert");
+const StatPalService = require("../src/services/statpal-service");
 
-describe('StatPal Service', () => {
+describe("StatPal Service", () => {
   let statpal;
 
   before(() => {
     statpal = new StatPalService();
   });
 
-  it('should fetch live soccer scores', async () => {
-    const data = await statpal.getLiveScores('soccer', 'v1');
+  it("should fetch live soccer scores", async () => {
+    const data = await statpal.getLiveScores("soccer", "v1");
     assert(Array.isArray(data) || data === null);
   });
 
-  it('should fetch odds', async () => {
-    const data = await statpal.getLiveOdds('soccer', 'v1');
+  it("should fetch odds", async () => {
+    const data = await statpal.getLiveOdds("soccer", "v1");
     assert(Array.isArray(data) || data === null);
   });
 
-  it('should pass health check', async () => {
+  it("should pass health check", async () => {
     const isHealthy = await statpal.healthCheck();
-    assert(typeof isHealthy === 'boolean');
+    assert(typeof isHealthy === "boolean");
   });
 });
 ```
@@ -480,6 +489,7 @@ time node -e "const S = require('./src/services/statpal-service'); new S().getLi
 ## 📋 Rate Limiting
 
 StatPal API Limits:
+
 - **Live Scores & Play-by-Play**: Refreshed every **30 seconds** → Maximum 120 calls/hour
 - **Other Endpoints**: Updated several times/hour → Maximum ~10 calls/hour
 
@@ -500,13 +510,13 @@ const LIVE_REQUEST_INTERVAL = 30 * 1000;
 
 ## 🚨 Troubleshooting
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| 401 Unauthorized | Invalid API key | Check STATPAL_API_KEY env var |
-| 404 Not Found | Wrong sport/endpoint | Verify sport code (soccer, nfl, nba, etc.) |
-| 429 Too Many Requests | Rate limit exceeded | Wait 5 minutes, increase cache TTL |
-| Timeout | Slow connection | Increase timeout, check network |
-| No Data | Sport has no live matches | Try different sport or check standings |
+| Issue                 | Cause                     | Solution                                   |
+| --------------------- | ------------------------- | ------------------------------------------ |
+| 401 Unauthorized      | Invalid API key           | Check STATPAL_API_KEY env var              |
+| 404 Not Found         | Wrong sport/endpoint      | Verify sport code (soccer, nfl, nba, etc.) |
+| 429 Too Many Requests | Rate limit exceeded       | Wait 5 minutes, increase cache TTL         |
+| Timeout               | Slow connection           | Increase timeout, check network            |
+| No Data               | Sport has no live matches | Try different sport or check standings     |
 
 **Debug Mode:**
 
@@ -544,12 +554,12 @@ Track StatPal usage:
 ```javascript
 // In your handler
 const usage = {
-  provider: 'statpal',
-  sport: 'soccer',
-  endpoint: 'livescores',
+  provider: "statpal",
+  sport: "soccer",
+  endpoint: "livescores",
   timestamp: new Date(),
   responseTime: 234, // ms
-  dataPoints: 45
+  dataPoints: 45,
 };
 
 // Log or store for analytics

@@ -4,17 +4,17 @@ on:
   workflow_dispatch:
     inputs:
       method:
-        description: 'Payment method to test (PAYPAL | SAFARICOM_TILL)'
+        description: "Payment method to test (PAYPAL | SAFARICOM_TILL)"
         required: false
-        default: 'SAFARICOM_TILL'
+        default: "SAFARICOM_TILL"
       tier:
-        description: 'Subscription tier to create'
+        description: "Subscription tier to create"
         required: false
-        default: 'PLUS'
+        default: "PLUS"
       simulate_capture:
-        description: 'Simulate capture/activation in CI (1 = yes, 0 = no)'
+        description: "Simulate capture/activation in CI (1 = yes, 0 = no)"
         required: false
-        default: '0'
+        default: "0"
 
 jobs:
   e2e-harness:
@@ -26,7 +26,7 @@ jobs:
       - name: Use Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install dependencies
         run: npm ci
@@ -37,7 +37,7 @@ jobs:
           PAYPAL_CLIENT_ID: ${{ secrets.PAYPAL_CLIENT_ID }}
           PAYPAL_CLIENT_SECRET: ${{ secrets.PAYPAL_CLIENT_SECRET }}
           PUBLIC_URL: ${{ secrets.PUBLIC_URL }}
-          NONINTERACTIVE: '1'
+          NONINTERACTIVE: "1"
           SIMULATE_CAPTURE: ${{ github.event.inputs.simulate_capture }}
           TEST_METHOD: ${{ github.event.inputs.method }}
           TEST_TIER: ${{ github.event.inputs.tier }}

@@ -4,9 +4,19 @@
  * Handles signup profile collection, fallbacks, and context awareness
  */
 
-import { Logger } from '../utils/logger.js';
-const logger = new Logger('MessageHandler');
-import { getUserState, setUserState, getStateData, setStateData, setUserState as updateUserStateData, StateTypes , createUserProfile, getUserProfile, updateUserProfile } from './data-models.js';
+import { Logger } from "../utils/logger.js";
+const logger = new Logger("MessageHandler");
+import {
+  getUserState,
+  setUserState,
+  getStateData,
+  setStateData,
+  setUserState as updateUserStateData,
+  StateTypes,
+  createUserProfile,
+  getUserProfile,
+  updateUserProfile,
+} from "./data-models.js";
 
 // ============================================================================
 // INTENT CLASSIFICATION
@@ -15,22 +25,26 @@ import { getUserState, setUserState, getStateData, setStateData, setUserState as
 const IntentPatterns = {
   // Feature access - MOST SPECIFIC PATTERNS FIRST (multi-word phrases)
   odds: /\b(show\s+odds|today.*match|fixture|live\s+odds|what.*play|game.*list|match.*list|upcoming.*match|next.*game)\b/i,
-  analyze: /\b(analyz|explain|breakdown|what.*happen|predict|what.*occur|why.*win|strategy)\w*/i,
+  analyze:
+    /\b(analyz|explain|breakdown|what.*happen|predict|what.*occur|why.*win|strategy)\w*/i,
   news: /\b(news|update|latest|what.*new|injury|lineup|transfer|alert|announce)\b/i,
   help: /\b(help|faq|how.*work|support|contact|troubleshoot|how.*do|guide|manual)\b/i,
-  payment: /\b(pay|payment|subscribe|vvip|upgrade|premium|checkout|buy|cost|price|fee)\b/i,
-  sites: /\b(betting\s+site|bookmaker|bet.*site|where.*bet|open.*site|betting.*app|place.*bet.*site)\b/i,
+  payment:
+    /\b(pay|payment|subscribe|vvip|upgrade|premium|checkout|buy|cost|price|fee)\b/i,
+  sites:
+    /\b(betting\s+site|bookmaker|bet.*site|where.*bet|open.*site|betting.*app|place.*bet.*site)\b/i,
   menu: /\b(menu|main|home|dashboard|back|start|main.*menu)\b/i,
-  
+
   // Betting actions
   bet: /\b(bet|place.*bet|add.*slip|stake|wager|gambling)\b/i,
   quick_bet: /\b(quick|rapid|fast|instant|one.*click)\b/i,
-  
+
   // Signup flow (specific phrases only)
-  signup: /^(sign\s*up|signup|join|register|create.*account|i.*want.*join|lets.*start|make.*account|create.*profile)/i,
-  
+  signup:
+    /^(sign\s*up|signup|join|register|create.*account|i.*want.*join|lets.*start|make.*account|create.*profile)/i,
+
   // Catch-all for simple names LAST (strict pattern: ONLY letters and spaces, 2-50 chars, no keywords)
-  name_input: /^[a-z\s]{2,50}$/i
+  name_input: /^[a-z\s]{2,50}$/i,
 };
 
 /**
@@ -45,7 +59,7 @@ export function classifyIntent(text) {
     }
   }
 
-  return 'unknown';
+  return "unknown";
 }
 
 /**
@@ -56,18 +70,18 @@ function parseMessage(text) {
   const trimmed = text.trim();
 
   // Handle commands: /command param1 param2
-  if (trimmed.startsWith('/')) {
+  if (trimmed.startsWith("/")) {
     const parts = trimmed.slice(1).split(/\s+/);
     return {
       command: parts[0].toLowerCase(),
-      params: parts.slice(1)
+      params: parts.slice(1),
     };
   }
 
   // Natural language: classify intent and extract entities
   return {
     intent: classifyIntent(trimmed),
-    text: trimmed
+    text: trimmed,
   };
 }
 
@@ -76,7 +90,11 @@ function parseMessage(text) {
 // ============================================================================
 
 export async function handleMessage(message, userId, chatId, redis, services) {
-  logger.info('handleMessage', { userId, chatId, text: message.substring(0, 50) });
+  logger.info("handleMessage", {
+    userId,
+    chatId,
+    text: message.substring(0, 50),
+  });
 
   try {
     // Parse message
@@ -88,32 +106,54 @@ export async function handleMessage(message, userId, chatId, redis, services) {
 
     // Handle state-specific inputs
     if (currentState !== StateTypes.IDLE) {
-      return await handleStateSpecificInput(currentState, message, userId, chatId, redis, services, stateData);
+      return await handleStateSpecificInput(
+        currentState,
+        message,
+        userId,
+        chatId,
+        redis,
+        services,
+        stateData,
+      );
     }
 
     // Handle explicit commands
     if (parsed.command) {
-      const { handleCommand } = await import('./commands-v3.js');
-      return await handleCommand(parsed.command, parsed.params, userId, chatId, redis, services);
+      const { handleCommand } = await import("./commands-v3.js");
+      return await handleCommand(
+        parsed.command,
+        parsed.params,
+        userId,
+        chatId,
+        redis,
+        services,
+      );
     }
 
     // Handle intent-based routing
-    if (parsed.intent && parsed.intent !== 'unknown') {
-      return await handleIntent(parsed.intent, parsed.text, userId, chatId, redis, services);
+    if (parsed.intent && parsed.intent !== "unknown") {
+      return await handleIntent(
+        parsed.intent,
+        parsed.text,
+        userId,
+        chatId,
+        redis,
+        services,
+      );
     }
 
     // Fallback: show help
     return {
       chat_id: chatId,
       text: `❓ I didn't quite understand that.\n\nTry:\n• /menu for main options\n• /odds to see today's matches\n• /help for FAQs\n• /signup to join`,
-      parse_mode: 'Markdown'
+      parse_mode: "Markdown",
     };
   } catch (err) {
-    logger.error('handleMessage error', err);
+    logger.error("handleMessage error", err);
     return {
       chat_id: chatId,
-      text: '❌ Error processing message. Try again.',
-      parse_mode: 'Markdown'
+      text: "❌ Error processing message. Try again.",
+      parse_mode: "Markdown",
     };
   }
 }
@@ -122,8 +162,16 @@ export async function handleMessage(message, userId, chatId, redis, services) {
 // STATE-SPECIFIC INPUT HANDLERS
 // ============================================================================
 
-async function handleStateSpecificInput(state, message, userId, chatId, redis, services, stateData) {
-  logger.info('handleStateSpecificInput', { state, userId });
+async function handleStateSpecificInput(
+  state,
+  message,
+  userId,
+  chatId,
+  redis,
+  services,
+  stateData,
+) {
+  logger.info("handleStateSpecificInput", { state, userId });
 
   switch (state) {
     case StateTypes.SIGNUP_NAME:
@@ -138,15 +186,15 @@ async function handleStateSpecificInput(state, message, userId, chatId, redis, s
     case StateTypes.PAYMENT_PENDING:
       return {
         chat_id: chatId,
-        text: '⏳ Your payment is still processing. Please wait or check /pay for status.',
-        parse_mode: 'Markdown'
+        text: "⏳ Your payment is still processing. Please wait or check /pay for status.",
+        parse_mode: "Markdown",
       };
 
     case StateTypes.BETTING_SLIP_ACTIVE:
       return {
         chat_id: chatId,
-        text: '🎯 You have an active betting slip. Finalize with /bet or type /cancel to start over.',
-        parse_mode: 'Markdown'
+        text: "🎯 You have an active betting slip. Finalize with /bet or type /cancel to start over.",
+        parse_mode: "Markdown",
       };
 
     default:
@@ -164,19 +212,19 @@ async function handleSignupName(message, userId, chatId, redis) {
   if (!name || name.length < 2) {
     return {
       chat_id: chatId,
-      text: '📝 Please provide a valid name (at least 2 characters).',
-      parse_mode: 'Markdown'
+      text: "📝 Please provide a valid name (at least 2 characters).",
+      parse_mode: "Markdown",
     };
   }
 
   // Save name and move to country
-  await setStateData(redis, userId, { name, step: 'country' }, 3600);
+  await setStateData(redis, userId, { name, step: "country" }, 3600);
   await setUserState(redis, userId, StateTypes.SIGNUP_COUNTRY, 3600);
 
   return {
     chat_id: chatId,
     text: `✅ Nice to meet you, *${name}*!\n\n🌍 Which country are you in?\n\nExamples: Kenya, Uganda, Tanzania, or use country code (KE, UG, TZ)`,
-    parse_mode: 'Markdown'
+    parse_mode: "Markdown",
   };
 }
 
@@ -185,28 +233,40 @@ async function handleSignupName(message, userId, chatId, redis) {
  */
 async function handleSignupCountry(message, userId, chatId, redis) {
   const country = message.trim().toUpperCase();
-  const validCountries = ['KE', 'UG', 'TZ', 'KENYA', 'UGANDA', 'TANZANIA'];
+  const validCountries = ["KE", "UG", "TZ", "KENYA", "UGANDA", "TANZANIA"];
 
   if (!validCountries.includes(country)) {
     return {
       chat_id: chatId,
-      text: '🌍 Please enter a valid country (KE, UG, TZ) or full name (Kenya, Uganda, Tanzania).',
-      parse_mode: 'Markdown'
+      text: "🌍 Please enter a valid country (KE, UG, TZ) or full name (Kenya, Uganda, Tanzania).",
+      parse_mode: "Markdown",
     };
   }
 
   // Normalize country code
-  const countryCode = country === 'KENYA' ? 'KE' : country === 'UGANDA' ? 'UG' : country === 'TANZANIA' ? 'TZ' : country;
+  const countryCode =
+    country === "KENYA"
+      ? "KE"
+      : country === "UGANDA"
+        ? "UG"
+        : country === "TANZANIA"
+          ? "TZ"
+          : country;
 
   // Save country and move to age
   const current = await getStateData(redis, userId);
-  await setStateData(redis, userId, { ...current, country: countryCode, step: 'age' }, 3600);
+  await setStateData(
+    redis,
+    userId,
+    { ...current, country: countryCode, step: "age" },
+    3600,
+  );
   await setUserState(redis, userId, StateTypes.SIGNUP_AGE, 3600);
 
   return {
     chat_id: chatId,
     text: `✅ Got it, *${countryCode}*!\n\n🎂 How old are you? (Enter a number, e.g., 25)`,
-    parse_mode: 'Markdown'
+    parse_mode: "Markdown",
   };
 }
 
@@ -219,8 +279,8 @@ async function handleSignupAge(message, userId, chatId, redis) {
   if (isNaN(age) || age < 18 || age > 120) {
     return {
       chat_id: chatId,
-      text: '🎂 Please enter a valid age (18-120).',
-      parse_mode: 'Markdown'
+      text: "🎂 Please enter a valid age (18-120).",
+      parse_mode: "Markdown",
     };
   }
 
@@ -230,7 +290,7 @@ async function handleSignupAge(message, userId, chatId, redis) {
     name: current.name,
     country: current.country,
     age,
-    signup_paid: false
+    signup_paid: false,
   };
 
   await createUserProfile(redis, userId, profileData);
@@ -243,13 +303,13 @@ async function handleSignupAge(message, userId, chatId, redis) {
   return {
     chat_id: chatId,
     text,
-    parse_mode: 'Markdown',
+    parse_mode: "Markdown",
     reply_markup: {
       inline_keyboard: [
-        [{ text: '✅ Pay Now', callback_data: 'pay_signup_select' }],
-        [{ text: '⏭️ Later', callback_data: 'menu_main' }]
-      ]
-    }
+        [{ text: "✅ Pay Now", callback_data: "pay_signup_select" }],
+        [{ text: "⏭️ Later", callback_data: "menu_main" }],
+      ],
+    },
   };
 }
 
@@ -258,46 +318,51 @@ async function handleSignupAge(message, userId, chatId, redis) {
 // ============================================================================
 
 async function handleIntent(intent, text, userId, chatId, redis, services) {
-  logger.info('handleIntent', { intent, userId });
+  logger.info("handleIntent", { intent, userId });
 
   switch (intent) {
-    case 'signup':
-      const { handleSignup } = await import('./commands-v3.js');
+    case "signup":
+      const { handleSignup } = await import("./commands-v3.js");
       return await handleSignup(userId, chatId, redis);
 
-    case 'odds':
-      const { handleOdds } = await import('./commands-v3.js');
+    case "odds":
+      const { handleOdds } = await import("./commands-v3.js");
       return await handleOdds(userId, chatId, redis, services);
 
-    case 'analyze':
-      const { handleAnalyze } = await import('./commands-v3.js');
+    case "analyze":
+      const { handleAnalyze } = await import("./commands-v3.js");
       return await handleAnalyze(userId, chatId, redis, services);
 
-    case 'news':
-      const { handleNews } = await import('./commands-v3.js');
+    case "news":
+      const { handleNews } = await import("./commands-v3.js");
       return await handleNews(userId, chatId, redis, services);
 
-    case 'help':
-      const { handleHelp } = await import('./commands-v3.js');
+    case "help":
+      const { handleHelp } = await import("./commands-v3.js");
       return await handleHelp(chatId);
 
-    case 'payment':
-      const { handlePay } = await import('./commands-v3.js');
+    case "payment":
+      const { handlePay } = await import("./commands-v3.js");
       return await handlePay(userId, chatId, redis);
 
-    case 'sites':
-      const { handleBettingSitesCallback } = await import('./betting-sites.js');
-      return await handleBettingSitesCallback('sites_main', chatId, userId, redis);
+    case "sites":
+      const { handleBettingSitesCallback } = await import("./betting-sites.js");
+      return await handleBettingSitesCallback(
+        "sites_main",
+        chatId,
+        userId,
+        redis,
+      );
 
-    case 'menu':
-      const { handleMenu } = await import('./commands-v3.js');
+    case "menu":
+      const { handleMenu } = await import("./commands-v3.js");
       return await handleMenu(userId, chatId, redis);
 
     default:
       return {
         chat_id: chatId,
         text: `❓ Not sure what you mean by "*${text}*".\n\nTry:\n• Show odds\n• Analyze match\n• Latest news\n• Help`,
-        parse_mode: 'Markdown'
+        parse_mode: "Markdown",
       };
   }
 }
@@ -308,5 +373,5 @@ export {
   handleSignupCountry,
   handleSignupAge,
   handleIntent,
-  parseMessage
+  parseMessage,
 };

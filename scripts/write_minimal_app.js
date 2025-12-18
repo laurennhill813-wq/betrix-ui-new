@@ -1,6 +1,6 @@
-const fs = require('fs');
-const path = require('path');
-const out = path.join(__dirname, '..', 'src', 'app.js');
+const fs = require("fs");
+const path = require("path");
+const out = path.join(__dirname, "..", "src", "app.js");
 const content = [
   "import express from 'express';",
   "import bodyParser from 'body-parser';",
@@ -59,6 +59,6 @@ const content = [
   "app.listen(PORT, () => safeLog('Minimal app listening on ' + PORT));",
   "",
   "export default app;",
-].join('\n');
-fs.writeFileSync(out, content, 'utf8');
-console.log('Wrote', out);
+].join("\n");
+fs.writeFileSync(out, content, "utf8");
+console.log("Wrote", out);

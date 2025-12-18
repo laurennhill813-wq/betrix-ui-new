@@ -27,8 +27,12 @@ class NewFeaturesHandlers {
    */
   async handleMeme(chatId, userId) {
     try {
-      const meme = MemeService.generateTextMeme("Your Team", 2.5, "The Favorites");
-      
+      const meme = MemeService.generateTextMeme(
+        "Your Team",
+        2.5,
+        "The Favorites",
+      );
+
       const text = `${BrandingService.ICONS.achievement} <b>BETRIX Meme of the Moment</b>
 
 ${MemeService.formatMeme(meme)}
@@ -40,7 +44,7 @@ ${MemeService.formatMeme(meme)}
       logger.error("Meme handler error", err);
       return this.telegram.sendMessage(
         chatId,
-        `${BrandingService.ICONS.error} Meme engine temporarily down. Try again!`
+        `${BrandingService.ICONS.error} Meme engine temporarily down. Try again!`,
       );
     }
   }
@@ -51,12 +55,13 @@ ${MemeService.formatMeme(meme)}
   async handleCrypto(chatId, userId, symbol = "bitcoin") {
     try {
       const symbol_lower = (symbol || "bitcoin").toLowerCase();
-      const prediction = await this.cryptoService.predictCryptoPrice(symbol_lower);
+      const prediction =
+        await this.cryptoService.predictCryptoPrice(symbol_lower);
 
       if (!prediction) {
         return this.telegram.sendMessage(
           chatId,
-          `${BrandingService.ICONS.error} <b>Crypto Not Found</b>\n\nTry: /crypto bitcoin or /crypto ethereum`
+          `${BrandingService.ICONS.error} <b>Crypto Not Found</b>\n\nTry: /crypto bitcoin or /crypto ethereum`,
         );
       }
 
@@ -71,7 +76,7 @@ ${this.cryptoService.formatPrediction(prediction)}
       logger.error("Crypto handler error", err);
       return this.telegram.sendMessage(
         chatId,
-        `${BrandingService.ICONS.error} Unable to fetch crypto data right now.`
+        `${BrandingService.ICONS.error} Unable to fetch crypto data right now.`,
       );
     }
   }
@@ -81,7 +86,9 @@ ${this.cryptoService.formatPrediction(prediction)}
    */
   async handleNews(chatId, userId, query = "football") {
     try {
-      const articles = await this.newsService.getSportsNews(query || "football");
+      const articles = await this.newsService.getSportsNews(
+        query || "football",
+      );
 
       const text = `${BrandingService.ICONS.info} <b>BETRIX Sports News</b>
 
@@ -94,7 +101,7 @@ ${this.newsService.formatNews(articles)}
       logger.error("News handler error", err);
       return this.telegram.sendMessage(
         chatId,
-        `${BrandingService.ICONS.error} News service temporarily unavailable.`
+        `${BrandingService.ICONS.error} News service temporarily unavailable.`,
       );
     }
   }
@@ -117,7 +124,7 @@ ${tip}
       logger.error("Tip handler error", err);
       return this.telegram.sendMessage(
         chatId,
-        `${BrandingService.ICONS.error} Tip service down. Check back later!`
+        `${BrandingService.ICONS.error} Tip service down. Check back later!`,
       );
     }
   }
@@ -126,11 +133,12 @@ ${tip}
    * Enhanced /menu with modern design
    */
   async enhancedMenu(chatId, userId) {
-    const { ModernMenuService } = await import("./services/modern-menu-service.js");
+    const { ModernMenuService } =
+      await import("./services/modern-menu-service.js");
     const menuData = ModernMenuService.mainMenu();
-    
+
     return this.telegram.sendMessage(chatId, menuData.text, {
-      reply_markup: { inline_keyboard: menuData.keyboard }
+      reply_markup: { inline_keyboard: menuData.keyboard },
     });
   }
 
@@ -138,16 +146,18 @@ ${tip}
    * Enhanced /help with modern design
    */
   async enhancedHelp(chatId, userId) {
-    const { ModernMenuService } = await import("./services/modern-menu-service.js");
+    const { ModernMenuService } =
+      await import("./services/modern-menu-service.js");
     const text = ModernMenuService.helpMenu();
     return this.telegram.sendMessage(chatId, text);
   }
-  
+
   /**
    * Sports menu
    */
   async sportsMenu(chatId, userId) {
-    const { ModernMenuService } = await import("./services/modern-menu-service.js");
+    const { ModernMenuService } =
+      await import("./services/modern-menu-service.js");
     const text = ModernMenuService.sportsMenu();
     return this.telegram.sendMessage(chatId, text);
   }
@@ -156,7 +166,8 @@ ${tip}
    * Free features menu
    */
   async freeFeaturesMenu(chatId, userId) {
-    const { ModernMenuService } = await import("./services/modern-menu-service.js");
+    const { ModernMenuService } =
+      await import("./services/modern-menu-service.js");
     const text = ModernMenuService.freeFeaturesMenu();
     return this.telegram.sendMessage(chatId, text);
   }
@@ -165,7 +176,8 @@ ${tip}
    * Premium features menu
    */
   async premiumMenu(chatId, userId) {
-    const { ModernMenuService } = await import("./services/modern-menu-service.js");
+    const { ModernMenuService } =
+      await import("./services/modern-menu-service.js");
     const text = ModernMenuService.premiumMenu();
     return this.telegram.sendMessage(chatId, text);
   }

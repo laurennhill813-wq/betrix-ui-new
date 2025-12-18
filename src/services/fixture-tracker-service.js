@@ -7,8 +7,6 @@ import { Logger } from "../utils/logger.js";
 
 const logger = new Logger("FixtureTracker");
 
-class Fvoid logger;
-
 class FixtureTrackerService {
   static BIG_FIXTURES = [
     {
@@ -57,8 +55,13 @@ class FixtureTrackerService {
    * Get upcoming big fixtures
    */
   static getUpcomingFixtures(_days = 30) {
-re
-   */
+    // Return fixtures within the next _days (simple placeholder)
+    try {
+      return this.BIG_FIXTURES.filter((f) => true).slice(0, 10);
+    } catch (e) {
+      return this.BIG_FIXTURES;
+    }
+  }
   static trackFixture(fixtureId) {
     const fixture = this.BIG_FIXTURES.find((f) => f.id === fixtureId);
     if (!fixture) return null;
@@ -74,10 +77,12 @@ re
    * Format fixture for display
    */
   static formatFixture(fixture) {
-    return `${fixture.importance} <b>${fixture.home} vs ${fixture.away}</b>\n` +
+    return (
+      `${fixture.importance} <b>${fixture.home} vs ${fixture.away}</b>\n` +
       `League: ${fixture.league}\n` +
       `Date: ${fixture.date}\n\n` +
-      `⏰ Set reminder: /watch ${fixture.id}`;
+      `⏰ Set reminder: /watch ${fixture.id}`
+    );
   }
 
   /**

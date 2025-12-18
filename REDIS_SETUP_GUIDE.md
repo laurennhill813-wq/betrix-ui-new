@@ -11,27 +11,34 @@ redis://default:k5hVSqo106q0tTX9wbulgJPK4SiRc9UR@redis-14261.c282.east-us-mz.azu
 ### 📝 Setup Steps
 
 1. **Set Environment Variable**
+
    ```bash
    # Add to .env file
    REDIS_URL=redis://default:k5hVSqo106q0tTX9wbulgJPK4SiRc9UR@redis-14261.c282.east-us-mz.azure.cloud.redislabs.com:14261
    ```
 
 2. **Validate Redis Connection**
+
    ```bash
    npm run redis:validate
    ```
+
    Expected output: ✅ All 32 tests passing
 
 3. **Run Health Check**
+
    ```bash
    npm run redis:monitor
    ```
+
    Expected output: ✅ Healthy status every 30 seconds
 
 4. **Test Handler Integration**
+
    ```bash
    npm run redis:test-handlers
    ```
+
    Expected output: ✅ All 45+ handler tests passing
 
 5. **Start the Bot**
@@ -69,18 +76,21 @@ npm run worker                  # Start bot with Redis
 ## 🔐 Azure Redis Configuration
 
 ### Connection Details
+
 - **Host:** `redis-14261.c282.east-us-mz.azure.cloud.redislabs.com`
 - **Port:** `14261`
 - **Auth:** `default:k5hVSqo106q0tTX9wbulgJPK4SiRc9UR`
 - **Protocol:** `redis://` (TLS recommended for production)
 
 ### Network Security
+
 - ✅ Default configured to use Azure RedisLabs
 - ✅ Credentials embedded in environment variable
 - ✅ Automatic retry on connection failure
 - ✅ Connection pooling included
 
 ### Data Persistence
+
 - 🔔 **Note:** Azure Redis in-memory by default (no persistence)
 - For persistence: Enable AOF in Azure Redis settings
 - For production: Data survives application restart but not server restart
@@ -92,6 +102,7 @@ npm run worker                  # Start bot with Redis
 ### Connection Pattern
 
 All connections use a **singleton factory pattern** to ensure:
+
 - ✅ Single connection per process
 - ✅ Automatic error recovery
 - ✅ Connection pooling
@@ -99,7 +110,7 @@ All connections use a **singleton factory pattern** to ensure:
 
 ```javascript
 // File: src/lib/redis-factory.js
-import { getRedis } from './lib/redis-factory.js';
+import { getRedis } from "./lib/redis-factory.js";
 
 // Anywhere in code
 const redis = getRedis(); // Always returns same instance
@@ -133,6 +144,7 @@ const redis = getRedis(); // Always returns same instance
 ## 📊 Data Structures
 
 ### User Profile (Hash)
+
 ```javascript
 user:{userId}
 ├─ tier: 'FREE'|'PRO'|'VVIP'|'SIGNUP'
@@ -146,6 +158,7 @@ user:{userId}
 ```
 
 ### Payment Order (String with TTL)
+
 ```javascript
 payment:{orderId}  // 1 hour TTL
 {
@@ -161,6 +174,7 @@ payment:{orderId}  // 1 hour TTL
 ```
 
 ### Bet Slip (String with TTL)
+
 ```javascript
 betslip:{betslipId}  // 1 hour TTL
 {
@@ -175,11 +189,13 @@ betslip:{betslipId}  // 1 hour TTL
 ```
 
 ### User Favorites (Set)
+
 ```javascript
 user:{userId}:favorites = ['Arsenal', 'Chelsea', 'Man City']
 ```
 
 ### Command Usage (Counter)
+
 ```javascript
 cmd:usage:{userId}:{command}:{month} = count
 ```
@@ -231,10 +247,14 @@ cmd:usage:{userId}:{command}:{month} = count
 async function safeGetUserData(redis, key) {
   try {
     const data = await redis.hgetall(key);
-    return (data && Object.keys(data).length > 0) ? data : null;
+    return data && Object.keys(data).length > 0 ? data : null;
   } catch (e) {
-    if (e.message && e.message.includes('WRONGTYPE')) {
-      try { await redis.del(key); } catch (delErr) { /* ignore */ }
+    if (e.message && e.message.includes("WRONGTYPE")) {
+      try {
+        await redis.del(key);
+      } catch (delErr) {
+        /* ignore */
+      }
       return null;
     }
     throw e;
@@ -245,18 +265,18 @@ async function safeGetUserData(redis, key) {
 ### Connection Error Handling
 
 ```javascript
-redis.on('error', (err) => {
-  if (err.message.includes('NOAUTH')) {
-    console.error('Invalid Redis password');
-  } else if (err.message.includes('ECONNREFUSED')) {
-    console.error('Cannot connect to Redis host');
-  } else if (err.message.includes('ETIMEDOUT')) {
-    console.error('Redis connection timeout');
+redis.on("error", (err) => {
+  if (err.message.includes("NOAUTH")) {
+    console.error("Invalid Redis password");
+  } else if (err.message.includes("ECONNREFUSED")) {
+    console.error("Cannot connect to Redis host");
+  } else if (err.message.includes("ETIMEDOUT")) {
+    console.error("Redis connection timeout");
   }
 });
 
-redis.on('reconnecting', () => {
-  console.log('Attempting to reconnect to Redis...');
+redis.on("reconnecting", () => {
+  console.log("Attempting to reconnect to Redis...");
 });
 ```
 
@@ -278,11 +298,13 @@ redis.on('reconnecting', () => {
 ### Deployment on Render/Production
 
 1. Set environment variable:
+
    ```bash
    REDIS_URL=redis://default:k5hVSqo106q0tTX9wbulgJPK4SiRc9UR@redis-14261.c282.east-us-mz.azure.cloud.redislabs.com:14261
    ```
 
 2. Verify on deployment:
+
    ```bash
    # In Render deploy command
    npm run redis:validate && npm start
@@ -298,11 +320,13 @@ redis.on('reconnecting', () => {
 ## 📊 Monitoring
 
 ### Health Check Endpoint
+
 ```bash
 curl http://localhost:5000/health/redis
 ```
 
 Response:
+
 ```json
 {
   "redis": "OK",
@@ -312,14 +336,16 @@ Response:
 ```
 
 ### Monitor Script
+
 ```bash
 npm run redis:monitor
 ```
 
 Displays:
+
 - ✅ Real-time health status
 - 📊 Success rate percentage
-- ⏱️  Response times (avg/min/max)
+- ⏱️ Response times (avg/min/max)
 - 🚨 Alerts on consecutive failures
 - 📋 Recent error logs
 
@@ -337,31 +363,41 @@ Displays:
 ## 🔧 Troubleshooting
 
 ### Issue: "REDIS_URL is not configured"
+
 **Solution:** Add to `.env`:
+
 ```bash
 REDIS_URL=redis://default:k5hVSqo106q0tTX9wbulgJPK4SiRc9UR@redis-14261.c282.east-us-mz.azure.cloud.redislabs.com:14261
 ```
 
 ### Issue: "NOAUTH Invalid password"
+
 **Solution:** Verify credentials:
+
 - Username: `default`
 - Password: `k5hVSqo106q0tTX9wbulgJPK4SiRc9UR`
 - No special characters should be URL-encoded in password
 
 ### Issue: "ECONNREFUSED"
+
 **Solution:** Check network:
+
 - Verify firewall allows outbound to port 14261
 - Check hostname DNS resolution
 - Verify Redis server is running
 
 ### Issue: "WRONGTYPE Operation"
+
 **Solution:** Data type mismatch - handled automatically by `safeGetUserData()`:
+
 - Returns null instead of error
 - Automatically deletes malformed key
 - No user-facing impact
 
 ### Issue: Slow Response Times
+
 **Solution:** Check Redis health:
+
 ```bash
 npm run redis:monitor  # Check latency
 DBSIZE                 # Check key count
@@ -390,7 +426,7 @@ Your Redis integration is working seamlessly when:
 ✅ User profiles created and retrieved successfully  
 ✅ Payment orders tracked without errors  
 ✅ Bet slips stored and expired correctly  
-✅ No WRONGTYPE errors in logs  
+✅ No WRONGTYPE errors in logs
 
 ---
 

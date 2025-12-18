@@ -5,17 +5,20 @@
 BETRIX uses a 3-tier subscription model with intelligent feature gating:
 
 ### **TIER 1: FREE** 🎁
+
 - No payment required
 - Basic features available
 - Rate limit: 30 commands/min
 
-### **TIER 2: MEMBER** 👤  
+### **TIER 2: MEMBER** 👤
+
 - One-time payment: KES 150 / USD 1
 - Unlock member-only features
 - Rate limit: 100 commands/min
 - Lifetime access (no expiration)
 
 ### **TIER 3: VVIP** 💎
+
 - Flexible duration: Daily, Weekly, or Monthly
 - Premium features + personal coaching
 - Rate limit: 500 commands/min
@@ -28,6 +31,7 @@ BETRIX uses a 3-tier subscription model with intelligent feature gating:
 ### How the Bot Controls Access
 
 **When a FREE user tries `/analyze`:**
+
 ```
 ❌ DENIED
 Message: "🔒 Professional match analysis available for members"
@@ -35,6 +39,7 @@ Action: Show upsell menu with upgrade options
 ```
 
 **When a MEMBER user tries `/dossier`:**
+
 ```
 ❌ DENIED
 Message: "🔒 Professional dossier available for VVIP"
@@ -42,6 +47,7 @@ Action: Show upgrade to VVIP button
 ```
 
 **When a VVIP user tries `/dossier`:**
+
 ```
 ✅ ALLOWED
 Response: "📋 PROFESSIONAL MATCH DOSSIER [500+ words]"
@@ -53,6 +59,7 @@ Action: Show full premium content
 ## 💻 Technical Implementation
 
 ### Subscription Gatekeeper Service
+
 Located in `src/middleware/subscription-gatekeeper.js`
 
 ```javascript
@@ -69,6 +76,7 @@ if (!hasAccess) {
 ```
 
 ### Tier-Aware Handlers
+
 Located in `src/handlers-tier.js`
 
 Each command is wrapped with subscription checking:
@@ -99,6 +107,7 @@ async analysisWithTier(chatId, userId, matchQuery) {
 ### Odds Display by Tier
 
 **FREE users see:**
+
 ```
 🎲 Match Odds
 🏠 Home: 1.85
@@ -109,6 +118,7 @@ async analysisWithTier(chatId, userId, matchQuery) {
 ```
 
 **VVIP users see:**
+
 ```
 🎲 Match Odds
 🏠 Home: 1.85 (Implied: 54.1%)
@@ -125,6 +135,7 @@ Advanced Analysis (VVIP):
 ### Menu System by Tier
 
 **FREE user menu:**
+
 ```
 🧭 BETRIX Menu
 
@@ -132,6 +143,7 @@ Advanced Analysis (VVIP):
 ```
 
 **MEMBER menu:**
+
 ```
 🧭 BETRIX Menu
 
@@ -140,6 +152,7 @@ Advanced Analysis (VVIP):
 ```
 
 **VVIP menu:**
+
 ```
 🧭 BETRIX Menu
 
@@ -155,6 +168,7 @@ Advanced Analysis (VVIP):
 ### Same Command, Different Responses
 
 #### FREE user: `/predict Liverpool vs Man City`
+
 ```
 🔒 Predictions available for members
 Become a member for KES 150 to unlock AI predictions
@@ -162,6 +176,7 @@ Become a member for KES 150 to unlock AI predictions
 ```
 
 #### MEMBER user: `/predict Liverpool vs Man City`
+
 ```
 🎯 Match Prediction
 
@@ -174,6 +189,7 @@ Upgrade to VVIP for expected value analysis
 ```
 
 #### VVIP user: `/predict Liverpool vs Man City`
+
 ```
 🎯 Match Prediction
 
@@ -222,13 +238,14 @@ Bot: 📋 PROFESSIONAL MATCH DOSSIER
 
 ## 🔄 Tier-Based Rate Limiting
 
-| Tier | Limit | Resets |
-|------|-------|--------|
-| FREE | 30/min | Every minute |
+| Tier   | Limit   | Resets       |
+| ------ | ------- | ------------ |
+| FREE   | 30/min  | Every minute |
 | MEMBER | 100/min | Every minute |
-| VVIP | 500/min | Every minute |
+| VVIP   | 500/min | Every minute |
 
 When limit exceeded:
+
 ```
 ⏱️ Rate limited. You have 5 requests left this minute.
 ```
@@ -249,6 +266,7 @@ When limit exceeded:
 ```
 
 ### Referral Leaderboard
+
 ```
 /leaderboard
 🏆 Top Referrers
@@ -264,37 +282,40 @@ When limit exceeded:
 
 ## 📋 Feature Access Matrix
 
-| Feature | FREE | MEMBER | VVIP |
-|---------|------|--------|------|
-| /live | ✅ | ✅ | ✅ |
-| /standings | ✅ | ✅ | ✅ |
-| /odds | ✅ (basic) | ✅ | ✅ (advanced) |
-| /tips | ✅ | ✅ | ✅ |
-| /analyze | ❌ | ✅ | ✅ (advanced) |
-| /predict | ❌ | ✅ | ✅ (advanced) |
-| /stats | ❌ | ✅ | ✅ |
-| /insights | ❌ | ✅ | ✅ |
-| /dossier | ❌ | ❌ | ✅ |
-| /coach | ❌ | ❌ | ✅ |
-| /trends | ❌ | ❌ | ✅ |
-| /watch | ❌ | ✅ | ✅ |
+| Feature    | FREE       | MEMBER | VVIP          |
+| ---------- | ---------- | ------ | ------------- |
+| /live      | ✅         | ✅     | ✅            |
+| /standings | ✅         | ✅     | ✅            |
+| /odds      | ✅ (basic) | ✅     | ✅ (advanced) |
+| /tips      | ✅         | ✅     | ✅            |
+| /analyze   | ❌         | ✅     | ✅ (advanced) |
+| /predict   | ❌         | ✅     | ✅ (advanced) |
+| /stats     | ❌         | ✅     | ✅            |
+| /insights  | ❌         | ✅     | ✅            |
+| /dossier   | ❌         | ❌     | ✅            |
+| /coach     | ❌         | ❌     | ✅            |
+| /trends    | ❌         | ❌     | ✅            |
+| /watch     | ❌         | ✅     | ✅            |
 
 ---
 
 ## 🚀 Tier Upgrade Flow
 
 ### 1. User in FREE sees upsell
+
 ```
 Automatic: Show upsell when accessing premium feature
 Manual: /pricing shows all tiers
 ```
 
 ### 2. User selects tier
+
 ```
 /pricing → Pick tier → Pick payment method
 ```
 
 ### 3. Payment processed
+
 ```
 M-Pesa: Instant
 PayPal: Instant
@@ -303,6 +324,7 @@ Bank: Manual (1-3 days)
 ```
 
 ### 4. Tier activated
+
 ```
 ✅ Payment confirmed!
 💎 VVIP activated (7 days)
@@ -311,6 +333,7 @@ You now have access to:
 ```
 
 ### 5. Use premium features
+
 ```
 /dossier Liverpool vs Man City
 → Full 500+ word professional analysis
@@ -333,11 +356,13 @@ The complete worker (`src/worker-complete.js`) implements everything:
 ## 💡 Best Practices
 
 ### For Users
+
 - Start FREE to explore
 - Upgrade to MEMBER for serious analysis (KES 150 one-time)
 - Go VVIP for professional coaching and live alerts (KES 200+)
 
 ### For Developers
+
 - All tier checks happen in `SubscriptionGatekeeper`
 - Handlers in `src/handlers-tier.js` wrap basic handlers
 - UI formatting in `src/utils/ui-builder.js`
@@ -348,6 +373,7 @@ The complete worker (`src/worker-complete.js`) implements everything:
 ## 📞 Support
 
 Users can check their tier anytime:
+
 ```
 /status → Shows current tier + features
 /features → Lists what they can access

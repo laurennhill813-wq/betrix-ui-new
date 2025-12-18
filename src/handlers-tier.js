@@ -33,7 +33,7 @@ class TierAwareHandlers {
     if (!fixtureId) {
       return this.handlers.telegram.sendMessage(
         chatId,
-        `${EMOJIS.odds} <b>Betting Odds</b>\n\nUsage: /odds [fixture-id]`
+        `${EMOJIS.odds} <b>Betting Odds</b>\n\nUsage: /odds [fixture-id]`,
       );
     }
 
@@ -59,17 +59,22 @@ class TierAwareHandlers {
     if (!matchQuery) {
       return this.handlers.telegram.sendMessage(
         chatId,
-        `${EMOJIS.analyze} Match Analysis\n\nUsage: /analyze [home] vs [away]`
+        `${EMOJIS.analyze} Match Analysis\n\nUsage: /analyze [home] vs [away]`,
       );
     }
 
     try {
       let analysis = await this.handlers.gemini.chat(
         `Analyze ${matchQuery} with form, odds, and key factors.`,
-        {}
+        {},
       );
 
-      analysis = await this.gatekeeper.decorateResponse(chatId, userId, "analysis", analysis);
+      analysis = await this.gatekeeper.decorateResponse(
+        chatId,
+        userId,
+        "analysis",
+        analysis,
+      );
       return this.handlers.telegram.sendMessage(chatId, analysis);
     } catch (err) {
       return this.handlers.telegram.sendMessage(chatId, "Analysis unavailable");
@@ -89,20 +94,23 @@ class TierAwareHandlers {
     if (!matchQuery) {
       return this.handlers.telegram.sendMessage(
         chatId,
-        `${EMOJIS.predict} Predictions\n\nUsage: /predict [home] vs [away]`
+        `${EMOJIS.predict} Predictions\n\nUsage: /predict [home] vs [away]`,
       );
     }
 
     try {
       const prediction = await this.handlers.predictor?.predictMatch(
         matchQuery.split(" vs ")[0],
-        matchQuery.split(" vs ")[1]
+        matchQuery.split(" vs ")[1],
       );
 
       let text = UIBuilder.formatPrediction(prediction, tier);
       return this.handlers.telegram.sendMessage(chatId, text);
     } catch (err) {
-      return this.handlers.telegram.sendMessage(chatId, "Predictions unavailable");
+      return this.handlers.telegram.sendMessage(
+        chatId,
+        "Predictions unavailable",
+      );
     }
   }
 
@@ -117,14 +125,21 @@ class TierAwareHandlers {
     if (!matchQuery) {
       return this.handlers.telegram.sendMessage(
         chatId,
-        `📋 Match Dossier\n\nUsage: /dossier [home] vs [away]`
+        `📋 Match Dossier\n\nUsage: /dossier [home] vs [away]`,
       );
     }
 
     try {
-      const dossier = await this.handlers.premium?.generateMatchDossier(matchQuery);
-      const header = UIBuilder.formatDossierHeader({ teams: { home: { name: matchQuery } } }, "vvip");
-      return this.handlers.telegram.sendMessage(chatId, `${header}\n${dossier}`);
+      const dossier =
+        await this.handlers.premium?.generateMatchDossier(matchQuery);
+      const header = UIBuilder.formatDossierHeader(
+        { teams: { home: { name: matchQuery } } },
+        "vvip",
+      );
+      return this.handlers.telegram.sendMessage(
+        chatId,
+        `${header}\n${dossier}`,
+      );
     } catch (err) {
       return this.handlers.telegram.sendMessage(chatId, "Dossier unavailable");
     }
@@ -141,7 +156,10 @@ class TierAwareHandlers {
     try {
       const stats = await this.handlers.analytics?.getUserStats(userId);
       const advice = await this.handlers.premium?.getCoachAdvice(stats);
-      return this.handlers.telegram.sendMessage(chatId, `🏆 <b>Betting Coach</b>\n\n${advice}`);
+      return this.handlers.telegram.sendMessage(
+        chatId,
+        `🏆 <b>Betting Coach</b>\n\n${advice}`,
+      );
     } catch (err) {
       return this.handlers.telegram.sendMessage(chatId, "Coaching unavailable");
     }
@@ -157,7 +175,10 @@ class TierAwareHandlers {
 
     try {
       const trends = await this.handlers.premium?.analyzeSeasonalTrends(league);
-      return this.handlers.telegram.sendMessage(chatId, `📊 <b>Seasonal Trends: ${league}</b>\n\n${trends}`);
+      return this.handlers.telegram.sendMessage(
+        chatId,
+        `📊 <b>Seasonal Trends: ${league}</b>\n\n${trends}`,
+      );
     } catch (err) {
       return this.handlers.telegram.sendMessage(chatId, "Trends unavailable");
     }
@@ -189,7 +210,9 @@ class TierAwareHandlers {
     }
 
     text += `\n<b>Available Features:</b>\n`;
-    text += UIBuilder.buildFeaturesList(tier).split("<b>Feature Access</b>\n\n")[1];
+    text += UIBuilder.buildFeaturesList(tier).split(
+      "<b>Feature Access</b>\n\n",
+    )[1];
 
     const kb = {
       inline_keyboard: [
@@ -199,7 +222,9 @@ class TierAwareHandlers {
       ],
     };
 
-    return this.handlers.telegram.sendMessage(chatId, text, { reply_markup: kb });
+    return this.handlers.telegram.sendMessage(chatId, text, {
+      reply_markup: kb,
+    });
   }
 
   /**
@@ -209,12 +234,18 @@ class TierAwareHandlers {
     const tier = await this.gatekeeper.getUserTier(userId);
 
     try {
-      const data = await this.handlers.apiFootball?.getStandings(league, new Date().getFullYear());
+      const data = await this.handlers.apiFootball?.getStandings(
+        league,
+        new Date().getFullYear(),
+      );
       const standings = data.response?.[0]?.league?.standings?.[0] || [];
       const text = UIBuilder.formatStandings(standings, tier);
       return this.handlers.telegram.sendMessage(chatId, text);
     } catch (err) {
-      return this.handlers.telegram.sendMessage(chatId, "Standings unavailable");
+      return this.handlers.telegram.sendMessage(
+        chatId,
+        "Standings unavailable",
+      );
     }
   }
 }

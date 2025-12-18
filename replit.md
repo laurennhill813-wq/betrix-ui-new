@@ -1,9 +1,11 @@
 # BETRIX - World-Class Production Sports AI Platform
 
 ## 🌟 Vision
+
 🚀 **PRODUCTION READY** - Autonomous sports betting AI with modern menu system, Gemini integration, database persistence, real-time webhooks, phone verification, payment processing, and global scalability.
 
 ## ✅ LATEST UPDATE (Nov 23, 2025)
+
 - **Modern Menu System**: Brand new professional UI with inline buttons, organized sections (Sports Zone, Free Features, Premium, Account, Support)
 - **50+ Commands**: All organized and discoverable through hierarchical menu navigation
 - **8 Free Web Features**: RSS feeds, Reddit, weather, trivia, sentiment, stadium info, live commentary, fixture tracking
@@ -14,12 +16,14 @@
 ## ✨ What Makes This World-Class
 
 ### 1. **Autonomous Intelligence**
+
 - Gemini AI powers natural language conversations
 - Bot has its own personality - responds like a real analyst
 - Learns from user behavior and adapts responses
 - Context memory across conversations
 
 ### 2. **Advanced Prediction Engine**
+
 - ELO rating system for team strength
 - Form analysis with weighted recent performance
 - Confidence scoring (50-95%)
@@ -27,12 +31,14 @@
 - Recommendation engine
 
 ### 3. **Real-Time Capabilities**
+
 - Match subscriptions with instant alerts
 - Goal notifications
 - Odds movement monitoring
 - Live commentary with tactical analysis
 
 ### 4. **Premium Features (VVIP Only)**
+
 - Professional match dossier (500+ words)
 - Advanced metrics (possession, ratings, efficiency)
 - Edge-finding algorithms
@@ -40,6 +46,7 @@
 - Seasonal trend analysis
 
 ### 5. **Comprehensive Analytics**
+
 - User engagement tracking
 - Command performance monitoring
 - Prediction accuracy statistics
@@ -47,6 +54,7 @@
 - Revenue metrics
 
 ### 6. **Production-Grade Security**
+
 - Rate limiting (free: 30/min, premium: 100/min)
 - Anti-spam detection
 - User suspension/ban capability
@@ -54,6 +62,7 @@
 - Graceful error handling
 
 ### 7. **Admin Dashboard**
+
 - Real-time health monitoring
 - User statistics and segmentation
 - Command performance analysis
@@ -99,6 +108,7 @@ src/
 ## 🎮 Commands
 
 ### Basic Commands (Free)
+
 - `/start` - Welcome
 - `/menu` - Main menu
 - `/live` - Live matches
@@ -113,6 +123,7 @@ src/
 - `/leaderboard` - Top referrers
 
 ### Advanced Commands (Members)
+
 - `/stats` - Prediction accuracy stats
 - `/predict [home vs away]` - AI prediction with confidence
 - `/insights` - Personalized recommendations
@@ -120,12 +131,14 @@ src/
 - `/watch [fixture-id]` - Get alerts for this match
 
 ### Premium Commands (VVIP)
+
 - `/dossier` - Professional 500+ word match analysis
 - `/coach` - Personalized betting strategy advice
 - `/trends [league]` - Seasonal performance analysis
 - `/premium` - Premium features overview
 
 ### Admin Commands (Admin Only)
+
 - `/admin_health` - System health report
 - `/admin_broadcast [msg]` - Announcement to all users
 - `/admin_users` - User statistics
@@ -136,10 +149,12 @@ src/
 ## 💰 Pricing Tiers
 
 ### Member
+
 - **Cost**: KES 150 / USD 1
 - **Features**: Access to member-only content
 
 ### VVIP
+
 - **Daily**: KES 200 / USD 2
 - **Weekly**: KES 800 / USD 6
 - **Monthly**: KES 2,500 / USD 20
@@ -148,36 +163,42 @@ src/
 ## 🔧 Services Overview
 
 ### Gemini Service
+
 - Natural language conversations
 - Context-aware responses
 - Intelligent fallbacks
 - Multi-turn conversation support
 
 ### Prediction Engine
+
 - ELO rating calculations
 - Form score with weighting
 - Confidence scoring
 - Accuracy tracking
 
 ### Analytics Service
+
 - Command usage tracking
 - Prediction statistics
 - User engagement metrics
 - Health monitoring
 
 ### Premium Service
+
 - Match dossier generation
 - Advanced metrics calculation
 - Edge-finding algorithms
 - Coaching advice
 
 ### Context Manager
+
 - 20-message conversation memory
 - User preference persistence
 - View history tracking
 - Behavioral learning
 
 ### Rate Limiter
+
 - Tier-based limits
 - Spam detection
 - Graceful error messages
@@ -197,24 +218,28 @@ node src/worker-final.js
 ## 📊 Technical Excellence
 
 ### Error Handling
+
 ✅ Comprehensive fallbacks
 ✅ Graceful degradation
 ✅ User-friendly error messages
 ✅ Automatic retry with backoff
 
 ### Performance
+
 ✅ Multi-tier Redis caching
 ✅ Sorted sets for leaderboards
 ✅ Async/await throughout
 ✅ Connection pooling
 
 ### Scalability
+
 ✅ No redis.keys() calls
 ✅ Efficient sorted set ops
 ✅ TTL on all temp data
 ✅ Horizontal scaling ready
 
 ### Security
+
 ✅ Rate limiting by tier
 ✅ Admin verification
 ✅ User suspension
@@ -295,6 +320,7 @@ Payment: Safaricom Till 606215 fully integrated + M-Pesa verification
 Security: Validation, rate limiting, helmet headers, CORS, audit logs
 
 New Services:
+
 - betslip-generator.js (professional formatting)
 - betting-sites-service.js (country-specific links)
 - betslip-analysis-service.js (AI analysis)
@@ -304,6 +330,7 @@ New Services:
 ## 🎨 BETRIX BRAND IDENTITY
 
 ### Logo
+
 ```
 ╔═══════════════════════════════════════════════╗
 ║        ██████╗ ███████╗████████╗██████╗       ║
@@ -318,6 +345,7 @@ New Services:
 ```
 
 ### Brand Icons (60+)
+
 - Primary: 💎 🎯 ⭐
 - Features: 🔴 📊 🎲 🔍 💡 ❓ 📋
 - Analysis: 🧠 💭 🎓 🏆
@@ -327,12 +355,14 @@ New Services:
 - Status: ✅ ❌ ⚠️ ℹ️
 
 ### Brand Colors
+
 - Primary: #2563EB (Blue)
 - Secondary: #7C3AED (Purple)
 - Accent: #DC2626 (Red)
 - Success: #16A34A (Green)
 
 ### Taglines (Random)
+
 - 🎯 Professional Sports AI
 - ⚽ Your Betting Coach
 - 🏆 Win With Confidence
@@ -341,6 +371,7 @@ New Services:
 - 🚀 Next-Gen Betting
 
 ### Brand Files
+
 - src/services/branding-service.js - Logo, icons, formatting
 - src/handlers-branding.js - Branded message handlers
 - BETRIX_BRANDING_GUIDE.md - Complete branding system
@@ -351,6 +382,7 @@ All messages use consistent BETRIX branding with icons and professional formatti
 ## 🎉 MODERN MENU SYSTEM (Nov 23, 2025) ✨
 
 ### Brand New Professional UI
+
 - **Main Dashboard**: Interactive menu with inline buttons, emoji navigation
 - **Sports Zone**: /live, /standings, /odds, /analyze, /predict organized
 - **Free Features Menu**: All 30+ unlimited commands organized by category
@@ -359,6 +391,7 @@ All messages use consistent BETRIX branding with icons and professional formatti
 - **Help Menu**: Complete command reference
 
 ### Modern Menu Commands
+
 - `/menu` - Interactive dashboard with inline buttons
 - `/sports` - Sports analysis zone
 - `/free` - All unlimited features (no paywall)
@@ -366,6 +399,7 @@ All messages use consistent BETRIX branding with icons and professional formatti
 - `/help` - Complete command reference
 
 ### 8 FREE Web-Based Features (No API Keys!)
+
 1. **📰 RSS Headlines Service** - ESPN, BBC sports news
 2. **💬 Reddit Sports Service** - Trending discussions
 3. **🌦️ Weather Service** - Weather API impact analysis
@@ -376,6 +410,7 @@ All messages use consistent BETRIX branding with icons and professional formatti
 8. **📋 Fixture Tracker** - Upcoming big matches
 
 ### Key Files Updated
+
 - `src/services/modern-menu-service.js` - Professional menu system
 - `src/handlers-new-features.js` - New feature command routing
 - `src/handlers-web-features.js` - Web features integration
@@ -384,6 +419,7 @@ All messages use consistent BETRIX branding with icons and professional formatti
 - `render.yaml` - Fixed deployment configuration
 
 ### All Services (46+)
+
 Located in `src/services/`:
 ✅ Telegram, User, API Football, Gemini, Analytics
 ✅ Predictor, Alerts, Premium, Cache, Branding

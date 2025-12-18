@@ -43,7 +43,7 @@ class SubscriptionGatekeeper {
       help: "free",
       pricing: "free",
       refer: "free",
-      
+
       // Member features
       analysis: "member",
       predictions: "member",
@@ -51,7 +51,7 @@ class SubscriptionGatekeeper {
       insights: "member",
       compete: "member",
       watch: "member",
-      
+
       // VVIP features
       dossier: "vvip",
       coach: "vvip",
@@ -120,12 +120,20 @@ class SubscriptionGatekeeper {
     // Add tier indicator
     if (tier === "vvip") {
       response += `\n\n💎 <i>Premium content • VVIP exclusive</i>`;
-    } else if (tier === "member" && ["analysis", "predictions"].includes(feature)) {
+    } else if (
+      tier === "member" &&
+      ["analysis", "predictions"].includes(feature)
+    ) {
       response += `\n\n👤 <i>Member content</i>`;
     }
 
     // Add upsell for free users
-    if (tier === "free" && feature !== "live" && feature !== "standings" && feature !== "odds") {
+    if (
+      tier === "free" &&
+      feature !== "live" &&
+      feature !== "standings" &&
+      feature !== "odds"
+    ) {
       response += `\n\n💡 <i>Upgrade to unlock full analysis</i>`;
     }
 
@@ -138,9 +146,9 @@ class SubscriptionGatekeeper {
   async checkRateLimit(userId, action) {
     const tier = await this.getUserTier(userId);
     const limits = {
-      free: 30,     // 30 requests per minute
-      member: 100,  // 100 requests per minute
-      vvip: 500,    // 500 requests per minute
+      free: 30, // 30 requests per minute
+      member: 100, // 100 requests per minute
+      vvip: 500, // 500 requests per minute
     };
 
     return limits[tier] || 30;

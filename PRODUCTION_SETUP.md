@@ -9,6 +9,7 @@ If your environment has an intercepting proxy (corporate or security appliance):
 1. **Obtain the proxy CA certificate** (`.cer` or `.pem` file from your network/proxy admin)
 
 2. **Run the helper script as Administrator:**
+
    ```powershell
    # Admin PowerShell:
    cd 'd:\betrix-ui (1)\betrix-ui'
@@ -23,6 +24,7 @@ If your environment has an intercepting proxy (corporate or security appliance):
 ### Option B: Allowlist api.sportmonks.com in Proxy
 
 Ask your network/proxy team to:
+
 - Allowlist `api.sportmonks.com` so the proxy does **not** re-sign requests to that host
 - This allows Node.js to verify the legitimate certificate from SportMonks
 
@@ -68,12 +70,14 @@ HUGGINGFACE_TOKEN=your_hf_token_optional
 ### How to Set Environment Variables
 
 **Option 1: .env File (Recommended for local dev)**
+
 ```bash
 cp .env.example .env
 # Edit .env with your values
 ```
 
 **Option 2: Docker / Docker Compose**
+
 ```bash
 export TELEGRAM_TOKEN=your_token
 export REDIS_URL=redis://default:password@host:6379
@@ -81,6 +85,7 @@ export SPORTSMONKS_API=your_sportmonks_token
 ```
 
 **Option 3: Host Environment (Production Server)**
+
 ```bash
 # On Linux/macOS:
 export TELEGRAM_TOKEN=your_token
@@ -111,6 +116,7 @@ node src/worker-final.js
 ```
 
 **Expected startup output:**
+
 ```
 [Worker] Started: BRPOPLPUSH queue handler
 [Redis] Connected to redis://default:...@host:6379
@@ -121,6 +127,7 @@ node src/worker-final.js
 ### Check Worker is Running
 
 In another terminal:
+
 ```bash
 # Check worker heartbeat in Redis
 redis-cli GET worker:heartbeat
@@ -141,6 +148,7 @@ SPORTSMONKS_API=your_token REDIS_URL=redis://... TELEGRAM_TOKEN=your_token \
 ```
 
 **Expected output:**
+
 ```
 ✅ SportMonks: Found 37 live matches
 ✅ Handler response: editMessageText
@@ -163,13 +171,13 @@ SPORTSMONKS_API=your_token REDIS_URL=redis://... TELEGRAM_TOKEN=your_token \
 
 ### Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| `/live` shows "Unknown vs Unknown" | SportMonks not configured or returning empty. Check `SPORTSMONKS_API` env var. |
-| "NOAUTH" errors in logs | Redis password in `REDIS_URL` is wrong. Verify credentials. |
-| TLS certificate error | Install proxy CA or allowlist `api.sportmonks.com`. Run `scripts/inspect-sportmonks-cert.js` to diagnose. |
-| No response to `/live` | Worker not running. Check `redis-cli GET worker:heartbeat`. |
-| Buttons don't respond | Webhook/callback routing issue. Check `TELEGRAM_WEBHOOK_SECRET` and worker logs. |
+| Issue                              | Solution                                                                                                  |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `/live` shows "Unknown vs Unknown" | SportMonks not configured or returning empty. Check `SPORTSMONKS_API` env var.                            |
+| "NOAUTH" errors in logs            | Redis password in `REDIS_URL` is wrong. Verify credentials.                                               |
+| TLS certificate error              | Install proxy CA or allowlist `api.sportmonks.com`. Run `scripts/inspect-sportmonks-cert.js` to diagnose. |
+| No response to `/live`             | Worker not running. Check `redis-cli GET worker:heartbeat`.                                               |
+| Buttons don't respond              | Webhook/callback routing issue. Check `TELEGRAM_WEBHOOK_SECRET` and worker logs.                          |
 
 ---
 
@@ -193,13 +201,14 @@ SPORTSMONKS_API=your_token REDIS_URL=redis://... TELEGRAM_TOKEN=your_token \
 1. **Copy code to production server** (git clone or CI/CD)
 2. **Set environment variables** (see step 2 above)
 3. **Start worker** in background or as systemd service:
+
    ```bash
    # As systemd service (Linux):
    # /etc/systemd/system/betrix-worker.service
    [Unit]
    Description=BETRIX Worker
    After=network.target
-   
+
    [Service]
    Type=simple
    User=betrix
@@ -210,12 +219,13 @@ SPORTSMONKS_API=your_token REDIS_URL=redis://... TELEGRAM_TOKEN=your_token \
    ExecStart=/usr/bin/node /opt/betrix/src/worker-final.js
    Restart=always
    RestartSec=10
-   
+
    [Install]
    WantedBy=multi-user.target
    ```
 
 4. **Enable and start:**
+
    ```bash
    sudo systemctl enable betrix-worker
    sudo systemctl start betrix-worker
@@ -244,6 +254,7 @@ docker run -d \
 ## Support
 
 For issues or questions:
+
 - Check logs: `worker-final.js` outputs to console
 - Redis diagnostics: `redis-cli PING`, `redis-cli GET worker:heartbeat`
 - TLS debug: `node scripts/inspect-sportmonks-cert.js`

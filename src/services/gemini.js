@@ -15,7 +15,7 @@ class GeminiService {
       try {
         this.genAI = new GoogleGenerativeAI(apiKey);
       } catch (err) {
-        logger.error('Failed to initialize GoogleGenerativeAI', err);
+        logger.error("Failed to initialize GoogleGenerativeAI", err);
         // keep enabled flag as-is; we'll fallback per-request if needed
       }
     }
@@ -27,20 +27,27 @@ class GeminiService {
     }
 
     try {
-      const model = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = this.genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+      });
 
       // Minimal context to reduce token usage (only keep essential info)
       const minimalContext = (() => {
         try {
-          if (!context || typeof context !== 'object') return '';
+          if (!context || typeof context !== "object") return "";
           const parts = [];
           if (context.name) parts.push(`User: ${context.name}`);
-          if (context.favoriteLeagues && Array.isArray(context.favoriteLeagues)) {
-            parts.push(`Leagues: ${context.favoriteLeagues.slice(0, 1).join(',')}`);
+          if (
+            context.favoriteLeagues &&
+            Array.isArray(context.favoriteLeagues)
+          ) {
+            parts.push(
+              `Leagues: ${context.favoriteLeagues.slice(0, 1).join(",")}`,
+            );
           }
-          return parts.join(' | ');
+          return parts.join(" | ");
         } catch (e) {
-          return '';
+          return "";
         }
       })();
 
@@ -49,22 +56,30 @@ class GeminiService {
 
       // First attempt: aggressive token limit
       let result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: systemPrompt + "\n\nQ: " + userMessage }] }],
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: systemPrompt + "\n\nQ: " + userMessage }],
+          },
+        ],
         generationConfig: { temperature: 0.7, maxOutputTokens: 120 },
       });
 
       let text = result.response?.text?.() || "";
-      const finishReason = result.response?.candidates?.[0]?.finishReason || null;
+      const finishReason =
+        result.response?.candidates?.[0]?.finishReason || null;
 
       // If we got a response and it's not empty, return it
-      if (text && text.trim().length > 0 && finishReason !== 'MAX_TOKENS') {
+      if (text && text.trim().length > 0 && finishReason !== "MAX_TOKENS") {
         logger.info("Gemini response generated successfully");
         return text;
       }
 
       // If we hit MAX_TOKENS or got empty, retry with extremely minimal prompt
-      if (finishReason === 'MAX_TOKENS' || !text || text.trim().length === 0) {
-        logger.warn("Gemini MAX_TOKENS or empty, retrying ultra-minimal", { finishReason });
+      if (finishReason === "MAX_TOKENS" || !text || text.trim().length === 0) {
+        logger.warn("Gemini MAX_TOKENS or empty, retrying ultra-minimal", {
+          finishReason,
+        });
 
         // Strip to absolute minimum
         const minimalPrompt = `Answer: ${userMessage.substring(0, 100)}`;
@@ -80,7 +95,9 @@ class GeminiService {
             return text;
           }
         } catch (retryErr) {
-          logger.warn("Gemini minimal retry failed", { error: String(retryErr?.message || retryErr) });
+          logger.warn("Gemini minimal retry failed", {
+            error: String(retryErr?.message || retryErr),
+          });
         }
       }
 
@@ -101,7 +118,11 @@ class GeminiService {
     const msg = message.toLowerCase();
 
     // Short identity responses
-    if (msg.includes("who are you") || msg.includes("what are you") || msg.includes("your name")) {
+    if (
+      msg.includes("who are you") ||
+      msg.includes("what are you") ||
+      msg.includes("your name")
+    ) {
       return `👋 I'm BETRIX - your autonomous AI sports analyst. I analyze football, odds, betting strategy, and match insights. Ask me anything about sports! Or use /menu to explore.`;
     }
 
@@ -137,28 +158,43 @@ class GeminiService {
     }
 
     try {
-      const model = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-      
+      const model = this.genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+      });
+
       // Extremely compact data - only essentials
-      const compactData = `${matchData.home || 'T1'} v ${matchData.away || 'T2'}: ${matchData.score || '?'}`;
-      
+      const compactData = `${matchData.home || "T1"} v ${matchData.away || "T2"}: ${matchData.score || "?"}`;
+
       // Minimal prompt (under 50 tokens)
       const prompt = `${compactData}\nQ: ${question.substring(0, 80)}\nA (max 80 words):`;
-      
+
       const result = await model.generateContent({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: { maxOutputTokens: 100 },
       });
 
       let text = result.response?.text?.() || "";
-      const finishReason = result.response?.candidates?.[0]?.finishReason || null;
+      const finishReason =
+        result.response?.candidates?.[0]?.finishReason || null;
 
       // Retry if MAX_TOKENS or empty
-      if ((!text || text.trim().length === 0) && finishReason === 'MAX_TOKENS') {
+      if (
+        (!text || text.trim().length === 0) &&
+        finishReason === "MAX_TOKENS"
+      ) {
         logger.warn("Gemini analysis MAX_TOKENS, retrying ultra-compact");
         try {
           const ultra = await model.generateContent({
-            contents: [{ role: "user", parts: [{ text: `${compactData}\nAnswer: ${question.substring(0, 50)}` }] }],
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  {
+                    text: `${compactData}\nAnswer: ${question.substring(0, 50)}`,
+                  },
+                ],
+              },
+            ],
             generationConfig: { maxOutputTokens: 80 },
           });
           text = ultra.response?.text?.() || "";

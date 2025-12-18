@@ -33,11 +33,20 @@
     - Body (JSON):
       - For photo:
         ```json
-        { "type": "photo", "photoUrl": "https://.../image.jpg", "caption": "Test caption", "chat_id": "-100000..." }
+        {
+          "type": "photo",
+          "photoUrl": "https://.../image.jpg",
+          "caption": "Test caption",
+          "chat_id": "-100000..."
+        }
         ```
       - For text:
         ```json
-        { "type": "text", "text": "Hello from admin test", "chat_id": "-100000..." }
+        {
+          "type": "text",
+          "text": "Hello from admin test",
+          "chat_id": "-100000..."
+        }
         ```
     - If `chat_id` is omitted, the server will try `BOT_BROADCAST_CHAT_ID` env var.
     - Example (PowerShell):
@@ -58,4 +67,4 @@
   - Admin endpoints are protected by `ADMIN_API_KEY` when configured. If `ADMIN_API_KEY` is not set, admin endpoints are open to local/dev access — do NOT enable that in public environments without an admin key.
   - `SPORTSMONKS_INSECURE=true` is a temporary testing workaround only — it disables TLS verification for SportMonks calls and is unsafe in production.
 
-*** End of file
+\*\*\* End of file

@@ -28,14 +28,14 @@ const errorMessages = {
 async function handleError(err, chatId, telegram, userId = null) {
   try {
     let message = errorMessages.INVALID_INPUT;
-    
+
     if (err.code === "TIER_DENIED") message = errorMessages.TIER_DENIED;
     else if (err.code === "RATE_LIMITED") message = errorMessages.RATE_LIMITED;
     else if (err.code === "API_ERROR") message = errorMessages.API_UNAVAILABLE;
     else if (err.code === "BANNED") message = errorMessages.USER_BANNED;
 
     await telegram?.sendMessage(chatId, message);
-    
+
     logger.error(`${err.code || "UNKNOWN"}`, {
       userId,
       message: err.message,

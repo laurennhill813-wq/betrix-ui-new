@@ -3,15 +3,16 @@
  * Provides inline keyboard menus and command responses with BETRIX branding
  */
 
-import { Logger } from '../utils/logger.js';
-import safeName from '../utils/safe-name.js';
+import { Logger } from "../utils/logger.js";
+import safeName from "../utils/safe-name.js";
 
-const logger = new Logger('MenuHandler');
+const logger = new Logger("MenuHandler");
 void logger;
 
-const BETRIX_EMOJI = '🌀';
+const BETRIX_EMOJI = "🌀";
 const BETRIX_HEADER = `${BETRIX_EMOJI} *BETRIX* - Premium Sports Analytics`;
-const TILL_NUMBER = process.env.MPESA_TILL || process.env.SAFARICOM_TILL_NUMBER || '606215';
+const TILL_NUMBER =
+  process.env.MPESA_TILL || process.env.SAFARICOM_TILL_NUMBER || "606215";
 
 export const mainMenu = {
   text: `${BETRIX_HEADER}
@@ -19,86 +20,88 @@ export const mainMenu = {
 Your AI-powered sports betting companion. Get live odds, predictions, and analysis.
 
 *What would you like to do?*`,
-  
+
   reply_markup: {
     inline_keyboard: [
       [
-        { text: '⚽ Live Games', callback_data: 'menu_live' },
-        { text: '📊 Odds & Analysis', callback_data: 'menu_odds' }
+        { text: "⚽ Live Games", callback_data: "menu_live" },
+        { text: "📊 Odds & Analysis", callback_data: "menu_odds" },
       ],
       [
-        { text: '🏆 Standings', callback_data: 'menu_standings' },
-        { text: '📰 Latest News', callback_data: 'menu_news' }
+        { text: "🏆 Standings", callback_data: "menu_standings" },
+        { text: "📰 Latest News", callback_data: "menu_news" },
       ],
       [
-        { text: '⭐ Favorites', callback_data: 'profile_favorites' },
-        { text: '👤 My Profile', callback_data: 'menu_profile' }
+        { text: "⭐ Favorites", callback_data: "profile_favorites" },
+        { text: "👤 My Profile", callback_data: "menu_profile" },
       ],
       [
-        { text: '💰 Subscribe to VVIP', callback_data: 'menu_vvip' },
-        { text: '📝 Sign Up', callback_data: 'signup_start' }
+        { text: "💰 Subscribe to VVIP", callback_data: "menu_vvip" },
+        { text: "📝 Sign Up", callback_data: "signup_start" },
       ],
-      [
-        { text: '❓ Help', callback_data: 'menu_help' }
-      ]
-    ]
-  }
+      [{ text: "❓ Help", callback_data: "menu_help" }],
+    ],
+  },
 };
 
-
 // Add a Sign Up quick action to be used by handlers if needed
-export const signUpAction = { text: '📝 Sign Up', callback_data: 'signup_start' };
+export const signUpAction = {
+  text: "📝 Sign Up",
+  callback_data: "signup_start",
+};
 
 /**
  * Welcome message for new users (pre-signup)
  */
 export function welcomeNewUser() {
-  return `${BETRIX_HEADER}
+  return (
+    `${BETRIX_HEADER}
 
 Welcome to BETRIX — your AI sports analyst.\n\n` +
     `▶️ *Quick Start:* Tap ⚽ Live Games to pick a sport, or ⭐ Favorites to add teams you care about.\n\n` +
     `🔒 Want more insights? Upgrade to VVIP for unlimited AI analysis and real-time alerts.\n\n` +
-    `Tap *Subscribe to VVIP* or type /vvip to get started.`;
+    `Tap *Subscribe to VVIP* or type /vvip to get started.`
+  );
 }
 
 /**
  * Welcome message for returning or signed-up users
  */
 export function welcomeReturningUser(user) {
-  const name = (user && user.name) ? user.name : 'BETRIX User';
-  const tier = (user && user.tier) ? user.tier : 'FREE';
-  return `${BETRIX_HEADER}\n\nWelcome back, *${name}*! (${tier})\n\n` +
-    `• Tap ⚽ Live Games to view live matches\n• Tap 📊 Odds & Analysis for predictions\n• Tap ⭐ Favorites to view your tracked teams\n\nGood luck — bet responsibly!`;
+  const name = user && user.name ? user.name : "BETRIX User";
+  const tier = user && user.tier ? user.tier : "FREE";
+  return (
+    `${BETRIX_HEADER}\n\nWelcome back, *${name}*! (${tier})\n\n` +
+    `• Tap ⚽ Live Games to view live matches\n• Tap 📊 Odds & Analysis for predictions\n• Tap ⭐ Favorites to view your tracked teams\n\nGood luck — bet responsibly!`
+  );
 }
 
 export const sportsMenu = {
   text: `${BETRIX_HEADER}
 
 *Select a Sport:*`,
-  
+
   reply_markup: {
     inline_keyboard: [
       [
-        { text: '⚽ Football', callback_data: 'sport_football' },
-        { text: '🏀 Basketball', callback_data: 'sport_basketball' }
+        { text: "⚽ Football", callback_data: "sport_football" },
+        { text: "🏀 Basketball", callback_data: "sport_basketball" },
       ],
       [
-        { text: '🎾 Tennis', callback_data: 'sport_tennis' },
-        { text: '🏈 American Football', callback_data: 'sport_nfl' }
+        { text: "🎾 Tennis", callback_data: "sport_tennis" },
+        { text: "🏈 American Football", callback_data: "sport_nfl" },
       ],
       [
-        { text: '🏒 Ice Hockey', callback_data: 'sport_hockey' },
-        { text: '⚾ Baseball', callback_data: 'sport_baseball' }
+        { text: "🏒 Ice Hockey", callback_data: "sport_hockey" },
+        { text: "⚾ Baseball", callback_data: "sport_baseball" },
       ],
       [
-        { text: '🏉 Rugby', callback_data: 'sport_rugby' },
-        { text: '🏏 Cricket', callback_data: 'sport_cricket' }
+        { text: "🏉 Rugby", callback_data: "sport_rugby" },
+        { text: "🏏 Cricket", callback_data: "sport_cricket" },
       ],
-      [
-        { text: '🔙 Back to Main', callback_data: 'menu_main' }
-      ]
-    ]
-  }
+      [{ text: "🔙 Back to Main", callback_data: "menu_main" }],
+    ],
+  },
 };
 
 export const subscriptionMenu = {
@@ -134,61 +137,65 @@ export const subscriptionMenu = {
 🏦 Bank Transfer (SWIFT)
 
 *Choose your plan:*`,
-  
+
   reply_markup: {
     inline_keyboard: [
       [
-        { text: '⭐ Free (Explore)', callback_data: 'sub_free' },
-        { text: '📊 Pro Tier', callback_data: 'sub_pro' }
+        { text: "⭐ Free (Explore)", callback_data: "sub_free" },
+        { text: "📊 Pro Tier", callback_data: "sub_pro" },
       ],
       [
-        { text: '👑 VVIP (Most Popular)', callback_data: 'sub_vvip' },
-        { text: '💎 BETRIX Plus', callback_data: 'sub_plus' }
+        { text: "👑 VVIP (Most Popular)", callback_data: "sub_vvip" },
+        { text: "💎 BETRIX Plus", callback_data: "sub_plus" },
       ],
       [
-        { text: '🚀 Quick VVIP (Till)', callback_data: 'pay_quick_vvip' },
-        { text: '🔙 Back', callback_data: 'menu_main' }
+        { text: "🚀 Quick VVIP (Till)", callback_data: "pay_quick_vvip" },
+        { text: "🔙 Back", callback_data: "menu_main" },
       ],
       [
-        { text: '👑 Fixed Matches (VVIP)', callback_data: 'vvip_fixed' },
-        { text: '🔍 Half/Full & Correct Scores', callback_data: 'vvip_advanced' }
+        { text: "👑 Fixed Matches (VVIP)", callback_data: "vvip_fixed" },
+        {
+          text: "🔍 Half/Full & Correct Scores",
+          callback_data: "vvip_advanced",
+        },
       ],
       [
-        { text: `🏪 Safaricom Till #${TILL_NUMBER}`, callback_data: 'pay_till' },
-        { text: '📱 M-Pesa', callback_data: 'pay_mpesa' }
+        {
+          text: `🏪 Safaricom Till #${TILL_NUMBER}`,
+          callback_data: "pay_till",
+        },
+        { text: "📱 M-Pesa", callback_data: "pay_mpesa" },
       ],
       [
-        { text: '💳 PayPal', callback_data: 'pay_paypal' },
-        { text: '₿ Binance', callback_data: 'pay_binance' }
+        { text: "💳 PayPal", callback_data: "pay_paypal" },
+        { text: "₿ Binance", callback_data: "pay_binance" },
       ],
       [
-        { text: '🏦 Bank Transfer', callback_data: 'pay_swift' },
-        { text: '🔙 Back', callback_data: 'menu_main' }
-      ]
-    ]
-  }
+        { text: "🏦 Bank Transfer", callback_data: "pay_swift" },
+        { text: "🔙 Back", callback_data: "menu_main" },
+      ],
+    ],
+  },
 };
 
 export const profileMenu = {
   text: `${BETRIX_HEADER}
 
 *Your Profile*`,
-  
+
   reply_markup: {
     inline_keyboard: [
       [
-        { text: '📊 My Stats', callback_data: 'profile_stats' },
-        { text: '💰 My Bets', callback_data: 'profile_bets' }
+        { text: "📊 My Stats", callback_data: "profile_stats" },
+        { text: "💰 My Bets", callback_data: "profile_bets" },
       ],
       [
-        { text: '⭐ Favorites', callback_data: 'profile_favorites' },
-        { text: '📋 Settings', callback_data: 'profile_settings' }
+        { text: "⭐ Favorites", callback_data: "profile_favorites" },
+        { text: "📋 Settings", callback_data: "profile_settings" },
       ],
-      [
-        { text: '🔙 Back to Main', callback_data: 'menu_main' }
-      ]
-    ]
-  }
+      [{ text: "🔙 Back to Main", callback_data: "menu_main" }],
+    ],
+  },
 };
 
 export const helpMenu = {
@@ -216,25 +223,25 @@ export const helpMenu = {
 Contact: support@betrix.app
 
 *What can I help with?*`,
-  
+
   reply_markup: {
     inline_keyboard: [
       [
-        { text: '❓ FAQ', callback_data: 'help_faq' },
-        { text: '🎮 Try Demo', callback_data: 'help_demo' }
+        { text: "❓ FAQ", callback_data: "help_faq" },
+        { text: "🎮 Try Demo", callback_data: "help_demo" },
       ],
       [
-        { text: '📧 Contact Support', callback_data: 'help_contact' },
-        { text: '🔙 Back', callback_data: 'menu_main' }
-      ]
-    ]
-  }
+        { text: "📧 Contact Support", callback_data: "help_contact" },
+        { text: "🔙 Back", callback_data: "menu_main" },
+      ],
+    ],
+  },
 };
 
 /**
  * Format a live games response with BETRIX branding
  */
-export function formatLiveGames(games, sport = 'Football') {
+export function formatLiveGames(games, sport = "Football") {
   if (!games || games.length === 0) {
     return `${BETRIX_HEADER}
 
@@ -245,7 +252,7 @@ Check back later for exciting matchups! ⚽`;
   let text = `${BETRIX_HEADER}\n\n*🔴 LIVE ${sport.toUpperCase()} MATCHES*\n`;
 
   games.slice(0, 10).forEach((game, i) => {
-    text += `\n${i + 1}. *${safeName(game.home, 'Home')}* vs *${safeName(game.away, 'Away')}*`;
+    text += `\n${i + 1}. *${safeName(game.home, "Home")}* vs *${safeName(game.away, "Away")}*`;
     if (game.score) text += `\n   • Score: ${game.score}`;
     if (game.time) text += `\n   • ⏱ ${game.time}`;
     if (game.odds) text += `\n   • 📊 Odds: ${game.odds}`;
@@ -262,17 +269,31 @@ Check back later for exciting matchups! ⚽`;
  * Build a live menu payload with inline keyboard for Telegram.
  * Returns an object { text, reply_markup } ready to send as a Telegram message.
  */
-export function buildLiveMenuPayload(games, sport = 'Football', userTier = 'FREE', page = 1, pageSize = 6) {
+export function buildLiveMenuPayload(
+  games,
+  sport = "Football",
+  userTier = "FREE",
+  page = 1,
+  pageSize = 6,
+) {
   const header = BETRIX_HEADER;
   void userTier;
   if (!games || games.length === 0) {
-    return { text: `${header}\n\n*No live ${sport.toLowerCase()} matches right now.*\n\nCheck back later for exciting matchups! ⚽`, reply_markup: { inline_keyboard: [[{ text: '🔙 Back', callback_data: 'menu_main' }]] } };
+    return {
+      text: `${header}\n\n*No live ${sport.toLowerCase()} matches right now.*\n\nCheck back later for exciting matchups! ⚽`,
+      reply_markup: {
+        inline_keyboard: [[{ text: "🔙 Back", callback_data: "menu_main" }]],
+      },
+    };
   }
 
   // Pagination calculations
   const total = games.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const currentPage = Math.min(Math.max(1, parseInt(page, 10) || 1), totalPages);
+  const currentPage = Math.min(
+    Math.max(1, parseInt(page, 10) || 1),
+    totalPages,
+  );
   const start = (currentPage - 1) * pageSize;
   const end = start + pageSize;
   const pageGames = games.slice(start, end);
@@ -282,7 +303,7 @@ export function buildLiveMenuPayload(games, sport = 'Football', userTier = 'FREE
 
   pageGames.forEach((game, i) => {
     const idx = start + i + 1;
-    text += `\n${idx}. *${safeName(game.home, 'Home')}* vs *${safeName(game.away, 'Away')}*`;
+    text += `\n${idx}. *${safeName(game.home, "Home")}* vs *${safeName(game.away, "Away")}*`;
     if (game.score) text += `\n   • Score: ${game.score}`;
     if (game.time) text += `\n   • ⏱ ${game.time}`;
     text += `\n   — Tap Details to analyze or ⭐ to add to Favorites\n`;
@@ -290,22 +311,39 @@ export function buildLiveMenuPayload(games, sport = 'Football', userTier = 'FREE
     // action buttons per match: Details, Odds
     const matchId = game.id || `${sport}_${idx}`;
     const row = [
-      { text: '🔎 Details', callback_data: `match:${matchId}:${sport.toLowerCase()}` },
-      { text: '💰 Odds', callback_data: `odds:${matchId}` }
+      {
+        text: "🔎 Details",
+        callback_data: `match:${matchId}:${sport.toLowerCase()}`,
+      },
+      { text: "💰 Odds", callback_data: `odds:${matchId}` },
     ];
     keyboard.push(row);
   });
 
   // Navigation row: Prev / Refresh / Next / Back
   const navRow = [];
-  if (currentPage > 1) navRow.push({ text: '◀️ Prev', callback_data: `menu_live_page:${sport.toLowerCase()}:${currentPage - 1}` });
-  navRow.push({ text: '🔄 Refresh', callback_data: `menu_live_refresh:${sport.toLowerCase()}:${currentPage}` });
+  if (currentPage > 1)
+    navRow.push({
+      text: "◀️ Prev",
+      callback_data: `menu_live_page:${sport.toLowerCase()}:${currentPage - 1}`,
+    });
+  navRow.push({
+    text: "🔄 Refresh",
+    callback_data: `menu_live_refresh:${sport.toLowerCase()}:${currentPage}`,
+  });
   // Offer a Show All option to publish the full list in chat (may be large)
-  navRow.push({ text: '📋 Show All', callback_data: `menu_live_all:${sport.toLowerCase()}` });
-  if (currentPage < totalPages) navRow.push({ text: 'Next ▶️', callback_data: `menu_live_page:${sport.toLowerCase()}:${currentPage + 1}` });
+  navRow.push({
+    text: "📋 Show All",
+    callback_data: `menu_live_all:${sport.toLowerCase()}`,
+  });
+  if (currentPage < totalPages)
+    navRow.push({
+      text: "Next ▶️",
+      callback_data: `menu_live_page:${sport.toLowerCase()}:${currentPage + 1}`,
+    });
   // Wrap into inline keyboard row(s)
   if (navRow.length > 0) keyboard.push(navRow);
-  keyboard.push([{ text: '🔙 Back', callback_data: 'menu_main' }]);
+  keyboard.push([{ text: "🔙 Back", callback_data: "menu_main" }]);
 
   const reply_markup = { inline_keyboard: keyboard };
   return { text, reply_markup };
@@ -323,7 +361,7 @@ export function formatOdds(matches) {
   let text = `${BETRIX_HEADER}\n\n*📊 LIVE ODDS & PREDICTIONS*\n`;
 
   matches.slice(0, 8).forEach((m, i) => {
-    text += `\n${i + 1}. *${safeName(m.home, 'Home')}* vs *${safeName(m.away, 'Away')}*`;
+    text += `\n${i + 1}. *${safeName(m.home, "Home")}* vs *${safeName(m.away, "Away")}*`;
     text += `\n   • 💰 Home: ${m.homeOdds}  •  Draw: ${m.drawOdds}  •  Away: ${m.awayOdds}`;
     if (m.prediction) text += `\n   • 🤖 Prediction: ${m.prediction}`;
     if (m.value) text += `\n   • ⭐ Value Bet: ${m.value}`;
@@ -345,13 +383,13 @@ export function formatStandings(league, standings) {
 *No standings data available.*`;
   }
   let text = `${BETRIX_HEADER}\n\n*🏆 ${league.toUpperCase()} STANDINGS*\n`;
-  text += '```\nPos Team              P   W   D   L   +/-  Pts\n';
+  text += "```\nPos Team              P   W   D   L   +/-  Pts\n";
 
   standings.slice(0, 12).forEach((team, i) => {
     text += `${String(i + 1).padEnd(3)}${team.name.substring(0, 16).padEnd(18)}${String(team.played).padStart(3)}   ${String(team.won).padStart(2)}   ${String(team.drawn).padStart(2)}   ${String(team.lost).padStart(2)}   ${String(team.goalDiff).padStart(3)}  ${String(team.points).padStart(3)}\n`;
   });
 
-  text += '```\n_Powered by BETRIX Live Data_';
+  text += "```\n_Powered by BETRIX Live Data_";
 
   return text;
 }
@@ -364,21 +402,21 @@ export function formatProfile(user) {
 
 *👤 YOUR PROFILE*
 
-*User:* ${user.name || 'Guest'}
-*Tier:* ${user.tier || 'Free'} ${user.tier === 'VVIP' ? '👑' : ''}
-*Member Since:* ${user.joinDate || 'Today'}
+*User:* ${user.name || "Guest"}
+*Tier:* ${user.tier || "Free"} ${user.tier === "VVIP" ? "👑" : ""}
+*Member Since:* ${user.joinDate || "Today"}
 
 *📊 Your Stats:*
 • Total Predictions: ${user.predictions || 0}
-• Win Rate: ${user.winRate || '0'}%
+• Win Rate: ${user.winRate || "0"}%
 • Points Earned: ${user.points || 0}
-• Referral Code: \`${user.referralCode || 'N/A'}\`
+• Referral Code: \`${user.referralCode || "N/A"}\`
 
 *💰 Referral Rewards:*
 • Referrals: ${user.referrals || 0}
 • Bonus Points: ${user.bonusPoints || 0}
 
-*Next Tier:* ${user.nextTier || 'N/A'}`;
+*Next Tier:* ${user.nextTier || "N/A"}`;
 
   return text;
 }
@@ -396,7 +434,7 @@ export function formatNews(articles) {
   let text = `${BETRIX_HEADER}
 
 *📰 LATEST SPORTS NEWS*\n`;
-  
+
   articles.slice(0, 5).forEach((article, i) => {
     text += `\n${i + 1}. *${article.title}*`;
     if (article.source) text += `\n   📍 ${article.source}`;
@@ -405,7 +443,7 @@ export function formatNews(articles) {
   });
 
   text += `\n\n_Powered by BETRIX Intelligence_`;
-  
+
   return text;
 }
 
@@ -453,5 +491,5 @@ export default {
   formatProfile,
   formatNews,
   formatNaturalResponse,
-  formatUpgradePrompt
+  formatUpgradePrompt,
 };

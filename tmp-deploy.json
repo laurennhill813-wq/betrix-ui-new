@@ -1,1 +1,6 @@
-{"properties":{"model":"text-embedding-3-large","scaleSettings":{"scaleType":"Standard"}}}
+{
+  "properties": {
+    "model": "text-embedding-3-large",
+    "scaleSettings": { "scaleType": "Standard" }
+  }
+}

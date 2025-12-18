@@ -5,11 +5,13 @@
 ## ✨ Key Features
 
 ### 🤖 Intelligent AI Layer
+
 - **Multi-Provider Chain**: Gemini → Azure → HuggingFace → LocalAI (automatic fallback)
 - **Defensive Handling**: Empty response recovery, MAX_TOKENS retry, per-user token trimming
 - **Observability**: Real-time `ai:active` tracking, debug endpoints
 
 ### 📊 Free Live Sports Data (Always Live)
+
 - **OpenLigaDB**: No-auth leagues, matches, standings (30s cache)
 - **BBC/Guardian/ESPN RSS**: Real-time headlines (60s cache)
 - **ScoreBat**: Free highlights feed (120s cache)
@@ -17,6 +19,7 @@
 - **Polite Scrapers**: FBref/Understat (2h cache, robots.txt respected)
 
 ### ⚡ Advanced Infrastructure
+
 - **Real-time Prefetch Scheduler**: Configurable interval (default 60s), warms all data caches
 - **Exponential Backoff**: Automatic provider protection on repeated failures
 - **Pub/Sub Broadcasting**: `prefetch:updates` and `prefetch:error` to all clients
@@ -24,12 +27,14 @@
 - **Monitoring Dashboard**: `/monitor.html` with auto-refresh (10s)
 
 ### 🎯 Tier System
+
 - **Free**: 30 requests/minute
-- **Member**: 60 requests/minute  
+- **Member**: 60 requests/minute
 - **VVIP**: 150 requests/minute
 - **Admin**: 300 requests/minute
 
 ### 💰 Payment & Subscriptions (PayPal)
+
 - 3-tier pricing model per sport
 - All-access bundle option
 - Referral rewards system
@@ -102,11 +107,13 @@
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js ≥ 20
 - Redis (local or cloud)
 - Telegram Bot Token
 
 ### Installation
+
 ```bash
 # Clone and install
 git clone https://github.com/maryreaky/betrix-ui-replit-.git
@@ -119,6 +126,7 @@ cp .env.example .env
 ```
 
 ### Environment Variables
+
 ```env
 # Required
 TELEGRAM_TOKEN=your_bot_token
@@ -138,6 +146,7 @@ PREFETCH_MAX_BACKOFF_SECONDS=3600     # Max 1 hour
 ```
 
 ### Run Tests
+
 ```bash
 npm test
 # Expected: All 10 tests passing
@@ -147,6 +156,7 @@ npm test
 ```
 
 ### Start Services
+
 ```bash
 # Terminal 1: Start Worker (processes queue + prefetch)
 node src/worker-final.js
@@ -156,6 +166,7 @@ node src/app.js
 ```
 
 ### Access Points
+
 - **Bot**: Message your Telegram bot
 - **Web Server**: `http://localhost:5000`
 - **Health Check**: `curl http://localhost:5000/health`
@@ -164,12 +175,12 @@ node src/app.js
 
 ## 📖 Documentation
 
-| Document | Purpose |
-|----------|---------|
+| Document                                           | Purpose                                                   |
+| -------------------------------------------------- | --------------------------------------------------------- |
 | [INFRASTRUCTURE_GUIDE.md](INFRASTRUCTURE_GUIDE.md) | Complete setup, architecture, monitoring, troubleshooting |
-| [API_REFERENCE.md](API_REFERENCE.md) | All HTTP endpoints, WebSocket, Pub/Sub channels |
-| [LEGAL.md](LEGAL.md) | Data source reuse, attribution, compliance |
-| [PREFETCH_POLICY.md](PREFETCH_POLICY.md) | Recommended intervals, TTL policies, backoff tuning |
+| [API_REFERENCE.md](API_REFERENCE.md)               | All HTTP endpoints, WebSocket, Pub/Sub channels           |
+| [LEGAL.md](LEGAL.md)                               | Data source reuse, attribution, compliance                |
+| [PREFETCH_POLICY.md](PREFETCH_POLICY.md)           | Recommended intervals, TTL policies, backoff tuning       |
 
 ## 🧪 Testing
 
@@ -193,7 +204,9 @@ npm test
 ## 🎛️ Monitoring
 
 ### Dashboard
+
 Visit **`http://localhost:5000/monitor.html`** for:
+
 - System status and uptime
 - Worker process health
 - Active AI provider
@@ -217,6 +230,7 @@ Do NOT enable this in production. After installing the proxy CA or allowlisting 
 Dev helper scripts (PowerShell and small Node tools) have been moved to `docs/dev-scripts/` to keep the primary `scripts/` area focused on production-ready helpers. Use those tools only on developer machines or after approval from your security team.
 
 Redis authentication
+
 - Provide `REDIS_URL` including credentials to allow the app to connect without `NOAUTH` warnings. Example:
 
 ```env
@@ -224,10 +238,12 @@ REDIS_URL=redis://default:yourpassword@redis-host.example:6379
 ```
 
 We also handle a local fallback (if `REDIS_URL` is not set) and log Redis errors. Ensure credentials are correct in your environment to avoid repeated `NOAUTH` messages.
+
 - Prefetch source health (failure counts)
 - Last update times for each data source
 
 ### API Monitoring
+
 ```bash
 # Get real-time metrics
 curl http://localhost:5000/monitor
@@ -243,13 +259,14 @@ redis-cli GET prefetch:failures:rss
 ```
 
 ### WebSocket Events
-```javascript
-const ws = new WebSocket('ws://localhost:5000/');
 
-ws.addEventListener('message', (e) => {
+```javascript
+const ws = new WebSocket("ws://localhost:5000/");
+
+ws.addEventListener("message", (e) => {
   const msg = JSON.parse(e.data);
-  if (msg.type === 'prefetch:updates') {
-    console.log('Data refreshed:', msg.data.type);
+  if (msg.type === "prefetch:updates") {
+    console.log("Data refreshed:", msg.data.type);
   }
 });
 ```
@@ -257,6 +274,7 @@ ws.addEventListener('message', (e) => {
 ## 🔧 Configuration
 
 ### Cache Policies (`src/config/cache-config.js`)
+
 ```javascript
 export const CACHE_CONFIG = {
   rss: { ttlSeconds: 60, rateLimit: 30, ... },
@@ -268,6 +286,7 @@ export const CACHE_CONFIG = {
 ```
 
 ### Backoff Policy
+
 ```javascript
 // On failure: 2^(failures-1) * base, capped at max
 // Failure 1: 60s delay
@@ -301,12 +320,14 @@ Pub/Sub Channels:
 ## 🌐 Deployment
 
 ### Recommended Setup
+
 - **Web Server**: Render, Heroku, Railway, or self-hosted
 - **Worker**: Separate dyno/instance (background job)
 - **Redis**: Upstash, Redis Cloud, or managed provider
 - **Secrets**: Environment variables (no hardcoding)
 
 ### Production Checklist
+
 - [ ] Set all required env vars
 - [ ] Configure Redis with persistence (AOF or RDB)
 - [ ] Enable SSL/TLS for WebSocket
@@ -338,9 +359,11 @@ MIT - See LICENSE file
 
 **BETRIX v3.0** — Intelligent Sports Betting Analytics | Production Ready ✅
 
-## 🚀 Quick Start     
+## 🚀 Quick Start
+
 ```bash
 npm install
 export REDIS_URL=redis://localhost:6379
 export TELEGRAM_TOKEN=your_token
 bash start.sh
+```

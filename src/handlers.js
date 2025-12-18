@@ -4,13 +4,28 @@
  */
 
 import { Logger } from "./utils/logger.js";
-import { ICONS, escapeHtml, pickRandom, formatList, MEMES, STRATEGY_TIPS } from "./utils/formatters.js";
+import {
+  ICONS,
+  escapeHtml,
+  pickRandom,
+  formatList,
+  MEMES,
+  STRATEGY_TIPS,
+} from "./utils/formatters.js";
 import { CONFIG } from "./config.js";
 
 const logger = new Logger("Handlers");
 
 class BotHandlers {
-  constructor(telegram, userService, apiFootball, gemini, redis, freeSports = null, extras = {}) {
+  constructor(
+    telegram,
+    userService,
+    apiFootball,
+    gemini,
+    redis,
+    freeSports = null,
+    extras = {},
+  ) {
     this.telegram = telegram;
     this.userService = userService;
     this.apiFootball = apiFootball;
@@ -28,20 +43,21 @@ class BotHandlers {
   // ===== START & MENU =====
 
   async start(chatId, userId) {
-    const user = await this.userService.getUser(userId) || {};
-    
+    const user = (await this.userService.getUser(userId)) || {};
+
     if (user?.signupComplete) {
       const welcome = await this.gemini.chat(
         `User "${user.name}" returned to BETRIX. Give a warm, personalized 1-line greeting.`,
-        { user }
+        { user },
       );
       return this.telegram.sendMessage(
         chatId,
-        `👋 <b>Welcome back!</b>\n\n${welcome}\n\n📌 Use /menu to explore.`
+        `👋 <b>Welcome back!</b>\n\n${welcome}\n\n📌 Use /menu to explore.`,
       );
     }
 
-    const intro = `${ICONS.brand} <b>BETRIX — Global Sports AI</b>\n\n` +
+    const intro =
+      `${ICONS.brand} <b>BETRIX — Global Sports AI</b>\n\n` +
       `Neutral analysis. No hype. Just insights.\n\n` +
       `${pickRandom(MEMES)}\n\n` +
       `<b>Get started:</b> /signup`;
@@ -69,7 +85,12 @@ class BotHandlers {
     const kb = {
       inline_keyboard: [
         [{ text: `${ICONS.live} Live`, callback_data: "CMD:live" }],
-        [{ text: `${ICONS.standings} Standings`, callback_data: "CMD:standings" }],
+        [
+          {
+            text: `${ICONS.standings} Standings`,
+            callback_data: "CMD:standings",
+          },
+        ],
         [{ text: `${ICONS.tips} Tips`, callback_data: "CMD:tips" }],
         [{ text: `${ICONS.pricing} Pricing`, callback_data: "CMD:pricing" }],
       ],
@@ -88,16 +109,38 @@ class BotHandlers {
         // Try OpenLigaDB free fallback
         if (this.openLiga) {
           try {
-            const league = 'bl1';
-            const recent = await this.openLiga.getRecentMatches(league, new Date().getFullYear(), 3).catch(()=>[]);
+            const league = "bl1";
+            const recent = await this.openLiga
+              .getRecentMatches(league, new Date().getFullYear(), 3)
+              .catch(() => []);
             if (recent && recent.length) {
-              const text = `${ICONS.live} <b>Live / Recent (fallback)</b>\n\n` +
-                recent.slice(0, 8).map((m, i) => {
-                  const home = m.Team1?.Name || m.Team1?.teamName || m.Team1 || m.name || m.home || m.HomeTeam || 'Home';
-                  const away = m.Team2?.Name || m.Team2?.teamName || m.Team2 || m.away || m.AwayTeam || 'Away';
-                  const score = (m.PointsTeam1 != null && m.PointsTeam2 != null) ? `${m.PointsTeam1}-${m.PointsTeam2}` : '-';
-                  return `${i+1}. ${home} <b>${score}</b> ${away}`;
-                }).join('\n');
+              const text =
+                `${ICONS.live} <b>Live / Recent (fallback)</b>\n\n` +
+                recent
+                  .slice(0, 8)
+                  .map((m, i) => {
+                    const home =
+                      m.Team1?.Name ||
+                      m.Team1?.teamName ||
+                      m.Team1 ||
+                      m.name ||
+                      m.home ||
+                      m.HomeTeam ||
+                      "Home";
+                    const away =
+                      m.Team2?.Name ||
+                      m.Team2?.teamName ||
+                      m.Team2 ||
+                      m.away ||
+                      m.AwayTeam ||
+                      "Away";
+                    const score =
+                      m.PointsTeam1 != null && m.PointsTeam2 != null
+                        ? `${m.PointsTeam1}-${m.PointsTeam2}`
+                        : "-";
+                    return `${i + 1}. ${home} <b>${score}</b> ${away}`;
+                  })
+                  .join("\n");
               return this.telegram.sendMessage(chatId, text);
             }
           } catch (e) {
@@ -108,15 +151,28 @@ class BotHandlers {
         // Try football-data CSV fallback
         if (this.footballDataService) {
           try {
-            const fd = await this.footballDataService.fixturesFromCsv('E0', '2324').catch(()=>null);
+            const fd = await this.footballDataService
+              .fixturesFromCsv("E0", "2324")
+              .catch(() => null);
             if (fd && fd.fixtures && fd.fixtures.length) {
-              const sample = fd.fixtures.slice(0,6).map((f,i)=>`${i+1}. ${f.home} vs ${f.away} (${f.date||'TBD'})`).join('\n');
-              return this.telegram.sendMessage(chatId, `${ICONS.live} <b>Upcoming (from CSV)</b>\n\n${sample}`);
+              const sample = fd.fixtures
+                .slice(0, 6)
+                .map(
+                  (f, i) =>
+                    `${i + 1}. ${f.home} vs ${f.away} (${f.date || "TBD"})`,
+                )
+                .join("\n");
+              return this.telegram.sendMessage(
+                chatId,
+                `${ICONS.live} <b>Upcoming (from CSV)</b>\n\n${sample}`,
+              );
             }
-          } catch(e) {}
+          } catch (e) {}
         }
 
-        const msg = await this.gemini.chat("No live football matches right now. Give a friendly 2-line response.");
+        const msg = await this.gemini.chat(
+          "No live football matches right now. Give a friendly 2-line response.",
+        );
         return this.telegram.sendMessage(chatId, `${ICONS.live} ${msg}`);
       }
 
@@ -139,7 +195,7 @@ class BotHandlers {
     } catch (err) {
       logger.error("Live error", err);
       const fallback = await this.gemini.chat(
-        "Live match data temporarily unavailable. Give a brief, helpful 2-line response suggesting what they can do."
+        "Live match data temporarily unavailable. Give a brief, helpful 2-line response suggesting what they can do.",
       );
       return this.telegram.sendMessage(chatId, `❌ ${fallback}`);
     }
@@ -147,7 +203,8 @@ class BotHandlers {
 
   async standings(chatId, league = "39") {
     try {
-      const leagueId = this.apiFootball.constructor.normalizeLeague(league) || 39;
+      const leagueId =
+        this.apiFootball.constructor.normalizeLeague(league) || 39;
       const season = new Date().getFullYear();
 
       const data = await this.apiFootball.getStandings(leagueId, season);
@@ -157,15 +214,26 @@ class BotHandlers {
         if (this.freeSports) {
           const guess = await this.freeSports.searchWiki(league);
           if (guess) {
-            const rows = await this.freeSports.getStandings(guess, CONFIG.MAX_TABLE_ROWS || 10);
+            const rows = await this.freeSports.getStandings(
+              guess,
+              CONFIG.MAX_TABLE_ROWS || 10,
+            );
             if (rows && rows.length) {
-              const text = `${ICONS.standings} <b>Standings — ${guess}</b>\n\n` +
-                rows.map(r => `${r.rank || '-'} . ${r.team || r.raw?.[1] || 'Team'} — ${r.points || r.raw?.slice(-1)[0] || '-'} pts`).join('\n');
+              const text =
+                `${ICONS.standings} <b>Standings — ${guess}</b>\n\n` +
+                rows
+                  .map(
+                    (r) =>
+                      `${r.rank || "-"} . ${r.team || r.raw?.[1] || "Team"} — ${r.points || r.raw?.slice(-1)[0] || "-"} pts`,
+                  )
+                  .join("\n");
               return this.telegram.sendMessage(chatId, text);
             }
           }
         }
-        const msg = await this.gemini.chat(`No standings for league ${leagueId}. Friendly fallback.`);
+        const msg = await this.gemini.chat(
+          `No standings for league ${leagueId}. Friendly fallback.`,
+        );
         return this.telegram.sendMessage(chatId, `${ICONS.standings} ${msg}`);
       }
 
@@ -176,7 +244,7 @@ class BotHandlers {
           .slice(0, CONFIG.MAX_TABLE_ROWS)
           .map(
             (t) =>
-              `${t.rank}. ${escapeHtml(t.team?.name)} — ${t.points}pts (W${t.all?.win}-D${t.all?.draw}-L${t.all?.lose})`
+              `${t.rank}. ${escapeHtml(t.team?.name)} — ${t.points}pts (W${t.all?.win}-D${t.all?.draw}-L${t.all?.lose})`,
           )
           .join("\n");
 
@@ -186,9 +254,19 @@ class BotHandlers {
       // Try OpenLigaDB fallback
       try {
         if (this.openLiga) {
-          const recent = await this.openLiga.getRecentMatches(league || 'bl1', new Date().getFullYear(), 4).catch(()=>[]);
+          const recent = await this.openLiga
+            .getRecentMatches(league || "bl1", new Date().getFullYear(), 4)
+            .catch(() => []);
           if (recent && recent.length) {
-            const text = `${ICONS.standings} <b>Recent results (fallback)</b>\n\n` + recent.slice(0,10).map((r,i)=>`${i+1}. ${r.Team1?.Name||r.home||'Home'} vs ${r.Team2?.Name||r.away||'Away'} ${r.PointsTeam1!=null?`${r.PointsTeam1}-${r.PointsTeam2}`:''}`).join('\n');
+            const text =
+              `${ICONS.standings} <b>Recent results (fallback)</b>\n\n` +
+              recent
+                .slice(0, 10)
+                .map(
+                  (r, i) =>
+                    `${i + 1}. ${r.Team1?.Name || r.home || "Home"} vs ${r.Team2?.Name || r.away || "Away"} ${r.PointsTeam1 != null ? `${r.PointsTeam1}-${r.PointsTeam2}` : ""}`,
+                )
+                .join("\n");
             return this.telegram.sendMessage(chatId, text);
           }
         }
@@ -197,7 +275,7 @@ class BotHandlers {
       }
       return this.telegram.sendMessage(
         chatId,
-        `❌ Unable to fetch standings right now. Try /standings epl for Premier League.`
+        `❌ Unable to fetch standings right now. Try /standings epl for Premier League.`,
       );
     }
   }
@@ -208,7 +286,7 @@ class BotHandlers {
     if (!fixtureId) {
       return this.telegram.sendMessage(
         chatId,
-        `🎲 <b>Betting Odds</b>\n\nUsage: /odds [fixture-id]\n\nExample: /odds 123456\n\nTip: Use /live to find fixture IDs.`
+        `🎲 <b>Betting Odds</b>\n\nUsage: /odds [fixture-id]\n\nExample: /odds 123456\n\nTip: Use /live to find fixture IDs.`,
       );
     }
 
@@ -219,10 +297,17 @@ class BotHandlers {
         // No odds from API Football — try to provide a helpful guidance using free sources
         if (this.freeSports) {
           // Suggest checking local bookmakers or compare via search; provide a league summary if available
-          const msg = await this.gemini.chat("Odds unavailable from primary provider. Provide helpful guidance about where to find odds and how to interpret them in 2 lines.");
-          return this.telegram.sendMessage(chatId, `${ICONS.odds} ${msg}\n\nTip: Use /live to find recent fixtures and then try /odds [fixture-id].`);
+          const msg = await this.gemini.chat(
+            "Odds unavailable from primary provider. Provide helpful guidance about where to find odds and how to interpret them in 2 lines.",
+          );
+          return this.telegram.sendMessage(
+            chatId,
+            `${ICONS.odds} ${msg}\n\nTip: Use /live to find recent fixtures and then try /odds [fixture-id].`,
+          );
         }
-        const msg = await this.gemini.chat("No odds available for this match. Helpful fallback.");
+        const msg = await this.gemini.chat(
+          "No odds available for this match. Helpful fallback.",
+        );
         return this.telegram.sendMessage(chatId, `${ICONS.odds} ${msg}`);
       }
 
@@ -237,7 +322,10 @@ class BotHandlers {
       return this.telegram.sendMessage(chatId, text);
     } catch (err) {
       logger.error("Odds error", err);
-      return this.telegram.sendMessage(chatId, `❌ Unable to fetch odds. Try again or contact support.`);
+      return this.telegram.sendMessage(
+        chatId,
+        `❌ Unable to fetch odds. Try again or contact support.`,
+      );
     }
   }
 
@@ -245,19 +333,24 @@ class BotHandlers {
     if (!matchQuery) {
       return this.telegram.sendMessage(
         chatId,
-        `${ICONS.analysis} <b>Match Analysis</b>\n\nUsage: /analyze [home] vs [away]\n\nExample: /analyze Arsenal vs Liverpool`
+        `${ICONS.analysis} <b>Match Analysis</b>\n\nUsage: /analyze [home] vs [away]\n\nExample: /analyze Arsenal vs Liverpool`,
       );
     }
 
     try {
       const analysis = await this.gemini.chat(
         `Provide neutral match analysis for: ${matchQuery}. Include: form, key players, odds, confidence. Max 300 chars.`,
-        {}
+        {},
       );
-      return this.telegram.sendMessage(chatId, `${ICONS.analysis} <b>Analysis</b>\n\n${analysis}`);
+      return this.telegram.sendMessage(
+        chatId,
+        `${ICONS.analysis} <b>Analysis</b>\n\n${analysis}`,
+      );
     } catch (err) {
       logger.error("Analysis error", err);
-      const fallback = await this.gemini.chat("Unable to analyze this match right now. Helpful response.");
+      const fallback = await this.gemini.chat(
+        "Unable to analyze this match right now. Helpful response.",
+      );
       return this.telegram.sendMessage(chatId, `❌ ${fallback}`);
     }
   }
@@ -266,40 +359,67 @@ class BotHandlers {
   async news(chatId) {
     try {
       if (this.rss) {
-        const feeds = ['https://feeds.bbci.co.uk/sport/football/rss.xml', 'https://www.theguardian.com/football/rss', 'https://www.espn.com/espn/rss/football/news'];
+        const feeds = [
+          "https://feeds.bbci.co.uk/sport/football/rss.xml",
+          "https://www.theguardian.com/football/rss",
+          "https://www.espn.com/espn/rss/football/news",
+        ];
         const results = await this.rss.fetchMultiple(feeds);
-        const merged = results.flatMap(r => (r.items || []).slice(0,3)).slice(0,10);
-        const text = `${ICONS.news} <b>Latest Football Headlines</b>\n\n` + merged.map((it,i)=>`${i+1}. ${it.title}`).join('\n');
+        const merged = results
+          .flatMap((r) => (r.items || []).slice(0, 3))
+          .slice(0, 10);
+        const text =
+          `${ICONS.news} <b>Latest Football Headlines</b>\n\n` +
+          merged.map((it, i) => `${i + 1}. ${it.title}`).join("\n");
         return this.telegram.sendMessage(chatId, text);
       }
-      const msg = await this.gemini.chat('Provide recent football headlines in 3 lines.');
+      const msg = await this.gemini.chat(
+        "Provide recent football headlines in 3 lines.",
+      );
       return this.telegram.sendMessage(chatId, `📰 ${msg}`);
     } catch (err) {
-      logger.error('News error', err);
-      return this.telegram.sendMessage(chatId, '❌ Unable to fetch news right now.');
+      logger.error("News error", err);
+      return this.telegram.sendMessage(
+        chatId,
+        "❌ Unable to fetch news right now.",
+      );
     }
   }
 
   async highlights(chatId) {
     try {
       if (this.scorebat) {
-        const feed = await this.scorebat.freeFeed().catch(()=>null);
+        const feed = await this.scorebat.freeFeed().catch(() => null);
         if (feed && feed.response) {
-          const items = feed.response.slice(0,6).map((it,i)=>`${i+1}. ${it.title} - ${it.competition}`);
-          return this.telegram.sendMessage(chatId, `🎬 <b>Highlights</b>\n\n${items.join('\n')}`);
+          const items = feed.response
+            .slice(0, 6)
+            .map((it, i) => `${i + 1}. ${it.title} - ${it.competition}`);
+          return this.telegram.sendMessage(
+            chatId,
+            `🎬 <b>Highlights</b>\n\n${items.join("\n")}`,
+          );
         }
       }
-      return this.telegram.sendMessage(chatId, '🎬 Highlights unavailable. Try again later.');
+      return this.telegram.sendMessage(
+        chatId,
+        "🎬 Highlights unavailable. Try again later.",
+      );
     } catch (err) {
-      logger.error('Highlights error', err);
-      return this.telegram.sendMessage(chatId, '❌ Unable to fetch highlights.');
+      logger.error("Highlights error", err);
+      return this.telegram.sendMessage(
+        chatId,
+        "❌ Unable to fetch highlights.",
+      );
     }
   }
 
   // ===== LEAGUE SUMMARY =====
   async league(chatId, leagueName) {
     if (!leagueName) {
-      return this.telegram.sendMessage(chatId, `Usage: /league [league name]\nExample: /league Premier League`);
+      return this.telegram.sendMessage(
+        chatId,
+        `Usage: /league [league name]\nExample: /league Premier League`,
+      );
     }
 
     try {
@@ -314,66 +434,109 @@ class BotHandlers {
         }
       }
 
-      const msg = await this.gemini.chat(`Provide a short summary for the league: ${leagueName}`, {});
-      return this.telegram.sendMessage(chatId, `📘 <b>${leagueName}</b>\n\n${msg}`);
+      const msg = await this.gemini.chat(
+        `Provide a short summary for the league: ${leagueName}`,
+        {},
+      );
+      return this.telegram.sendMessage(
+        chatId,
+        `📘 <b>${leagueName}</b>\n\n${msg}`,
+      );
     } catch (err) {
-      logger.error('League error', err);
-      return this.telegram.sendMessage(chatId, `❌ Unable to fetch league info right now.`);
+      logger.error("League error", err);
+      return this.telegram.sendMessage(
+        chatId,
+        `❌ Unable to fetch league info right now.`,
+      );
     }
   }
 
   // ===== SIMPLE PREDICT =====
   async predict(chatId, query) {
     if (!query) {
-      return this.telegram.sendMessage(chatId, `Usage: /predict Home vs Away [oddsHome] \nExample: /predict Arsenal vs Liverpool 1.95`);
+      return this.telegram.sendMessage(
+        chatId,
+        `Usage: /predict Home vs Away [oddsHome] \nExample: /predict Arsenal vs Liverpool 1.95`,
+      );
     }
 
     try {
       // Parse 'Team A vs Team B [odds]'
-      const parts = query.split(/vs|v/gi).map(s => s.trim());
-      if (parts.length < 2) return this.telegram.sendMessage(chatId, `Please use format: Home vs Away`);
-      const home = parts[0].replace(/\s+$/,'');
+      const parts = query.split(/vs|v/gi).map((s) => s.trim());
+      if (parts.length < 2)
+        return this.telegram.sendMessage(
+          chatId,
+          `Please use format: Home vs Away`,
+        );
+      const home = parts[0].replace(/\s+$/, "");
       const awayAndOdds = parts[1].split(/\s+/).filter(Boolean);
       const away = awayAndOdds[0];
       const maybeOdds = awayAndOdds[1] ? Number(awayAndOdds[1]) : null;
 
       // Try to get standings-derived points per game
-      let homePtsPerGame = null; let awayPtsPerGame = null;
+      let homePtsPerGame = null;
+      let awayPtsPerGame = null;
       if (this.freeSports) {
         const hTitle = await this.freeSports.searchWiki(home);
         const aTitle = await this.freeSports.searchWiki(away);
         if (hTitle) {
           const hStand = await this.freeSports.getStandings(hTitle, 40);
           if (hStand) {
-            const found = hStand.find(r => (r.team || r.raw?.[1] || '').toLowerCase().includes(home.toLowerCase()));
+            const found = hStand.find((r) =>
+              (r.team || r.raw?.[1] || "")
+                .toLowerCase()
+                .includes(home.toLowerCase()),
+            );
             if (found && found.played && found.points) {
-              homePtsPerGame = Number(found.points) / Math.max(1, Number(found.played));
+              homePtsPerGame =
+                Number(found.points) / Math.max(1, Number(found.played));
             }
           }
         }
         if (aTitle) {
           const aStand = await this.freeSports.getStandings(aTitle, 40);
           if (aStand) {
-            const found = aStand.find(r => (r.team || r.raw?.[1] || '').toLowerCase().includes(away.toLowerCase()));
+            const found = aStand.find((r) =>
+              (r.team || r.raw?.[1] || "")
+                .toLowerCase()
+                .includes(away.toLowerCase()),
+            );
             if (found && found.played && found.points) {
-              awayPtsPerGame = Number(found.points) / Math.max(1, Number(found.played));
+              awayPtsPerGame =
+                Number(found.points) / Math.max(1, Number(found.played));
             }
           }
         }
       }
 
-      const analytics = await import('./services/analytics.js');
-      const pred = await analytics.predictMatch({ home, away, homeOdds: maybeOdds, homePtsPerGame, awayPtsPerGame });
-      if (!pred) return this.telegram.sendMessage(chatId, `❌ Unable to produce prediction right now.`);
+      const analytics = await import("./services/analytics.js");
+      const pred = await analytics.predictMatch({
+        home,
+        away,
+        homeOdds: maybeOdds,
+        homePtsPerGame,
+        awayPtsPerGame,
+      });
+      if (!pred)
+        return this.telegram.sendMessage(
+          chatId,
+          `❌ Unable to produce prediction right now.`,
+        );
 
-      const text = `🔮 <b>Prediction</b>\n${pred.home} vs ${pred.away}\nModel P(Home): ${pred.modelProbHome}\n` +
-        (pred.impliedHome ? `Implied P(Home): ${pred.impliedHome}\nEdge: ${pred.edge}\n` : '') +
+      const text =
+        `🔮 <b>Prediction</b>\n${pred.home} vs ${pred.away}\nModel P(Home): ${pred.modelProbHome}\n` +
+        (pred.impliedHome
+          ? `Implied P(Home): ${pred.impliedHome}\nEdge: ${pred.edge}\n`
+          : "") +
         `Kelly: ${pred.kellyFraction}\nRecommendation: ${pred.recommended}`;
 
       return this.telegram.sendMessage(chatId, text);
     } catch (err) {
-      logger.error('Predict error', err);
-      return this.telegram.sendMessage(chatId, `❌ Prediction failed. Try again later.`);
+      logger.error("Predict error", err);
+      return this.telegram.sendMessage(
+        chatId,
+        `❌ Prediction failed. Try again later.`,
+      );
     }
   }
 
@@ -383,7 +546,7 @@ class BotHandlers {
     const tip = pickRandom(STRATEGY_TIPS);
     const aiTip = await this.gemini.chat(
       `Expand this tip into 2-3 lines: "${tip}". Make it actionable.`,
-      {}
+      {},
     );
 
     const text = `${ICONS.tips} <b>Smart Betting Tips</b>\n\n${aiTip}\n\n💡 Process over luck. Every day.`;
@@ -418,7 +581,10 @@ class BotHandlers {
     const user = await this.userService.getUser(userId);
 
     if (!user?.signupComplete) {
-      return this.telegram.sendMessage(chatId, `Not a member yet. Use /signup to join BETRIX.`);
+      return this.telegram.sendMessage(
+        chatId,
+        `Not a member yet. Use /signup to join BETRIX.`,
+      );
     }
 
     const isVVIP = this.userService.isVVIP(user);
@@ -455,19 +621,24 @@ class BotHandlers {
       if (!leaders.length) {
         return this.telegram.sendMessage(
           chatId,
-          `${ICONS.leaderboard} <b>Top Referrers</b>\n\nLeaderboard loading... Share your code to start earning!`
+          `${ICONS.leaderboard} <b>Top Referrers</b>\n\nLeaderboard loading... Share your code to start earning!`,
         );
       }
 
       const text =
         `${ICONS.leaderboard} <b>Top Referrers</b>\n\n` +
-        leaders.map((u, i) => `${i + 1}. ${escapeHtml(u.name)} — ${u.score} pts`).join("\n") +
+        leaders
+          .map((u, i) => `${i + 1}. ${escapeHtml(u.name)} — ${u.score} pts`)
+          .join("\n") +
         `\n\n${ICONS.refer} Use /refer to climb!`;
 
       return this.telegram.sendMessage(chatId, text);
     } catch (err) {
       logger.error("Leaderboard error", err);
-      return this.telegram.sendMessage(chatId, `Unable to load leaderboard. Try again later.`);
+      return this.telegram.sendMessage(
+        chatId,
+        `Unable to load leaderboard. Try again later.`,
+      );
     }
   }
 
@@ -508,7 +679,10 @@ class BotHandlers {
     const user = await this.userService.getUser(userId);
 
     if (user?.signupComplete) {
-      return this.telegram.sendMessage(chatId, `You're already a member! Use /status to view your account.`);
+      return this.telegram.sendMessage(
+        chatId,
+        `You're already a member! Use /status to view your account.`,
+      );
     }
 
     const text =

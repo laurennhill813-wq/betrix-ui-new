@@ -205,7 +205,8 @@ Great job! Keep up the momentum!${BrandingService.getFooter()}`;
     let text = `${BrandingService.ICONS.leaderboard} <b>TOP PLAYERS TODAY</b>\n\n`;
 
     leaderboard.forEach((player, i) => {
-      const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}.`;
+      const medal =
+        i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}.`;
       text += `${medal} ${player.name} - ${player.points}pts (${player.accuracy}%)\n`;
     });
 

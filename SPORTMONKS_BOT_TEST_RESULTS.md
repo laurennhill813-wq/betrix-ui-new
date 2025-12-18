@@ -1,4 +1,5 @@
 # SPORTMONKS BOT LIVE /live COMMAND TEST RESULTS
+
 **Date:** November 29, 2025 | **Status:** ✅ FULLY WIRED & OPERATIONAL
 
 ---
@@ -8,6 +9,7 @@
 ✅ **Bot `/live` command is fully functional and correctly wired to SportMonks**
 
 The bot successfully:
+
 - Routes `/live` commands to SportMonks service
 - Generates formatted menu with BETRIX branding
 - Renders keyboard buttons (Back, Details, Odds, pagination)
@@ -23,6 +25,7 @@ The bot successfully:
 **Status:** ✅ WORKING
 
 **Actual Bot Output:**
+
 ```
 🌀 *BETRIX* - Premium Sports Analytics
 
@@ -35,6 +38,7 @@ Check back later for exciting matchups! ⚽
 ```
 
 **Code Flow:**
+
 ```
 /live command
   ↓
@@ -58,6 +62,7 @@ Return keyboard with Back button
 **Status:** ⚠️ TLS CERTIFICATE MISMATCH (Network Issue, Not Code)
 
 **Error Details:**
+
 ```
 Hostname/IP does not match certificate's altnames:
   Host: api.sportsmonks.com
@@ -67,6 +72,7 @@ Hostname/IP does not match certificate's altnames:
 **Root Cause:** Network/DNS/Proxy issue on this environment (not a code bug)
 
 **User Verification:** PowerShell test confirmed SportMonks returns HTTP 200 with real live data:
+
 ```
 ✅ FC Union Berlin vs Heidenheim
 ✅ Brentford vs Burnley
@@ -78,6 +84,7 @@ Hostname/IP does not match certificate's altnames:
 **SportMonks Integration Status:** ✅ WIRED
 
 **Handler uses SportMonks via:**
+
 ```javascript
 sportsAggregator._getLiveFromSportsMonks('football')
   ↓
@@ -87,6 +94,7 @@ https://api.sportsmonks.com/v3/football/fixtures?filters=status_code:1
 ```
 
 **Expected Live Matches (when TLS works):**
+
 - Home vs Away team names
 - Current match status (e.g., "15'", "HT", "45'", etc.)
 - Live scores (home_score vs away_score)
@@ -106,6 +114,7 @@ https://api.sportsmonks.com/v3/football/fixtures?filters=status_code:1
 **Status:** ✅ FULLY FUNCTIONAL
 
 **When matches exist, bot will show:**
+
 ```
 🌀 *BETRIX* - Premium Sports Analytics
 
@@ -129,6 +138,7 @@ https://api.sportsmonks.com/v3/football/fixtures?filters=status_code:1
 ```
 
 **Callback Routes (All Wired):**
+
 - `match:<id>:soccer` → Match details
 - `odds:<id>` → Odds analysis
 - `menu_live_page:soccer:<page>` → Pagination
@@ -139,6 +149,7 @@ https://api.sportsmonks.com/v3/football/fixtures?filters=status_code:1
 ## BOT CONFIGURATION
 
 **File Structure:**
+
 - Handler: `src/handlers/telegram-handler-v2-clean.js` ✅
 - Menu Builder: `src/handlers/menu-handler.js` ✅
 - Aggregator: `src/services/sports-aggregator.js` ✅
@@ -146,6 +157,7 @@ https://api.sportsmonks.com/v3/football/fixtures?filters=status_code:1
 - Worker Entry: `src/worker-final.js` ✅
 
 **Environment Variables:**
+
 ```
 SPORTSMONKS_API=xWIYIoywHIXv4fI848cXcnQ08aXJFR64HMbDEB0vMjSZBdsQMpQ7duYJ9rpF ✅
 TELEGRAM_TOKEN=configured ✅
@@ -154,6 +166,7 @@ DEMO_FALLBACK=true ✅
 ```
 
 **Provider Status:**
+
 ```
 ✅ SportMonks (Football) — PRIMARY
    └─ API responding: HTTP 200 (confirmed)
@@ -171,6 +184,7 @@ DEMO_FALLBACK=true ✅
 Once the network certificate issue is fixed (or bypass applied), the bot will automatically show:
 
 **Example Real Output:**
+
 ```
 🌀 *BETRIX* - Premium Sports Analytics
 
@@ -194,6 +208,7 @@ Once the network certificate issue is fixed (or bypass applied), the bot will au
 ## KNOWN ISSUE & RESOLUTION PATH
 
 **Issue:** TLS Certificate Hostname Mismatch
+
 - **Environment:** This network only
 - **API Endpoint:** `api.sportsmonks.com`
 - **Certificate CN:** `b2c-solutions.com`
@@ -201,14 +216,17 @@ Once the network certificate issue is fixed (or bypass applied), the bot will au
 - **Verification:** PowerShell test confirms SportMonks API works (HTTP 200)
 
 **Resolution Options:**
+
 1. ✅ Use Node.js flag to ignore cert warnings (dev only)
+
    ```bash
    node --insecure src/worker-final.js
    ```
 
 2. ✅ Add certificate bypass in SportMonksService
+
    ```javascript
-   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
    ```
 
 3. ✅ Use network proxy/VPN with correct certificate chain
@@ -237,6 +255,7 @@ Once the network certificate issue is fixed (or bypass applied), the bot will au
 ✅ **The bot is fully wired to SportMonks and ready for live match display.**
 
 All code changes are in place:
+
 - StatPal removed
 - SportMonks wired as primary
 - Football only (as requested)

@@ -20,7 +20,7 @@ class WeatherService {
   async getWeatherForLocation(latitude, longitude) {
     try {
       const response = await fetch(
-        `${this.weatherApi}?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m,precipitation`
+        `${this.weatherApi}?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m,precipitation`,
       );
       const data = await response.json();
 
@@ -79,14 +79,15 @@ class WeatherService {
    * Format weather display
    */
   static formatWeather(weather, stadium = "Match Location") {
-    if (!weather)
-      return `⚠️ Weather data unavailable for ${stadium}`;
+    if (!weather) return `⚠️ Weather data unavailable for ${stadium}`;
 
-    return `🌦️ <b>${stadium}</b>\n` +
+    return (
+      `🌦️ <b>${stadium}</b>\n` +
       `Temperature: ${weather.temp}°C\n` +
       `Conditions: ${weather.condition}\n` +
       `Wind: ${weather.wind} km/h\n` +
-      `Rain: ${weather.rain}mm`;
+      `Rain: ${weather.rain}mm`
+    );
   }
 }
 

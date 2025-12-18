@@ -16,8 +16,8 @@ if (!redisUrl) {
   await client.connect();
   console.log("retry-worker started");
   while (true) {
-  // loop intentionally runs indefinitely to process retry queue
-  // eslint-disable-next-line no-constant-condition
+    // loop intentionally runs indefinitely to process retry queue
+    // eslint-disable-next-line no-constant-condition
     try {
       const item = await client.brPop("betrix:retry", 5); // timeout 5s
       if (!item) continue;
@@ -26,11 +26,14 @@ if (!redisUrl) {
       const resp = await fetch(payload.url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload.body)
+        body: JSON.stringify(payload.body),
       });
       const data = await resp.json();
       if (!data.ok) {
-        console.error("retry-delivery-failed", JSON.stringify({ body: payload.body, response: data }));
+        console.error(
+          "retry-delivery-failed",
+          JSON.stringify({ body: payload.body, response: data }),
+        );
         // requeue with backoff (simple)
         payload.attempts = (payload.attempts || 0) + 1;
         if (payload.attempts < 5) {
@@ -43,7 +46,7 @@ if (!redisUrl) {
       }
     } catch (err) {
       console.error("retry-loop-err", err && (err.stack || err.message));
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 2000));
     }
   }
 })();

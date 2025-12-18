@@ -9,13 +9,20 @@ function setCache(key, value, ttlMs = 60 * 1000) {
 function getCache(key) {
   const rec = store.get(key);
   if (!rec) return null;
-  if (rec.expires < Date.now()) { store.delete(key); return null; }
+  if (rec.expires < Date.now()) {
+    store.delete(key);
+    return null;
+  }
   return rec.value;
 }
 
-function delCache(key) { store.delete(key); }
+function delCache(key) {
+  store.delete(key);
+}
 
-function clearCache() { store.clear(); }
+function clearCache() {
+  store.clear();
+}
 
 export { setCache, getCache, delCache, clearCache };
 /**

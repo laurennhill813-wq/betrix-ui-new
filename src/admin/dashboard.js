@@ -4,7 +4,7 @@
  */
 
 import { Logger } from "../utils/logger.js";
-import { getRedisAdapter } from '../lib/redis-factory.js';
+import { getRedisAdapter } from "../lib/redis-factory.js";
 
 const logger = new Logger("AdminDashboard");
 
@@ -50,7 +50,12 @@ class AdminDashboard {
         `Status: ${report.status}\n` +
         `Active Users: ${report.users}\n\n` +
         `<b>Top Commands:</b>\n` +
-        report.topCommands.map((c, i) => `${i + 1}. ${c.command} (${c.count}x, ${c.avgTime}ms avg)`).join("\n");
+        report.topCommands
+          .map(
+            (c, i) =>
+              `${i + 1}. ${c.command} (${c.count}x, ${c.avgTime}ms avg)`,
+          )
+          .join("\n");
 
       return this.telegram.sendMessage(chatId, text);
     } catch (err) {
@@ -87,7 +92,10 @@ class AdminDashboard {
 
       for (const userId of users) {
         try {
-          await this.telegram.sendMessage(userId, `📢 <b>Announcement</b>\n\n${message}`);
+          await this.telegram.sendMessage(
+            userId,
+            `📢 <b>Announcement</b>\n\n${message}`,
+          );
           sent++;
         } catch (err) {
           logger.warn(`Failed to send to ${userId}`);
@@ -107,7 +115,12 @@ class AdminDashboard {
    */
   async suspendUser(userId, reason) {
     try {
-      await this.redis.set(`user:${userId}:suspended`, reason, "EX", 86400 * 30);
+      await this.redis.set(
+        `user:${userId}:suspended`,
+        reason,
+        "EX",
+        86400 * 30,
+      );
       logger.warn(`User ${userId} suspended: ${reason}`);
       return true;
     } catch (err) {
@@ -133,7 +146,7 @@ class AdminDashboard {
   async getSystemLogs(limit = 20) {
     try {
       const logs = await this.redis.lrange("system:logs", 0, limit - 1);
-      return logs.map(l => {
+      return logs.map((l) => {
         try {
           return JSON.parse(l);
         } catch {

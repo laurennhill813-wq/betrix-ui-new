@@ -3,14 +3,38 @@
  */
 
 const ICONS = {
-  brand: "🚀", live: "🔴", today: "📅", next: "⏭️",
-  fixtures: "📜", standings: "📊", odds: "🎲", tips: "🧠",
-  analysis: "🔍", lineups: "🧾", h2h: "⚔️", news: "🗞️",
-  pricing: "💵", pay: "💳", status: "🧩", support: "🛠️",
-  menu: "🧭", vvip: "💎", rules: "🛡️", about: "ℹ️",
-  contact: "✉️", refer: "👥", rewards: "🏆", leaderboard: "🥇",
-  pagePrev: "◀️", pageNext: "▶️", pageInfo: "🔢", refresh: "🔄",
-  back: "⬅️", signup: "📝", strategy: "📐", free: "🎁",
+  brand: "🚀",
+  live: "🔴",
+  today: "📅",
+  next: "⏭️",
+  fixtures: "📜",
+  standings: "📊",
+  odds: "🎲",
+  tips: "🧠",
+  analysis: "🔍",
+  lineups: "🧾",
+  h2h: "⚔️",
+  news: "🗞️",
+  pricing: "💵",
+  pay: "💳",
+  status: "🧩",
+  support: "🛠️",
+  menu: "🧭",
+  vvip: "💎",
+  rules: "🛡️",
+  about: "ℹ️",
+  contact: "✉️",
+  refer: "👥",
+  rewards: "🏆",
+  leaderboard: "🥇",
+  pagePrev: "◀️",
+  pageNext: "▶️",
+  pageInfo: "🔢",
+  refresh: "🔄",
+  back: "⬅️",
+  signup: "📝",
+  strategy: "📐",
+  free: "🎁",
 };
 
 const MEMES = [
@@ -59,7 +83,10 @@ function formatDate(isoString) {
 function formatList(title, rows) {
   const list = Array.isArray(rows) ? rows : [];
   if (!list.length) return `<b>${escapeHtml(title)}:</b> none`;
-  return `<b>${escapeHtml(title)}:</b>\n` + list.map(r => `- ${escapeHtml(String(r))}`).join("\n");
+  return (
+    `<b>${escapeHtml(title)}:</b>\n` +
+    list.map((r) => `- ${escapeHtml(String(r))}`).join("\n")
+  );
 }
 
 /**
@@ -108,7 +135,8 @@ function formatUsage(str) {
  * Format error message
  */
 function formatError(error, prefix) {
-  const msg = typeof error === "string" ? error : (error?.message || "Unknown error");
+  const msg =
+    typeof error === "string" ? error : error?.message || "Unknown error";
   return `${prefix} temporarily unavailable. Please try again shortly.\nDetails: ${escapeHtml(msg)}`;
 }
 

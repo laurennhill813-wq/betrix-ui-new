@@ -7,8 +7,7 @@ import { Logger } from "../utils/logger.js";
 
 const logger = new Logger("StadiumInfo");
 
-class Svoid logger;
-tadiumInfoService {
+class StadiumInfoService {
   static STADIUMS = {
     "Old Trafford": {
       capacity: 74140,
@@ -17,7 +16,7 @@ tadiumInfoService {
       opened: 1910,
       country: "England",
     },
-    "Anfield": {
+    Anfield: {
       capacity: 61294,
       team: "Liverpool",
       record: "6-0 vs Derby County",
@@ -31,7 +30,7 @@ tadiumInfoService {
       opened: 1957,
       country: "Spain",
     },
-    "Bernabéu": {
+    Bernabéu: {
       capacity: 81044,
       team: "Real Madrid",
       record: "11-1 vs Eintracht",
@@ -63,11 +62,10 @@ tadiumInfoService {
 
     const impact = [];
     if (info.capacity > 70000) impact.push("Large crowd - intimidating");
-    if (info.opened < 1950) impact.push("Historic ground - strong home support");
+    if (info.opened < 1950)
+      impact.push("Historic ground - strong home support");
 
-    return impact.length > 0
-      ? impact.join(" | ")
-      : "Standard home advantage";
+    return impact.length > 0 ? impact.join(" | ") : "Standard home advantage";
   }
 
   /**
@@ -77,12 +75,14 @@ tadiumInfoService {
     const info = this.getStadiumInfo(name);
     if (!info) return `❓ Stadium "${name}" info not available`;
 
-    return `🏟️ <b>${name}</b>\n` +
+    return (
+      `🏟️ <b>${name}</b>\n` +
       `Team: ${info.team}\n` +
       `Capacity: ${info.capacity.toLocaleString()}\n` +
       `Record Win: ${info.record}\n` +
       `Opened: ${info.opened}\n` +
-      `Country: ${info.country}`;
+      `Country: ${info.country}`
+    );
   }
 
   /**

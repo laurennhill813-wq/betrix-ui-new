@@ -54,7 +54,12 @@ Keep it concise (3-4 sentences), data-driven, and actionable.`;
     try {
       // User with high accuracy gets complex matches
       // User with low accuracy gets simpler matches
-      const confidence = userStats.accuracy >= 70 ? "high" : userStats.accuracy >= 50 ? "medium" : "low";
+      const confidence =
+        userStats.accuracy >= 70
+          ? "high"
+          : userStats.accuracy >= 50
+            ? "medium"
+            : "low";
 
       const prompt = `You are BETRIX. User has ${confidence} confidence (${userStats.accuracy}% accuracy).
       
@@ -78,7 +83,7 @@ Pick the BEST match for this user's profile and explain why in 1-2 sentences.`;
   async getRiskAdvice(userStats, bankroll) {
     try {
       const kellyPercentage = this.calculateKelly(userStats.accuracy);
-      
+
       const prompt = `As BETRIX, give Kelly Criterion betting advice:
 
 User accuracy: ${userStats.accuracy}%
@@ -91,7 +96,10 @@ Recommended unit size and bet sizing strategy in 2 sentences.`;
       return { kellyPercentage, advice };
     } catch (err) {
       logger.error("Get risk advice failed", err);
-      return { kellyPercentage: 2, advice: "Bet 2% of bankroll per unit (conservative)" };
+      return {
+        kellyPercentage: 2,
+        advice: "Bet 2% of bankroll per unit (conservative)",
+      };
     }
   }
 
@@ -102,10 +110,10 @@ Recommended unit size and bet sizing strategy in 2 sentences.`;
     const p = winPercentage / 100;
     const q = 1 - p;
     const avgOdds = 2.0; // Assume average 2.0 odds
-    
+
     // Kelly = (p * avgOdds - q) / (avgOdds - 1)
     const kelly = (p * avgOdds - q) / (avgOdds - 1);
-    
+
     // Cap at 10% for safety
     return Math.min(Math.max(kelly * 100, 1), 10).toFixed(1);
   }

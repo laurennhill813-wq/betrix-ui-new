@@ -57,7 +57,15 @@ export const PROVIDERS = {
   imagn: {
     id: "imagn",
     type: "media",
-    sports: ["nfl", "nba", "nhl", "mlb", "ncaa_football", "ncaa_basketball", "ufc"],
+    sports: [
+      "nfl",
+      "nba",
+      "nhl",
+      "mlb",
+      "ncaa_football",
+      "ncaa_basketball",
+      "ufc",
+    ],
     baseUrl: "https://api.imagn.com/v1",
     auth: { kind: "query", keyEnv: "IMAGN_KEY", param: "api_key" },
     products: ["action_shots", "headshots"],
@@ -68,7 +76,11 @@ export const PROVIDERS = {
     type: "media",
     sports: ["ncaa_w_basketball"],
     baseUrl: "https://api.collegepressbox.com/v1",
-    auth: { kind: "query", keyEnv: "COLLEGE_PRESSBOX_NCAAW_KEY", param: "api_key" },
+    auth: {
+      kind: "query",
+      keyEnv: "COLLEGE_PRESSBOX_NCAAW_KEY",
+      param: "api_key",
+    },
     products: ["headshots"],
   },
 
@@ -77,7 +89,11 @@ export const PROVIDERS = {
     type: "media",
     sports: ["ncaa_m_basketball"],
     baseUrl: "https://api.collegepressbox.com/v1",
-    auth: { kind: "query", keyEnv: "COLLEGE_PRESSBOX_NCAAM_KEY", param: "api_key" },
+    auth: {
+      kind: "query",
+      keyEnv: "COLLEGE_PRESSBOX_NCAAM_KEY",
+      param: "api_key",
+    },
     products: ["headshots"],
   },
 
@@ -86,7 +102,11 @@ export const PROVIDERS = {
     type: "media",
     sports: ["ncaa_football"],
     baseUrl: "https://api.collegepressbox.com/v1",
-    auth: { kind: "query", keyEnv: "COLLEGE_PRESSBOX_NCAAF_KEY", param: "api_key" },
+    auth: {
+      kind: "query",
+      keyEnv: "COLLEGE_PRESSBOX_NCAAF_KEY",
+      param: "api_key",
+    },
     products: ["headshots"],
   },
 

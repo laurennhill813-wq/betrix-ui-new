@@ -36,7 +36,10 @@ class LocalAIService {
       // No good external answer; use built-in fallback
       return this.fallbackResponse(userMessage, context);
     } catch (err) {
-      logger.warn("LocalAI remote lookup failed, using fallback", err?.message || String(err));
+      logger.warn(
+        "LocalAI remote lookup failed, using fallback",
+        err?.message || String(err),
+      );
       return this.fallbackResponse(userMessage, context);
     }
   }
@@ -48,7 +51,11 @@ class LocalAIService {
 
   fallbackResponse(message, _context = {}) {
     const msg = String(message || "").toLowerCase();
-    if (msg.includes("who are you") || msg.includes("what are you") || msg.includes("your name")) {
+    if (
+      msg.includes("who are you") ||
+      msg.includes("what are you") ||
+      msg.includes("your name")
+    ) {
       return `👋 I'm BETRIX (local fallback) — a compact AI assistant. I can answer simple questions, fetch quick facts, and run built-in sports helpers. Use /menu for commands.`;
     }
 
@@ -60,7 +67,8 @@ class LocalAIService {
       live: "🔴 Use /live to see matches happening now.",
       odds: "🎲 Use /odds [fixture-id] to compare betting lines.",
       standings: "📊 Use /standings to view league tables.",
-      predict: "🧠 Ask for a specific match and I'll provide a heuristic prediction.",
+      predict:
+        "🧠 Ask for a specific match and I'll provide a heuristic prediction.",
       tips: "💡 Bankroll discipline beats luck. Bet responsibly.",
       help: "📚 Use /menu to explore features and commands.",
     };
