@@ -77,5 +77,8 @@
   "bugs": {
     "url": "https://github.com/maryreaky/betrix-ui-replit-/issues"
   },
-  "homepage": "https://github.com/maryreaky/betrix-ui-replit-#readme"
+  "homepage": "https://github.com/maryreaky/betrix-ui-replit-#readme",
+  "devDependencies": {
+    "jest": "30.2.0"
+  }
 }
