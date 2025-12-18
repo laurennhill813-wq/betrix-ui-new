@@ -30,7 +30,34 @@ export async function cacheGet(key) {
     if (!v) return null;
     return JSON.parse(v);
   } catch (e) {
-    // on error fall back
+    // If the key exists but is a different Redis type (e.g. list), try to
+    // recover by reading the list entries (common for `context:<id>:history`).
+    try {
+      const msg = String(e?.message || "").toLowerCase();
+      if (msg.includes("wrongtype") || msg.includes("operation against a key holding the wrong kind of value")) {
+        try {
+          const arr = await c.lRange ? await c.lRange(key, 0, -1) : await c.lrange(key, 0, -1);
+          if (!arr || arr.length === 0) return null;
+          const parsed = arr
+            .map((s) => {
+              try {
+                return JSON.parse(s);
+              } catch {
+                return null;
+              }
+            })
+            .filter(Boolean)
+            .reverse();
+          return parsed;
+        } catch (e2) {
+          // fall through to fallbackStore below
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // on other errors fall back to in-memory store
     const raw = fallbackStore.get(key);
     return raw === undefined ? null : raw;
   }
