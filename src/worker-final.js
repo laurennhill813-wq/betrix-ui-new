@@ -1212,7 +1212,9 @@ async function handleUpdate(update) {
       try {
         if (text && String(text).startsWith("/")) {
           const cmd = String(text).split(/\s+/)[0].trim().toLowerCase();
-          if (["/start", "/cancel", "/menu", "/signup"].includes(cmd)) {
+          // Do not clear onboarding on /start so onboarding can continue unless
+          // the user explicitly requests cancellation or restarts signup.
+          if (["/cancel", "/menu", "/signup"].includes(cmd)) {
             try {
               await redis.del(`user:${userId}:onboarding`);
               logger.info("Cleared onboarding state due to command", { cmd, userId });
@@ -1223,55 +1225,67 @@ async function handleUpdate(update) {
         } else {
           const onboardRaw = await redis.get(`user:${userId}:onboarding`);
           if (onboardRaw) {
-            const payload = await handleOnboardingMessage(
-              text,
-              chatId,
-              userId,
-              redis,
-              { telegram, userService, analytics },
-            );
-            if (payload) {
-              // payload may be an array of actions or a single action
-              const actions = Array.isArray(payload) ? payload : [payload];
-              for (const act of actions) {
-                try {
-                  if (!act || !act.method) continue;
-                  if (act.method === "sendMessage") {
-                    await telegram
-                      .sendMessage(act.chat_id || chatId, act.text || "", {
-                        reply_markup: act.reply_markup,
-                        parse_mode: act.parse_mode,
-                      })
-                      .catch(() => {});
-                  } else if (act.method === "editMessageText") {
-                    await telegram
-                      .editMessageText(
-                        act.chat_id || chatId,
-                        act.message_id || null,
-                        act.text || "",
-                        {
-                          reply_markup: act.reply_markup,
-                          parse_mode: act.parse_mode,
-                        },
-                      )
-                      .catch(() => {});
-                  } else if (act.method === "answerCallbackQuery") {
-                    await telegram
-                      .answerCallback(
-                        act.callback_query_id || act.callbackId,
-                        act.text || "",
-                        { show_alert: act.show_alert },
-                      )
-                      .catch(() => {});
+            // If user is already ACTIVE, treat onboarding as stale and clear it.
+            // Use centralized helper so behavior is consistent across handlers.
+            try {
+              const cleaned =
+                userService && typeof userService.ensureNoOnboarding === "function"
+                  ? await userService.ensureNoOnboarding(userId).catch(() => false)
+                  : false;
+              if (!cleaned) {
+                const payload = await handleOnboardingMessage(
+                  text,
+                  chatId,
+                  userId,
+                  redis,
+                  { telegram, userService, analytics },
+                );
+                if (payload) {
+                  // payload may be an array of actions or a single action
+                  const actions = Array.isArray(payload) ? payload : [payload];
+                  for (const act of actions) {
+                    try {
+                      if (!act || !act.method) continue;
+                      if (act.method === "sendMessage") {
+                        await telegram
+                          .sendMessage(act.chat_id || chatId, act.text || "", {
+                            reply_markup: act.reply_markup,
+                            parse_mode: act.parse_mode,
+                          })
+                          .catch(() => {});
+                      } else if (act.method === "editMessageText") {
+                        await telegram
+                          .editMessageText(
+                            act.chat_id || chatId,
+                            act.message_id || null,
+                            act.text || "",
+                            {
+                              reply_markup: act.reply_markup,
+                              parse_mode: act.parse_mode,
+                            },
+                          )
+                          .catch(() => {});
+                      } else if (act.method === "answerCallbackQuery") {
+                        await telegram
+                          .answerCallback(
+                            act.callback_query_id || act.callbackId,
+                            act.text || "",
+                            { show_alert: act.show_alert },
+                          )
+                          .catch(() => {});
+                      }
+                    } catch (errAct) {
+                      logger.warn(
+                        "Applying onboarding action failed",
+                        errAct && errAct.message ? errAct.message : errAct,
+                      );
+                    }
                   }
-                } catch (errAct) {
-                  logger.warn(
-                    "Applying onboarding action failed",
-                    errAct && errAct.message ? errAct.message : errAct,
-                  );
+                  return;
                 }
               }
-              return;
+            } catch (e) {
+              logger.warn("Onboarding dispatch failed", e?.message || String(e));
             }
           }
         }

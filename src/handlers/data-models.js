@@ -75,10 +75,19 @@ export async function createUserProfile(redis, userId, profileData) {
     referral_code: generateReferralCode(userId),
     referral_count: 0,
     referral_earnings: 0,
+    // Initial lifecycle state: new users start in ONBOARDING
+    state: "ONBOARDING",
   };
 
   await redis.hset(`user:${userId}`, profile);
   logger.info("User profile created", { userId, name: profile.name });
+  // Also set the transient state key to the signup name step
+  try {
+    await setUserState(redis, userId, StateTypes.SIGNUP_NAME);
+  } catch (e) {
+    logger.debug("Failed to set initial user state", e?.message || String(e));
+  }
+
   return profile;
 }
 

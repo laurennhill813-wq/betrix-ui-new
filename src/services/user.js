@@ -115,6 +115,51 @@ class UserService {
   }
 
   /**
+   * Check if user is ACTIVE
+   * Accepts either a user object or userId
+   */
+  async isActive(userOrId) {
+    try {
+      if (!userOrId) return false;
+      if (typeof userOrId === "object") {
+        return String(userOrId.state || "").toUpperCase() === "ACTIVE";
+      }
+      const user = await this.getUser(userOrId);
+      if (!user) return false;
+      return String(user.state || "").toUpperCase() === "ACTIVE";
+    } catch (e) {
+      logger.warn("isActive check failed", e?.message || String(e));
+      return false;
+    }
+  }
+
+  /**
+   * Defensive: if user is ACTIVE but onboarding keys exist, delete them.
+   * Returns true if any onboarding key was removed.
+   */
+  async ensureNoOnboarding(userId) {
+    try {
+      if (!userId) return false;
+      const user = await this.getUser(userId);
+      if (!user) return false;
+      if (String(user.state || "").toUpperCase() === "ACTIVE") {
+        try {
+          await this.redis.del(`user:${userId}:onboarding`);
+          logger.info("ensureNoOnboarding: removed onboarding key for ACTIVE user", { userId });
+          return true;
+        } catch (e) {
+          logger.debug("ensureNoOnboarding: failed to delete onboarding key", e?.message || String(e));
+          return false;
+        }
+      }
+      return false;
+    } catch (e) {
+      logger.warn("ensureNoOnboarding failed", e?.message || String(e));
+      return false;
+    }
+  }
+
+  /**
    * Generate referral code
    */
   generateReferralCode(userId) {

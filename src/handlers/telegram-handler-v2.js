@@ -8,6 +8,7 @@ import premiumUI, {
 import logger from "../utils/logger.js";
 import createRedisAdapter from "../utils/redis-adapter.js";
 import IntelligentMenuBuilder from "../utils/intelligent-menu-builder.js";
+import { UserService } from "../services/user.js";
 import FixturesManager from "../utils/fixtures-manager.js";
 
 // Note: temporary wide eslint-disable removed. We'll fix lint issues surgically below.
@@ -579,38 +580,98 @@ export async function handleMessage(update, redis, services) {
       try {
         if (fromId) {
           const r = createRedisAdapter(redis);
+          // Proactively ensure any stale onboarding for ACTIVE users is removed
+          try {
+            const userSvc =
+              services && services.userService
+                ? services.userService
+                : new UserService(redis);
+            if (userSvc && typeof userSvc.ensureNoOnboarding === "function") {
+              const cleaned = await userSvc.ensureNoOnboarding(fromId).catch(() => false);
+              logger.info("proactive.ensureNoOnboarding", { userId: fromId, cleaned });
+            }
+            // Extra safety: if user is ACTIVE, ensure onboarding key removed via the
+            // local adapter as a backup (covers adapter mismatch edge-cases).
+            try {
+              const isActive =
+                userSvc && typeof userSvc.isActive === "function"
+                  ? await userSvc.isActive(fromId).catch(() => false)
+                  : false;
+              if (isActive) {
+                await r.del(`user:${fromId}:onboarding`).catch(() => {});
+                logger.info("proactive.backupDelOnboarding", { userId: fromId });
+              }
+            } catch (e) {
+              logger.debug("proactive backup del failed", e?.message || String(e));
+            }
+          } catch (e) {
+            // Defensive: non-fatal if the proactive cleanup fails
+            logger.debug("proactive ensureNoOnboarding failed", e?.message || String(e));
+          }
           // If legacy signup state exists, migrate it into the structured onboarding flow
           const legacy = await r
             .get(`signup:${fromId}:state`)
             .catch(() => null);
           if (legacy === "awaiting_name") {
-            await r.setex(
-              `user:${fromId}:onboarding`,
-              1800,
-              JSON.stringify({ step: "name", createdAt: Date.now() }),
-            );
-            await r.del(`signup:${fromId}:state`).catch(() => {});
+            // Don't migrate legacy signup into onboarding if user is already ACTIVE
+            try {
+              const maybeUser = (services && services.userService)
+                ? await services.userService.getUser(fromId)
+                : null;
+              if (maybeUser && String(maybeUser.state || "").toUpperCase() === "ACTIVE") {
+                await r.del(`signup:${fromId}:state`).catch(() => {});
+                logger.info("Skipped migrating legacy signup: user already ACTIVE", { userId: fromId });
+              } else {
+                await r.setex(
+                  `user:${fromId}:onboarding`,
+                  1800,
+                  JSON.stringify({ step: "name", createdAt: Date.now() }),
+                );
+                await r.del(`signup:${fromId}:state`).catch(() => {});
+              }
+            } catch (e) {
+              // If defensive check fails, proceed with migration (best-effort)
+              await r.setex(
+                `user:${fromId}:onboarding`,
+                1800,
+                JSON.stringify({ step: "name", createdAt: Date.now() }),
+              ).catch(() => {});
+              await r.del(`signup:${fromId}:state`).catch(() => {});
+            }
           }
 
           const onboardRaw = await r
             .get(`user:${fromId}:onboarding`)
             .catch(() => null);
           if (onboardRaw) {
-            // delegate message into the onboarding state machine
-            const res = await handleOnboardingMessage(
-              text,
-              chatId,
-              fromId,
-              r,
-              services,
-            ).catch((e) => {
-              logger.warn(
-                "handleOnboardingMessage failed",
-                e?.message || String(e),
-              );
-              return null;
-            });
-            if (res) return res;
+            // Centralized defensive check: try to remove onboarding if user is ACTIVE.
+            try {
+              const cleaned =
+                services && services.userService && typeof services.userService.ensureNoOnboarding === "function"
+                  ? await services.userService.ensureNoOnboarding(fromId).catch(() => false)
+                  : false;
+              if (!cleaned) {
+                // delegate message into the onboarding state machine
+                const res = await handleOnboardingMessage(
+                  text,
+                  chatId,
+                  fromId,
+                  r,
+                  services,
+                ).catch((e) => {
+                  logger.warn(
+                    "handleOnboardingMessage failed",
+                    e?.message || String(e),
+                  );
+                  return null;
+                });
+                if (res) return res;
+              } else {
+                logger.info("Ignoring onboarding key because user state is ACTIVE (cleaned)", { userId: fromId });
+              }
+            } catch (e) {
+              logger.warn("Onboarding defensive check failed", e?.message || String(e));
+            }
           }
         }
       } catch (e) {
@@ -673,6 +734,24 @@ export async function handleMessage(update, redis, services) {
         "Favorites awaiting_add check failed",
         e?.message || String(e),
       );
+    }
+
+    // If the canonical user profile is ACTIVE, always delegate to AI (do not
+    // handle conversational messages in the v2 handler). This ensures the
+    // onboarding flow (or other local handlers) cannot block AI responses.
+    try {
+      if (fromId) {
+        const userSvc = services && services.userService ? services.userService : new UserService(redis);
+        const isActive = userSvc && typeof userSvc.isActive === "function"
+          ? await userSvc.isActive(fromId).catch(() => false)
+          : false;
+        if (isActive) {
+          logger.info("handleMessage: delegating to AI for ACTIVE user", { userId: fromId });
+          return null;
+        }
+      }
+    } catch (e) {
+      logger.debug("Active-user delegation check failed", e?.message || String(e));
     }
 
     if (text && text.startsWith("/live")) {
@@ -1274,7 +1353,7 @@ export async function handleCallbackQuery(callbackQuery, redis, services) {
     }
 
     if (data === "signup_start") {
-      return startOnboarding(chatId, userId, redis);
+      return startOnboarding(chatId, userId, redis, services);
     }
 
     if (data.startsWith("sport_")) {
@@ -3797,8 +3876,26 @@ async function handleSetBetStake(data, chatId, userId, redis) {
 /**
  * Start onboarding flow for new user
  */
-async function startOnboarding(chatId, userId, redis) {
+async function startOnboarding(chatId, userId, redis, services) {
   try {
+    // Defensive: don't start onboarding if user already ACTIVE
+    try {
+      // Prefer centralized helper on userService when available
+      const userSvc =
+        services && services.userService
+          ? services.userService
+          : new UserService(redis);
+      const cleaned = await (typeof userSvc.ensureNoOnboarding === "function"
+        ? userSvc.ensureNoOnboarding(userId).catch(() => false)
+        : Promise.resolve(false));
+      if (cleaned) {
+        logger.info("startOnboarding skipped because user already ACTIVE (cleaned)", { userId });
+        return null;
+      }
+    } catch (e) {
+      logger.warn("startOnboarding defensive check failed", e?.message || String(e));
+    }
+
     // seed onboarding state
     const state = { step: "name", createdAt: Date.now() };
     await redis.setex(`user:${userId}:onboarding`, 1800, JSON.stringify(state));
@@ -3823,6 +3920,23 @@ async function startOnboarding(chatId, userId, redis) {
  */
 async function handleOnboardingMessage(text, chatId, userId, redis, services) {
   try {
+    // Defensive: if user is ACTIVE, ignore onboarding and remove stale key
+    try {
+      const userSvc =
+        services && services.userService
+          ? services.userService
+          : new UserService(redis);
+      const cleaned = await (typeof userSvc.ensureNoOnboarding === "function"
+        ? userSvc.ensureNoOnboarding(userId).catch(() => false)
+        : Promise.resolve(false));
+      if (cleaned) {
+        logger.info("Ignored onboarding because user.state === ACTIVE (cleaned)", { userId });
+        return null;
+      }
+    } catch (e) {
+      logger.warn("Onboarding active-state defensive check failed", e?.message || String(e));
+    }
+
     const raw = await redis.get(`user:${userId}:onboarding`);
     if (!raw) return null;
     const state = JSON.parse(raw);
@@ -3964,9 +4078,51 @@ async function handleSignupPaymentMethodSelection(
     // Store payment method preference
     await redis.hset(`user:${userId}:profile`, "paymentMethod", methodId);
 
-    // Mark onboarding as complete, prepare signup confirmation
+    // Mark onboarding as complete (confirm) and make user ACTIVE for AI access
     const state = { step: "confirm" };
     await redis.setex(`user:${userId}:onboarding`, 1800, JSON.stringify(state));
+    // Ensure the user's state is ACTIVE so AI routing is allowed even before payment
+    try {
+      const raw = await redis.get(`user:${userId}`).catch(() => null);
+      if (raw) {
+        try {
+          const u = JSON.parse(raw || "{}") || {};
+          u.state = "ACTIVE";
+          await redis.set(`user:${userId}`, JSON.stringify(u));
+        } catch (e) {
+          // if parsing fails, overwrite with minimal active state
+          await redis.set(`user:${userId}`, JSON.stringify({ state: "ACTIVE", updatedAt: Date.now() }));
+        }
+      } else {
+        // try hash fallback
+        try {
+          const h = await redis.hgetall(`user:${userId}`).catch(() => ({}));
+          if (h && Object.keys(h).length) {
+            h.state = "ACTIVE";
+            await redis.set(`user:${userId}`, JSON.stringify(h));
+          } else {
+            await redis.set(`user:${userId}`, JSON.stringify({ state: "ACTIVE", createdAt: new Date().toISOString() }));
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    } catch (e) {
+      logger.debug("Failed to mark user ACTIVE after signup confirm", e?.message || String(e));
+    }
+
+    // Ensure onboarding key is removed once user is ACTIVE (use centralized helper)
+    try {
+      const userSvc =
+        services && services.userService
+          ? services.userService
+          : new UserService(redis);
+      await (typeof userSvc.ensureNoOnboarding === "function"
+        ? userSvc.ensureNoOnboarding(userId).catch(() => false)
+        : Promise.resolve(false));
+    } catch (e) {
+      logger.debug("Failed to delete onboarding key after marking ACTIVE", e?.message || String(e));
+    }
 
     const name = profile.name || "New User";
     const age = profile.age || "N/A";

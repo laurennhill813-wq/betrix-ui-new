@@ -4,6 +4,7 @@
  */
 
 import { Logger } from "../utils/logger.js";
+import { UserService } from "../services/user.js";
 import * as paypal from "@paypal/checkout-server-sdk";
 import binanceClient from "../lib/binance-client.js";
 
@@ -1205,14 +1206,15 @@ export async function verifyAndActivatePayment(redis, orderId, transactionId) {
 
     // Clear any onboarding state for this user so they can interact normally.
     try {
-      await redis.del(`user:${userId}:onboarding`);
+      const userService = new UserService(redis);
+      await userService.ensureNoOnboarding(userId).catch(() => {});
       // Mark user as active in the user hash for visibility
       try {
         await redis.hset(`user:${userId}`, "state", "ACTIVE");
       } catch (e) {
         // non-fatal
       }
-      logger.info("Cleared onboarding state after activation", { userId });
+      logger.info("Cleared onboarding state after activation (centralized)", { userId });
     } catch (e) {
       logger.debug("Failed to clear onboarding state after activation", e?.message || String(e));
     }
