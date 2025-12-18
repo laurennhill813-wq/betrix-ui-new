@@ -93,3 +93,8 @@ docker-compose.yml
 .history/
 \n.bun-bin/
 .bun-bin/
+
+# Ignore archived and local artifacts that may contain old code snapshots
+archive/
+attached_assets/
+.local/
