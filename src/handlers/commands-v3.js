@@ -5,6 +5,7 @@
  */
 
 import { Logger } from "../utils/logger.js";
+import { getUserState } from "./data-models.js";
 const logger = new Logger("Commands");
 
 // ============================================================================
@@ -20,7 +21,24 @@ export async function handleCommand(
   services,
 ) {
   logger.info("handleCommand", { cmd, userId, chatId });
+  // Ensure the user's lifecycle state and profile are considered for gating commands
+  let lifecycle = "NEW";
+  let isActive = false;
+  try {
+    lifecycle = (await getUserState(redis, userId)) || "NEW";
+    // Load profile to check legacy flags (signup_paid, vvip_tier)
+    const profile = (typeof redis.hgetall === "function")
+      ? await redis.hgetall(`user:${userId}`)
+      : {};
 
+    const hasSignupPaid = profile && (profile.signup_paid === "true" || profile.signup_paid === true);
+    const vvipTier = profile && profile.vvip_tier ? String(profile.vvip_tier).toLowerCase() : "inactive";
+
+    // Consider active if lifecycle says so, or legacy profile flags indicate paid/VVIP
+    isActive = lifecycle === "ACTIVE" || lifecycle === "VVIP" || hasSignupPaid || vvipTier !== "inactive";
+  } catch (e) {
+    logger.debug("Failed to read user state/profile", e?.message || String(e));
+  }
   try {
     switch (cmd.toLowerCase()) {
       case "start":
@@ -29,16 +47,46 @@ export async function handleCommand(
         return handleSignup(userId, chatId, redis);
       case "pay":
         return handlePay(userId, chatId, redis);
+
       case "menu":
         return handleMenu(userId, chatId, redis);
+
       case "odds":
+        if (!isActive) {
+          return {
+            chat_id: chatId,
+            text: "🔒 This feature is for active users. Please complete signup and payment to continue. Type /signup or /pay.",
+            parse_mode: "Markdown",
+            reply_markup: { inline_keyboard: [[{ text: "💳 Pay now", callback_data: "pay_main" }]] },
+          };
+        }
         return handleOdds(userId, chatId, redis, services, params);
+
       case "analyze":
+        if (!isActive) {
+          return {
+            chat_id: chatId,
+            text: "🔒 This feature is for active users. Please complete signup and payment to continue. Type /signup or /pay.",
+            parse_mode: "Markdown",
+            reply_markup: { inline_keyboard: [[{ text: "💳 Pay now", callback_data: "pay_main" }]] },
+          };
+        }
         return handleAnalyze(userId, chatId, redis, services, params);
+
       case "news":
         return handleNews(userId, chatId, redis, services);
+
       case "vvip":
+        if (!isActive) {
+          return {
+            chat_id: chatId,
+            text: "🔒 VVIP is for subscribed users. Please /pay to upgrade.",
+            parse_mode: "Markdown",
+            reply_markup: { inline_keyboard: [[{ text: "💳 Upgrade", callback_data: "vvip_main" }]] },
+          };
+        }
         return handleVVIP(userId, chatId, redis);
+
       case "help":
         return handleHelp(chatId);
       default:
