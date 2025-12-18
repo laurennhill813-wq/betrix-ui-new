@@ -1204,9 +1204,23 @@ async function handleUpdate(update) {
       }
 
       // Check structured onboarding flow first (new flow)
-      // Skip onboarding dispatch for slash commands (e.g., '/start', '/menu') so commands show menus.
+      // Skip onboarding dispatch for slash commands so commands show menus.
+      // If user explicitly issues a command that indicates they want to restart
+      // or leave onboarding (e.g. /start, /cancel, /menu, /signup) clear any
+      // existing onboarding state so subsequent plain messages are not
+      // interpreted as onboarding replies.
       try {
-        if (!(text && String(text).startsWith("/"))) {
+        if (text && String(text).startsWith("/")) {
+          const cmd = String(text).split(/\s+/)[0].trim().toLowerCase();
+          if (["/start", "/cancel", "/menu", "/signup"].includes(cmd)) {
+            try {
+              await redis.del(`user:${userId}:onboarding`);
+              logger.info("Cleared onboarding state due to command", { cmd, userId });
+            } catch (e) {
+              logger.debug("Failed to clear onboarding state", e?.message || String(e));
+            }
+          }
+        } else {
           const onboardRaw = await redis.get(`user:${userId}:onboarding`);
           if (onboardRaw) {
             const payload = await handleOnboardingMessage(

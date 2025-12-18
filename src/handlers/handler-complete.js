@@ -264,7 +264,7 @@ export async function handleLive(chatId, sport = null, services = {}) {
  */
 export async function handleCallbackQuery(cq, redis, services) {
   try {
-    const data = cq.data || "";
+    let data = cq.data || "";
     const chatId = cq.message?.chat?.id;
     const messageId = cq.message?.message_id;
 
