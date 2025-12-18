@@ -1203,6 +1203,20 @@ export async function verifyAndActivatePayment(redis, orderId, transactionId) {
 
     logger.info("Payment verified and activated", { orderId, userId, tier });
 
+    // Clear any onboarding state for this user so they can interact normally.
+    try {
+      await redis.del(`user:${userId}:onboarding`);
+      // Mark user as active in the user hash for visibility
+      try {
+        await redis.hset(`user:${userId}`, "state", "ACTIVE");
+      } catch (e) {
+        // non-fatal
+      }
+      logger.info("Cleared onboarding state after activation", { userId });
+    } catch (e) {
+      logger.debug("Failed to clear onboarding state after activation", e?.message || String(e));
+    }
+
     return {
       success: true,
       tier,
