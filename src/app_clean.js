@@ -65,6 +65,24 @@ app.get("/metrics", async (req, res) => {
   }
 });
 
+// Sportradar health endpoint: reports cached stats per sport
+app.get("/health/sportradar", async (_req, res) => {
+  try {
+    if (!webhookRedis) return res.status(503).json({ ok: false, reason: "no_redis" });
+    const raw = await webhookRedis.get("sportradar:health");
+    if (!raw) return res.json({ ok: true, cached: false, message: "no sportradar health data" });
+    try {
+      const parsed = JSON.parse(raw);
+      return res.json({ ok: true, cached: true, health: parsed });
+    } catch (e) {
+      return res.json({ ok: true, cached: true, healthRaw: raw });
+    }
+  } catch (err) {
+    console.error("/health/sportradar error", err?.message || String(err));
+    return res.status(500).json({ ok: false, error: err?.message || String(err) });
+  }
+});
+
 app.post("/webhook/mpesa", (_req, res) => {
   // worker doesn't handle web traffic; keep a stub to avoid undefined routes
   return res.status(200).send("OK");
