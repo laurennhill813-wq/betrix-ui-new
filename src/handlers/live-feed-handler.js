@@ -8,6 +8,7 @@ import { Logger } from "../utils/logger.js";
 import { MatchFormatter } from "../utils/match-formatter.js";
 import UserService from "../services/user.js";
 import { getUpcomingFixtures, getTeams, sportEmoji } from "../services/sportradar-client.js";
+import { normalizeSport } from "../config/sportradar-sports.js";
 
 const logger = new Logger("LiveFeedHandler");
 
@@ -73,7 +74,8 @@ export class LiveFeedHandler {
       logger.info(`/fixtures command from ${chatId}`);
       // Parse optional sport argument: /fixtures <sport>
       const args = String(msg.text || "").split(" ").slice(1).filter(Boolean);
-      const sport = (args[0] || "football").toLowerCase();
+      const rawSport = (args[0] || "football").toLowerCase();
+      const sport = normalizeSport(rawSport) || (rawSport === "football" ? "soccer" : rawSport);
 
       // Check user access state
       const userId = msg.from?.id || chatId;
@@ -146,7 +148,8 @@ export class LiveFeedHandler {
     const chatId = msg.chat.id;
     try {
       const args = String(msg.text || "").split(" ").slice(1).filter(Boolean);
-      const sport = (args[0] || "football").toLowerCase();
+      const rawSport = (args[0] || "football").toLowerCase();
+      const sport = normalizeSport(rawSport) || (rawSport === "football" ? "soccer" : rawSport);
 
       // Access check
       const userId = msg.from?.id || chatId;
