@@ -9,7 +9,7 @@
 
 import { CONFIG } from "../config.js";
 import { Logger } from "../utils/logger.js";
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import axios from "axios";
 import { getEspnLiveMatches } from "./espn-provider.js";
 import { getNewsHeadlines } from "./news-provider-enhanced.js";

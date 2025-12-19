@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import { selectBestSportradarAsset } from "../media/imageSelector.js";
 
 const API_KEY = process.env.SPORTRADAR_API_KEY;

@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 
 // Generic signer client that can be used for any provider URL.
 // It prefers `SIGN_ENDPOINT` but falls back to the older SPORTRADAR_* vars for compatibility.

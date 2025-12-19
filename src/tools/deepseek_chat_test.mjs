@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 
 const key = process.env.DEEPSEEK_API_KEY;
 const base = process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com";

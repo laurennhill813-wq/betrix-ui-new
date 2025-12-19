@@ -3,7 +3,7 @@
  * HF Discover - simple script to probe a short list of public Hugging Face models
  * Usage: HUGGINGFACE_TOKEN=hf_xxx node scripts/hf-discover.js
  */
-import fetch from "node-fetch";
+import fetch from "../src/lib/fetch.js";
 
 const token = process.env.HUGGINGFACE_TOKEN;
 if (!token) {

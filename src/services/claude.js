@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 
 class ClaudeService {
   constructor(apiKey, model = "claude-haiku-4.5", timeoutMs = 15000) {

@@ -18,6 +18,16 @@ export const PROVIDERS = {
     products: ["flags", "logos"],
   },
 
+  // Generic Sportradar provider for non-soccer sports (NBA, NFL, MLB, NHL, Tennis, NASCAR)
+  sportradar_general: {
+    id: "sportradar_general",
+    type: "data",
+    sports: ["nba", "nfl", "mlb", "nhl", "tennis", "nascar", "motorsports"],
+    baseUrl: "https://api.sportradar.com",
+    auth: { kind: "query", keyEnv: "SPORTRADAR_KEY", param: "api_key" },
+    products: ["competitions", "seasons", "matches", "teams", "participants"],
+  },
+
   reuters: {
     id: "reuters",
     type: "media",

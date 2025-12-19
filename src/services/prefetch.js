@@ -1,5 +1,6 @@
 import { getRedisAdapter } from "../lib/redis-factory.js";
 import { isports } from "./isports.js";
+import { getUpcomingFixtures, getTeams } from "../services/sportradar-client.js";
 // SportMonks disabled — do not import or call provider
 import { sgo } from "./sportsgameodds-client.js";
 
@@ -77,6 +78,32 @@ export async function prefetchAllSportsData() {
     prefetchBasketball(),
     prefetchBaseball(),
     prefetchHockey(),
+    // Sportradar-based extras for broader sports coverage
+    (async () => {
+      try {
+        // NBA fixtures
+        const nba = await getUpcomingFixtures("nba");
+        await (redis.setex
+          ? redis.setex("prefetch:sportradar:nba", TTL_ODDS, JSON.stringify(nba))
+          : redis.set("prefetch:sportradar:nba", JSON.stringify(nba)));
+      } catch (e) {}
+    })(),
+    (async () => {
+      try {
+        const mlb = await getUpcomingFixtures("mlb");
+        await (redis.setex
+          ? redis.setex("prefetch:sportradar:mlb", TTL_ODDS, JSON.stringify(mlb))
+          : redis.set("prefetch:sportradar:mlb", JSON.stringify(mlb)));
+      } catch (e) {}
+    })(),
+    (async () => {
+      try {
+        const nascar = await getUpcomingFixtures("nascar");
+        await (redis.setex
+          ? redis.setex("prefetch:sportradar:nascar", TTL_ODDS, JSON.stringify(nascar))
+          : redis.set("prefetch:sportradar:nascar", JSON.stringify(nascar)));
+      } catch (e) {}
+    })(),
   ]).catch((e) =>
     console.warn("prefetchAllSportsData: some fetches failed", e.message || e),
   );

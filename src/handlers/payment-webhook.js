@@ -5,7 +5,7 @@
 import { Logger } from "../utils/logger.js";
 import { verifyAndActivatePayment } from "./payment-router.js";
 import crypto from "crypto";
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import { sendAdminNotification } from "../services/notifier.js";
 
 const logger = new Logger("PaymentWebhook");

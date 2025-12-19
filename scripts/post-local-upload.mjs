@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../src/lib/fetch.js";
 import FormData from "form-data";
 import fs from "fs";
 import os from "os";

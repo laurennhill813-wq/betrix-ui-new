@@ -11,7 +11,7 @@ if (
 process.env.SPORTSMONKS_RELAY_URL =
   process.env.SPORTSMONKS_RELAY_URL || "http://127.0.0.1:3001";
 
-import fetch from "node-fetch";
+import fetch from "../src/lib/fetch.js";
 
 async function testRelayDirect() {
   try {

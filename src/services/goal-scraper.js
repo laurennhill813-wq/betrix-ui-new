@@ -3,7 +3,7 @@
  * Fetches live match data and odds from Goal.com using Cheerio
  */
 
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import { load as cheerioLoad } from "cheerio";
 import { Logger } from "../utils/logger.js";
 

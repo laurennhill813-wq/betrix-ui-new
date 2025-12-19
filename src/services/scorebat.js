@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 
 class ScoreBatService {
   constructor(token = process.env.SCOREBAT_TOKEN || null) {

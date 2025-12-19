@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 
 // Do NOT return fallback data - show real data only
 // Fake matches confuse users and damage bot credibility

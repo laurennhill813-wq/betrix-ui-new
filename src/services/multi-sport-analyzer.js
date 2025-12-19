@@ -6,7 +6,7 @@
  */
 
 import { Logger } from "../utils/logger.js";
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import { CONFIG } from "../config.js";
 
 const logger = new Logger("MultiSportAnalyzer");

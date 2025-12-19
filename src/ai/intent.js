@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 
 // Lightweight intent classifier with safe fallbacks.
 // - If input starts with '/', treat as a command intent

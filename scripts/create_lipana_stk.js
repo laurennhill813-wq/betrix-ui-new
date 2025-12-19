@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import fetch from "node-fetch";
+import fetch from "../src/lib/fetch.js";
 import crypto from "crypto";
 
 // Usage: set env LIPANA_API_KEY and optionally LIPANA_API_BASE, ENDPOINT_PHONE

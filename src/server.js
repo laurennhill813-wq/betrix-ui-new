@@ -276,7 +276,7 @@ app.post("/webhook/mpesa", async (req, res) => {
           "";
         // Lazy import of service to verify signature
         try {
-          const nowSvc = await import("./payments/nowpayments.js");
+          const nowSvc = await import("./payments/nowpayments_v2.js");
           const verified = nowSvc.default.verifySignature(raw, headerSig);
           if (!verified) {
             logger.warn("Invalid NowPayments signature");

@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import { Logger } from "../utils/logger.js";
 
 const logger = new Logger("LocalAI");

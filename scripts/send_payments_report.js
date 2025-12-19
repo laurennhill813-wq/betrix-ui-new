@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import "dotenv/config";
-import fetch from "node-fetch";
+import fetch from "../src/lib/fetch.js";
 const { createClient } = await import("@supabase/supabase-js");
 
 const SUPABASE_URL = process.env.SUPABASE_URL;

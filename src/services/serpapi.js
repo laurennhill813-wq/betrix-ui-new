@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import { getEnv } from "../utils/env.js";
 import { getCache, setCache } from "../utils/cache.js";
 import logger from "../utils/logger.js";

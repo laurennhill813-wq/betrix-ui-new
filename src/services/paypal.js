@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 
 const PAYPAL_API =
   process.env.PAYPAL_MODE === "live"

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import Redis from "ioredis";
-import fetch from "node-fetch";
+import fetch from "../src/lib/fetch.js";
 
 async function sendTelegram(token, chatId, text) {
   try {

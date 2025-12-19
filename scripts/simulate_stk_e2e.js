@@ -1,5 +1,5 @@
 import { createPending, listPayments } from "../src/lib/local-payments.js";
-import fetch from "node-fetch";
+import fetch from "../src/lib/fetch.js";
 import crypto from "crypto";
 
 async function run() {

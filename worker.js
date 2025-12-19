@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "./src/lib/fetch.js";
 import { getRedisAdapter } from "./src/lib/redis-factory.js";
 
 // Use centralized Redis adapter (supports in-memory fallback for tests)

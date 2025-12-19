@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 
 const KEY = process.env.SPORTSGAMEODDS_API_KEY;
 const BASE =

@@ -4,6 +4,7 @@
  */
 
 import { Logger } from "../utils/logger.js";
+import * as stateMachine from "../lib/state-machine.js";
 const logger = new Logger("DataModels");
 
 // ============================================================================
@@ -281,32 +282,28 @@ export const StateTypes = {
  * Get user's current state
  */
 export async function getUserState(redis, userId) {
-  const state = await redis.get(`user:${userId}:state`);
-  return state || StateTypes.IDLE;
+  return await stateMachine.getUserState(redis, userId);
 }
 
 /**
  * Set user's current state
  */
 export async function setUserState(redis, userId, state, ttl = 3600) {
-  await redis.setex(`user:${userId}:state`, ttl, state);
+  return await stateMachine.setUserState(redis, userId, state, ttl);
 }
 
 /**
  * Get state data (e.g., partial signup form)
  */
 export async function getStateData(redis, userId) {
-  const data = await redis.hgetall(`user:${userId}:state_data`);
-  return Object.keys(data).length > 0 ? data : null;
+  return await stateMachine.getStateData(redis, userId) || null;
 }
 
 /**
  * Set state data
  */
 export async function setStateData(redis, userId, data, ttl = 3600) {
-  await redis.del(`user:${userId}:state_data`);
-  await redis.hset(`user:${userId}:state_data`, data);
-  await redis.expire(`user:${userId}:state_data`, ttl);
+  return await stateMachine.setStateData(redis, userId, data, ttl);
 }
 
 // ============================================================================

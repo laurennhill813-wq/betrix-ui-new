@@ -2,7 +2,7 @@
  * HTTP client with retry, timeout, and error handling
  */
 
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import { Logger } from "../utils/logger.js";
 import { APIError, TimeoutError } from "../utils/errors.js";
 

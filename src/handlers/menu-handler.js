@@ -5,6 +5,8 @@
 
 import { Logger } from "../utils/logger.js";
 import safeName from "../utils/safe-name.js";
+import { getTeams, sportEmoji } from "../services/sportradar-client.js";
+import { cacheGet, cacheSet } from "../lib/redis-cache.js";
 
 const logger = new Logger("MenuHandler");
 void logger;
@@ -103,6 +105,65 @@ export const sportsMenu = {
     ],
   },
 };
+
+/**
+ * Build dynamic sports menu using Sportradar teams availability.
+ * Returns a payload { text, reply_markup } ready to send.
+ */
+export async function buildSportsMenu(redis = null) {
+  const cacheKey = "menu:sports:dynamic";
+  try {
+    const cached = await cacheGet(cacheKey);
+    if (cached) return cached;
+  } catch (e) {
+    void e;
+  }
+
+  const candidateSports = [
+    "soccer",
+    "basketball",
+    "tennis",
+    "nfl",
+    "icehockey",
+    "baseball",
+    "nascar",
+  ];
+
+  const buttons = [];
+  for (const s of candidateSports) {
+    try {
+      const teams = await getTeams(s, {});
+      // Only expose sports with some teams/coverage
+      if (teams && teams.length > 0) {
+        const label = `${sportEmoji(s)} ${safeName(s, s.toUpperCase())}`;
+        buttons.push({ text: label, callback_data: `sport_${s}` });
+      }
+    } catch (e) {
+      // ignore individual sport failures
+      continue;
+    }
+  }
+
+  // arrange into rows of two
+  const inline = [];
+  for (let i = 0; i < buttons.length; i += 2) {
+    inline.push(buttons.slice(i, i + 2));
+  }
+  inline.push([{ text: "🔙 Back to Main", callback_data: "menu_main" }]);
+
+  const payload = {
+    text: `${BETRIX_HEADER}\n\n*Select a Sport:*`,
+    reply_markup: { inline_keyboard: inline },
+  };
+
+  try {
+    await cacheSet(cacheKey, payload, 300);
+  } catch (e) {
+    void e;
+  }
+
+  return payload;
+}
 
 export const subscriptionMenu = {
   text: `${BETRIX_HEADER}

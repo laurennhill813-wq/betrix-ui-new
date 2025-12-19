@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "./fetch.js";
 
 const LIPANA_BASE = process.env.LIPANA_API_BASE || "https://api.lipana.dev";
 // For server-side transaction creation Lipana expects the publishable key in 'x-api-key'

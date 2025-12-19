@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import fetch from "node-fetch";
+import fetch from "../src/lib/fetch.js";
 
 const API_BASE = process.env.LIPANA_API_BASE || "https://api.lipana.dev";
 const KEY = process.argv[2] || process.env.LIPANA_API_KEY;

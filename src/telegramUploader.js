@@ -1,7 +1,7 @@
 import fs from "fs";
 import fsPromises from "fs/promises";
 import FormData from "form-data";
-import fetch from "node-fetch";
+import fetch from "./lib/fetch.js";
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.BOT_BROADCAST_CHAT_ID;

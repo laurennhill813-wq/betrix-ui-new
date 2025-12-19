@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../src/lib/fetch.js";
 import crypto from "crypto";
 import { config } from "./config.js";
 import { uploadTempBuffer, getPresignedUrl } from "./storage.js";

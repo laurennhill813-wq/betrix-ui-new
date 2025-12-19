@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../src/lib/fetch.js";
 import { getSportradarImages } from "../src/data/images-sportradar.js";
 
 (async () => {

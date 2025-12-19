@@ -6,6 +6,8 @@
 
 import { Logger } from "../utils/logger.js";
 import { MatchFormatter } from "../utils/match-formatter.js";
+import UserService from "../services/user.js";
+import { getUpcomingFixtures, getTeams, sportEmoji } from "../services/sportradar-client.js";
 
 const logger = new Logger("LiveFeedHandler");
 
@@ -14,6 +16,7 @@ export class LiveFeedHandler {
     this.bot = bot;
     this.aggregator = sportsAggregator;
     this.redis = redis;
+    this.userSvc = new UserService(redis);
   }
 
   /**
@@ -68,20 +71,53 @@ export class LiveFeedHandler {
 
     try {
       logger.info(`/fixtures command from ${chatId}`);
+      // Parse optional sport argument: /fixtures <sport>
+      const args = String(msg.text || "").split(" ").slice(1).filter(Boolean);
+      const sport = (args[0] || "football").toLowerCase();
 
-      // Get upcoming fixtures
-      const fixtures = await this.aggregator.getFixtures();
-
-      if (!fixtures || fixtures.length === 0) {
+      // Check user access state
+      const userId = msg.from?.id || chatId;
+      const isActive = await this.userSvc.isActive(userId).catch(() => false);
+      if (!isActive) {
         return await this.bot.sendMessage(
           chatId,
-          "📅 No upcoming fixtures available at this moment.\n\n" +
-            "Check /live for current matches!",
+          "🔒 This feature is for active users. Please complete signup or payment to unlock. Type /signup or /pay.",
           { parse_mode: "HTML" },
         );
       }
 
-      const message = MatchFormatter.formatFixtures(fixtures);
+      let fixtures = [];
+      if (!sport || sport === "football" || sport === "soccer") {
+        fixtures = await this.aggregator.getFixtures();
+      } else {
+        // Use aggregator multi-sport endpoint when available, else fallback to Sportradar client
+        try {
+          fixtures =
+            typeof this.aggregator.getUpcomingBySport === "function"
+              ? await this.aggregator.getUpcomingBySport(sport)
+              : await getUpcomingFixtures(sport);
+        } catch (e) {
+          fixtures = await getUpcomingFixtures(sport);
+        }
+      }
+
+      if (!fixtures || fixtures.length === 0) {
+        return await this.bot.sendMessage(
+          chatId,
+          `${sportEmoji(sport)} No upcoming fixtures available for ${sport.toUpperCase()}.`,
+          { parse_mode: "HTML" },
+        );
+      }
+
+      // Normalize and format simple list for multi-sport output
+      const lines = fixtures.slice(0, 20).map((f) => {
+        const home = f.home || f.teams?.home?.name || "Home";
+        const away = f.away || f.teams?.away?.name || "Away";
+        const dt = f.startTime ? new Date(f.startTime).toLocaleString() : f.start_time || "TBD";
+        return `${sportEmoji(sport)} ${home} vs ${away} — ${dt}`;
+      });
+
+      const message = `📅 Upcoming ${sport.toUpperCase()} fixtures:\n\n${lines.join("\n")}`;
 
       await this.bot.sendMessage(chatId, message, {
         parse_mode: "HTML",
@@ -100,6 +136,46 @@ export class LiveFeedHandler {
         "❌ Error fetching fixtures. Please try again.",
         { parse_mode: "HTML" },
       );
+    }
+  }
+
+  /**
+   * /teams <sport> - list real teams for a sport
+   */
+  async handleTeamsCommand(msg) {
+    const chatId = msg.chat.id;
+    try {
+      const args = String(msg.text || "").split(" ").slice(1).filter(Boolean);
+      const sport = (args[0] || "football").toLowerCase();
+
+      // Access check
+      const userId = msg.from?.id || chatId;
+      const isActive = await this.userSvc.isActive(userId).catch(() => false);
+      if (!isActive) {
+        return await this.bot.sendMessage(
+          chatId,
+          "🔒 This feature is for active users. Please complete signup or payment to unlock. Type /signup or /pay.",
+          { parse_mode: "HTML" },
+        );
+      }
+
+      let teams = [];
+      try {
+        teams = await getTeams(sport);
+      } catch (e) {
+        teams = [];
+      }
+
+      if (!teams || teams.length === 0) {
+        return await this.bot.sendMessage(chatId, `${sportEmoji(sport)} No teams found for ${sport.toUpperCase()}.`, { parse_mode: "HTML" });
+      }
+
+      const names = teams.slice(0, 50).map((t) => `• ${t.name || t.display_name || t.title}`);
+      const message = `${sportEmoji(sport)} Teams (${names.length} shown):\n\n${names.join("\n")}`;
+      await this.bot.sendMessage(chatId, message, { parse_mode: "HTML" });
+    } catch (e) {
+      logger.error("handleTeamsCommand error:", e?.message || String(e));
+      await this.bot.sendMessage(chatId, "❌ Error fetching teams.", { parse_mode: "HTML" });
     }
   }
 
@@ -296,6 +372,7 @@ export class LiveFeedHandler {
     this.bot.onText(/^\/fixtures(\s|$)/, (msg) =>
       this.handleFixturesCommand(msg),
     );
+    this.bot.onText(/^\/teams(\s|$)/, (msg) => this.handleTeamsCommand(msg));
     this.bot.onText(/^\/standings(\s|$)/, (msg) =>
       this.handleStandingsCommand(msg),
     );

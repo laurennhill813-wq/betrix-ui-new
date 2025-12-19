@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 
 const TEMP_DIR = process.env.IMAGE_TEMP_DIR
   ? path.resolve(process.env.IMAGE_TEMP_DIR)

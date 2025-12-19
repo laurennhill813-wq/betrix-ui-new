@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 
 const key = process.env.OPENROUTER_API_KEY;
 if (!key) {

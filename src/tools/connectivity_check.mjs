@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import { createClient as createRedisClient } from "redis";
 import { Client as PgClient } from "pg";
 

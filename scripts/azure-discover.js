@@ -3,7 +3,7 @@
  * Azure AI Endpoint Discovery Script
  * Attempt to discover the correct endpoint and model format
  */
-import fetch from "node-fetch";
+import fetch from "../src/lib/fetch.js";
 
 const baseUrl =
   process.env.AZURE_AI_ENDPOINT ||

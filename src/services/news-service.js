@@ -1,7 +1,7 @@
 import { getRedis } from "../lib/redis-factory.js";
 import createRedisAdapter from "../utils/redis-adapter.js";
 import { Pool } from "pg";
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import { getNewsHeadlines } from "./news-provider-enhanced.js";
 
 // Minimal news service: fetch headlines from public RSS, cache in Redis,

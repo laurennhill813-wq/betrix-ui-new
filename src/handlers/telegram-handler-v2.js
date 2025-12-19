@@ -6,6 +6,7 @@ import premiumUI, {
   buildUpcomingFixtures,
 } from "../utils/premium-ui-builder.js";
 import logger from "../utils/logger.js";
+import { buildSportsMenu } from "./menu-handler.js";
 import createRedisAdapter from "../utils/redis-adapter.js";
 import IntelligentMenuBuilder from "../utils/intelligent-menu-builder.js";
 import { UserService } from "../services/user.js";
@@ -1700,7 +1701,21 @@ async function handleModCallback(
           logger.warn("mod_fixtures handler failed", e?.message || e);
         }
 
-        // Fallback UI if fetch/build fails
+        // Fallback UI if fetch/build fails — try to build a dynamic sports menu
+        try {
+          const menuPayload = await buildSportsMenu(redis);
+          if (menuPayload && menuPayload.text) {
+            return editPayload(
+              menuPayload.text,
+              menuPayload.reply_markup || null,
+              "Markdown",
+            );
+          }
+        } catch (e) {
+          logger.warn("buildSportsMenu failed", e?.message || e);
+        }
+
+        // Static fallback if dynamic menu failed
         const text =
           "📅 Upcoming Fixtures - choose a sport or view all upcoming matches.";
         const keyboard = {

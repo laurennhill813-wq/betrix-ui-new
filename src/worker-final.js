@@ -14,7 +14,7 @@ import fs from "fs";
 const envLocalPath = ".env.local";
 if (fs.existsSync(envLocalPath)) {
   dotenv.config({ path: envLocalPath });
-  console.log("[env] loaded .env.local");
+  console.log("[env] loaded .env.local - worker-final.js:17");
 } else {
   dotenv.config();
 }
@@ -65,6 +65,7 @@ import { runMediaAiTick } from "./tickers/mediaAiTicker.js";
 import { canPostNow, markPosted } from "./lib/liveliness.js";
 import { Pool } from "pg";
 import { reconcileWithLipana } from "./tasks/reconcile-lipana.js";
+import nowPayments from "./payments/nowpayments_v2.js";
 
 // ===== PREMIUM ENHANCEMENT MODULES =====
 import premiumUI from "./utils/premium-ui-builder.js";
@@ -677,7 +678,7 @@ try {
           logger.info("✅ Telegram webhook set successfully", {
             url: TELEGRAM_WEBHOOK_URL,
           });
-          console.log("Telegram webhook set successfully");
+          console.log("Telegram webhook set successfully - worker-final.js:681");
         } else {
           logger.warn("⚠️ Telegram setWebhook returned non-ok", {
             result: json,
@@ -1389,6 +1390,7 @@ async function handleUpdate(update) {
           cache,
           sportsData: sportsDataAPI,
           ai,
+          nowPayments,
         };
         const res = await completeHandler.handleCallbackQuery(
           callbackQuery,
@@ -1614,6 +1616,7 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
       sportsData: sportsDataAPI,
       redis,
       ai,
+      nowPayments,
     };
     const basicCommands = {
       "/start": async () => {

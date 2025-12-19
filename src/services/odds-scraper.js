@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import * as cheerio from "cheerio";
 
 export async function getOddsFromBetExplorer({ sport = "football" } = {}) {

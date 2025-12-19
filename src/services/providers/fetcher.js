@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../../lib/fetch.js";
 
 /**
  * callProvider: low-level HTTP helper with retries and basic backoff.

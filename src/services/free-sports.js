@@ -4,7 +4,7 @@
  * - No API keys required
  */
 
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import { load as loadCheerio } from "cheerio";
 import { Logger } from "../utils/logger.js";
 

@@ -3,7 +3,7 @@
  * Fetches odds from Betfair exchange without registration
  */
 
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import { load as cheerioLoad } from "cheerio";
 import { Logger } from "../utils/logger.js";
 

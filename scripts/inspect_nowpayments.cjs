@@ -1,0 +1,12 @@
+const fs = require('fs');
+const s = fs.readFileSync('src/payments/nowpayments.js','utf8');
+const re = /import\s+crypto\s+from\s+['\"]crypto['\"]/g;
+let m;
+const arr = [];
+while((m = re.exec(s)) !== null) arr.push({ idx: m.index, match: m[0] });
+console.log('matches:', arr.length);
+console.log(arr);
+console.log('--- file head 1-80 chars ---');
+console.log(s.slice(0,200));
+console.log('--- file tail 200 chars ---');
+console.log(s.slice(-200));

@@ -2,7 +2,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import crypto from "crypto";
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import { getSignedDownloadUrl } from "../data/images-sportradar-exchange.js";
 
 const CACHE_DIR =

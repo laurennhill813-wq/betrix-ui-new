@@ -4,7 +4,7 @@
  * Note: Flashscore heavily uses JavaScript rendering; this is basic HTML fallback
  */
 
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import { load as cheerioLoad } from "cheerio";
 import { Logger } from "../utils/logger.js";
 

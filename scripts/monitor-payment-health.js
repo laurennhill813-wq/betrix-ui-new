@@ -8,7 +8,7 @@
  */
 
 import Redis from "ioredis";
-import fetch from "node-fetch";
+import fetch from "../src/lib/fetch.js";
 
 async function notifyAdmin(message) {
   if (!process.env.ADMIN_TELEGRAM_ID || !process.env.TELEGRAM_TOKEN) {

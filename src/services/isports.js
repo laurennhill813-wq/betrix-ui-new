@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 
 const KEY = process.env.ISPORTS_API_KEY;
 const BASE = process.env.ISPORTS_API_BASE || "http://api.isportsapi.com";

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import "dotenv/config";
-import fetch from "node-fetch";
+import fetch from "../src/lib/fetch.js";
 
 const API = process.env.LIPANA_API_BASE || "https://api.lipana.dev";
 const KEY = process.env.LIPANA_API_KEY;

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import fetch from "node-fetch";
+import fetch from "../src/lib/fetch.js";
 import crypto from "crypto";
 
 const tx = process.argv[2];

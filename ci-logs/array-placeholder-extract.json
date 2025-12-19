@@ -1,0 +1,173 @@
+[
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\aggregator\\multiSportAggregator.js",
+    "arrays": [
+      "soccer, nba, nfl, mlb, nhl, nascar, tennis",
+      "safeFetch(soccerMod && soccerMod.getLiveSoccerEvents),\n    safeFetch(nbaMod && nbaMod.getLiveNbaEvents),\n    safeFetch(nflMod && nflMod.getLiveNflEvents),\n    safeFetch(mlbMod && mlbMod.getLiveMlbEvents),\n    safeFetch(nhlMod && nhlMod.getLiveNhlEvents),\n    safeFetch(nascarMod && nascarMod.getLiveNascarEvents),\n    safeFetch(tennisMod && tennisMod.getLiveTennisEvents),"
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\bot\\handlers\\debug-event.js",
+    "arrays": [
+      "{ sport: \"football\", league: \"nfl\" },\n    { sport: \"basketball\", league: \"nba\" },\n    { sport: \"baseball\", league: \"mlb\" },\n    { sport: \"hockey\", league: \"nhl\" },"
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\config\\providers_full.js",
+    "arrays": [
+      "\"soccer\", \"f1\", \"tennis\", \"nba\", \"bundesliga\", \"la_liga\"",
+      "\"soccer\", \"nba\", \"nfl\", \"mlb\", \"tennis\", \"olympics\"",
+      "\"nfl\", \"ncaa_football\", \"mlb\", \"nba\"",
+      "\"soccer\", \"nba\", \"nhl\", \"rugby\", \"tennis\", \"cricket\"",
+      "\"nfl\",\n      \"nba\",\n      \"nhl\",\n      \"mlb\",\n      \"ncaa_football\",\n      \"ncaa_basketball\",\n      \"ufc\",",
+      "\"soccer\", \"nba\", \"nfl\", \"tennis\", \"mlb\"",
+      "\"nba\", \"nfl\", \"mlb\"",
+      "\"soccer\", \"nba\", \"nfl\", \"mlb\"",
+      "\"soccer\", \"nba\", \"nfl\", \"mlb\", \"tennis\"",
+      "\"nba\"",
+      "\"nhl\"",
+      "\"nfl\"",
+      "\"tennis\""
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\handlers\\menu-handler-complete.js",
+    "arrays": [
+      "{ text: \"🏈 American Football\", callback_data: \"sport:nfl\" },\n        { text: \"🎾 Tennis\", callback_data: \"sport:tennis\" },",
+      "{ text: \"🏀 NBA\", callback_data: \"standings:nba\" },\n        { text: \"🏈 NFL\", callback_data: \"standings:nfl\" },",
+      "{ text: \"🏈 American Football\", callback_data: \"news:nfl\" },\n        { text: \"🎾 Tennis\", callback_data: \"news:tennis\" },"
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\handlers\\menu-handler.js",
+    "arrays": [
+      "{ text: \"🎾 Tennis\", callback_data: \"sport_tennis\" },\n        { text: \"🏈 American Football\", callback_data: \"sport_nfl\" },"
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\handlers\\menu-system.js",
+    "arrays": [
+      "{ text: \"🎾 Tennis\", callback_data: \"sport_tennis\" },\n        { text: \"🏈 American Football\", callback_data: \"sport_nfl\" },"
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\handlers\\nl-parser.js",
+    "arrays": [
+      "\"basketball\", \"nba\", \"euroleague\", \"aba\"",
+      "\"tennis\",\n    \"atp\",\n    \"wta\",\n    \"grand slam\",\n    \"wimbledon\",\n    \"us open\",\n    \"french open\",\n    \"australian open\",",
+      "\"nfl\", \"american football\", \"super bowl\"",
+      "\"hockey\", \"nhl\", \"ice hockey\"",
+      "\"baseball\", \"mlb\""
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\handlers\\telegram-handler-v2-clean.js",
+    "arrays": [
+      "{ text: \"🏈 NFL\", callback_data: \"odds_nfl\" }",
+      "{ text: \"🏀 NBA\", callback_data: \"odds_nba\" }"
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\handlers\\telegram-handler-v2.js",
+    "arrays": [
+      "\"⚽ BETRIX — Sports Hub\",\n          \"\",\n          \"Choose a sport:\",\n          \"\",\n          \"⚽ Football\",\n          \"🏀 Basketball\",\n          \"🏈 American Football\",\n          \"🎾 Tennis\",\n          \"🏒 Hockey\",\n          \"🎯 More Sports\","
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\jobs\\auto-media-ticker.js",
+    "arrays": [
+      "\"soccer\", \"nba\", \"nfl\", \"tennis\""
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\espn-provider.js",
+    "arrays": [
+      "\"football\", \"nfl\""
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\multi-sport-analyzer.js",
+    "arrays": [
+      "\"nba\", \"basketball\", \"nbl\"",
+      "\"atp\", \"wta\", \"tennis\", \"grandslam\"",
+      "\"nfl\", \"american_football\"",
+      "\"nhl\", \"hockey\", \"ice_hockey\""
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\multi-sport-handler.js",
+    "arrays": [
+      "\"soccer\",\n        \"nfl\",\n        \"nba\",\n        \"nhl\",\n        \"mlb\",\n        \"cricket\",\n        \"tennis\","
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\providers\\registry.js",
+    "arrays": [
+      "\"soccer\", \"tennis\", \"basketball\", \"americanfootball\""
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\providers\\sportradar.js",
+    "arrays": [
+      "`/basketball/trial/v3/en/games/${date}/schedule.json`,\n          `/basketball/v4/en/games/${date}/schedule.json`,\n          `/nba/v3/en/games/${date}/schedule.json`,",
+      "`/americanfootball/trial/v4/en/games/${date}/schedule.json`,\n          `/americanfootball/v4/en/games/${date}/schedule.json`,\n          `/nfl/v3/en/games/${date}/schedule.json`,",
+      "`/baseball/trial/v4/en/games/${date}/schedule.json`,\n          `/baseball/v4/en/games/${date}/schedule.json`,\n          `/mlb/v3/en/games/${date}/schedule.json`,",
+      "`/icehockey/trial/v4/en/games/${date}/schedule.json`,\n          `/icehockey/v4/en/games/${date}/schedule.json`,\n          `/nhl/v3/en/games/${date}/schedule.json`,",
+      "`/tennis/trial/v2/en/games/${date}/schedule.json`,\n          `/tennis/v2/en/games/${date}/schedule.json`,"
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\reddit-sports-service.js",
+    "arrays": [
+      "\"sports\",\n      \"football\",\n      \"soccer\",\n      \"nba\",\n      \"nfl\",\n      \"premierleague\",\n      \"sportsbetting\","
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\sportradar-client.js",
+    "arrays": [
+      "\"/nba/v3/en/teams.json\",\r\n        \"/basketball/v4/en/teams.json\",\r\n        \"/basketball/trial/v3/en/teams.json\",",
+      "\"/nfl/v3/en/teams.json\", \"/americanfootball/v4/en/teams.json\"",
+      "\"/mlb/v3/en/teams.json\", \"/baseball/v4/en/teams.json\"",
+      "\"/nhl/v3/en/teams.json\", \"/icehockey/v4/en/teams.json\"",
+      "\"/tennis/v2/en/players.json\""
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\sportsgameodds.js",
+    "arrays": [
+      "Object.assign({}, params),\n      Object.assign({}, params, { api_key: this.key }),\n      Object.assign({}, params, { key: this.key }),\n      Object.assign({}, params, { token: this.key }),"
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\tasks\\statpal-init.js",
+    "arrays": [
+      "\"soccer\",\n  \"nfl\",\n  \"nba\",\n  \"nhl\",\n  \"mlb\",\n  \"esports\",\n  \"cricket\",\n  \"f1\",\n  \"handball\",\n  \"golf\",\n  \"horse-racing\",\n  \"volleyball\",\n  \"tennis\",\n  \"rugby\",\n  \"australian-football\",",
+      "this.fetchAndCacheSportStandings(\"soccer\"),\n      this.fetchAndCacheSportStandings(\"nfl\"),\n      this.fetchAndCacheSportStandings(\"nba\"),\n      this.fetchAndCacheSportStandings(\"nhl\"),\n      this.fetchAndCacheSportStandings(\"mlb\"),",
+      "this.fetchAndCacheSportResults(\"soccer\"),\n      this.fetchAndCacheSportResults(\"nfl\"),\n      this.fetchAndCacheSportResults(\"nba\"),\n      this.fetchAndCacheSportResults(\"nhl\"),\n      this.fetchAndCacheSportResults(\"mlb\"),"
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\utils\\intelligent-menu-builder.js",
+    "arrays": [
+      "{ text: \"🎾 Tennis\", callback_data: \"sport_tennis\" },\n            { text: \"🏈 American Football\", callback_data: \"sport_nfl\" },"
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\utils\\premium-ui-builder.js",
+    "arrays": [
+      "{ text: \"🏀 NBA\", callback_data: \"league_nba\" },\n      { text: \"🇪🇺 EuroLeague\", callback_data: \"league_euroleague\" },"
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\worker-complete.js",
+    "arrays": [
+      "action, ...params"
+    ]
+  },
+  {
+    "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\worker-final.js",
+    "arrays": [
+      "action, ...params"
+    ]
+  }
+]

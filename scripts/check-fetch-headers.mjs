@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../src/lib/fetch.js";
 
 const url = process.argv[2];
 if (!url) {

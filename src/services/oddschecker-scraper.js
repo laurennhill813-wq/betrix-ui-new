@@ -3,7 +3,7 @@
  * Fetches and compares odds from multiple bookmakers
  */
 
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import { load as cheerioLoad } from "cheerio";
 import { Logger } from "../utils/logger.js";
 

@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 
 export async function sendAdminNotification(title, details = {}) {
   const slackUrl = process.env.SLACK_WEBHOOK_URL || null;

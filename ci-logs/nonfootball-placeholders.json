@@ -1,0 +1,293 @@
+{
+  "scanned": 387,
+  "matches": [
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\aggregator\\multiSportAggregator.js",
+      "snippet": "// multiSportAggregator: gather interesting events across many sports\n// Defensive imports: if specific sport data modules don't exist, return empty arrays\nasync function tryImport(path) {\n  try {\n    const mod = await import(path).catch(() => null);\n    return mod || null;\n  } catch (e) {\n    return null;\n  }\n}\n\nasync function safeFetch(fn, ...args) {\n  try {\n    if (!fn) return [];\n    const out"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\ai\\personality.js",
+      "snippet": "// src/ai/personality.js\nexport const BETRIX_TONES = {\n  HYPE: \"hype\",\n  PRO: \"pro\",\n  HYBRID: \"hybrid\",\n};\n\nexport function getToneInstructions(tone) {\n  switch (tone) {\n    case BETRIX_TONES.HYPE:\n      return [\n        \"- Voice: Bold, energetic, meme-aware, fan-driven.\",\n        \"- Style: Punchy one-liners, drama, momentum, emotional spikes.\",\n        \"- Keep it sharp and clean. No cringe, no f"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\ai\\summarizer.js",
+      "snippet": "import { GeminiService } from \"../services/gemini.js\";\nimport { LocalAIService } from \"../services/local-ai.js\";\nimport { AzureAIService } from \"../services/azure-ai.js\";\nimport {\n  getToneInstructions,\n  inferToneFromEvent,\n  BETRIX_TONES,\n} from \"./personality.js\";\n\nconst gemini = new GeminiService(process.env.GEMINI_API_KEY || null);\nconst localAI = new LocalAIService();\nconst azure = new Azure"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\bot\\db.js",
+      "snippet": "import { Pool } from \"pg\";\nimport dotenv from \"dotenv\";\ndotenv.config();\n\nconst USE_SUPABASE = Boolean(\n  process.env.SUPABASE_URL && process.env.SUPABASE_KEY,\n);\n\nlet pool = null;\nlet supabase = null;\nif (USE_SUPABASE) {\n  // Lazy import to keep startup fast when not used\n  const { createClient } = await import(\"@supabase/supabase-js\");\n  supabase = createClient(process.env.SUPABASE_URL, process."
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\bot\\handlers\\debug-event.js",
+      "snippet": "import { getUnifiedOddsWithFair } from \"../../services/odds-aggregator.js\";\n\nconst ADMIN_IDS = (process.env.TELEGRAM_ADMINS || \"\")\n  .split(\",\")\n  .filter(Boolean);\n\nexport async function handleDebugEvent(ctx) {\n  const userId = String(ctx.from.id);\n  if (!ADMIN_IDS.includes(userId)) return ctx.reply(\"Not authorized.\");\n\n  const parts = ctx.message.text.split(\" \").filter(Boolean);\n  if (parts.leng"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\bot\\handlers\\odds-basketball.js",
+      "snippet": "import { getUnifiedOddsWithFair } from \"../../services/odds-aggregator.js\";\nimport { getUserTier } from \"../../services/user-tiers.js\";\n\nexport async function handleBasketballOdds(ctx) {\n  const userId = String(ctx.from.id);\n  const tier = await getUserTier(userId);\n\n  const events = await getUnifiedOddsWithFair({\n    sport: \"basketball\",\n    league: \"nba\",\n  });\n\n  if (!events || events.length =="
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\bot\\handlers\\odds-football.js",
+      "snippet": "import { getUnifiedOddsWithFair } from \"../../services/odds-aggregator.js\";\nimport { getUserTier } from \"../../services/user-tiers.js\";\n\nexport async function handleFootballOdds(ctx) {\n  const userId = String(ctx.from.id);\n  const tier = await getUserTier(userId);\n\n  const events = await getUnifiedOddsWithFair({\n    sport: \"football\",\n    league: \"nfl\",\n  });\n\n  if (!events || events.length === 0)"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\bot\\server.js",
+      "snippet": "import \"dotenv/config\";\nimport { Telegraf, Scenes, session, Markup } from \"telegraf\";\nimport express from \"express\";\nimport bodyParser from \"body-parser\";\nimport { Pool } from \"pg\";\nimport {\n  upsertUser,\n  createPayment,\n  getUserById,\n  getRecentPayments,\n  getPaymentByProviderCheckout,\n  getPaymentByTxRef,\n  updatePaymentStatus,\n} from \"./db.js\";\nimport { initiateStkPush, handleMpesaCallback } "
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\config\\providers_full.js",
+      "snippet": "// Canonical provider registry (expanded)\nexport const PROVIDERS = {\n  sportradar_soccer: {\n    id: \"sportradar_soccer\",\n    type: \"data\",\n    sports: [\"soccer\"],\n    baseUrl: \"https://api.sportradar.com/soccer/trial/v4/en\",\n    auth: { kind: \"query\", keyEnv: \"SPORTRADAR_KEY\", param: \"api_key\" },\n    products: [\"competitions\", \"seasons\", \"matches\", \"teams\"],\n  },\n\n  sportradar_images: {\n    id: \"s"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\config.js",
+      "snippet": "/**\n * Centralized configuration management\n * All environment variables with validation and defaults\n */\n\nconst CONFIG = {\n  // Core\n  REDIS_URL: process.env.REDIS_URL,\n  TELEGRAM_TOKEN: process.env.TELEGRAM_TOKEN,\n  DATABASE_URL: process.env.DATABASE_URL,\n  TZ: process.env.TZ || \"Africa/Nairobi\",\n\n  // APIs\n  API_FOOTBALL: {\n    BASE:\n      process.env.API_FOOTBALL_BASE ||\n      process.env.API_"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\data\\images-reuters.js",
+      "snippet": "// pragmatic Reuters adapter: best-effort search against Reuters Media API\nimport axios from \"axios\";\n\nconst REUTERS_KEY =\n  process.env.REUTERS_API_KEY || process.env.REUTERS_KEY || null;\nconst REUTERS_BASE =\n  process.env.REUTERS_BASE || \"https://api.reuters.com/media/v1\";\n\nfunction guessQueryFromEvent(ev = {}) {\n  if (!ev) return null;\n  if (ev.query) return ev.query;\n  if (ev.title) return ev."
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\handlers\\commands-v3.js",
+      "snippet": "/**\n * BETRIX Commands v3 - Complete command set with improved structure\n * Commands: /start, /signup, /pay, /menu, /odds, /analyze, /news, /vvip, /help\n * All commands return structured responses with inline keyboards and parse_mode\n */\n\nimport { Logger } from \"../utils/logger.js\";\nimport { getUserState } from \"./data-models.js\";\nconst logger = new Logger(\"Commands\");\n\n// ========================"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\handlers\\data-exposure-handler.js",
+      "snippet": "/**\n * Data Exposure API Handler\n * Provides RESTful endpoints to access all cached sports data\n * Enables debugging, monitoring, and external integrations\n */\n\nimport { Logger } from \"../utils/logger.js\";\n\nconst logger = new Logger(\"DataExposure\");\n\nexport class DataExposureHandler {\n  constructor(router, sportsAggregator) {\n    this.router = router;\n    this.aggregator = sportsAggregator;\n    th"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\handlers\\handler-complete.js",
+      "snippet": "/**\n * BETRIX Complete Telegram Handler v3\n * Handles all commands, callbacks, and menu navigation\n * Every button properly connected to correct responses\n */\n\nimport { Logger } from \"../utils/logger.js\";\nimport { analyseFixtureWithBetrixx } from \"../services/betrixx_analysis.js\";\nimport * as completeMenus from \"./menu-handler-complete.js\";\nimport { buildUpcomingFixtures } from \"../utils/premium-u"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\handlers\\menu-handler-complete.js",
+      "snippet": "/**\n * BETRIX Complete Menu Handler - v3\n * Comprehensive menu structure with all features, buttons, and payment systems\n * Every button properly structured with correct callbacks\n */\n\nimport { Logger } from \"../utils/logger.js\";\n\nconst logger = new Logger(\"MenuHandlerComplete\");\nvoid logger;\n\n// ============================================================================\n// CONFIGURATION\n// ====="
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\handlers\\menu-handler.js",
+      "snippet": "/**\n * Menu Handler - Main menu navigation for BETRIX bot\n * Provides inline keyboard menus and command responses with BETRIX branding\n */\n\nimport { Logger } from \"../utils/logger.js\";\nimport safeName from \"../utils/safe-name.js\";\n\nconst logger = new Logger(\"MenuHandler\");\nvoid logger;\n\nconst BETRIX_EMOJI = \"🌀\";\nconst BETRIX_HEADER = `${BETRIX_EMOJI} *BETRIX* - Premium Sports Analytics`;\nconst TI"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\handlers\\menu-system.js",
+      "snippet": "/**\n * BETRIX Menu System - Consolidated\n * All menu definitions, formatters, and UI builders in one module\n *\n * Exports:\n * - mainMenu, sportsMenu, subscriptionMenu, profileMenu, helpMenu\n * - format* functions for each content type\n */\n\nimport { Logger } from \"../utils/logger.js\";\nimport safeName from \"../utils/safe-name.js\";\n\nconst logger = new Logger(\"MenuSystem\");\n// logger initialized\n\ncons"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\handlers\\message-handler-v3.js",
+      "snippet": "/**\n * BETRIX Natural Language Message Handler v3\n * Routes user messages to commands/states based on intent\n * Handles signup profile collection, fallbacks, and context awareness\n */\n\nimport { Logger } from \"../utils/logger.js\";\nconst logger = new Logger(\"MessageHandler\");\nimport {\n  getUserState,\n  setUserState,\n  getStateData,\n  setStateData,\n  STATES,\n  isOnboardingState,\n  isPaymentPendingSta"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\handlers\\multi-sport-handler.js",
+      "snippet": "/**\n * Enhanced Multi-Sport Command Handler\n * Handles /analyze command with support for multiple sports and betting markets\n */\n\nimport { Logger } from \"../utils/logger.js\";\n\nconst logger = new Logger(\"MultiSportHandler\");\n\nexport async function handleMultiSportAnalyze(\n  chatId,\n  userId,\n  query,\n  redis,\n  services,\n) {\n  try {\n    if (!services.multiSportAnalyzer) {\n      return {\n        cha"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\handlers\\nl-parser.js",
+      "snippet": "/**\n * Natural Language Parser - Converts user queries to commands\n * Supports natural language like \"which games are live?\" and \"show me free odds\"\n */\n\nimport { Logger } from \"../utils/logger.js\";\n\nconst logger = new Logger(\"NLParser\");\nvoid logger;\n\n// Intent detection patterns (lowercase)\nconst intents = {\n  live: [/live|now|current|happening|playing|today|match|game|fixture/i],\n  odds: [\n    "
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\handlers\\telegram-handler-v2-clean.js",
+      "snippet": "/**\n * Telegram Handler v2 (full-featured + FIXED)\n * Complete menu system with BETRIX branding + SportMonks live data integration\n * Uses HTML parse mode (not Markdown) to preserve button rendering\n */\n\nimport { Logger } from \"../utils/logger.js\";\nimport { mainMenu } from \"./menu-handler.js\";\nimport SportMonksService from \"../services/sportmonks-service.js\";\n\nconst logger = new Logger(\"TelegramHa"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\handlers\\telegram-handler-v2.js",
+      "snippet": "/**\n * Minimal Telegram handler implementation\n */\n\nimport premiumUI, {\n  buildUpcomingFixtures,\n} from \"../utils/premium-ui-builder.js\";\nimport logger from \"../utils/logger.js\";\nimport createRedisAdapter from \"../utils/redis-adapter.js\";\nimport IntelligentMenuBuilder from \"../utils/intelligent-menu-builder.js\";\nimport { UserService } from \"../services/user.js\";\nimport FixturesManager from \"../uti"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\jobs\\auto-media-ticker.js",
+      "snippet": "import mediaAggregator from \"../services/media-aggregator.js\";\nimport { sendPhotoWithCaption } from \"../services/telegram-sender.js\";\nimport { canPostNow, markPosted } from \"../lib/liveliness.js\";\n\nconst SPORTS_ROTATION = (process.env.SPORTS_ROTATION &&\n  process.env.SPORTS_ROTATION.split(\",\")) || [\"soccer\", \"nba\", \"nfl\", \"tennis\"];\n\nfunction pickRotatingSport() {\n  const idx =\n    Math.floor(Date"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\providers\\sportradar\\index.js",
+      "snippet": "import * as sr from \"../../services/providers/sportradar.js\";\n\nexport async function handler(sport, type, params = {}, opts = {}) {\n  // Forward to the centralized Sportradar fetcher in services/providers\n  return sr.fetchSportradar(sport, type, params, opts);\n}\n\nexport default { handler };\n"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\providers\\sportradar\\mlb.js",
+      "snippet": "import { handler } from \"./index.js\";\nexport default async function fetchMLB(type, params = {}, opts = {}) {\n  return handler(\"mlb\", type, params, opts);\n}\nexport { fetchMLB };\n"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\providers\\sportradar\\nascar.js",
+      "snippet": "import { handler } from \"./index.js\";\nexport default async function fetchNASCAR(type, params = {}, opts = {}) {\n  return handler(\"nascar\", type, params, opts);\n}\nexport { fetchNASCAR };\n"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\providers\\sportradar\\nba.js",
+      "snippet": "import { handler } from \"./index.js\";\nexport default async function fetchNBA(type, params = {}, opts = {}) {\n  return handler(\"nba\", type, params, opts);\n}\nexport { fetchNBA };\n"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\providers\\sportradar\\nfl.js",
+      "snippet": "import { handler } from \"./index.js\";\nexport default async function fetchNFL(type, params = {}, opts = {}) {\n  return handler(\"nfl\", type, params, opts);\n}\nexport { fetchNFL };\n"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\providers\\sportradar\\nhl.js",
+      "snippet": "import { handler } from \"./index.js\";\nexport default async function fetchNHL(type, params = {}, opts = {}) {\n  return handler(\"nhl\", type, params, opts);\n}\nexport { fetchNHL };\n"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\providers\\sportradar\\tennis.js",
+      "snippet": "import { handler } from \"./index.js\";\nexport default async function fetchTennis(type, params = {}, opts = {}) {\n  return handler(\"tennis\", type, params, opts);\n}\nexport { fetchTennis };\n"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\providers\\sportradarImages.js",
+      "snippet": "import fetch from \"../lib/fetch.js\";\nimport { selectBestSportradarAsset } from \"../media/imageSelector.js\";\n\nconst API_KEY = process.env.SPORTRADAR_API_KEY;\n\n// Fetch a Sportradar event's assets and choose the best asset URL\nexport async function fetchSportradarEventAssets(eventId) {\n  if (!API_KEY) throw new Error(\"SPORTRADAR_API_KEY not configured\");\n  if (!eventId) throw new Error(\"eventId requ"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\server\\createServer.js",
+      "snippet": "﻿const path = require(\"path\");\n\n// top-level shared symbols used by health/webhook guards and graceful shutdown\nlet app;\nlet server;\nlet queue;\n// optional express reference (try-catch so this file can be parsed without express installed)\nlet express;\ntry {\n  express = require(\"express\");\n} catch (e) {\n  express = null;\n}\n\nlet appModule;\ntry {\n  const candidates = [\n    path.join(process.cwd(), \"s"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\server\\telegramSendV2.js",
+      "snippet": "﻿/**\n * telegramSendV2.js\n * Instrumented Telegram sender with timeout, retries and clear logs.\n * Reads TELEGRAM_BOT_TOKEN from env.\n */\nconst fetch = require(\"node-fetch\");\n\nasync function sleep(ms) {\n  return new Promise((r) => setTimeout(r, ms));\n}\n\nasync function sendTelegramV2(method, payload, opts = {}) {\n  const token = process.env.TELEGRAM_BOT_TOKEN;\n  if (!token) throw new Error(\"Missing"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\server\\utils\\send.js",
+      "snippet": "// Deterministic send adapter - forwards to telegramSend.sendText where available\ntry {\n  const path = require(\"path\");\n  const real = require(path.join(__dirname, \"telegramSend.js\"));\n  if (real && typeof real.sendText === \"function\") {\n    module.exports = {\n      sendText: async function () {\n        return real.sendText.apply(real, arguments);\n      },\n      prepareText:\n        real.prepareTe"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\server\\utils\\telegramSend.js",
+      "snippet": "/*\nSafe telegramSend.js � env-driven, defensive\n*/\nconst https = require(\"https\");\nconst { URL } = require(\"url\");\n\nfunction postJson(\n  url,\n  body,\n  timeoutMs = process.env.PORT ||\n    process.env.PORT ||\n    process.env.PORT ||\n    process.env.PORT ||\n    3000,\n) {\n  return new Promise((resolve, reject) => {\n    try {\n      const u = new URL(url);\n      const data = Buffer.from(JSON.stringify("
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\achievements-service.js",
+      "snippet": "/**\n * Achievements & Gamification Service\n * Badges, milestones, achievements, and rewards\n */\n\nimport { Logger } from \"../utils/logger.js\";\n\nconst logger = new Logger(\"Achievements\");\n\nclass AchievementsService {\n  constructor(redis) {\n    this.redis = redis;\n  }\n\n  /**\n   * All available achievements\n   */\n  getAchievements() {\n    return {\n      // Prediction milestones\n      first_1: {\n      "
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\branding-service.js",
+      "snippet": "/**\n * BETRIX Branding Service\n * Consistent logo, icons, colors, and visual identity\n */\n\nclass BrandingService {\n  // BETRIX Official Logo (ASCII Art)\n  static LOGO = `\n╔═══════════════════════════════════════════════╗\n║                                               ║\n║        ██████╗ ███████╗████████╗██████╗ ██╗██╗ ║\n║        ██╔══██╗██╔════╝╚══██╔══╝██╔══██╗██║██║ ║\n║        ██████╔╝█████╗    "
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\espn-provider.js",
+      "snippet": "import fetch from \"../lib/fetch.js\";\n\n// Do NOT return fallback data - show real data only\n// Fake matches confuse users and damage bot credibility\nfunction getLiveDataFallback() {\n  return [];\n}\n\nexport async function getEspnLiveMatches({ sport = \"football\" } = {}) {\n  // ESPN public scoreboard API (no API key required)\n  // Try multiple sport slugs if provided one fails\n  const sportSlugs =\n    "
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\image-provider.js",
+      "snippet": "import axios from \"axios\";\n\n// Generic Image Provider\n// Configure via environment variables per-provider. This module attempts a\n// best-effort search call and returns a single image URL when available.\n\nconst DEFAULT_SEARCH_PATH = process.env.IMAGE_SERVICE_SEARCH_PATH || \"/search\";\nconst BASE =\n  process.env.IMAGE_SERVICE_BASE || process.env.IMAGE_SERVICE_URL || null;\nconst KEY = process.env.IMA"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\isports-service.js",
+      "snippet": "import axios from \"axios\";\nimport { CONFIG } from \"../config.js\";\nimport { Logger } from \"../utils/logger.js\";\n\nconst logger = new Logger(\"ISportsService\");\n\nexport default class ISportsService {\n  constructor(redis = null) {\n    this.redis = redis;\n    this.base =\n      (CONFIG.API_FOOTBALL && CONFIG.API_FOOTBALL.BASE) ||\n      \"https://v3.football.api-sports.io\";\n    this.key = (CONFIG.API_FOOTB"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\multi-sport-analyzer.js",
+      "snippet": "/**\n * Multi-Sport Analyzer\n * Analyzes sports across football, basketball, tennis, cricket, and more\n * Provides advanced betting markets: Over/Under, Corners, Cards, etc.\n * Gives detailed reasoning for AI predictions\n */\n\nimport { Logger } from \"../utils/logger.js\";\nimport fetch from \"../lib/fetch.js\";\nimport { CONFIG } from \"../config.js\";\n\nconst logger = new Logger(\"MultiSportAnalyzer\");\nvoid"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\multi-sport-handler.js",
+      "snippet": "/**\n * Multi-Sport Handler (StatPal removed)\n * Routes all multi-sport requests to SportsAggregator (SportMonks / Football-Data only).\n */\n\nconst SportsAggregator = require(\"./sports-aggregator\");\nconst logger = require(\"../utils/logger\");\n\nclass MultiSportHandler {\n  constructor(redis = null) {\n    this.redis = redis;\n    this.aggregator = new SportsAggregator(redis);\n  }\n\n  async getLive(sport, "
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\news-service.js",
+      "snippet": "import { getRedis } from \"../lib/redis-factory.js\";\nimport createRedisAdapter from \"../utils/redis-adapter.js\";\nimport { Pool } from \"pg\";\nimport fetch from \"../lib/fetch.js\";\nimport { getNewsHeadlines } from \"./news-provider-enhanced.js\";\n\n// Minimal news service: fetch headlines from public RSS, cache in Redis,\n// persist into Postgres `news` table when possible, and expose helper methods\n\nconst"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\odds-aggregator.js",
+      "snippet": "import { getRedisAdapter } from \"../lib/redis-factory.js\";\nimport { mapIsportsOdds } from \"./mappers/isports-mapper.js\";\n// SportMonks removed — do not import mapping\nimport { mapSgoOdds } from \"./mappers/sgo-mapper.js\";\nimport { mapFootballDataFixtures } from \"./mappers/footballdata-mapper.js\";\nimport { mapOpenLigaMatches } from \"./mappers/openligadb-mapper.js\";\nimport { computeConsensusForEvent "
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\payments.js",
+      "snippet": "import logger from \"../utils/logger.js\";\nimport createRedisAdapter from \"../utils/redis-adapter.js\";\n\n// Create a payment record in Postgres (supports drizzle or raw pg pool wrapper)\n// dbClient: result of initDb() from src/db/client.js\n// redis: redis-adapter instance\nexport async function createPaymentRecord(dbClient, redis, payment) {\n  try {\n    // normalize redis interface\n    const r = redis"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\paypal.js",
+      "snippet": "import fetch from \"../lib/fetch.js\";\n\nconst PAYPAL_API =\n  process.env.PAYPAL_MODE === \"live\"\n    ? \"https://api-m.paypal.com\"\n    : \"https://api-m.sandbox.paypal.com\";\n\nasync function getAccessToken() {\n  const auth = Buffer.from(\n    `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`,\n  ).toString(\"base64\");\n\n  const response = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {\n  "
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\prefetch.js",
+      "snippet": "import { getRedisAdapter } from \"../lib/redis-factory.js\";\nimport { isports } from \"./isports.js\";\n// SportMonks disabled — do not import or call provider\nimport { sgo } from \"./sportsgameodds-client.js\";\n\nconst redis = getRedisAdapter();\ntry {\n  if (typeof redis.connect === \"function\") await redis.connect();\n} catch (_) {}\n\n// TTLs\nconst TTL_ODDS = Number(process.env.TTL_ODDS || 600); // 10 minut"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\pricing.js",
+      "snippet": "export const PRICING_TIERS = {\n  football: {\n    starter: {\n      name: \"Football Starter\",\n      price: 9.99,\n      features: [\"Basic odds\", \"Weekly AI insights\", \"Match predictions\"],\n    },\n    pro: {\n      name: \"Football Pro\",\n      price: 24.99,\n      features: [\n        \"Live alerts\",\n        \"Advanced analytics\",\n        \"Premium odds\",\n        \"AI analysis\",\n      ],\n    },\n    elite: {\n "
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\providers\\registry.js",
+      "snippet": "import PROVIDERS_FULL from \"../../config/providers_full.js\";\n\n// Legacy minimal registry entries (kept for backwards compatibility)\nconst LEGACY = {\n  sportradar: {\n    id: \"sportradar\",\n    name: \"Sportradar\",\n    keyEnv: \"SPORTRADAR_KEY\",\n    sports: [\"soccer\", \"tennis\", \"basketball\", \"americanfootball\"],\n    base: \"https://api.sportradar.com\",\n    handler: null, // to be assigned to adapter fun"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\providers\\sportradar.js",
+      "snippet": "import { callProvider } from \"./fetcher.js\";\nimport { cacheGet, cacheSet } from \"../../lib/redis-cache.js\";\n\nconst DEFAULT_AUTH = { method: \"query\", queryParam: \"api_key\" };\n\n// TTLs in seconds\nconst TTL = {\n  competitions: 24 * 60 * 60,\n  seasons: 24 * 60 * 60,\n  matches_by_date: 120,\n  match_summary: 60,\n  odds: 30,\n};\n\nexport async function fetchSportradar(sport, type, params = {}, opts = {}) {"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\reddit-sports-service.js",
+      "snippet": "/**\n * Reddit Sports Service - Trending sports discussions\n * Free public Reddit data (no auth required)\n */\n\nimport { Logger } from \"../utils/logger.js\";\n\nconst logger = new Logger(\"RedditSports\");\n\nclass RedditSportsService {\n  constructor() {\n    this.subreddits = [\n      \"sports\",\n      \"football\",\n      \"soccer\",\n      \"nba\",\n      \"nfl\",\n      \"premierleague\",\n      \"sportsbetting\",\n    ];\n "
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\sport-aggregator.js",
+      "snippet": "import { PROVIDERS } from \"./providers/index.js\";\n\nexport async function getSportData(sport, type, params = {}) {\n  const candidates = Object.values(PROVIDERS).filter(\n    (p) => (p.sports || []).includes(sport) || (p.sports || []).includes(\"all\"),\n  );\n  const results = [];\n  for (const p of candidates) {\n    if (!p.handler) continue;\n    try {\n      const r = await p.handler(sport, type, params)"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\sportmonks-api.js",
+      "snippet": "/**\n * SportMonks API Integration\n * Fetches live sports data from SportMonks API\n */\n\nimport axios from \"axios\";\nimport { Logger } from \"../utils/logger.js\";\n\nconst logger = new Logger(\"SportMonksAPI\");\n\nexport class SportMonksAPI {\n  constructor(apiKey) {\n    // Prefer explicit constructor arg, then common env names. Do NOT embed secrets in source.\n    this.apiKey =\n      apiKey ||\n      process"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\sportmonks.js",
+      "snippet": "// SportMonks integration disabled — provide noop implementations so imports\n// remain valid but no external network calls are made.\nexport const BASE =\n  process.env.SPORTSMONKS_API_BASE || \"https://api.sportmonks.com/v3\";\n\nexport async function sportmonks(path, params = \"\") {\n  // SportMonks disabled — return empty result to indicate unavailable\n  return [];\n}\n\nexport default { sportmonks };\n"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\sportradar-client.js",
+      "snippet": "import { fetchSportradar } from \"./providers/sportradar.js\";\r\nimport { cacheGet, cacheSet, incrWithTTL } from \"../lib/redis-cache.js\";\r\nimport { Logger } from \"../utils/logger.js\";\r\n\r\nconst logger = new Logger(\"SportradarClient\");\r\n\r\nconst DEFAULT_QPS = Number(process.env.SPORTRADAR_QPS_LIMIT || 5);\r\n\r\nconst SPORT_EMOJI = {\r\n  soccer: \"⚽\",\r\n  football: \"⚽\",\r\n  nba: \"🏀\",\r\n  basketball: \"🏀\",\r\n  nf"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\sports-aggregator.js",
+      "snippet": "/**\n * Sports Data Aggregator\n * Fetches and normalizes data from multiple sports APIs with priority order:\n * 1. SportMonks - Primary source for comprehensive football data\n * 2. Football-Data.org - Secondary source for football\n *\n * StatPal, SofaScore, and API-Football support have been removed.\n */\n\nimport { CONFIG } from \"../config.js\";\nimport { Logger } from \"../utils/logger.js\";\nimport fetc"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\sports-api.js",
+      "snippet": "import fetch from \"../lib/fetch.js\";\n\nexport class SportsAPI {\n  static async fetchFootballMatches(_league = \"EPL\") {\n    try {\n      const response = await fetch(\n        `${process.env.API_FOOTBALL_BASE}/fixtures?league=39&season=2025`,\n        {\n          headers: {\n            \"x-apisports-key\": process.env.API_FOOTBALL_KEY,\n          },\n        },\n      );\n      const data = await response.js"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\sports-trivia-service.js",
+      "snippet": "/**\n * Sports Trivia & Quotes Service\n * No API required - built-in content\n */\n\nimport { Logger } from \"../utils/logger.js\";\n\nconst logger = new Logger(\"SportTrivia\");\n\nclass SportsTriviaService {\n  static QUOTES = [\n    \"The game is not about how hard you hit. It's about how hard you can get hit and keep moving. - Rocky\",\n    \"Success is no accident. It is hard work, perseverance, learning, stud"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\sportsdata-api.js",
+      "snippet": "/**\n * SportsData.io API Integration\n * Fetches live sports data from SportsData.io\n * API Key: abdb2e2047734f23b576e1984d67e2d7\n * Docs: https://sportsdata.io/developers/api-documentation/\n */\n\nimport axios from \"axios\";\nimport { Logger } from \"../utils/logger.js\";\n\nconst logger = new Logger(\"SportsDataAPI\");\n\nexport class SportsDataAPI {\n  constructor(apiKey) {\n    this.apiKey =\n      apiKey ||\n"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\sportsgameodds.js",
+      "snippet": "import axios from \"axios\";\nimport { CONFIG } from \"../config.js\";\nimport { Logger } from \"../utils/logger.js\";\n\nconst logger = new Logger(\"SportGameOdds\");\n\nclass SportGameOddsService {\n  constructor(redis = null) {\n    this.redis = redis;\n    this.base =\n      (CONFIG.SPORTSGAMEODDS && CONFIG.SPORTSGAMEODDS.BASE) ||\n      \"https://api.sportsgameodds.com/v1\";\n    this.key = (CONFIG.SPORTSGAMEODDS "
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\services\\telegram.js",
+      "snippet": "// Telegram API service (ESM)\n// Combines sanitization (escape/whitelist) with safe edit/send behaviour\n\nimport { Logger } from \"../utils/logger.js\";\nimport { HttpClient } from \"./http-client.js\";\nimport { chunkText } from \"../utils/formatters.js\";\nimport * as sanitize from \"../utils/telegram-sanitize.js\";\n\nconst logger = new Logger(\"Telegram\");\n\nclass TelegramService {\n  constructor(botToken, saf"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\tasks\\prefetch-scheduler.js",
+      "snippet": "/**\n * Prefetch scheduler: warms caches for free-data sources and publishes Redis notifications.\n * Configurable via env var PREFETCH_INTERVAL_SECONDS (default 60).\n * WARNING: setting this below ~10s may stress remote APIs and trigger rate limits.\n */\nimport { setTimeout as wait } from \"timers/promises\";\nvoid wait;\n\nexport function startPrefetchScheduler({\n  redis,\n  openLiga,\n  rss,\n  scorebat,\n"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\tasks\\statpal-init.js",
+      "snippet": "/**\n * StatPal API Initialization & Validation\n * Runs at startup to validate API key and prefetch REAL data from all sports\n * Follows StatPal documentation exactly:\n * GET https://statpal.io/api/{version}/{sport}/livescores?access_key={key}\n */\n\nimport { Logger } from \"../utils/logger.js\";\nimport { HttpClient } from \"../services/http-client.js\";\n\nconst logger = new Logger(\"StatPalInit\");\n\n// All"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\tickers\\mediaAiTicker.js",
+      "snippet": "import { getInterestingEvents } from \"../aggregator/multiSportAggregator.js\";\nimport { summarizeEventForTelegram } from \"../ai/summarizer.js\";\nimport {\n  selectBestImageForEvent,\n  selectBestImageForEventCombined,\n} from \"../media/imageSelector.js\";\nimport { sendPhotoWithCaption } from \"../services/telegram-sender.js\";\nimport { scoreEvent } from \"../brain/interestScorer.js\";\nimport {\n  buildEventI"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\utils\\betrix-branding.js",
+      "snippet": "/**\n * BETRIX Brand Consistency & Superior Theming\n * Ensures consistent branding across all user interactions\n */\n\nimport { Logger } from \"../utils/logger.js\";\n\nconst logger = new Logger(\"BetrixBranding\");\n// logger initialized\n\n// BETRIX Official Brand Guidelines\nexport const BETRIX_BRANDING = {\n  // Primary Brand\n  NAME: \"BETRIX\",\n  TAGLINE: \"AI-Powered Sports Analytics & Betting Intelligence\","
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\utils\\intelligent-menu-builder.js",
+      "snippet": "/**\n * Intelligent Menu Builder - Superior Navigation System\n * Dynamic, responsive menus with context-aware options\n */\n\nimport { Logger } from \"../utils/logger.js\";\n\nconst logger = new Logger(\"IntelligentMenuBuilder\");\nvoid logger;\n\nexport class IntelligentMenuBuilder {\n  constructor(redisClient) {\n    this.redis = redisClient;\n  }\n\n  /**\n   * Build contextual main menu based on user tier and ac"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\utils\\premium-ui-builder.js",
+      "snippet": "/**\n * Premium UI Builder - BETRIX Supreme Brand Experience\n * Comprehensive formatting and interactive elements for superior UX\n */\n\nimport * as loggerModule from \"../utils/logger.js\";\nimport safeName from \"./safe-name.js\";\nimport * as sanitize from \"./telegram-sanitize.js\";\n\n// Use shared structured logger with resilient fallback to console\nconst logger =\n  loggerModule && loggerModule.default\n "
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\worker-complete.js",
+      "snippet": "#!/usr/bin/env node\n\n/**\n * BETRIX Complete Production Worker\n * Full integration with tier-aware handlers and UI\n */\n\nimport { getRedisAdapter } from \"./lib/redis-factory.js\";\nimport { CONFIG, validateConfig } from \"./config.js\";\nimport { Logger } from \"./utils/logger.js\";\nimport { TelegramService } from \"./services/telegram.js\";\nimport { UserService } from \"./services/user.js\";\nimport { APIFootb"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\worker-db.js",
+      "snippet": "#!/usr/bin/env node\n\n/**\n * BETRIX Database-Integrated Worker\n * Complete integration with PostgreSQL, Redis, Bull queues\n */\n\nimport createRedisAdapter from \"./utils/redis-adapter.js\";\nimport { getRedisAdapter } from \"./lib/redis-factory.js\";\nimport { CONFIG, validateConfig } from \"./config.js\";\nimport { Logger } from \"./utils/logger.js\";\nimport { db } from \"./database/db.js\";\nimport { TelegramSe"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\worker-final.js",
+      "snippet": "#!/usr/bin/env node\n\n/**\n * BETRIX Final Production Worker\n * Complete integration of all services and intelligence\n */\n\n// NOTE: Do NOT disable global TLS verification here. Use per-service TLS config\n// via `SPORTSMONKS_INSECURE=true` if absolutely required for local testing.\n\nimport dotenv from \"dotenv\";\nimport fs from \"fs\";\n// Prefer loading .env.local when present (Render uses .env.local for "
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\worker-modern.js",
+      "snippet": "#!/usr/bin/env node\n\n/**\n * BETRIX Modern Worker\n * Refactored with modular architecture, better error handling, and clean code\n */\n\nimport { getRedisAdapter } from \"./lib/redis-factory.js\";\nimport { CONFIG, validateConfig } from \"./config.js\";\nimport { Logger } from \"./utils/logger.js\";\nimport { TelegramService } from \"./services/telegram.js\";\nimport { UserService } from \"./services/user.js\";\nimp"
+    },
+    {
+      "file": "D:\\betrix-ui (1)\\betrix-ui\\src\\worker.js",
+      "snippet": "#!/usr/bin/env node\n/* eslint-disable no-unused-vars, no-undef, no-empty, no-constant-condition, no-case-declarations */\n/**\n * BETRIX - ULTIMATE UNIFIED PRODUCTION WORKER (3000+ LINES)\n * Complete autonomous sports betting AI platform\n * All services, handlers, and features fully integrated inline\n * Verbose implementation with extensive logging and documentation\n */\n\nimport { getRedisAdapter } f"
+    }
+  ]
+}

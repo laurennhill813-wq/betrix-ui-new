@@ -3,7 +3,7 @@
 // WARNING: disabling TLS verification is INSECURE and should only be used for one-off debugging
 
 import "dotenv/config";
-import fetch from "node-fetch";
+import fetch from "../src/lib/fetch.js";
 import https from "https";
 
 const base = process.env.SPORTSMONKS_HOST || "https://api.sportmonks.com/v3";

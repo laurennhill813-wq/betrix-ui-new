@@ -9,7 +9,7 @@
 // Load environment variables from .env for local audits
 import "dotenv/config";
 import { getRedis } from "./src/lib/redis-factory.js";
-import fetch from "node-fetch";
+import fetch from "./src/lib/fetch.js";
 import chalk from "chalk";
 
 const log = console.log;

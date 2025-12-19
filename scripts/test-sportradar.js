@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import fetch from "node-fetch";
+import fetch from "../src/lib/fetch.js";
 
 const KEY = process.env.SPORTRADAR_KEY;
 if (!KEY) {

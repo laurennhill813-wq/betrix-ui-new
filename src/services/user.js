@@ -92,6 +92,34 @@ class UserService {
   }
 
   /**
+   * Get persisted state for a user (NEW, ONBOARDING, PAYMENT_PENDING, ACTIVE, VVIP)
+   */
+  async getState(userId) {
+    try {
+      const user = await this.getUser(userId);
+      if (!user) return null;
+      return String(user.state || user.status || "").toUpperCase() || null;
+    } catch (e) {
+      logger.warn("getState failed", e?.message || String(e));
+      return null;
+    }
+  }
+
+  /**
+   * Set persisted state for a user
+   */
+  async setState(userId, state, ttlSeconds) {
+    try {
+      const data = { state };
+      if (ttlSeconds && Number(ttlSeconds) > 0) data.expiresAt = Date.now() + Number(ttlSeconds) * 1000;
+      return await this.saveUser(userId, data);
+    } catch (e) {
+      logger.warn("setState failed", e?.message || String(e));
+      throw e;
+    }
+  }
+
+  /**
    * Check if user is paid/member
    */
   isPaid(user) {

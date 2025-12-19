@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 
 export class SportsAPI {
   static async fetchFootballMatches(_league = "EPL") {

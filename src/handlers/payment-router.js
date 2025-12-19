@@ -5,6 +5,7 @@
 
 import { Logger } from "../utils/logger.js";
 import { UserService } from "../services/user.js";
+import { setUserState } from "./data-models.js";
 import * as paypal from "@paypal/checkout-server-sdk";
 import binanceClient from "../lib/binance-client.js";
 
@@ -426,7 +427,7 @@ export async function createPaymentOrder(
     // For NowPayments (crypto deposit), create an invoice and return address/amount
     if (paymentMethod === "NOWPAYMENTS") {
       try {
-        const nowSvc = await import("../payments/nowpayments.js");
+        const nowSvc = await import("../payments/nowpayments_v2.js");
         const preferred = (metadata && metadata.crypto) || "BTC";
         // Create invoice (30 minute expiry)
         const inv = await nowSvc.default.createInvoice({
@@ -1210,7 +1211,15 @@ export async function verifyAndActivatePayment(redis, orderId, transactionId) {
       await userService.ensureNoOnboarding(userId).catch(() => {});
       // Mark user as active in the user hash for visibility
       try {
-        await redis.hset(`user:${userId}`, "state", "ACTIVE");
+        // prefer unified state setter so both string and hash representations are updated
+        try {
+          await setUserState(redis, userId, "ACTIVE");
+        } catch (e2) {
+          // fallback to hash write for older adapters
+          try {
+            await redis.hset(`user:${userId}`, "state", "ACTIVE");
+          } catch (e3) {}
+        }
       } catch (e) {
         // non-fatal
       }

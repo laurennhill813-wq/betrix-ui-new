@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 import path from "path";
-import fetch from "node-fetch";
+import fetch from "../src/lib/fetch.js";
 import fs from "fs";
 
 for (const f of [".env.local.fixed", ".env.local", ".env"]) {

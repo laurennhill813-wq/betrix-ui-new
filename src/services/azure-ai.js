@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import persona from "../ai/persona.js";
 import metrics from "../utils/metrics.js";
 

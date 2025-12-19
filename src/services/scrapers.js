@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import { load as loadCheerio } from "cheerio";
 
 // Minimal polite scraper helpers for FBref / Understat

@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 
 function parseRssItems(rssText, max = 10) {
   const items = [];

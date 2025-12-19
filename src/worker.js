@@ -8,7 +8,7 @@
  */
 
 import { getRedisAdapter } from "./lib/redis-factory.js";
-import fetch from "node-fetch";
+import fetch from "./lib/fetch.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import express from "express";
 import fs from "fs/promises";

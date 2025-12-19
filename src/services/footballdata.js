@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 import { parse } from "csv-parse/sync";
 
 class FootballDataService {

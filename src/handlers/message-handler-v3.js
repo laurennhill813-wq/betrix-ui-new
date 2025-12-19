@@ -11,8 +11,12 @@ import {
   setUserState,
   getStateData,
   setStateData,
-  setUserState as updateUserStateData,
-  StateTypes,
+  STATES,
+  isOnboardingState,
+  isPaymentPendingState,
+} from "../lib/state-machine.js";
+
+import {
   createUserProfile,
   getUserProfile,
   updateUserProfile,
@@ -100,12 +104,12 @@ export async function handleMessage(message, userId, chatId, redis, services) {
     // Parse message
     const parsed = parseMessage(message);
 
-    // Check if user is in a specific state (e.g., signup)
-    const currentState = await getUserState(redis, userId);
-    const stateData = await getStateData(redis, userId);
+    // Determine user lifecycle state
+    const currentState = (await getUserState(redis, userId)) || STATES.NEW;
+    const stateData = (await getStateData(redis, userId)) || {};
 
-    // Handle state-specific inputs
-    if (currentState !== StateTypes.IDLE) {
+      // If user is in onboarding or awaiting payment, delegate to state-specific handlers.
+      if (isOnboardingState(currentState) || isPaymentPendingState(currentState)) {
       return await handleStateSpecificInput(
         currentState,
         message,
@@ -119,6 +123,18 @@ export async function handleMessage(message, userId, chatId, redis, services) {
 
     // Handle explicit commands
     if (parsed.command) {
+      // Protect payment flows: restrict disruptive commands while payment pending
+      if (isPaymentPendingState(currentState)) {
+        const allowedDuringPayment = new Set(["help", "pay", "status", "start", "menu"]);
+        if (!allowedDuringPayment.has(parsed.command.toLowerCase())) {
+          return {
+            chat_id: chatId,
+            text: "🔒 You have a pending payment. Please complete it first or type /pay for status.",
+            parse_mode: "Markdown",
+          };
+        }
+      }
+
       const { handleCommand } = await import("./commands-v3.js");
       return await handleCommand(
         parsed.command,
@@ -130,8 +146,16 @@ export async function handleMessage(message, userId, chatId, redis, services) {
       );
     }
 
-    // Handle intent-based routing
+    // Handle intent-based routing or natural language input
     if (parsed.intent && parsed.intent !== "unknown") {
+      // If user is ACTIVE or VVIP route to AI for natural language
+      if (currentState === STATES.ACTIVE || currentState === STATES.VVIP) {
+        const mod = await import("./telegram-handler-v2.js");
+        if (typeof mod.handleGenericAI === "function") {
+          return await mod.handleGenericAI(parsed.text || message, chatId, userId, redis, services);
+        }
+      }
+
       return await handleIntent(
         parsed.intent,
         parsed.text,
@@ -142,10 +166,25 @@ export async function handleMessage(message, userId, chatId, redis, services) {
       );
     }
 
+    // Non-command free text: route based on lifecycle state
+    if (currentState === STATES.ACTIVE || currentState === STATES.VVIP) {
+      const mod = await import("./telegram-handler-v2.js");
+      if (typeof mod.handleGenericAI === "function") {
+        return await mod.handleGenericAI(message, chatId, userId, redis, services);
+      }
+    }
+
+    // If not active, route to onboarding/payment prompts
+    const onboardModule = await import("./telegram-handler-v2.js");
+    if (typeof onboardModule.handleOnboardingMessage === "function") {
+      // We call the onboarding handler to process free-form onboarding replies
+      return await onboardModule.handleOnboardingMessage(message, chatId, userId, redis, services);
+    }
+
     // Fallback: show help
     return {
       chat_id: chatId,
-      text: `❓ I didn't quite understand that.\n\nTry:\n• /menu for main options\n• /odds to see today's matches\n• /help for FAQs\n• /signup to join`,
+      text: `❓ I didn't quite understand that.\n\nTry:\n• /menu for main options\n• /odds to see today's matches\n• /help for FAQs`,
       parse_mode: "Markdown",
     };
   } catch (err) {
@@ -172,35 +211,33 @@ async function handleStateSpecificInput(
   stateData,
 ) {
   logger.info("handleStateSpecificInput", { state, userId });
-
-  switch (state) {
-    case StateTypes.SIGNUP_NAME:
-      return await handleSignupName(message, userId, chatId, redis);
-
-    case StateTypes.SIGNUP_COUNTRY:
-      return await handleSignupCountry(message, userId, chatId, redis);
-
-    case StateTypes.SIGNUP_AGE:
-      return await handleSignupAge(message, userId, chatId, redis);
-
-    case StateTypes.PAYMENT_PENDING:
-      return {
-        chat_id: chatId,
-        text: "⏳ Your payment is still processing. Please wait or check /pay for status.",
-        parse_mode: "Markdown",
-      };
-
-    case StateTypes.BETTING_SLIP_ACTIVE:
-      return {
-        chat_id: chatId,
-        text: "🎯 You have an active betting slip. Finalize with /bet or type /cancel to start over.",
-        parse_mode: "Markdown",
-      };
-
-    default:
-      await setUserState(redis, userId, StateTypes.IDLE);
-      return await handleMessage(message, userId, chatId, redis, services);
+  // Onboarding flow: use stateData.step to route to signup steps
+  if (isOnboardingState(state)) {
+    const step = (stateData && stateData.step) || "name";
+    if (step === "name") return await handleSignupName(message, userId, chatId, redis);
+    if (step === "country") return await handleSignupCountry(message, userId, chatId, redis);
+    if (step === "age") return await handleSignupAge(message, userId, chatId, redis);
+    // Unknown step: reset to name
+    await setStateData(redis, userId, { step: "name" }, 3600);
+    await setUserState(redis, userId, STATES.ONBOARDING, 3600);
+    return {
+      chat_id: chatId,
+      text: "📝 Let's continue onboarding. What's your full name?",
+      parse_mode: "Markdown",
+    };
   }
+
+  if (isPaymentPendingState(state)) {
+    return {
+      chat_id: chatId,
+      text: "⏳ Your payment is still processing. Please wait or check /pay for status.",
+      parse_mode: "Markdown",
+    };
+  }
+
+  // Fallback: mark idle and re-run handler
+  await setUserState(redis, userId, STATES.IDLE);
+  return await handleMessage(message, userId, chatId, redis, services);
 }
 
 /**
@@ -217,9 +254,9 @@ async function handleSignupName(message, userId, chatId, redis) {
     };
   }
 
-  // Save name and move to country
+  // Save name and move to country step inside ONBOARDING
   await setStateData(redis, userId, { name, step: "country" }, 3600);
-  await setUserState(redis, userId, StateTypes.SIGNUP_COUNTRY, 3600);
+  await setUserState(redis, userId, STATES.ONBOARDING, 3600);
 
   return {
     chat_id: chatId,
@@ -253,7 +290,7 @@ async function handleSignupCountry(message, userId, chatId, redis) {
           ? "TZ"
           : country;
 
-  // Save country and move to age
+  // Save country and move to age step inside ONBOARDING
   const current = await getStateData(redis, userId);
   await setStateData(
     redis,
@@ -261,7 +298,7 @@ async function handleSignupCountry(message, userId, chatId, redis) {
     { ...current, country: countryCode, step: "age" },
     3600,
   );
-  await setUserState(redis, userId, StateTypes.SIGNUP_AGE, 3600);
+  await setUserState(redis, userId, STATES.ONBOARDING, 3600);
 
   return {
     chat_id: chatId,
@@ -294,7 +331,8 @@ async function handleSignupAge(message, userId, chatId, redis) {
   };
 
   await createUserProfile(redis, userId, profileData);
-  await setUserState(redis, userId, StateTypes.IDLE);
+  // Move user into PAYMENT_PENDING so they see payment menu next
+  await setUserState(redis, userId, STATES.PAYMENT_PENDING);
   await redis.del(`user:${userId}:state_data`);
 
   // Show payment prompt

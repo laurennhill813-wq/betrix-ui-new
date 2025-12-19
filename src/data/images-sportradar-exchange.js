@@ -3,7 +3,7 @@
 // download URL for a Sportradar asset, set `SPORTRADAR_SIGN_ENDPOINT` to an
 // internal service that accepts { url } and returns { signedUrl }.
 
-import fetch from "node-fetch";
+import fetch from "../lib/fetch.js";
 
 const SIGN_ENDPOINT = process.env.SPORTRADAR_SIGN_ENDPOINT || null;
 
