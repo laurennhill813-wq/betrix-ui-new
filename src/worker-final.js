@@ -46,6 +46,7 @@ import OddsAnalyzer from "./services/odds-analyzer.js";
 import { MultiSportAnalyzer } from "./services/multi-sport-analyzer.js";
 import { startPrefetchScheduler } from "./tasks/prefetch-scheduler.js";
 import { APIBootstrap } from "./tasks/api-bootstrap.js";
+import { startSportradarPrefetch } from "./tasks/sportradar-prefetch.js";
 import CacheService from "./services/cache.js";
 import { AdvancedHandler } from "./advanced-handler.js";
 import { PremiumService } from "./services/premium.js";
@@ -279,6 +280,27 @@ setInterval(async () => {
     logger.error("Heartbeat write failed", err);
   }
 }, 10 * 1000);
+
+// Start Sportradar prefetcher (if configured)
+let _sportradarPrefetch = null;
+try {
+  _sportradarPrefetch = startSportradarPrefetch({
+    redis,
+    cronExpr: process.env.SPORTRADAR_PREFETCH_CRON,
+    days: Number(process.env.SPORTRADAR_PREFETCH_DAYS || 2),
+    ttlFixtures: Number(process.env.SPORTRADAR_TTL_SEC || 120),
+    ttlTeams: Number(process.env.SPORTRADAR_TTL_TEAMS || 300),
+  });
+  logger.info("Sportradar prefetch starter invoked");
+} catch (e) {
+  logger.warn("Sportradar prefetch not started", e?.message || String(e));
+}
+
+process.on("exit", () => {
+  try {
+    if (_sportradarPrefetch && _sportradarPrefetch.stop) _sportradarPrefetch.stop();
+  } catch (e) {}
+});
 
 // Initialize all services
 const telegram = new TelegramService(
@@ -678,7 +700,7 @@ try {
           logger.info("✅ Telegram webhook set successfully", {
             url: TELEGRAM_WEBHOOK_URL,
           });
-          console.log("Telegram webhook set successfully - worker-final.js:681");
+          console.log("Telegram webhook set successfully - worker-final.js:703");
         } else {
           logger.warn("⚠️ Telegram setWebhook returned non-ok", {
             result: json,
