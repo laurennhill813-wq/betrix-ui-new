@@ -10,6 +10,14 @@ export class RapidApiFetcher {
       "X-RapidAPI-Host": host,
       "Accept": "application/json",
     };
+    // The Odds API (direct) expects an `x-api-key` header, not X-RapidAPI-Key.
+    // Detect the direct host and add the header so direct requests authenticate.
+    try {
+      const hostNorm = String(host || "").toLowerCase();
+      if (hostNorm.includes("the-odds-api.com") || hostNorm.includes("api.the-odds-api.com") ) {
+        headers["x-api-key"] = this.apiKey || "";
+      }
+    } catch (e) {}
     return headers;
   }
 
