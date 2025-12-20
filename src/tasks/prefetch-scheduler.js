@@ -8,6 +8,7 @@ import fs from "fs";
 import path from "path";
 import RapidApiLogger from "../lib/rapidapi-logger.js";
 import { formatMMDDYYYY, getNextDaysMMDDYYYY } from "../lib/rapidapi-utils.js";
+import { normalizeRedisKeyPart } from "../lib/rapidapi-fetcher.js";
 export function startPrefetchScheduler({
   redis,
   openLiga,

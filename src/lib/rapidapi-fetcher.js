@@ -15,7 +15,9 @@ export class RapidApiFetcher {
     try {
       const hostNorm = String(host || "").toLowerCase();
       if (hostNorm.includes("the-odds-api.com") || hostNorm.includes("api.the-odds-api.com") ) {
-        headers["x-api-key"] = this.apiKey || "";
+        // Prefer an explicit The Odds API key if provided, else fall back to the generic RapidAPI key
+        const theOddsKey = process.env.THEODDS_API_KEY || process.env.THEODDS_KEY || this.apiKey || process.env.RAPIDAPI_KEY || "";
+        headers["x-api-key"] = theOddsKey;
       }
     } catch (e) {}
     return headers;
