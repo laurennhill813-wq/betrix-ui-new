@@ -631,6 +631,15 @@ export function startPrefetchScheduler({
                   let sportsList = [];
                   try { sportsList = typeof sportsRes.body === 'string' ? JSON.parse(sportsRes.body) : sportsRes.body; } catch (e) { sportsList = sportsRes.body || []; }
                   if (Array.isArray(sportsList) && sportsList.length) {
+                    // Respect rapidapi backoff flag set by worker on 429 to avoid further rate limits
+                    try {
+                      const backoff = await redis.get('rapidapi:backoff').catch(() => null);
+                      if (backoff) {
+                        console.log('[rapidapi] skipping per-sport odds/scores due to rapidapi:backoff');
+                      }
+                    } catch (e) {
+                      // ignore
+                    }
                     // Determine max sports to fetch. Allow 'ALL' to fetch full list.
                     const envMax = String(process.env.RAPIDAPI_ODDS_MAX_SPORTS || "12").toUpperCase();
                     let effectiveMax = Number(process.env.RAPIDAPI_ODDS_MAX_SPORTS || 12);
@@ -660,8 +669,9 @@ export function startPrefetchScheduler({
                               return commence && commence <= now;
                             } catch (e) { return false; }
                           }).length;
-                          console.log(`[rapidapi-odds-sport] ${sportKey} total=${total} live=${live}`);
-                          await redis.set(`rapidapi:odds:sport:${normalizeRedisKeyPart(String(sportKey))}`, JSON.stringify({ apiName, sportKey, total, live, ts }), 'EX', 60).catch(() => {});
+                          const samples = events.slice(0, 5);
+                          console.log(`[rapidapi-odds-sport] ${sportKey} total=${total} live=${live} samples=${samples.length}`);
+                          await redis.set(`rapidapi:odds:sport:${normalizeRedisKeyPart(String(sportKey))}`, JSON.stringify({ apiName, sportKey, total, live, samples, ts }), 'EX', 60).catch(() => {});
                         }
 
                         // Also fetch scores (live + upcoming) to populate fixture lists
@@ -672,15 +682,16 @@ export function startPrefetchScheduler({
                             let parsedScores = null;
                             try { parsedScores = typeof scoresRes.body === 'string' ? JSON.parse(scoresRes.body) : scoresRes.body; } catch (e) { parsedScores = null; }
                             const scoreEvents = Array.isArray(parsedScores) ? parsedScores : (parsedScores && parsedScores.data && Array.isArray(parsedScores.data) ? parsedScores.data : []);
-                            const totalScores = scoreEvents.length;
-                            const liveScores = scoreEvents.filter((ev) => {
+                              const totalScores = scoreEvents.length;
+                              const liveScores = scoreEvents.filter((ev) => {
                               try {
                                 const commence = ev.commence_time ? new Date(ev.commence_time).getTime() : null;
                                 return commence && commence <= Date.now();
                               } catch (e) { return false; }
                             }).length;
-                            console.log(`[rapidapi-scores-sport] ${sportKey} total=${totalScores} live=${liveScores}`);
-                            await redis.set(`rapidapi:scores:sport:${normalizeRedisKeyPart(String(sportKey))}`, JSON.stringify({ apiName, sportKey, total: totalScores, live: liveScores, ts }), 'EX', 60).catch(() => {});
+                              const scoreSamples = scoreEvents.slice(0, 5);
+                              console.log(`[rapidapi-scores-sport] ${sportKey} total=${totalScores} live=${liveScores} samples=${scoreSamples.length}`);
+                              await redis.set(`rapidapi:scores:sport:${normalizeRedisKeyPart(String(sportKey))}`, JSON.stringify({ apiName, sportKey, total: totalScores, live: liveScores, samples: scoreSamples, ts }), 'EX', 60).catch(() => {});
                           }
                         } catch (e) {
                           /* ignore per-sport scores errors */
