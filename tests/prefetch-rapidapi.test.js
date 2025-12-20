@@ -33,6 +33,7 @@ import { startPrefetchScheduler } from "../src/tasks/prefetch-scheduler.js";
 describe("Prefetch RapidAPI integration", () => {
   beforeEach(() => {
     process.env.RAPIDAPI_KEY = "test-key-xyz";
+    jest.spyOn(console, 'info').mockImplementation(() => {});
     // mock fetch to return a predictable response
     global.fetch = jest.fn().mockImplementation(async (url) => {
       if (url.includes("/api/premierleague/team")) {
@@ -46,6 +47,7 @@ describe("Prefetch RapidAPI integration", () => {
   afterEach(() => {
     jest.resetAllMocks();
     delete process.env.RAPIDAPI_KEY;
+    try { console.info.mockRestore(); } catch(e) {}
   });
 
   test("writes health and keys to Redis even on errors", async () => {
@@ -63,6 +65,8 @@ describe("Prefetch RapidAPI integration", () => {
     expect(plEntry).toBeDefined();
     // check endpoints recorded
     expect(Object.keys(plEntry.endpoints).length).toBeGreaterThan(0);
+    // expect scheduler to have emitted rapidapi logs
+    expect(console.info).toHaveBeenCalled();
     handle.stop();
   }, 10000);
 });

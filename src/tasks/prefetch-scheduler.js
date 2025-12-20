@@ -5,7 +5,8 @@
  */
 import { setTimeout as wait } from "timers/promises";
 void wait;
-import { RapidApiFetcher, normalizeRedisKeyPart } from "../lib/rapidapi-fetcher.js";
+import { normalizeRedisKeyPart } from "../lib/rapidapi-fetcher.js";
+import RapidApiLogger from "../lib/rapidapi-logger.js";
 import fs from "fs";
 import path from "path";
 
@@ -542,7 +543,7 @@ export function startPrefetchScheduler({
 
       // 7) RapidAPI subscriptions: iterate configured subscriptions and fetch sample endpoints
       try {
-        const rapidFetcher = new RapidApiFetcher({ apiKey: process.env.RAPIDAPI_KEY });
+        const rapidLogger = new RapidApiLogger({ apiKey: process.env.RAPIDAPI_KEY });
         const rapidDiagnostics = { updatedAt: ts, apis: {} };
         for (const api of Array.isArray(subscriptions) ? subscriptions : []) {
           const apiName = api.name || "unknown";
@@ -560,7 +561,7 @@ export function startPrefetchScheduler({
               while (attempt < maxAttempts) {
                 attempt += 1;
                 try {
-                  result = await rapidFetcher.fetchRapidApi(host, endpoint);
+                  result = await rapidLogger.fetch(host, endpoint, { apiName });
                   // consider non-2xx as failure to trigger a retry
                   if (result && result.httpStatus && result.httpStatus >= 200 && result.httpStatus < 300) {
                     break; // success
@@ -627,7 +628,7 @@ export function startPrefetchScheduler({
                 if (api.host && api.host.includes('odds.p.rapidapi.com')) {
                   const maxSports = Number(process.env.RAPIDAPI_ODDS_MAX_SPORTS || 12);
                   // fetch sports list (this endpoint does not count against quota)
-                  const sportsRes = await rapidFetcher.fetchRapidApi(api.host, '/v4/sports/?');
+                      const sportsRes = await rapidLogger.fetch(api.host, '/v4/sports/?', { apiName });
                   let sportsList = [];
                   try { sportsList = typeof sportsRes.body === 'string' ? JSON.parse(sportsRes.body) : sportsRes.body; } catch (e) { sportsList = sportsRes.body || []; }
                   if (Array.isArray(sportsList) && sportsList.length) {
@@ -656,7 +657,7 @@ export function startPrefetchScheduler({
                       if (!sportKey) continue;
                       try {
                         const sportEndpoint = `/v4/sports/${encodeURIComponent(sportKey)}/odds?regions=us&markets=h2h,spreads&oddsFormat=decimal`;
-                        const r = await rapidFetcher.fetchRapidApi(api.host, sportEndpoint).catch(() => null);
+                        const r = await rapidLogger.fetch(api.host, sportEndpoint, { apiName }).catch(() => null);
                         if (r && r.httpStatus && r.httpStatus >= 200 && r.httpStatus < 300) {
                           let parsed = null;
                           try { parsed = typeof r.body === 'string' ? JSON.parse(r.body) : r.body; } catch (e) { parsed = null; }
@@ -677,7 +678,7 @@ export function startPrefetchScheduler({
                         // Also fetch scores (live + upcoming) to populate fixture lists
                         try {
                           const scoresEndpoint = `/v4/sports/${encodeURIComponent(sportKey)}/scores/`;
-                          const scoresRes = await rapidFetcher.fetchRapidApi(api.host, scoresEndpoint).catch(() => null);
+                          const scoresRes = await rapidLogger.fetch(api.host, scoresEndpoint, { apiName }).catch(() => null);
                           if (scoresRes && scoresRes.httpStatus && scoresRes.httpStatus >= 200 && scoresRes.httpStatus < 300) {
                             let parsedScores = null;
                             try { parsedScores = typeof scoresRes.body === 'string' ? JSON.parse(scoresRes.body) : scoresRes.body; } catch (e) { parsedScores = null; }
