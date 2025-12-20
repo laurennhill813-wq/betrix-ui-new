@@ -199,8 +199,24 @@ export async function fetchAndNormalizeFixtures(sport = "soccer", params = {}, o
   const date = params.date || new Date().toISOString().slice(0, 10);
   const res = await fetchSportradar(sport, "matches_by_date", { date }, opts);
   const meta = { httpStatus: res?.httpStatus || res?.status || null, pathUsed: res?.provider_path || null, errorReason: null };
+  // Map HTTP status codes to friendly error reasons
+  function mapStatusToReason(status, body) {
+    if (!status) return null;
+    const s = Number(status);
+    if (s === 429) return "rate_limit";
+    if (s === 403) {
+      const b = String(body || "").toLowerCase();
+      if (b.includes("auth") || b.includes("authentication") || b.includes("invalid") || b.includes("key")) return "invalid_key";
+      return "permission_denied";
+    }
+    if (s === 404) return "not_found";
+    if (s === 502) return "gateway_error";
+    return "unknown_error";
+  }
+
   if (!res || res.error || !res.ok) {
-    meta.errorReason = res?.message || res?.bodyText || res?.error || "failed_fetch";
+    const status = res?.httpStatus || res?.status || null;
+    meta.errorReason = mapStatusToReason(status, res?.body || res?.bodyText) || res?.message || res?.bodyText || res?.error || "failed_fetch";
     return { items: [], ...meta };
   }
   const raw = res.data || {};
@@ -233,15 +249,28 @@ export async function fetchAndNormalizeTeams(sport = "soccer", opts = {}) {
   };
 
   const meta = { httpStatus: null, pathUsed: null, errorReason: null };
+  function mapStatusToReason(status, body) {
+    if (!status) return null;
+    const s = Number(status);
+    if (s === 429) return "rate_limit";
+    if (s === 403) {
+      const b = String(body || "").toLowerCase();
+      if (b.includes("auth") || b.includes("authentication") || b.includes("invalid") || b.includes("key")) return "invalid_key";
+      return "permission_denied";
+    }
+    if (s === 404) return "not_found";
+    if (s === 502) return "gateway_error";
+    return "unknown_error";
+  }
   // try direct fetch via provided fetcher
   const fetcher = opts.fetcher;
   if (fetcher && typeof fetcher === "function") {
     const paths = directCandidates[s] || [];
     for (const p of paths) {
       try {
-        const r = await fetcher({ base: process.env.SPORTRADAR_BASE || "https://api.sportradar.us", path: p, auth: { method: "query", queryParam: "api_key" }, key: process.env.SPORTRADAR_KEY || process.env.SPORTRADAR_API_KEY }, opts);
-        meta.httpStatus = r && r.status;
-        meta.pathUsed = p;
+      const r = await fetcher({ base: process.env.SPORTRADAR_BASE || "https://api.sportradar.us", path: p, auth: { method: "query", queryParam: "api_key" }, key: process.env.SPORTRADAR_KEY || process.env.SPORTRADAR_API_KEY }, opts);
+      meta.httpStatus = r && (r.httpStatus || r.status);
+      meta.pathUsed = p;
         const body = r && (r.body || r.data || r);
         if (body && Array.isArray(body.teams)) {
           const teams = body.teams.map((t) => ({ sport: s, teamId: t.id || t.team_id || null, name: t.name || t.full_name || null, market: t.market || null, alias: t.alias || t.short_name || null }));
@@ -252,7 +281,7 @@ export async function fetchAndNormalizeTeams(sport = "soccer", opts = {}) {
           return { items: teams, ...meta };
         }
       } catch (e) {
-        meta.errorReason = String(e?.message || e);
+        meta.errorReason = String(e?.message || e) || meta.errorReason;
       }
     }
   }
@@ -263,7 +292,7 @@ export async function fetchAndNormalizeTeams(sport = "soccer", opts = {}) {
     meta.httpStatus = res?.httpStatus || res?.status || null;
     meta.pathUsed = res?.provider_path || null;
     if (!res || res.error || !res.ok) {
-      meta.errorReason = res?.message || res?.bodyText || res?.error || "failed_fetch";
+      meta.errorReason = mapStatusToReason(meta.httpStatus, res?.body || res?.bodyText) || res?.message || res?.bodyText || res?.error || "failed_fetch";
       return { items: [], ...meta };
     }
     const body = res.data || {};
@@ -272,7 +301,7 @@ export async function fetchAndNormalizeTeams(sport = "soccer", opts = {}) {
       return { items: teams, ...meta };
     }
   } catch (e) {
-    meta.errorReason = String(e?.message || e);
+    meta.errorReason = String(e?.message || e) || "unknown_error";
     return { items: [], ...meta };
   }
 

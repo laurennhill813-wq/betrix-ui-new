@@ -101,17 +101,16 @@ describe("Sportradar registry and prefetch", () => {
   test("prefetch writes health on errors (mocked error responses)", async () => {
     const mr = new MockRedis();
 
-    // Mock client to return error metadata for a specific sport and success for others
-    jest.unstable_mockModule("../src/services/sportradar-client.js", () => ({
-      fetchAndNormalizeTeams: async (sport) => {
-        if (sport === "soccer") return { items: [], httpStatus: 429, pathUsed: `/mock/${sport}/teams`, errorReason: "rate_limited" };
-        return { items: [{ sport, teamId: `${sport}-1`, name: `${sport} team` }], httpStatus: 200, pathUsed: `/mock/${sport}/teams`, errorReason: null };
-      },
-      fetchAndNormalizeFixtures: async (sport, params) => {
-        if (sport === "tennis") return { items: [], httpStatus: 502, pathUsed: `/mock/${sport}/schedule`, errorReason: "gateway_error" };
-        return { items: [ { sport, league: `${sport}-league`, eventId: `${sport}-ev-1`, startTimeISO: new Date().toISOString(), homeTeam: `${sport} Home`, awayTeam: `${sport} Away`, venue: "Test Stadium", status: "SCHEDULED" } ], httpStatus: 200, pathUsed: `/mock/${sport}/schedule`, errorReason: null };
-      },
-      sportEmoji: () => "🏟️",
+    // Mock provider-level responses by mocking providers/fetcher so client maps codes
+    jest.unstable_mockModule("../src/services/providers/sportradar.js", () => ({
+      fetchSportradar: async (sport, type, params) => {
+        // simulate specific errors for some sports
+        if (sport === "soccer") return { ok: false, status: 429, bodyText: 'Limit Exceeded' };
+        if (sport === "tennis") return { ok: false, status: 502, bodyText: 'Gateway failure' };
+        // normal success shape
+        const date = params && params.date ? params.date : new Date().toISOString().slice(0,10);
+        return { ok: true, status: 200, body: { games: [ { id: `${sport}-1`, scheduled: `${date}T12:00:00Z`, home: { name: `${sport} Home` }, away: { name: `${sport} Away` } ] } }, provider_path: `/mock/${sport}/schedule` };
+      }
     }));
 
     const { startSportradarPrefetch } = await import("../src/tasks/sportradar-prefetch.js");
