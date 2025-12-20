@@ -93,7 +93,19 @@ export class RapidApiLogger {
     // Body log
     try {
       const shouldLogBody = this.logBody;
-      if (shouldLogBody) {
+      // Detect common empty-response patterns (providers returning 200 with an error message)
+      let bodyText = null;
+      try {
+        bodyText = result && result.body ? (typeof result.body === 'string' ? result.body : JSON.stringify(result.body)) : null;
+      } catch (e) {
+        bodyText = String(result && result.body ? result.body : '');
+      }
+      if (bodyText && /no game found/i.test(bodyText)) {
+        // concise warning for known empty-result patterns
+        try {
+          console.info('[rapidapi-warning] apiName=' + (opts.apiName || opts.api || 'unknown') + ' endpoint=' + endpoint + ' status=' + (result.httpStatus || '') + ' reason=No game found');
+        } catch (e) {}
+      } else if (shouldLogBody) {
         const truncated = this._truncateBody(result.body);
         console.info('[rapidapi-body] ' + String(truncated || '').slice(0, this.truncate + 50));
       } else if (result && result.httpStatus && result.httpStatus >= 400) {

@@ -3,7 +3,7 @@
     "name": "Premier League Live Scores",
     "host": "heisenbug-premier-league-live-scores-v1.p.rapidapi.com",
     "sampleEndpoints": [
-      "/api/premierleague",
+      "/api/premierleague/fixtures",
       "/api/premierleague/team?name=Liverpool",
       "/api/premierleague/fixtures",
       "/api/premierleague/formations?team1=Everton&team2=Manchester+United",
