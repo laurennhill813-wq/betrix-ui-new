@@ -19,3 +19,21 @@ jobs:
         run: npm ci
       - name: Run tests
         run: npm run test
+  smoke-prefetch:
+    needs: test
+    runs-on: ubuntu-latest
+    if: ${{ secrets.RAPIDAPI_KEY && secrets.REDIS_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install deps
+        run: npm ci
+      - name: Run RapidAPI smoke prefetch
+        env:
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          RAPIDAPI_TTL_SEC: 60
+        run: node scripts/run-rapidapi-prefetch.mjs

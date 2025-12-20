@@ -39,6 +39,9 @@ async function run() {
         diag.apis[name].lastUpdated = ts;
         diag.apis[name].status = (result.httpStatus >= 200 && result.httpStatus < 300) ? "ok" : "error";
         console.log({ apiName: name, endpoint, httpStatus: result.httpStatus });
+        if (!summary[name]) summary[name] = { ok: 0, error: 0 };
+        if (result.httpStatus >= 200 && result.httpStatus < 300) summary[name].ok += 1;
+        else summary[name].error += 1;
       } catch (e) {
         diag.apis[name].endpoints[endpoint] = {
           httpStatus: e && e.status ? e.status : null,
@@ -47,6 +50,8 @@ async function run() {
         };
         diag.apis[name].status = "error";
         console.error({ apiName: name, endpoint, error: e && e.message ? e.message : String(e) });
+        if (!summary[name]) summary[name] = { ok: 0, error: 0 };
+        summary[name].error += 1;
       }
     }
   }
@@ -54,6 +59,12 @@ async function run() {
     await redisClient.set("rapidapi:health", JSON.stringify(diag)).catch(() => {});
   } catch (e) {}
   console.log("RapidAPI prefetch complete");
+  // Print summary
+  console.log("\nRapidAPI Summary:");
+  for (const [name, s] of Object.entries(summary)) {
+    const status = s.error === 0 ? "HEALTHY" : s.ok === 0 ? "FAILING" : "DEGRADED";
+    console.log(`${name}: ${status} (ok=${s.ok}, errors=${s.error})`);
+  }
   process.exit(0);
 }
 
