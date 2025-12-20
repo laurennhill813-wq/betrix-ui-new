@@ -776,6 +776,22 @@ try {
               const oddsRes = await fetcher.fetchRapidApi(oddsApi.host, oddsEndpoint, { retries: 3, timeout: 12000, backoffBaseMs: 300 }).catch(() => null);
               const total = Array.isArray(oddsRes && oddsRes.body) ? oddsRes.body.length : (oddsRes && oddsRes.body && oddsRes.body.data && Array.isArray(oddsRes.body.data) ? oddsRes.body.data.length : 0);
               console.log(`[rapidapistartupoddssport] ${sportKey} status=${oddsRes && oddsRes.httpStatus ? oddsRes.httpStatus : 'err'} total=${total} - worker-final.js:778`);
+              // If we hit 429 (rate limit) stop further probes and set a cooldown key
+              try {
+                if (oddsRes && Number(oddsRes.httpStatus) === 429) {
+                  const backoffSeconds = Number(process.env.RAPIDAPI_BACKOFF_SECONDS || 300);
+                  console.log(`[rapidapi] rate limit detected from Odds API - setting rapidapi:backoff for ${backoffSeconds}s`);
+                  try {
+                    await redis.set('rapidapi:backoff', Date.now());
+                    await redis.expire('rapidapi:backoff', backoffSeconds);
+                  } catch (e) {
+                    console.log('[rapidapi] failed to write rapidapi:backoff to Redis', e && e.message ? e.message : String(e));
+                  }
+                  break;
+                }
+              } catch (e) {
+                /* ignore */
+              }
             } catch (e) {
               console.log(`[rapidapistartupoddssport] ${sportKey} error ${e && e.message ? e.message : String(e)} - worker-final.js:780`);
             }
@@ -784,6 +800,21 @@ try {
               const scoresRes = await fetcher.fetchRapidApi(oddsApi.host, scoresEndpoint, { retries: 3, timeout: 12000, backoffBaseMs: 300 }).catch(() => null);
               const totalS = Array.isArray(scoresRes && scoresRes.body) ? scoresRes.body.length : (scoresRes && scoresRes.body && scoresRes.body.data && Array.isArray(scoresRes.body.data) ? scoresRes.body.data.length : 0);
               console.log(`[rapidapistartupscoressport] ${sportKey} status=${scoresRes && scoresRes.httpStatus ? scoresRes.httpStatus : 'err'} total=${totalS} - worker-final.js:786`);
+              try {
+                if (scoresRes && Number(scoresRes.httpStatus) === 429) {
+                  const backoffSeconds = Number(process.env.RAPIDAPI_BACKOFF_SECONDS || 300);
+                  console.log(`[rapidapi] rate limit detected from Odds API (scores) - setting rapidapi:backoff for ${backoffSeconds}s`);
+                  try {
+                    await redis.set('rapidapi:backoff', Date.now());
+                    await redis.expire('rapidapi:backoff', backoffSeconds);
+                  } catch (e) {
+                    console.log('[rapidapi] failed to write rapidapi:backoff to Redis', e && e.message ? e.message : String(e));
+                  }
+                  break;
+                }
+              } catch (e) {
+                /* ignore */
+              }
             } catch (e) {
               console.log(`[rapidapistartupscoressport] ${sportKey} error ${e && e.message ? e.message : String(e)} - worker-final.js:788`);
             }
