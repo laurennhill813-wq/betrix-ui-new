@@ -26,6 +26,30 @@ export async function cacheGet(key) {
     return raw === undefined ? null : raw;
   }
   try {
+    // If the key exists as a non-string type (list/hash), prefer reading by type
+    try {
+      if (typeof c.type === 'function') {
+        const t = await c.type(key).catch(() => null);
+        if (t && t.toLowerCase() === 'list') {
+          const arr = await (c.lRange ? c.lRange(key, 0, -1) : c.lrange(key, 0, -1));
+          if (!arr || arr.length === 0) return null;
+          const parsed = arr
+            .map((s) => {
+              try {
+                return JSON.parse(s);
+              } catch {
+                return null;
+              }
+            })
+            .filter(Boolean)
+            .reverse();
+          return parsed;
+        }
+      }
+    } catch (e) {
+      // fall back to normal GET
+    }
+
     const v = await c.get(key);
     if (!v) return null;
     return JSON.parse(v);

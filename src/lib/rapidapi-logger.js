@@ -1,4 +1,5 @@
 import { RapidApiFetcher } from './rapidapi-fetcher.js';
+import { getRedisClient, cacheSet, incrWithTTL } from './redis-cache.js';
 
 const DEFAULT_TRUNCATE = 2048; // bytes ~2KB
 
@@ -7,6 +8,8 @@ export class RapidApiLogger {
     this.fetcher = new RapidApiFetcher({ apiKey });
     this.logBody = String(process.env.RAPIDAPI_LOG_BODY || '').toLowerCase() === 'true';
     this.truncate = Number(process.env.RAPIDAPI_BODY_TRUNCATE_BYTES || DEFAULT_TRUNCATE);
+    this.backoffSeconds = Number(process.env.RAPIDAPI_BACKOFF_SECONDS || 3600);
+    this.backoffThreshold = Number(process.env.RAPIDAPI_BACKOFF_THRESHOLD || 3);
   }
 
   _safeHeadersForLog(originalHeaders) {
@@ -47,6 +50,23 @@ export class RapidApiLogger {
 
     const query = url.searchParams ? Object.fromEntries(url.searchParams.entries()) : {};
 
+    // honor provider-level backoff if present
+    try {
+      const redis = getRedisClient();
+      if (redis) {
+        try {
+          const backoffKey = `rapidapi:backoff:${host}`;
+          const off = await redis.get(backoffKey).catch(() => null);
+          if (off) {
+            console.info(`[rapidapi] backoff_active=true host=${host} backoffKey=${backoffKey}`);
+            return { httpStatus: null, body: null, error: { message: 'backoff_active' } };
+          }
+        } catch (e) {
+          /* ignore redis errors */
+        }
+      }
+    } catch (e) {}
+
     // call the underlying fetcher
     const result = await this.fetcher.fetchRapidApi(host, endpoint, opts).catch((e) => ({ httpStatus: null, body: null, error: { message: String(e && e.message ? e.message : e) } }));
 
@@ -83,6 +103,50 @@ export class RapidApiLogger {
       }
     } catch (e) {
       console.info('[rapidapi-body] log-error', e && e.message ? e.message : String(e));
+    }
+
+    // Persist quota/health info to Redis (if available)
+    try {
+      const redis = getRedisClient();
+      if (redis) {
+        const hdrs = result.headers || {};
+        const quota = {
+          apiName: opts.apiName || opts.api || null,
+          host,
+          endpoint,
+          httpStatus: result.httpStatus || null,
+          updatedAt: Date.now(),
+          headers: {
+            'x-ratelimit-limit': hdrs['x-ratelimit-limit'] || hdrs['x-ratelimit-Limit'] || null,
+            'x-ratelimit-remaining': hdrs['x-ratelimit-remaining'] || hdrs['x-ratelimit-Remaining'] || hdrs['x-requests-remaining'] || null,
+            'x-ratelimit-reset': hdrs['x-ratelimit-reset'] || hdrs['x-ratelimit-Reset'] || null,
+          },
+        };
+        try {
+          await cacheSet(`rapidapi:health:${host}`, quota, Number(process.env.RAPIDAPI_TTL_SEC || 300));
+        } catch (e) {
+          /* ignore cache errors */
+        }
+
+        // handle 429 backoff counting
+        if (result && result.httpStatus === 429) {
+          try {
+            const count = await incrWithTTL(`rapidapi:429count:${host}`, this.backoffSeconds).catch(() => 1);
+            if (Number(count) >= this.backoffThreshold) {
+              const backoffKey = `rapidapi:backoff:${host}`;
+              try {
+                // set a backoff flag with TTL so other processes skip this host
+                await redis.set(backoffKey, '1', 'EX', this.backoffSeconds).catch(() => {});
+                console.info(`[rapidapi] backoff_set host=${host} ttl=${this.backoffSeconds} threshold=${this.backoffThreshold}`);
+              } catch (e) {}
+            }
+          } catch (e) {
+            /* ignore */
+          }
+        }
+      }
+    } catch (e) {
+      /* ignore */
     }
 
     // For error statuses, add structured diagnostics to result

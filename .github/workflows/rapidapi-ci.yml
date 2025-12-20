@@ -37,3 +37,9 @@ jobs:
           REDIS_URL: ${{ secrets.REDIS_URL }}
           RAPIDAPI_TTL_SEC: 60
         run: node scripts/run-rapidapi-prefetch.mjs
+      - name: Redis type check for rapidapi fixtures
+        if: ${{ secrets.REDIS_URL }}
+        env:
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+        run: |
+          node -e "(async()=>{const { createClient } = require('redis'); const c=createClient({url:process.env.REDIS_URL}); await c.connect(); const keys = await c.keys('rapidapi:*fixtures*'); let bad=0; for(const k of keys){ const t = await c.type(k); if(t !== 'string'){ console.error('WRONGTYPE', k, t); bad=bad+1;} } await c.quit(); if(bad>0){ console.error('Found wrong-type rapidapi fixture keys'); process.exit(2); } console.log('Redis fixtures type check OK'); })().catch(e=>{ console.error(e); process.exit(2); });"

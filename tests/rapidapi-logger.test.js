@@ -1,3 +1,26 @@
+import RapidApiLogger from "../src/lib/rapidapi-logger.js";
+import { RapidApiFetcher } from "../src/lib/rapidapi-fetcher.js";
+
+describe("RapidApiLogger", () => {
+  beforeEach(() => {
+    process.env.RAPIDAPI_LOG_BODY = 'false';
+    jest.spyOn(console, 'info').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    jest.resetAllMocks();
+    delete process.env.RAPIDAPI_LOG_BODY;
+  });
+
+  test('logs header quota info and handles 429 backoff counter', async () => {
+    // stub RapidApiFetcher.fetchRapidApi to return headers and 429
+    const stub = jest.spyOn(RapidApiFetcher.prototype, 'fetchRapidApi').mockResolvedValue({ httpStatus: 429, body: { message: 'quota' }, headers: { 'x-requests-remaining': '0', 'x-ratelimit-limit': '100' } });
+    const logger = new RapidApiLogger({ apiKey: 'x' });
+    const res = await logger.fetch('odds.p.rapidapi.com', '/v4/sports/?', { apiName: 'Odds' });
+    expect(res.httpStatus).toBe(429);
+    expect(console.info).toHaveBeenCalled();
+    stub.mockRestore();
+  });
+});
 import RapidApiLogger from '../src/lib/rapidapi-logger.js';
 
 describe('RapidApiLogger', () => {

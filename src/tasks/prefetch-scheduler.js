@@ -693,6 +693,24 @@ export function startPrefetchScheduler({
                               const scoreSamples = scoreEvents.slice(0, 5);
                               console.log(`[rapidapi-scores-sport] ${sportKey} total=${totalScores} live=${liveScores} samples=${scoreSamples.length}`);
                               await redis.set(`rapidapi:scores:sport:${normalizeRedisKeyPart(String(sportKey))}`, JSON.stringify({ apiName, sportKey, total: totalScores, live: liveScores, samples: scoreSamples, ts }), 'EX', 60).catch(() => {});
+
+                              // Attempt to normalize fixtures for UI buttons: write rapidapi:<sport>:fixtures:<league>
+                              try {
+                                const fixtures = (scoreEvents || []).map((ev) => {
+                                  const home = ev.home_team || ev.home || ev.teams && ev.teams[0] || ev.team1 || (ev.home && ev.home.name) || null;
+                                  const away = ev.away_team || ev.away || ev.teams && ev.teams[1] || ev.team2 || (ev.away && ev.away.name) || null;
+                                  const commence = ev.commence_time || ev.commence || ev.start || ev.date || null;
+                                  const competition = ev.league || ev.competition || (parsedScores && parsedScores.competition) || 'default';
+                                  return { home, away, commence, competition };
+                                }).filter((f) => f.home && f.away);
+                                if (fixtures.length) {
+                                  const league = fixtures[0].competition || 'default';
+                                  const key = `rapidapi:${normalizeRedisKeyPart(String(sportKey))}:fixtures:${normalizeRedisKeyPart(String(league))}`;
+                                  await redis.set(key, JSON.stringify({ apiName, sportKey, league, fixtures, ts }), 'EX', Number(process.env.RAPIDAPI_FIXTURES_TTL_SEC || 300)).catch(() => {});
+                                }
+                              } catch (e) {
+                                /* ignore fixture normalization errors */
+                              }
                           }
                         } catch (e) {
                           /* ignore per-sport scores errors */

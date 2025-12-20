@@ -64,6 +64,16 @@
     "sampleEndpoints": ["/mbb/news?limit=30"]
   },
   {
+    "name": "Sportspage Fixtures (Basketball)",
+    "host": "sportspage-feeds.p.rapidapi.com",
+    "sampleEndpoints": ["/fixtures?league=NBA&days=7"]
+  },
+  {
+    "name": "Sportspage Fixtures (Baseball)",
+    "host": "sportspage-feeds.p.rapidapi.com",
+    "sampleEndpoints": ["/fixtures?league=MLB&days=7"]
+  },
+  {
     "name": "ODDS-API (alt)",
     "host": "odds-api1.p.rapidapi.com",
     "sampleEndpoints": ["/scores?fixtureId=id1200255561449537"]

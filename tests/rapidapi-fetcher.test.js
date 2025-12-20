@@ -38,4 +38,18 @@ describe("RapidApiFetcher", () => {
     const r429 = await f.fetchRapidApi("example.p.rapidapi.com", "/ratelimit");
     expect(r429.httpStatus).toBe(429);
   });
+
+  test("preserves header entries returned by fetch", async () => {
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({ ok: true }),
+      headers: {
+        entries: () => [['x-requests-remaining', '42'], ['x-ratelimit-limit', '1000']].values(),
+      },
+    });
+    const f = new RapidApiFetcher();
+    const r = await f.fetchRapidApi('example.p.rapidapi.com', '/hdrs');
+    expect(r.headers['x-requests-remaining']).toBe('42');
+    expect(r.headers['x-ratelimit-limit']).toBe('1000');
+  });
 });
