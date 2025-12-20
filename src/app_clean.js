@@ -11,6 +11,7 @@ import DataExposureHandler from "./handlers/data-exposure-handler.js";
 import { getRedis, MockRedis } from "./lib/redis-factory.js";
 import createRedisAdapter from "./utils/redis-adapter.js";
 import { register } from "./utils/metrics.js";
+import { aggregateFixtures } from "./lib/fixtures-aggregator.js";
 import { SPORTRADAR_SPORTS } from "./config/sportradar-sports.js";
 
 process.env.PGSSLMODE = process.env.PGSSLMODE || "require";
@@ -144,6 +145,18 @@ app.get("/health/rapidapi", async (_req, res) => {
       }
       // Additionally aggregate per-sport fixture counts (from keys written by prefetch)
       const fixturesBySport = [];
+      // Include unified totals (aggregator may also write keys)
+      try {
+        try {
+          const agg = await aggregateFixtures(webhookRedis).catch(() => null);
+          if (agg) {
+            // expose unified totals at top level
+            // merged fixtures list is available under rapidapi:fixtures:list key too
+            // but we prefer returning the computed per-provider summary alongside health.
+            return res.json({ ok: true, cached: true, health: out, fixturesBySport, unified: { liveMatches: agg.totalLiveMatches, upcomingFixtures: agg.totalUpcomingFixtures, providers: agg.providers } });
+          }
+        } catch (e) {}
+      } catch (e) {}
       try {
         const keys = await webhookRedis.keys('rapidapi:*:fixtures:*').catch(() => []);
         const seen = new Map();

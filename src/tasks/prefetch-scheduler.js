@@ -7,6 +7,7 @@ import { setTimeout as wait } from "timers/promises";
 import fs from "fs";
 import path from "path";
 import RapidApiLogger from "../lib/rapidapi-logger.js";
+import { aggregateFixtures } from "../lib/fixtures-aggregator.js";
 import { formatMMDDYYYY, getNextDaysMMDDYYYY } from "../lib/rapidapi-utils.js";
 import { normalizeRedisKeyPart } from "../lib/rapidapi-fetcher.js";
 export function startPrefetchScheduler({
@@ -909,6 +910,17 @@ export function startPrefetchScheduler({
           /* ignore */
         }
         await redis.publish("prefetch:updates", JSON.stringify({ type: "rapidapi", ts }));
+        // Run unified aggregation after provider prefetches so unified totals and lists are available
+        try {
+          const agg = await aggregateFixtures(redis).catch(() => null);
+          if (agg) {
+            try {
+              console.log(`[aggregator] liveMatches=${agg.totalLiveMatches} upcomingFixtures=${agg.totalUpcomingFixtures} providers=${Object.keys(agg.providers||{}).join(',')}`);
+            } catch (e) {}
+          }
+        } catch (e) {
+          /* ignore aggregator failures */
+        }
       } catch (e) {
         await redis.publish(
           "prefetch:error",

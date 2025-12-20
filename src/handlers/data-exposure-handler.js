@@ -5,6 +5,7 @@
  */
 
 import { Logger } from "../utils/logger.js";
+import { aggregateFixtures } from "../lib/fixtures-aggregator.js";
 
 const logger = new Logger("DataExposure");
 
@@ -55,7 +56,25 @@ export class DataExposureHandler {
      */
     this.router.get("/api/data/fixtures", async (req, res) => {
       try {
-        const { source = "sportsmonks", league = "39" } = req.query;
+        const { source = "sportsmonks", league = "39", unified } = req.query;
+        // If client requests unified aggregation, return merged fixtures and totals
+        if (String(source).toLowerCase() === 'unified' || String(unified) === '1' || String(unified).toLowerCase() === 'true') {
+          try {
+            const redis = this.aggregator && this.aggregator.redis ? this.aggregator.redis : null;
+            if (!redis) return res.status(503).json({ error: 'no redis available for aggregation' });
+            const agg = await aggregateFixtures(redis).catch((e) => { throw e; });
+            return res.json({
+              liveMatches: agg.totalLiveMatches,
+              upcomingFixtures: agg.totalUpcomingFixtures,
+              providers: agg.providers || {},
+              fixtures: agg.fixtures || [],
+            });
+          } catch (e) {
+            logger.error('Unified fixtures aggregation failed', e);
+            return res.status(500).json({ error: e?.message || String(e) });
+          }
+        }
+
         const fixtures = await this.aggregator.dataCache.getFixtures(
           source,
           league,
