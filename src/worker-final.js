@@ -724,7 +724,12 @@ try {
         console.log(`[rapidapionestep] host=${candidate.host} endpoint=${endpoint} status=${res && res.httpStatus ? res.httpStatus : 'nostatus'} - worker-final.js:724`);
         try {
           const body = res && res.body ? (typeof res.body === 'string' ? res.body : JSON.stringify(res.body)) : null;
-          if (body) console.log(`[rapidapionestepbody] ${String(body).slice(0,1200)} - worker-final.js:727`);
+          // Suppress noisy dumps for common 'No game found' responses — those are logged as concise warnings elsewhere
+          if (body && /no game found/i.test(String(body))) {
+            // do not dump the full body
+          } else if (body) {
+            console.log(`[rapidapionestepbody] ${String(body).slice(0,1200)} - worker-final.js:727`);
+          }
         } catch (e) {}
       } catch (e) {
         console.log("[rapidapionestep] fetcherror - worker-final.js:730", e && e.message ? e.message : String(e));
