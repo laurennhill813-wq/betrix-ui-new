@@ -613,6 +613,13 @@ export function startPrefetchScheduler({
               } catch (e) {
                 /* ignore normalization errors for this provider */
               }
+              try {
+                if (result && result.httpStatus === 404) {
+                  try {
+                    console.info('[rapidapi-warning] apiName=' + (apiName || 'unknown') + ' endpoint=' + endpoint + ' status=404 reason=Not found');
+                  } catch (e) {}
+                }
+              } catch (e) {}
               const keyPart = normalizeRedisKeyPart(endpoint);
               const storeKey = `rapidapi:${safeName}:${keyPart}`;
               await safeSet(storeKey, { fetchedAt: ts, apiName, endpoint, httpStatus: result.httpStatus, data: result.body }, Number(process.env.RAPIDAPI_TTL_SEC || 300));
