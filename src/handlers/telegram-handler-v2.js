@@ -1887,6 +1887,43 @@ async function handleLiveMenuCallback(chatId, userId, redis, services) {
           logger.debug("Prefetch cache fetch failed", e?.message);
         }
       }
+      // Additionally, include RapidAPI prefetch results if present
+      try {
+        const rapidOddsKeys = await redis.keys("rapidapi:odds:sport:*").catch(() => []);
+        const rapidScoresKeys = await redis.keys("rapidapi:scores:sport:*").catch(() => []);
+        const rapidMatches = [];
+        for (const k of [...(rapidOddsKeys || []), ...(rapidScoresKeys || [])]) {
+          try {
+            const raw = await redis.get(k).catch(() => null);
+            if (!raw) continue;
+            const parsed = JSON.parse(raw);
+            const samples = parsed && (parsed.samples || parsed.sample || parsed.data) ? (parsed.samples || parsed.sample || parsed.data) : [];
+            const sportKey = parsed && parsed.sportKey ? parsed.sportKey : k.split(":").slice(3).join(":");
+            for (const ev of (Array.isArray(samples) ? samples : [samples])) {
+              if (!ev) continue;
+              rapidMatches.push({
+                id: ev.id || ev.event_id || ev._id || String(Math.random()),
+                home: ev.home_team || ev.home || ev.homeTeam || ev.teams?.[0] || ev.team1 || "Unknown",
+                away: ev.away_team || ev.away || ev.awayTeam || ev.teams?.[1] || ev.team2 || "Unknown",
+                status: ev.status || (ev.commence_time && new Date(ev.commence_time).getTime() <= Date.now() ? "LIVE" : "TBA"),
+                homeScore: ev.home_score || ev.homeScore || null,
+                awayScore: ev.away_score || ev.awayScore || null,
+                provider: "RapidAPI",
+                sport: sportKey,
+                raw: ev,
+              });
+            }
+          } catch (e) {
+            continue;
+          }
+        }
+        if (rapidMatches.length > 0) {
+          allLiveMatches = [...(allLiveMatches || []), ...rapidMatches];
+          logger.info(`Included ${rapidMatches.length} RapidAPI matches into live list`);
+        }
+      } catch (e) {
+        logger.debug("RapidAPI prefetch merge failed", e?.message || String(e));
+      }
     }
 
     // If no live matches found, show message with fallback to league selection
