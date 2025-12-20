@@ -4,32 +4,6 @@
  * WARNING: setting this below ~10s may stress remote APIs and trigger rate limits.
  */
 import { setTimeout as wait } from "timers/promises";
-void wait;
-import { normalizeRedisKeyPart } from "../lib/rapidapi-fetcher.js";
-import RapidApiLogger from "../lib/rapidapi-logger.js";
-import fs from "fs";
-import path from "path";
-
-// Load subscriptions.json at runtime (avoid import assertions which may not be
-// supported in some runtime environments such as certain deployment builders).
-const subscriptionsPath = path.join(process.cwd(), "src", "rapidapi", "subscriptions.json");
-let subscriptions = [];
-try {
-  subscriptions = JSON.parse(fs.readFileSync(subscriptionsPath, "utf8"));
-} catch (e) {
-  console.warn("Could not load subscriptions.json", e && e.message ? e.message : String(e));
-  subscriptions = [];
-}
-
-// Log basic RapidAPI startup state so deploy logs show whether scheduler
-// has subscriptions and whether a RAPIDAPI_KEY is configured (do not print the key).
-try {
-  const count = Array.isArray(subscriptions) ? subscriptions.length : 0;
-  console.log(`[rapidapi] subscriptions=${count} rapidapi_key_present=${!!process.env.RAPIDAPI_KEY}`);
-} catch (e) {
-  /* ignore logging errors */
-}
-
 export function startPrefetchScheduler({
   redis,
   openLiga,
@@ -588,26 +562,70 @@ export function startPrefetchScheduler({
                 const hostLc = String(host || '').toLowerCase();
                 const endpointLc = String(endpoint || '').toLowerCase();
                 if (hostLc.includes('heisenbug-premier-league') && endpointLc.startsWith('/api/premierleague')) {
-                  // If 404, log concise warning and skip
-                  if (result.httpStatus === 404) {
-                    console.info('[rapidapi-warning] apiName=' + (apiName || 'unknown') + ' endpoint=' + endpoint + ' status=404 reason=Not found');
-                  } else {
-                    let parsed = null;
-                    try { parsed = typeof result.body === 'string' ? JSON.parse(result.body) : result.body; } catch (e) { parsed = result.body || null; }
-                    // Accept { fixtures: [...] } or an array directly
-                    const arr = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.fixtures) ? parsed.fixtures : []);
-                    const fixtures = (arr || []).map((ev) => {
-                      const home = ev.home || ev.home_team || (ev.home && ev.home.name) || null;
-                      const away = ev.away || ev.away_team || (ev.away && ev.away.name) || null;
-                      const date = ev.date || ev.commence_time || ev.kickoff || ev.start || null;
-                      return { home_team: home, away_team: away, date };
-                    }).filter(f => f.home_team && f.away_team);
-                    if (fixtures.length) {
-                      const key = `rapidapi:soccer:fixtures:premierleague`;
-                      await redis.set(key, JSON.stringify({ apiName, league: 'premierleague', fixtures, ts }), 'EX', Number(process.env.RAPIDAPI_FIXTURES_TTL_SEC || 300)).catch(() => {});
-                    } else {
-                      console.info('[rapidapi-warning] apiName=' + (apiName || 'unknown') + ' endpoint=' + endpoint + ' status=' + (result.httpStatus || '') + ' reason=No fixtures parsed');
+                  // Heisenbug: aggregate fixtures across a date range and optional team lookups
+                  const days = Number(process.env.HEISENBUG_DAYS || 7);
+                  const aggregated = [];
+                  console.log('[heisenbug] prefetch aggregator running days=' + days);
+                  for (let d = 0; d < Math.max(1, days); d++) {
+                    const dt = new Date();
+                    dt.setUTCDate(dt.getUTCDate() + d);
+                    const dateStr = dt.toISOString().slice(0, 10);
+                    try {
+                      const dateEndpoint = `/api/premierleague?date=${encodeURIComponent(dateStr)}`;
+                      const resDate = await rapidLogger.fetch(host, dateEndpoint, { apiName }).catch(() => null);
+                      if (!resDate) continue;
+                      if (resDate.httpStatus === 404) {
+                        console.info('[rapidapi-warning] apiName=' + (apiName || 'unknown') + ' endpoint=' + dateEndpoint + ' status=404 reason=Not found');
+                        continue;
+                      }
+                      let parsedDate = null;
+                      try { parsedDate = typeof resDate.body === 'string' ? JSON.parse(resDate.body) : resDate.body; } catch (e) { parsedDate = resDate.body || null; }
+                      const arrDate = Array.isArray(parsedDate) ? parsedDate : (parsedDate && Array.isArray(parsedDate.fixtures) ? parsedDate.fixtures : []);
+                      for (const ev of (arrDate || [])) {
+                        const home = ev.home || ev.home_team || (ev.home && ev.home.name) || null;
+                        const away = ev.away || ev.away_team || (ev.away && ev.away.name) || null;
+                        const date = ev.date || ev.commence_time || ev.kickoff || ev.start || null;
+                        if (home && away) aggregated.push({ home_team: home, away_team: away, date });
+                      }
+                    } catch (e) {
+                      /* ignore per-day fetch errors */
                     }
+                  }
+                  const teamsEnv = process.env.HEISENBUG_TEAMS || "Liverpool,Manchester United,Arsenal";
+                  const teams = String(teamsEnv || '').split(',').map(s=>s.trim()).filter(Boolean).slice(0,5);
+                  for (const t of teams) {
+                    try {
+                      const teamEndpoint = `/api/premierleague/team?name=${encodeURIComponent(t)}`;
+                      const resTeam = await rapidLogger.fetch(host, teamEndpoint, { apiName }).catch(() => null);
+                      if (!resTeam) continue;
+                      if (resTeam.httpStatus === 404) {
+                        console.info('[rapidapi-warning] apiName=' + (apiName || 'unknown') + ' endpoint=' + teamEndpoint + ' status=404 reason=Not found');
+                        continue;
+                      }
+                      let parsedTeam = null;
+                      try { parsedTeam = typeof resTeam.body === 'string' ? JSON.parse(resTeam.body) : resTeam.body; } catch (e) { parsedTeam = resTeam.body || null; }
+                      const arrTeam = Array.isArray(parsedTeam) ? parsedTeam : (parsedTeam && Array.isArray(parsedTeam.fixtures) ? parsedTeam.fixtures : []);
+                      for (const ev of (arrTeam || [])) {
+                        const home = ev.home || ev.home_team || (ev.home && ev.home.name) || null;
+                        const away = ev.away || ev.away_team || (ev.away && ev.away.name) || null;
+                        const date = ev.date || ev.commence_time || ev.kickoff || ev.start || null;
+                        if (home && away) aggregated.push({ home_team: home, away_team: away, date });
+                      }
+                    } catch (e) {
+                      /* ignore per-team fetch errors */
+                    }
+                  }
+                  const seen = new Map();
+                  for (const f of aggregated) {
+                    const k = `${String(f.home_team)}::${String(f.away_team)}::${String(f.date || '')}`;
+                    if (!seen.has(k)) seen.set(k, f);
+                  }
+                  const fixtures = Array.from(seen.values());
+                  if (fixtures.length) {
+                    const key = `rapidapi:soccer:fixtures:premierleague`;
+                    await redis.set(key, JSON.stringify({ apiName, league: 'premierleague', fixtures, ts }), 'EX', Number(process.env.RAPIDAPI_FIXTURES_TTL_SEC || 300)).catch(() => {});
+                  } else {
+                    console.info('[rapidapi-warning] apiName=' + (apiName || 'unknown') + ' endpoint=' + endpoint + ' status=' + (result && result.httpStatus ? result.httpStatus : '') + ' reason=No fixtures parsed');
                   }
                 }
               } catch (e) {

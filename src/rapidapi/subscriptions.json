@@ -3,16 +3,15 @@
     "name": "Premier League Live Scores",
     "host": "heisenbug-premier-league-live-scores-v1.p.rapidapi.com",
     "sampleEndpoints": [
-      "/api/premierleague",
+      "/api/premierleague?date=<YYYY-MM-DD>",
       "/api/premierleague?date=2025-12-20",
+      "/api/premierleague/team?name=<TeamName>",
       "/api/premierleague/team?name=Liverpool",
-      "/api/premierleague/team?name=Liverpool",
-      "/api/premierleague/fixtures",
       "/api/premierleague/formations?team1=Everton&team2=Manchester+United",
       "/api/premierleague/table",
       "/api/premierleague/match/stats?team1=Stoke&team2=Liverpool"
     ],
-    "note": "added representative endpoints from provider docs (live and non-live variants)"
+    "note": "Use parameterized endpoints; scheduler will iterate a date range (next N days) and team lookups"
   },
   {
     "name": "Football Prediction",
