@@ -720,7 +720,7 @@ try {
       const fetcher = new RapidApiLogger({ apiKey: process.env.RAPIDAPI_KEY });
       const endpoint = (candidate.sampleEndpoints && candidate.sampleEndpoints[0]) || "/";
       try {
-        const res = await fetcher.fetchRapidApi(candidate.host, endpoint, { timeout: 10000 });
+        const res = await fetcher.fetch(candidate.host, endpoint, { timeout: 10000 });
         console.log(`[rapidapionestep] host=${candidate.host} endpoint=${endpoint} status=${res && res.httpStatus ? res.httpStatus : 'nostatus'} - worker-final.js:724`);
         try {
           const body = res && res.body ? (typeof res.body === 'string' ? res.body : JSON.stringify(res.body)) : null;
@@ -825,7 +825,7 @@ try {
       const fetcher = new RapidApiLogger({ apiKey: process.env.RAPIDAPI_KEY });
       // fetch sports list
       try {
-        const sportsRes = await fetcher.fetchRapidApi(oddsApi.host, '/v4/sports/?');
+        const sportsRes = await fetcher.fetch(oddsApi.host, '/v4/sports/?');
         const sportsList = Array.isArray(sportsRes.body) ? sportsRes.body : (sportsRes.body && sportsRes.body.data && Array.isArray(sportsRes.body.data) ? sportsRes.body.data : []);
         if (Array.isArray(sportsList) && sportsList.length) {
           const limit = Math.min(3, sportsList.length);
@@ -835,7 +835,7 @@ try {
             if (!sportKey) continue;
             try {
               const oddsEndpoint = `/v4/sports/${encodeURIComponent(sportKey)}/odds?regions=us&markets=h2h,spreads&oddsFormat=decimal`;
-              const oddsRes = await fetcher.fetchRapidApi(oddsApi.host, oddsEndpoint, { retries: 3, timeout: 12000, backoffBaseMs: 300 }).catch(() => null);
+              const oddsRes = await fetcher.fetch(oddsApi.host, oddsEndpoint, { retries: 3, timeout: 12000, backoffBaseMs: 300 }).catch(() => null);
               const total = Array.isArray(oddsRes && oddsRes.body) ? oddsRes.body.length : (oddsRes && oddsRes.body && oddsRes.body.data && Array.isArray(oddsRes.body.data) ? oddsRes.body.data.length : 0);
               console.log(`[rapidapistartupoddssport] ${sportKey} status=${oddsRes && oddsRes.httpStatus ? oddsRes.httpStatus : 'err'} total=${total} - worker-final.js:840`);
               // If we hit 429 (rate limit) stop further probes and set a cooldown key
@@ -859,7 +859,7 @@ try {
             }
             try {
               const scoresEndpoint = `/v4/sports/${encodeURIComponent(sportKey)}/scores/`;
-              const scoresRes = await fetcher.fetchRapidApi(oddsApi.host, scoresEndpoint, { retries: 3, timeout: 12000, backoffBaseMs: 300 }).catch(() => null);
+              const scoresRes = await fetcher.fetch(oddsApi.host, scoresEndpoint, { retries: 3, timeout: 12000, backoffBaseMs: 300 }).catch(() => null);
               const totalS = Array.isArray(scoresRes && scoresRes.body) ? scoresRes.body.length : (scoresRes && scoresRes.body && scoresRes.body.data && Array.isArray(scoresRes.body.data) ? scoresRes.body.data.length : 0);
               console.log(`[rapidapistartupscoressport] ${sportKey} status=${scoresRes && scoresRes.httpStatus ? scoresRes.httpStatus : 'err'} total=${totalS} - worker-final.js:864`);
               try {
