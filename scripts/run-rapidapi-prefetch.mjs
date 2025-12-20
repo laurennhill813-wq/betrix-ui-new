@@ -17,13 +17,17 @@ try {
 const redisClient = createRedisAdapter(getRedis());
 const fetcher = new RapidApiFetcher({ apiKey: process.env.RAPIDAPI_KEY });
 const TTL = Number(process.env.RAPIDAPI_TTL_SEC || 300);
+console.log(`Starting RapidAPI prefetch for ${subs.length} subscriptions (TTL=${TTL}s)`);
 
 async function run() {
   const ts = Date.now();
   const diag = { updatedAt: ts, apis: {} };
+  // summary collects per-API ok/error counts for final reporting
+  const summary = {};
   for (const api of subs) {
     const name = api.name || "unknown";
     const host = api.host;
+    console.log(`Processing API: ${name} (${host}) with ${Array.isArray(api.sampleEndpoints)?api.sampleEndpoints.length:0} sample endpoints`);
     diag.apis[name] = { status: "unknown", lastUpdated: null, endpoints: {} };
     const endpoints = Array.isArray(api.sampleEndpoints) ? api.sampleEndpoints : [];
     for (const endpoint of endpoints.slice(0, 10)) {
