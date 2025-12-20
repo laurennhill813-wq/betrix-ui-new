@@ -11,6 +11,7 @@ import DataExposureHandler from "./handlers/data-exposure-handler.js";
 import { getRedis, MockRedis } from "./lib/redis-factory.js";
 import createRedisAdapter from "./utils/redis-adapter.js";
 import { register } from "./utils/metrics.js";
+import { SPORTRADAR_SPORTS } from "./config/sportradar-sports.js";
 
 process.env.PGSSLMODE = process.env.PGSSLMODE || "require";
 // Do NOT disable TLS globally. Allow an explicit opt-in for local development only.
@@ -73,7 +74,36 @@ app.get("/health/sportradar", async (_req, res) => {
     if (!raw) return res.json({ ok: true, cached: false, message: "no sportradar health data" });
     try {
       const parsed = JSON.parse(raw);
-      return res.json({ ok: true, cached: true, health: parsed });
+      // Normalize per-sport entries to a strict schema for downstream consumers
+      const normalized = { updatedAt: parsed.updatedAt || new Date().toISOString(), bySport: {} };
+      const bySportRaw = parsed.bySport || {};
+      function normalizeEntry(e, sport) {
+        return {
+          sport: e?.sport ?? sport,
+          lastUpdated: e?.lastUpdated ?? null,
+          fixturesCount: Number.isInteger(e?.fixturesCount) ? e.fixturesCount : (e?.fixtures ? e.fixtures : 0),
+          teamsCount: Number.isInteger(e?.teamsCount) ? e.teamsCount : (e?.teams ? e.teams : 0),
+          httpStatus: e?.httpStatus ?? null,
+          errorReason: e?.errorReason ?? null,
+          pathUsed: e?.pathUsed ?? null,
+        };
+      }
+
+      // Ensure all known sports are present in the output with normalized schema
+      for (const s of SPORTRADAR_SPORTS) {
+        const id = s.id;
+        const rawEntry = bySportRaw[id] || bySportRaw[s.id] || null;
+        normalized.bySport[id] = normalizeEntry(rawEntry, id);
+      }
+
+      // also include any additional keys present in stored health (normalized)
+      for (const k of Object.keys(bySportRaw)) {
+        if (!normalized.bySport[k]) {
+          normalized.bySport[k] = normalizeEntry(bySportRaw[k], k);
+        }
+      }
+
+      return res.json({ ok: true, cached: true, health: normalized });
     } catch (e) {
       return res.json({ ok: true, cached: true, healthRaw: raw });
     }

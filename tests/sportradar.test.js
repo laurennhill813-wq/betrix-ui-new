@@ -35,14 +35,9 @@ describe("Sportradar registry and prefetch", () => {
     // Ensure health entries include enrichment fields
     for (const s of Object.keys(health.bySport)) {
       const entry = health.bySport[s];
-      expect(entry).toHaveProperty("sport");
-      expect(entry).toHaveProperty("lastUpdated");
-      expect(entry).toHaveProperty("fixturesCount");
-      expect(entry).toHaveProperty("teamsCount");
-      // httpStatus/pathUsed may be null for some mocked flows, but keys must exist
-      expect(entry).toHaveProperty("httpStatus");
-      expect(entry).toHaveProperty("pathUsed");
-      expect(entry).toHaveProperty("errorReason");
+      const expectedKeys = ["sport","lastUpdated","fixturesCount","teamsCount","httpStatus","errorReason","pathUsed"];
+      const keys = Object.keys(entry).sort();
+      expect(keys).toEqual(expectedKeys.sort());
     }
     // check that nascar key exists
     const teamsRaw = await mr.get("sportradar:teams:nascar");
@@ -129,6 +124,8 @@ describe("Sportradar registry and prefetch", () => {
     expect(soccer.fixturesCount).toBe(0);
     expect(soccer.httpStatus).toBe(429);
     expect(soccer.errorReason).toBeTruthy();
+    // ensure exact schema keys
+    expect(Object.keys(soccer).sort()).toEqual(["sport","lastUpdated","fixturesCount","teamsCount","httpStatus","errorReason","pathUsed"].sort());
 
     // tennis should have gateway error recorded
     const tennis = health.bySport["tennis"];
@@ -136,6 +133,7 @@ describe("Sportradar registry and prefetch", () => {
     expect(tennis.fixturesCount).toBe(0);
     expect(tennis.httpStatus).toBe(502);
     expect(tennis.errorReason).toBeTruthy();
+    expect(Object.keys(tennis).sort()).toEqual(["sport","lastUpdated","fixturesCount","teamsCount","httpStatus","errorReason","pathUsed"].sort());
 
     try { handle.stop(); } catch (e) {}
   });

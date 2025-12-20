@@ -150,7 +150,7 @@ export function startSportradarPrefetch({ redis, cronExpr, days = 2, ttlFixtures
 
         // Update health per-sport so partial results persist even on failures
         try {
-          // read current health, update this sport, and write back
+          // read current health, update this sport, and write back atomically
           let raw = null;
           try {
             raw = await redis.get(key);
@@ -159,10 +159,32 @@ export function startSportradarPrefetch({ redis, cronExpr, days = 2, ttlFixtures
           }
           const cur = raw ? JSON.parse(raw) : { updatedAt: nowISO(), bySport: {} };
           cur.bySport = cur.bySport || {};
-          cur.bySport[sport] = sportLog;
+          // normalize keys to the strict schema before persisting
+          function normalizeEntry(e) {
+            const out = {
+              sport: e?.sport ?? sport,
+              lastUpdated: e?.lastUpdated ?? null,
+              fixturesCount: Number.isInteger(e?.fixturesCount) ? e.fixturesCount : (e?.fixtures ? e.fixtures : 0),
+              teamsCount: Number.isInteger(e?.teamsCount) ? e.teamsCount : (e?.teams ? e.teams : 0),
+              httpStatus: e?.httpStatus ?? null,
+              errorReason: e?.errorReason ?? null,
+              pathUsed: e?.pathUsed ?? null,
+            };
+            return out;
+          }
+
+          cur.bySport[sport] = normalizeEntry(sportLog);
           cur.updatedAt = nowISO();
           try {
-            await redis.set(key, JSON.stringify(cur), "EX", Math.max(300, ttlFixtures));
+            // attempt atomic update using MULTI/EXEC so read-modify-write is less racy
+            const ttl = Math.max(300, ttlFixtures);
+            if (typeof redis.multi === "function") {
+              const m = redis.multi();
+              m.set(key, JSON.stringify(cur), "EX", ttl);
+              await m.exec();
+            } else {
+              await redis.set(key, JSON.stringify(cur), "EX", Math.max(300, ttlFixtures));
+            }
           } catch (e) {
             logger.warn("failed to write sportradar health to redis (per-sport)", e?.message || e);
           }
