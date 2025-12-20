@@ -23,6 +23,53 @@ export function startPrefetchScheduler({
 
   const safeSet = async (key, value, ttl) => {
     try {
+        // Proactive Heisenbug aggregation: if subscriptions include Heisenbug provider,
+        // perform a dedicated aggregation so UI fixtures are populated even when
+        // sampleEndpoints are placeholders.
+        try {
+          const heis = (Array.isArray(subscriptions) ? subscriptions : []).find(s => s && s.host && String(s.host).toLowerCase().includes('heisenbug-premier-league'));
+          if (heis) {
+            try {
+              // ensure rapidLogger exists
+              if (!rapidLogger) {
+                try { rapidLogger = new RapidApiLogger({ apiKey: process.env.RAPIDAPI_KEY }); } catch (e) {}
+              }
+              if (rapidLogger) {
+                const host = heis.host;
+                const days = Number(process.env.HEISENBUG_DAYS || 7);
+                const aggregated = [];
+                for (let d = 0; d < Math.max(1, days); d++) {
+                  const dt = new Date(); dt.setUTCDate(dt.getUTCDate() + d);
+                  const dateStr = dt.toISOString().slice(0,10);
+                  const dateEndpoint = `/api/premierleague?date=${encodeURIComponent(dateStr)}`;
+                  const resDate = await rapidLogger.fetch(host, dateEndpoint, { apiName: heis.name || 'Premier League' }).catch(()=>null);
+                  if (!resDate) continue;
+                  if (resDate.httpStatus === 404) continue;
+                  let parsedDate = null;
+                  try { parsedDate = typeof resDate.body === 'string' ? JSON.parse(resDate.body) : resDate.body; } catch (e) { parsedDate = resDate.body || null; }
+                  const arrDate = Array.isArray(parsedDate) ? parsedDate : (parsedDate && Array.isArray(parsedDate.fixtures) ? parsedDate.fixtures : []);
+                  for (const ev of (arrDate || [])) {
+                    const home = ev.home || ev.home_team || (ev.home && ev.home.name) || null;
+                    const away = ev.away || ev.away_team || (ev.away && ev.away.name) || null;
+                    const date = ev.date || ev.commence_time || ev.kickoff || ev.start || null;
+                    if (home && away) aggregated.push({ home_team: home, away_team: away, date });
+                  }
+                }
+                // write aggregated fixtures if any
+                const seen = new Map();
+                for (const f of aggregated) {
+                  const k = `${String(f.home_team)}::${String(f.away_team)}::${String(f.date || '')}`;
+                  if (!seen.has(k)) seen.set(k, f);
+                }
+                const fixtures = Array.from(seen.values());
+                if (fixtures.length) {
+                  const key = `rapidapi:soccer:fixtures:premierleague`;
+                  await redis.set(key, JSON.stringify({ apiName: heis.name || 'Premier League', league: 'premierleague', fixtures, ts }), 'EX', Number(process.env.RAPIDAPI_FIXTURES_TTL_SEC || 300)).catch(()=>{});
+                }
+              }
+            } catch (e) {}
+          }
+        } catch (e) {}
       await redis.set(key, JSON.stringify(value), "EX", ttl).catch(() => {});
     } catch (e) {
       void e;
@@ -517,9 +564,36 @@ export function startPrefetchScheduler({
 
       // 7) RapidAPI subscriptions: iterate configured subscriptions and fetch sample endpoints
       try {
-        const rapidLogger = new RapidApiLogger({ apiKey: process.env.RAPIDAPI_KEY });
+        let rapidLogger = null;
+        try {
+          rapidLogger = new RapidApiLogger({ apiKey: process.env.RAPIDAPI_KEY });
+        } catch (e) {
+          console.info('[rapidapi] RapidApiLogger init failed, falling back to minimal fetcher', e?.message || String(e));
+          rapidLogger = {
+            fetch: async (host, endpoint, opts = {}) => {
+              try {
+                const url = `https://${host}${endpoint}`;
+                const headers = {
+                  'X-RapidAPI-Key': process.env.RAPIDAPI_KEY || '',
+                  'X-RapidAPI-Host': host,
+                  Accept: 'application/json',
+                };
+                if (String(host || '').toLowerCase().includes('the-odds-api.com')) headers['x-api-key'] = process.env.RAPIDAPI_KEY || '';
+                const res = await fetch(url, { method: 'GET', headers }).catch((err) => { throw err; });
+                const body = await (res && typeof res.json === 'function' ? res.json().catch(() => null) : null);
+                // capture headers
+                let hdrs = {};
+                try { if (res && res.headers && typeof res.headers.entries === 'function') for (const [k,v] of res.headers.entries()) hdrs[k]=v; } catch (e) {}
+                return { httpStatus: res.status, body, headers: hdrs };
+              } catch (err) {
+                return { httpStatus: null, body: null, error: { message: err && err.message ? err.message : String(err) } };
+              }
+            }
+          };
+        }
         const rapidDiagnostics = { updatedAt: ts, apis: {} };
         for (const api of Array.isArray(subscriptions) ? subscriptions : []) {
+          try { if (api && api.host && String(api.host).toLowerCase().includes('heisenbug-premier-league')) console.log('[debug] processing heisenbug provider in scheduler'); } catch(e) {}
           const apiName = api.name || "unknown";
           const safeName = normalizeRedisKeyPart(apiName || "unknown");
           rapidDiagnostics.apis[apiName] = { status: "unknown", lastUpdated: null, endpoints: {} };

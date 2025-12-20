@@ -174,3 +174,15 @@ export class RapidApiLogger {
 }
 
 export default RapidApiLogger;
+
+// Provide CommonJS and global fallback for environments that `require()` the module
+try {
+  if (typeof globalThis !== 'undefined' && globalThis) {
+    globalThis.RapidApiLogger = RapidApiLogger;
+  }
+} catch (e) {}
+try {
+  if (typeof module !== 'undefined' && module && module.exports) {
+    module.exports = RapidApiLogger;
+  }
+} catch (e) {}
