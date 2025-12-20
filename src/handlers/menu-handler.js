@@ -118,29 +118,58 @@ export async function buildSportsMenu(redis = null) {
   } catch (e) {
     void e;
   }
-
-  const candidateSports = [
-    "soccer",
-    "basketball",
-    "tennis",
-    "nfl",
-    "icehockey",
-    "baseball",
-    "nascar",
-  ];
-
+  // Prefer dynamic discovery from RapidAPI prefetch keys in Redis (odds/scores)
   const buttons = [];
-  for (const s of candidateSports) {
-    try {
-      const teams = await getTeams(s, {});
-      // Only expose sports with some teams/coverage
-      if (teams && teams.length > 0) {
-        const label = `${sportEmoji(s)} ${safeName(s, s.toUpperCase())}`;
-        buttons.push({ text: label, callback_data: `sport_${s}` });
+  try {
+    if (redis && typeof redis.keys === "function") {
+      const oddsKeys = await redis.keys("rapidapi:odds:sport:*").catch(() => []);
+      const scoresKeys = await redis.keys("rapidapi:scores:sport:*").catch(() => []);
+      const keySet = new Set();
+      for (const k of (oddsKeys || [])) {
+        const parts = k.split(":");
+        const sk = parts.slice(3).join(":");
+        if (sk) keySet.add(sk);
       }
-    } catch (e) {
-      // ignore individual sport failures
-      continue;
+      for (const k of (scoresKeys || [])) {
+        const parts = k.split(":");
+        const sk = parts.slice(3).join(":");
+        if (sk) keySet.add(sk);
+      }
+      if (keySet.size > 0) {
+        for (const sk of Array.from(keySet)) {
+          const label = `${sportEmoji(sk) || "🏟"} ${safeName(sk, sk.toUpperCase())}`;
+          buttons.push({ text: label, callback_data: `sport_${sk}` });
+        }
+      }
+    }
+  } catch (e) {
+    // ignore redis discovery errors
+  }
+
+  // Fallback: use Sportradar teams discovery for common sports
+  if (buttons.length === 0) {
+    const candidateSports = [
+      "soccer",
+      "basketball",
+      "tennis",
+      "nfl",
+      "icehockey",
+      "baseball",
+      "nascar",
+    ];
+
+    for (const s of candidateSports) {
+      try {
+        const teams = await getTeams(s, {});
+        // Only expose sports with some teams/coverage
+        if (teams && teams.length > 0) {
+          const label = `${sportEmoji(s)} ${safeName(s, s.toUpperCase())}`;
+          buttons.push({ text: label, callback_data: `sport_${s}` });
+        }
+      } catch (e) {
+        // ignore individual sport failures
+        continue;
+      }
     }
   }
 

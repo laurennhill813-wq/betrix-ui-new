@@ -88,6 +88,40 @@ async function getLiveSoccerMatches(redis, sportMonksAPI) {
     return [];
   } catch (e) {
     logger.warn("SportMonks fetch error", e?.message || String(e));
+    // Fallback: try to pull live matches from Redis prefetch (RapidAPI)
+    try {
+      if (redis && typeof redis.keys === "function") {
+        const scoreKeys = await redis.keys("rapidapi:scores:sport:*").catch(() => []);
+        const matches = [];
+        for (const k of scoreKeys || []) {
+          try {
+            const raw = await redis.get(k).catch(() => null);
+            if (!raw) continue;
+            const parsed = JSON.parse(raw);
+            const sportKey = parsed && parsed.sportKey ? parsed.sportKey : k.split(":").slice(3).join(":");
+            const samples = parsed && parsed.sample ? [parsed.sample] : [];
+            const events = parsed && parsed.samples ? parsed.samples : [];
+            for (const ev of (events.length ? events : samples)) {
+              matches.push({
+                id: ev.id || ev.event_id || String(Math.random()),
+                home: ev.home_team || ev.home || ev.homeTeam || ev.homeName || ev.home || ev.team1 || "Unknown",
+                away: ev.away_team || ev.away || ev.awayTeam || ev.awayName || ev.team2 || "Unknown",
+                status: ev.status || ev.matchStatus || (ev.commence_time && new Date(ev.commence_time).getTime() <= Date.now() ? "LIVE" : "TBA"),
+                homeScore: ev.home_score || ev.homeScore || null,
+                awayScore: ev.away_score || ev.awayScore || null,
+                provider: "RapidAPI",
+                sport: sportKey,
+              });
+            }
+          } catch (e) {
+            continue;
+          }
+        }
+        return matches;
+      }
+    } catch (e2) {
+      logger.warn("Redis fallback for live matches failed", e2?.message || String(e2));
+    }
     return [];
   }
 }

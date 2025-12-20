@@ -1649,6 +1649,18 @@ async function handleModCallback(
               { text: "⚽ Football", callback_data: "sport:football" },
               { text: "🏀 Basketball", callback_data: "sport:basketball" },
             ],
+            [
+              { text: "🏈 American Football", callback_data: "sport:americanfootball" },
+              { text: "🏒 Ice Hockey", callback_data: "sport:icehockey" },
+            ],
+            [
+              { text: "🎾 Tennis", callback_data: "sport:tennis" },
+              { text: "🏏 Cricket", callback_data: "sport:cricket" },
+            ],
+            [
+              { text: "⚾ Baseball", callback_data: "sport:baseball" },
+              { text: "🥊 Boxing / MMA", callback_data: "sport:combat" },
+            ],
             [{ text: "⬅️ Back", callback_data: "back:start" }],
           ],
         };
