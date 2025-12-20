@@ -742,6 +742,61 @@ try {
       }
     })();
   } else {
+
+// Force a small The Odds API per-sport probe at startup to ensure per-sport
+// logs appear in deployment logs (helps ops confirm RapidAPI odds/scores).
+try {
+  (async () => {
+    try {
+      if (!process.env.RAPIDAPI_KEY) return;
+      const subsPath = path.join(process.cwd(), "src", "rapidapi", "subscriptions.json");
+      let subs = [];
+      try {
+        const raw = fs.readFileSync(subsPath, "utf8");
+        subs = JSON.parse(raw);
+      } catch (e) {}
+      const oddsApi = (Array.isArray(subs) ? subs : []).find((s) => s && s.host && /odds\.p\.rapidapi\.com|odds-api/i.test(s.host + (s.name||'')) );
+      if (!oddsApi || !oddsApi.host) {
+        // nothing to probe
+        return;
+      }
+      const fetcher = new RapidApiFetcher({ apiKey: process.env.RAPIDAPI_KEY });
+      // fetch sports list
+      try {
+        const sportsRes = await fetcher.fetchRapidApi(oddsApi.host, '/v4/sports/?');
+        const sportsList = Array.isArray(sportsRes.body) ? sportsRes.body : (sportsRes.body && sportsRes.body.data && Array.isArray(sportsRes.body.data) ? sportsRes.body.data : []);
+        if (Array.isArray(sportsList) && sportsList.length) {
+          const limit = Math.min(3, sportsList.length);
+          for (let i = 0; i < limit; i++) {
+            const s = sportsList[i];
+            const sportKey = s && (s.key || s.sport_key || s.id || s.name);
+            if (!sportKey) continue;
+            try {
+              const oddsEndpoint = `/v4/sports/${encodeURIComponent(sportKey)}/odds?regions=us&markets=h2h,spreads&oddsFormat=decimal`;
+              const oddsRes = await fetcher.fetchRapidApi(oddsApi.host, oddsEndpoint).catch(() => null);
+              const total = Array.isArray(oddsRes && oddsRes.body) ? oddsRes.body.length : (oddsRes && oddsRes.body && oddsRes.body.data && Array.isArray(oddsRes.body.data) ? oddsRes.body.data.length : 0);
+              console.log(`[rapidapi-startup-odds-sport] ${sportKey} status=${oddsRes && oddsRes.httpStatus ? oddsRes.httpStatus : 'err'} total=${total}`);
+            } catch (e) {
+              console.log(`[rapidapi-startup-odds-sport] ${sportKey} error ${e && e.message ? e.message : String(e)}`);
+            }
+            try {
+              const scoresEndpoint = `/v4/sports/${encodeURIComponent(sportKey)}/scores/`;
+              const scoresRes = await fetcher.fetchRapidApi(oddsApi.host, scoresEndpoint).catch(() => null);
+              const totalS = Array.isArray(scoresRes && scoresRes.body) ? scoresRes.body.length : (scoresRes && scoresRes.body && scoresRes.body.data && Array.isArray(scoresRes.body.data) ? scoresRes.body.data.length : 0);
+              console.log(`[rapidapi-startup-scores-sport] ${sportKey} status=${scoresRes && scoresRes.httpStatus ? scoresRes.httpStatus : 'err'} total=${totalS}`);
+            } catch (e) {
+              console.log(`[rapidapi-startup-scores-sport] ${sportKey} error ${e && e.message ? e.message : String(e)}`);
+            }
+          }
+        }
+      } catch (e) {
+        console.log('[rapidapi-startup] sports-list-error', e && e.message ? e.message : String(e));
+      }
+    } catch (e) {
+      /* ignore */
+    }
+  })();
+} catch (e) {}
     logger.info(
       "ℹ️ Telegram webhook auto-registration skipped (TELEGRAM_TOKEN or TELEGRAM_WEBHOOK_URL missing)",
     );
