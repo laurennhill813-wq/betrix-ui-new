@@ -760,6 +760,28 @@ export function startPrefetchScheduler({
         } else {
           console.log("[rapidapi-health] none");
         }
+        // Dump a small set of per-sport rapidapi keys for quick verification
+        try {
+          const oddsKeys = await redis.keys('rapidapi:odds:sport:*').catch(() => []);
+          const scoresKeys = await redis.keys('rapidapi:scores:sport:*').catch(() => []);
+          const sampleOdds = (oddsKeys || []).slice(0, 5);
+          const sampleScores = (scoresKeys || []).slice(0, 5);
+          for (const k of sampleOdds) {
+            try {
+              const v = await redis.get(k).catch(() => null);
+              if (v) console.log('[rapidapi-samples] odds', k, String(v).slice(0, 1000));
+            } catch (e) {}
+          }
+          for (const k of sampleScores) {
+            try {
+              const v = await redis.get(k).catch(() => null);
+              if (v) console.log('[rapidapi-samples] scores', k, String(v).slice(0, 1000));
+            } catch (e) {}
+          }
+          if ((sampleOdds.length === 0) && (sampleScores.length === 0)) console.log('[rapidapi-samples] none found');
+        } catch (e) {
+          /* ignore sample dump errors */
+        }
       } catch (e) {
         /* ignore */
       }
