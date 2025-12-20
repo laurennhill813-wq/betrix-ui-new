@@ -624,6 +624,10 @@ try {
   logger.info("Prefetch scheduler started", {
     intervalSeconds: Number(process.env.PREFETCH_INTERVAL_SECONDS || 60),
   });
+  // Expose RapidAPI env info in startup logs so Render shows if key and max-sports are set
+  try {
+    console.log(`[rapidapi] rapidapi_key_present=${!!process.env.RAPIDAPI_KEY} RAPIDAPI_ODDS_MAX_SPORTS=${process.env.RAPIDAPI_ODDS_MAX_SPORTS || 'unset'}`);
+  } catch (e) {}
 } catch (e) {
   logger.warn("Prefetch scheduler failed to start", e?.message || String(e));
 }
@@ -681,7 +685,7 @@ try {
           logger.info("✅ Telegram webhook set successfully", {
             url: TELEGRAM_WEBHOOK_URL,
           });
-          console.log("Telegram webhook set successfully - worker-final.js:703");
+          console.log("Telegram webhook set successfully - worker-final.js:684");
         } else {
           logger.warn("⚠️ Telegram setWebhook returned non-ok", {
             result: json,

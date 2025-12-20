@@ -20,6 +20,15 @@ try {
   subscriptions = [];
 }
 
+// Log basic RapidAPI startup state so deploy logs show whether scheduler
+// has subscriptions and whether a RAPIDAPI_KEY is configured (do not print the key).
+try {
+  const count = Array.isArray(subscriptions) ? subscriptions.length : 0;
+  console.log(`[rapidapi] subscriptions=${count} rapidapi_key_present=${!!process.env.RAPIDAPI_KEY}`);
+} catch (e) {
+  /* ignore logging errors */
+}
+
 export function startPrefetchScheduler({
   redis,
   openLiga,
@@ -622,28 +631,62 @@ export function startPrefetchScheduler({
                   let sportsList = [];
                   try { sportsList = typeof sportsRes.body === 'string' ? JSON.parse(sportsRes.body) : sportsRes.body; } catch (e) { sportsList = sportsRes.body || []; }
                   if (Array.isArray(sportsList) && sportsList.length) {
+                    // Determine max sports to fetch. Allow 'ALL' to fetch full list.
+                    const envMax = String(process.env.RAPIDAPI_ODDS_MAX_SPORTS || "12").toUpperCase();
+                    let effectiveMax = Number(process.env.RAPIDAPI_ODDS_MAX_SPORTS || 12);
+                    if (envMax === "ALL" || envMax === "0") {
+                      effectiveMax = sportsList.length;
+                    } else if (Number.isNaN(effectiveMax) || effectiveMax <= 0) {
+                      effectiveMax = Math.min(1000, sportsList.length);
+                    }
+                    console.log(`[rapidapi] odds-api=${api.host} sportsAvailable=${sportsList.length} prefetchLimit=${effectiveMax}`);
                     let count = 0;
                     for (const s of sportsList) {
-                      if (count >= maxSports) break;
+                      if (count >= effectiveMax) break;
                       const sportKey = s && (s.key || s.sport_key || s.id);
                       if (!sportKey) continue;
-                      const sportEndpoint = `/v4/sports/${encodeURIComponent(sportKey)}/odds?regions=us&markets=h2h,spreads&oddsFormat=decimal`;
-                      const r = await rapidFetcher.fetchRapidApi(api.host, sportEndpoint).catch(() => null);
-                      if (r && r.httpStatus && r.httpStatus >= 200 && r.httpStatus < 300) {
-                        // parse and log per-sport summary: live count / upcoming count
-                        let parsed = null;
-                        try { parsed = typeof r.body === 'string' ? JSON.parse(r.body) : r.body; } catch (e) { parsed = null; }
-                        const events = Array.isArray(parsed) ? parsed : (parsed && parsed.data && Array.isArray(parsed.data) ? parsed.data : []);
-                        const total = events.length;
-                        const now = Date.now();
-                        const live = events.filter((ev) => {
-                          try {
-                            const commence = ev.commence_time ? new Date(ev.commence_time).getTime() : null;
-                            return commence && commence <= now;
-                          } catch (e) { return false; }
-                        }).length;
-                        console.log(`[rapidapi-odds-sport] ${sportKey} total=${total} live=${live}`);
-                        await redis.set(`rapidapi:odds:sport:${normalizeRedisKeyPart(String(sportKey))}`, JSON.stringify({ apiName, sportKey, total, live, ts }), 'EX', 60).catch(() => {});
+                      try {
+                        const sportEndpoint = `/v4/sports/${encodeURIComponent(sportKey)}/odds?regions=us&markets=h2h,spreads&oddsFormat=decimal`;
+                        const r = await rapidFetcher.fetchRapidApi(api.host, sportEndpoint).catch(() => null);
+                        if (r && r.httpStatus && r.httpStatus >= 200 && r.httpStatus < 300) {
+                          let parsed = null;
+                          try { parsed = typeof r.body === 'string' ? JSON.parse(r.body) : r.body; } catch (e) { parsed = null; }
+                          const events = Array.isArray(parsed) ? parsed : (parsed && parsed.data && Array.isArray(parsed.data) ? parsed.data : []);
+                          const total = events.length;
+                          const now = Date.now();
+                          const live = events.filter((ev) => {
+                            try {
+                              const commence = ev.commence_time ? new Date(ev.commence_time).getTime() : null;
+                              return commence && commence <= now;
+                            } catch (e) { return false; }
+                          }).length;
+                          console.log(`[rapidapi-odds-sport] ${sportKey} total=${total} live=${live}`);
+                          await redis.set(`rapidapi:odds:sport:${normalizeRedisKeyPart(String(sportKey))}`, JSON.stringify({ apiName, sportKey, total, live, ts }), 'EX', 60).catch(() => {});
+                        }
+
+                        // Also fetch scores (live + upcoming) to populate fixture lists
+                        try {
+                          const scoresEndpoint = `/v4/sports/${encodeURIComponent(sportKey)}/scores/`;
+                          const scoresRes = await rapidFetcher.fetchRapidApi(api.host, scoresEndpoint).catch(() => null);
+                          if (scoresRes && scoresRes.httpStatus && scoresRes.httpStatus >= 200 && scoresRes.httpStatus < 300) {
+                            let parsedScores = null;
+                            try { parsedScores = typeof scoresRes.body === 'string' ? JSON.parse(scoresRes.body) : scoresRes.body; } catch (e) { parsedScores = null; }
+                            const scoreEvents = Array.isArray(parsedScores) ? parsedScores : (parsedScores && parsedScores.data && Array.isArray(parsedScores.data) ? parsedScores.data : []);
+                            const totalScores = scoreEvents.length;
+                            const liveScores = scoreEvents.filter((ev) => {
+                              try {
+                                const commence = ev.commence_time ? new Date(ev.commence_time).getTime() : null;
+                                return commence && commence <= Date.now();
+                              } catch (e) { return false; }
+                            }).length;
+                            console.log(`[rapidapi-scores-sport] ${sportKey} total=${totalScores} live=${liveScores}`);
+                            await redis.set(`rapidapi:scores:sport:${normalizeRedisKeyPart(String(sportKey))}`, JSON.stringify({ apiName, sportKey, total: totalScores, live: liveScores, ts }), 'EX', 60).catch(() => {});
+                          }
+                        } catch (e) {
+                          /* ignore per-sport scores errors */
+                        }
+                      } catch (e) {
+                        /* continue on per-sport errors */
                       }
                       count += 1;
                     }
