@@ -171,6 +171,19 @@ export class RapidApiLogger {
 
     return result;
   }
+
+  // Convenience wrapper requested by worker code: logRequest -> fetch
+  async logRequest(host, endpoint, opts = {}) {
+    return this.fetch(host, endpoint, opts);
+  }
+
+  // Optional helper to accept a response object and log/return it
+  logResponse(response) {
+    try {
+      console.info('[rapidapi-response] status=' + (response && response.httpStatus ? response.httpStatus : 'null'));
+    } catch (e) {}
+    return response;
+  }
 }
 
 export default RapidApiLogger;

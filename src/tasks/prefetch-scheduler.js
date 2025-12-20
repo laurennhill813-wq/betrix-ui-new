@@ -4,6 +4,10 @@
  * WARNING: setting this below ~10s may stress remote APIs and trigger rate limits.
  */
 import { setTimeout as wait } from "timers/promises";
+import fs from "fs";
+import path from "path";
+import RapidApiLogger from "../lib/rapidapi-logger.js";
+import { formatMMDDYYYY, getNextDaysMMDDYYYY } from "../lib/rapidapi-utils.js";
 export function startPrefetchScheduler({
   redis,
   openLiga,
@@ -20,6 +24,17 @@ export function startPrefetchScheduler({
 
   let running = false;
   let lastRun = 0;
+
+  // Load subscriptions.json at runtime so `subscriptions` is defined
+  let subscriptions = [];
+  try {
+    const subsPath = path.join(process.cwd(), "src", "rapidapi", "subscriptions.json");
+    const raw = fs.readFileSync(subsPath, "utf8");
+    subscriptions = JSON.parse(raw);
+  } catch (e) {
+    console.warn("[rapidapi] failed to load subscriptions.json", e && e.message ? e.message : String(e));
+    subscriptions = [];
+  }
 
   const safeSet = async (key, value, ttl) => {
     try {
@@ -38,9 +53,8 @@ export function startPrefetchScheduler({
                 const host = heis.host;
                 const days = Number(process.env.HEISENBUG_DAYS || 7);
                 const aggregated = [];
-                for (let d = 0; d < Math.max(1, days); d++) {
-                  const dt = new Date(); dt.setUTCDate(dt.getUTCDate() + d);
-                  const dateStr = dt.toISOString().slice(0,10);
+                const dates = getNextDaysMMDDYYYY(Math.max(1, days));
+                for (const dateStr of dates) {
                   const dateEndpoint = `/api/premierleague?date=${encodeURIComponent(dateStr)}`;
                   const resDate = await rapidLogger.fetch(host, dateEndpoint, { apiName: heis.name || 'Premier League' }).catch(()=>null);
                   if (!resDate) continue;
