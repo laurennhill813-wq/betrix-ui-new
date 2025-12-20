@@ -232,7 +232,13 @@ export async function fetchAndNormalizeFixtures(sport = "soccer", params = {}, o
   else if (Array.isArray(raw)) items = raw;
 
   items = Array.isArray(items) ? items : [];
-  const normalized = items.map((r) => parseBySport(sport, r));
+  let normalized = items.map((r) => parseBySport(sport, r));
+  // Add compatibility aliases expected by callers/tests: `home`/`away`
+  normalized = normalized.map((n) => ({
+    ...n,
+    home: n.homeTeam || n.home || null,
+    away: n.awayTeam || n.away || null,
+  }));
   return { items: normalized, ...meta };
 }
 
