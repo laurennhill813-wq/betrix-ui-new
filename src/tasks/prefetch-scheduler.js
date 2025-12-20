@@ -625,7 +625,7 @@ export function startPrefetchScheduler({
 
               // If this is The Odds API, also fetch per-sport odds list (bounded)
               try {
-                if (api.host && api.host.includes('odds.p.rapidapi.com')) {
+                if (api.host && (api.host.includes('odds.p.rapidapi.com') || api.host.includes('the-odds-api') || /odds[-.]?api/i.test(api.host))) {
                   const maxSports = Number(process.env.RAPIDAPI_ODDS_MAX_SPORTS || 12);
                   // fetch sports list (this endpoint does not count against quota)
                       const sportsRes = await rapidLogger.fetch(api.host, '/v4/sports/?', { apiName });
@@ -697,15 +697,16 @@ export function startPrefetchScheduler({
                               // Attempt to normalize fixtures for UI buttons: write rapidapi:<sport>:fixtures:<league>
                               try {
                                 const fixtures = (scoreEvents || []).map((ev) => {
-                                  const home = ev.home_team || ev.home || ev.teams && ev.teams[0] || ev.team1 || (ev.home && ev.home.name) || null;
-                                  const away = ev.away_team || ev.away || ev.teams && ev.teams[1] || ev.team2 || (ev.away && ev.away.name) || null;
-                                  const commence = ev.commence_time || ev.commence || ev.start || ev.date || null;
-                                  const competition = ev.league || ev.competition || (parsedScores && parsedScores.competition) || 'default';
-                                  return { home, away, commence, competition };
-                                }).filter((f) => f.home && f.away);
+                                      const home = ev.home_team || ev.home || (ev.teams && ev.teams[0]) || ev.team1 || (ev.home && ev.home.name) || null;
+                                      const away = ev.away_team || ev.away || (ev.teams && ev.teams[1]) || ev.team2 || (ev.away && ev.away.name) || null;
+                                      const commence = ev.commence_time || ev.commence || ev.start || ev.date || null;
+                                      // prefer explicit league/competition, fall back to sport title from the sport list
+                                      const competition = ev.league || ev.competition || ev.sport_title || (s && (s.title || s.name)) || 'default';
+                                      return { home, away, commence, competition };
+                                    }).filter((f) => f.home && f.away);
                                 if (fixtures.length) {
-                                  const league = fixtures[0].competition || 'default';
-                                  const key = `rapidapi:${normalizeRedisKeyPart(String(sportKey))}:fixtures:${normalizeRedisKeyPart(String(league))}`;
+                                      const league = fixtures[0].competition || 'default';
+                                      const key = `rapidapi:${normalizeRedisKeyPart(String(sportKey))}:fixtures:${normalizeRedisKeyPart(String(league))}`;
                                   await redis.set(key, JSON.stringify({ apiName, sportKey, league, fixtures, ts }), 'EX', Number(process.env.RAPIDAPI_FIXTURES_TTL_SEC || 300)).catch(() => {});
                                 }
                               } catch (e) {

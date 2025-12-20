@@ -102,7 +102,33 @@ function createRedisAdapter(redis) {
 
   // If redis client uses node-redis, adapt common methods
   return {
-    get: (k) => redis.get(k),
+    get: async (k) => {
+      // If the underlying client exposes `type`, prefer to check the key type
+      // and avoid calling GET on a Redis LIST (which causes WRONGTYPE).
+      try {
+        if (redis && typeof redis.type === "function") {
+          const t = await redis.type(k).catch(() => null);
+          if (t === "list") {
+            // read list entries and return as JSON string to preserve previous GET behaviour
+            try {
+              if (redis.lRange) {
+                const arr = await redis.lRange(k, 0, -1);
+                return JSON.stringify(arr);
+              }
+              if (redis.lrange) {
+                const arr = await redis.lrange(k, 0, -1);
+                return JSON.stringify(arr);
+              }
+            } catch (e) {
+              // fall back to direct get
+            }
+          }
+        }
+      } catch (e) {
+        // ignore and fallback
+      }
+      return redis.get(k);
+    },
     set: (k, v) => redis.set(k, v),
     del: (k) => redis.del(k),
     type: (k) => (redis.type ? redis.type(k) : (async () => "string")()),
