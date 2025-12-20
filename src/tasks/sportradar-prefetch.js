@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import { Logger } from "../utils/logger.js";
-import { getTeams, getUpcomingFixtures, sportEmoji } from "../services/sportradar-client.js";
+import { getTeams, getUpcomingFixtures, fetchAndNormalizeFixtures, fetchAndNormalizeTeams, sportEmoji } from "../services/sportradar-client.js";
 import { SPORTRADAR_SPORTS } from "../config/sportradar-sports.js";
 
 const logger = new Logger("SportradarPrefetch");
@@ -61,42 +61,48 @@ export function startSportradarPrefetch({ redis, cronExpr, days = 2, ttlFixtures
     await withLock(async () => {
       for (const s of SPORTRADAR_SPORTS) {
         const sport = s.id;
-        const sportLog = { lastUpdated: null, teams: 0, fixtures: 0, errors: [] };
+        const sportLog = { sport, lastUpdated: null, teamsCount: 0, fixturesCount: 0, httpStatus: null, errorReason: null, pathUsed: null };
         try {
-          // prefetch teams
-          const teams = await getTeams(sport, { forceFetch: true });
-          if (Array.isArray(teams)) {
-            try {
-              await redis.set(`sportradar:teams:${sport}`, JSON.stringify({ fetchedAt: nowISO(), items: teams }), "EX", ttlTeams);
-            } catch (e) {
-              logger.warn("redis set teams failed", e?.message || e);
-            }
-            sportLog.teams = teams.length;
+          // prefetch teams (with metadata)
+          const teamRes = await fetchAndNormalizeTeams(sport, { });
+          const teams = Array.isArray(teamRes.items) ? teamRes.items : [];
+          try {
+            await redis.set(`sportradar:teams:${sport}`, JSON.stringify({ fetchedAt: nowISO(), items: teams }), "EX", ttlTeams);
+          } catch (e) {
+            logger.warn("redis set teams failed", e?.message || e);
           }
+          sportLog.teamsCount = teams.length;
+          if (teamRes.httpStatus) sportLog.httpStatus = teamRes.httpStatus;
+          if (teamRes.pathUsed) sportLog.pathUsed = teamRes.pathUsed;
+          if (teamRes.errorReason) sportLog.errorReason = teamRes.errorReason;
 
           // prefetch fixtures for next N days
           const fixtures = [];
+          let lastFixtureMeta = {};
           for (let d = 0; d <= days; d++) {
             const date = new Date();
             date.setUTCDate(date.getUTCDate() + d);
             const isoDate = date.toISOString().slice(0, 10);
             try {
-              const dayFixtures = await getUpcomingFixtures(sport, { date });
-              if (Array.isArray(dayFixtures) && dayFixtures.length) fixtures.push(...dayFixtures);
+              const dayRes = await fetchAndNormalizeFixtures(sport, { date: isoDate });
+              const dayFixtures = Array.isArray(dayRes.items) ? dayRes.items : [];
+              if (dayFixtures.length) fixtures.push(...dayFixtures);
+              // capture last known metadata
+              lastFixtureMeta = { httpStatus: dayRes.httpStatus || lastFixtureMeta.httpStatus, pathUsed: dayRes.pathUsed || lastFixtureMeta.pathUsed, errorReason: dayRes.errorReason || lastFixtureMeta.errorReason };
             } catch (e) {
               logger.warn(`fetch fixtures ${sport} ${isoDate} failed`, e?.message || e);
             }
             // respect a small pause between date calls
             await sleep(150);
           }
-          // normalize minimal shape (client already normalizes partially)
-          const normalized = (fixtures || []).map((f) => ({
+
+          const normalized = fixtures.map((f) => ({
             sport,
             league: f.league || null,
-            eventId: f.eventId || f.id || (f.raw && (f.raw.id || f.raw.event_id)) || null,
-            startTimeISO: f.startTime || f.scheduled || f.date || f.startTimeISO || null,
-            homeTeam: f.home || f.homeTeam || f.home?.name || null,
-            awayTeam: f.away || f.awayTeam || f.away?.name || null,
+            eventId: f.eventId || f.id || null,
+            startTimeISO: f.startTimeISO || f.startTime || null,
+            homeTeam: f.homeTeam || f.home || null,
+            awayTeam: f.awayTeam || f.away || null,
             venue: f.venue || null,
             status: f.status || null,
           }));
@@ -108,13 +114,17 @@ export function startSportradarPrefetch({ redis, cronExpr, days = 2, ttlFixtures
               logger.warn("redis set upcoming failed", e?.message || e);
             }
           }
-          sportLog.fixtures = normalized.length;
+          sportLog.fixturesCount = normalized.length;
           sportLog.lastUpdated = nowISO();
-          await redis.publish("prefetch:updates", JSON.stringify({ type: "sportradar", sport, ts: Date.now(), fixtures: normalized.length, teams: sportLog.teams }));
+          // prefer fixture meta for http/path if available
+          if (lastFixtureMeta.httpStatus) sportLog.httpStatus = lastFixtureMeta.httpStatus;
+          if (lastFixtureMeta.pathUsed) sportLog.pathUsed = lastFixtureMeta.pathUsed;
+          if (lastFixtureMeta.errorReason) sportLog.errorReason = lastFixtureMeta.errorReason;
+          await redis.publish("prefetch:updates", JSON.stringify({ type: "sportradar", sport, ts: Date.now(), fixtures: normalized.length, teams: sportLog.teamsCount }));
         } catch (e) {
           const msg = e?.message || String(e);
           logger.error(`prefetch ${sport} failed`, msg);
-          sportLog.errors.push(msg);
+          sportLog.errorReason = msg;
         }
         health.bySport[sport] = sportLog;
       }

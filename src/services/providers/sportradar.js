@@ -2,6 +2,7 @@ import { callProvider } from "./fetcher.js";
 import { cacheGet, cacheSet } from "../../lib/redis-cache.js";
 
 const DEFAULT_AUTH = { method: "query", queryParam: "api_key" };
+const DEFAULT_BASE = process.env.SPORTRADAR_BASE || "https://api.sportradar.us";
 
 // TTLs in seconds
 const TTL = {
@@ -64,8 +65,8 @@ export async function fetchSportradar(sport, type, params = {}, opts = {}) {
     case "basketball":
       if (type === "matches_by_date")
         addCandidates("", [
+          `/nba/trial/v7/en/games/${date}/schedule.json`,
           `/basketball/trial/v3/en/games/${date}/schedule.json`,
-          `/basketball/v4/en/games/${date}/schedule.json`,
           `/nba/v3/en/games/${date}/schedule.json`,
         ]);
       else
@@ -79,8 +80,8 @@ export async function fetchSportradar(sport, type, params = {}, opts = {}) {
     case "americanfootball":
       if (type === "matches_by_date")
         addCandidates("", [
+          `/nfl/trial/v7/en/games/${date}/schedule.json`,
           `/americanfootball/trial/v4/en/games/${date}/schedule.json`,
-          `/americanfootball/v4/en/games/${date}/schedule.json`,
           `/nfl/v3/en/games/${date}/schedule.json`,
         ]);
       else
@@ -94,8 +95,8 @@ export async function fetchSportradar(sport, type, params = {}, opts = {}) {
     case "baseball":
       if (type === "matches_by_date")
         addCandidates("", [
+          `/mlb/trial/v7/en/games/${date}/schedule.json`,
           `/baseball/trial/v4/en/games/${date}/schedule.json`,
-          `/baseball/v4/en/games/${date}/schedule.json`,
           `/mlb/v3/en/games/${date}/schedule.json`,
         ]);
       else
@@ -109,8 +110,8 @@ export async function fetchSportradar(sport, type, params = {}, opts = {}) {
     case "hockey":
       if (type === "matches_by_date")
         addCandidates("", [
+          `/nhl/trial/v7/en/games/${date}/schedule.json`,
           `/icehockey/trial/v4/en/games/${date}/schedule.json`,
-          `/icehockey/v4/en/games/${date}/schedule.json`,
           `/nhl/v3/en/games/${date}/schedule.json`,
         ]);
       else
@@ -123,6 +124,7 @@ export async function fetchSportradar(sport, type, params = {}, opts = {}) {
     case "tennis":
       if (type === "matches_by_date")
         addCandidates("", [
+          `/tennis/trial/v3/en/schedules/${date}/schedule.json`,
           `/tennis/trial/v2/en/games/${date}/schedule.json`,
           `/tennis/v2/en/games/${date}/schedule.json`,
         ]);
@@ -136,6 +138,7 @@ export async function fetchSportradar(sport, type, params = {}, opts = {}) {
     case "nascar":
       if (type === "matches_by_date")
         addCandidates("", [
+          `/nascar/trial/v2/en/schedules/${date}/schedule.json`,
           `/motorsports/trial/v2/en/events/${date}/schedule.json`,
           `/motorsports/v2/en/events/${date}/schedule.json`,
         ]);
@@ -169,11 +172,12 @@ export async function fetchSportradar(sport, type, params = {}, opts = {}) {
   // Try candidate paths in order until one returns ok
   let res = null;
   let lastErr = null;
+  let pathUsed = null;
   for (const pathCandidate of candidates) {
     try {
       res = await fetcher(
         {
-          base: "https://api.sportradar.com",
+          base: DEFAULT_BASE,
           path: pathCandidate,
           auth: DEFAULT_AUTH,
           key,
@@ -186,6 +190,7 @@ export async function fetchSportradar(sport, type, params = {}, opts = {}) {
     }
     if (res && res.ok) {
       // found a working endpoint
+      pathUsed = pathCandidate;
       break;
     }
   }
@@ -202,7 +207,7 @@ export async function fetchSportradar(sport, type, params = {}, opts = {}) {
     return {
       error: true,
       provider: "Sportradar",
-      message: "Failed to reach any configured Sportradar endpoint",
+      message: "Failed to reach any configured Sportradar endpoint for sport",
       cause: String(lastErr),
     };
   }
@@ -222,7 +227,7 @@ export async function fetchSportradar(sport, type, params = {}, opts = {}) {
     try {
       await cacheSet(cacheKey, payload, TTL.competitions);
     } catch (e) {}
-    return { ok: true, provider: "Sportradar", data: payload };
+    return { ok: true, provider: "Sportradar", data: payload, provider_path: pathUsed, httpStatus: res && res.status };
   }
 
   if (type === "seasons") {
@@ -241,7 +246,7 @@ export async function fetchSportradar(sport, type, params = {}, opts = {}) {
     try {
       await cacheSet(cacheKey, payload, TTL.seasons);
     } catch (e) {}
-    return { ok: true, provider: "Sportradar", data: payload };
+    return { ok: true, provider: "Sportradar", data: payload, provider_path: pathUsed, httpStatus: res && res.status };
   }
 
   if (type === "matches_by_date") {
@@ -250,10 +255,10 @@ export async function fetchSportradar(sport, type, params = {}, opts = {}) {
     try {
       await cacheSet(cacheKey, payload, TTL.matches_by_date);
     } catch (e) {}
-    return { ok: true, provider: "Sportradar", data: payload };
+    return { ok: true, provider: "Sportradar", data: payload, provider_path: pathUsed, httpStatus: res && res.status };
   }
 
-  return { ok: true, provider: "Sportradar", data: res.body };
+  return { ok: true, provider: "Sportradar", data: res.body, provider_path: pathUsed, httpStatus: res && res.status };
 }
 
 /**
@@ -269,7 +274,7 @@ export async function probeSportradarCapabilities(
   if (!key) return { error: true, message: "Missing SPORTRADAR_KEY" };
 
   const fetcher = opts.fetcher || callProvider;
-  const base = opts.base || "https://api.sportradar.com";
+  const base = opts.base || DEFAULT_BASE;
   const probeDate = date || new Date().toISOString().slice(0, 10);
 
   const probes = {};
