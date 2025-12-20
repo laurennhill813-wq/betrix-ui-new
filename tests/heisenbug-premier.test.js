@@ -38,7 +38,7 @@ describe('Heisenbug Premier League normalization', () => {
 
     const redis = createInMemoryRedis();
     const handle = startPrefetchScheduler({ redis, intervalSeconds: 60 });
-    await new Promise((r) => setTimeout(r, 400));
+    await new Promise((r) => setTimeout(r, 800));
     const key = 'rapidapi:soccer:fixtures:premierleague';
     const raw = await redis.get(key);
     expect(raw).not.toBeNull();
@@ -58,7 +58,7 @@ describe('Heisenbug Premier League normalization', () => {
     console.info = (...args) => { logs.push(args.join(' ')); };
     const redis = createInMemoryRedis();
     const handle = startPrefetchScheduler({ redis, intervalSeconds: 60 });
-    await new Promise((r) => setTimeout(r, 400));
+    await new Promise((r) => setTimeout(r, 800));
     // ensure no fixtures key written
     const key = 'rapidapi:soccer:fixtures:premierleague';
     const raw = await redis.get(key);
