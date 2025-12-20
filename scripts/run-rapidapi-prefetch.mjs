@@ -82,6 +82,23 @@ async function run() {
         diag.apis[name].lastUpdated = ts;
         diag.apis[name].status = (result.httpStatus >= 200 && result.httpStatus < 300) ? "ok" : "error";
         console.log({ apiName: name, endpoint, httpStatus: result.httpStatus });
+        // Detect odds-like responses and log a concise summary
+        try {
+          let parsed = null;
+          try { parsed = typeof result.body === 'string' ? JSON.parse(result.body) : result.body; } catch (e) { parsed = null; }
+          const looksLikeOdds = parsed && (Array.isArray(parsed) && parsed.length && (parsed[0].bookmakers || parsed[0].sport_key) || (parsed.bookmakers || parsed.sport_key));
+          if (looksLikeOdds) {
+            const sample = Array.isArray(parsed) ? parsed[0] : parsed;
+            const sport = sample.sport_key || sample.sport || 'unknown';
+            const home = sample.home_team || sample.home || (sample.teams && sample.teams[0]) || '';
+            const away = sample.away_team || sample.away || (sample.teams && sample.teams[1]) || '';
+            const bookmakers = Array.isArray(sample.bookmakers) ? sample.bookmakers.length : 0;
+            console.log(`[rapidapi-odds] ${name} ${endpoint} sport=${sport} match="${home} vs ${away}" bookmakers=${bookmakers}`);
+            await redisClient.set(`rapidapi:odds:${normalizeRedisKeyPart(name)}`, JSON.stringify({ apiName: name, endpoint, sport, sample: { home, away }, bookmakers, ts }), 'EX', 60).catch(() => {});
+          }
+        } catch (e) {
+          /* ignore */
+        }
         try {
           const liveSamples = extractLiveMatches(result.body);
           if (liveSamples && liveSamples.length) {
