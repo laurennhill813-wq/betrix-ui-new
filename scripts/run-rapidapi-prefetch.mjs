@@ -99,6 +99,38 @@ async function run() {
         } catch (e) {
           /* ignore */
         }
+        // If Odds API, fetch a small list of sports and print per-sport summaries (bounded)
+        try {
+          if (host && host.includes('odds.p.rapidapi.com')) {
+            const maxSports = Number(process.env.RAPIDAPI_ODDS_MAX_SPORTS || 12);
+            const sportsRes = await fetcher.fetchRapidApi(host, '/v4/sports/?').catch(() => null);
+            let sportsList = [];
+            try { sportsList = sportsRes && typeof sportsRes.body === 'string' ? JSON.parse(sportsRes.body) : (sportsRes && sportsRes.body) || []; } catch (e) { sportsList = [] }
+            if (Array.isArray(sportsList) && sportsList.length) {
+              let c = 0;
+              for (const s of sportsList) {
+                if (c >= maxSports) break;
+                const sportKey = s && (s.key || s.sport_key || s.id);
+                if (!sportKey) continue;
+                const sportEndpoint = `/v4/sports/${encodeURIComponent(sportKey)}/odds?regions=us&markets=h2h,spreads&oddsFormat=decimal`;
+                const r = await fetcher.fetchRapidApi(host, sportEndpoint).catch(() => null);
+                if (r && r.httpStatus >= 200 && r.httpStatus < 300) {
+                  let parsed = null;
+                  try { parsed = typeof r.body === 'string' ? JSON.parse(r.body) : r.body; } catch (e) { parsed = null }
+                  const events = Array.isArray(parsed) ? parsed : (parsed && parsed.data && Array.isArray(parsed.data) ? parsed.data : []);
+                  const total = events.length;
+                  const now = Date.now();
+                  const live = events.filter((ev) => { try { const commence = ev.commence_time ? new Date(ev.commence_time).getTime() : null; return commence && commence <= now; } catch (e) { return false } }).length;
+                  console.log(`[rapidapi-odds-sport] ${sportKey} total=${total} live=${live}`);
+                  await redisClient.set(`rapidapi:odds:sport:${normalizeRedisKeyPart(String(sportKey))}`, JSON.stringify({ apiName: name, sportKey, total, live, ts }), 'EX', 60).catch(() => {});
+                }
+                c += 1;
+              }
+            }
+          }
+        } catch (e) {
+          /* ignore */
+        }
         try {
           const liveSamples = extractLiveMatches(result.body);
           if (liveSamples && liveSamples.length) {
