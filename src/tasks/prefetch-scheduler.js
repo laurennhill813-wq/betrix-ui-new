@@ -18,6 +18,7 @@ export function startPrefetchScheduler({
   footballData,
   sportsAggregator,
   sportsgameodds,
+  flashlive,
   intervalSeconds = null,
 } = {}) {
   if (!redis) throw new Error("redis required");
@@ -575,6 +576,49 @@ export function startPrefetchScheduler({
             }),
           );
           await recordFailure("sportsgameodds");
+        }
+      }
+
+      // 6b) FlashLive Sports integration (if configured)
+      if (flashlive) {
+        try {
+          if (!(await isAllowedToRun('flashlive'))) {
+            /* skip due to backoff */
+          } else {
+            try {
+              const live = await flashlive.getLiveEvents().catch(async (err) => {
+                await recordFailure('flashlive');
+                throw err;
+              });
+              if (live && live.length > 0) {
+                // normalize minimal fixtures for UI (home/away/start)
+                const fixtures = (Array.isArray(live) ? live : []).map((ev) => {
+                  const home = ev.home_team || ev.home || (ev.home && ev.home.name) || (ev.teams && ev.teams[0]) || null;
+                  const away = ev.away_team || ev.away || (ev.away && ev.away.name) || (ev.teams && ev.teams[1]) || null;
+                  const commence = ev.commence_time || ev.start || ev.date || ev.scheduled || null;
+                  const competition = ev.competition || ev.tournament || ev.league || ev.competition_name || null;
+                  return { home_team: home, away_team: away, commence, competition, raw: ev };
+                }).filter(f => f.home_team && f.away_team);
+                if (fixtures.length) {
+                  const key = `rapidapi:flashlive:fixtures:live`;
+                  await redis.set(key, JSON.stringify({ apiName: 'FlashLive', fixtures, fetchedAt: ts }), 'EX', Number(process.env.RAPIDAPI_FIXTURES_TTL_SEC || 300)).catch(()=>{});
+                }
+              }
+              const upcoming = await flashlive.getEventsList({ page: 0 }).catch(()=>[]);
+              if (upcoming && upcoming.length) {
+                const samples = upcoming.slice(0, Math.min(MAX_PREFETCH_STORE, upcoming.length)).map((ev) => ({ home_team: ev.home_team||ev.home||null, away_team: ev.away_team||ev.away||null, commence: ev.date||ev.start||null, competition: ev.competition||ev.tournament||null, raw: ev }));
+                const key2 = `rapidapi:flashlive:fixtures:upcoming`;
+                await redis.set(key2, JSON.stringify({ apiName: 'FlashLive', fixtures: samples, fetchedAt: ts }), 'EX', Number(process.env.RAPIDAPI_FIXTURES_TTL_SEC || 300)).catch(()=>{});
+              }
+              await recordSuccess('flashlive');
+            } catch (e) {
+              await redis.publish('prefetch:error', JSON.stringify({ type: 'flashlive', error: e.message || String(e), ts }));
+              await recordFailure('flashlive');
+            }
+            await redis.publish('prefetch:updates', JSON.stringify({ type: 'flashlive', ts }));
+          }
+        } catch (e) {
+          await redis.publish('prefetch:error', JSON.stringify({ type: 'flashlive', error: e.message || String(e), ts }));
         }
       }
 
