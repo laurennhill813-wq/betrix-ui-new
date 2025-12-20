@@ -583,6 +583,36 @@ export function startPrefetchScheduler({
                 await recordFailure(`rapidapi:${safeName}`);
                 throw lastErr || new Error('rapidapi_fetch_failed');
               }
+              // Special-case: Heisenbug Premier League provider normalization
+              try {
+                const hostLc = String(host || '').toLowerCase();
+                const endpointLc = String(endpoint || '').toLowerCase();
+                if (hostLc.includes('heisenbug-premier-league') && endpointLc.startsWith('/api/premierleague')) {
+                  // If 404, log concise warning and skip
+                  if (result.httpStatus === 404) {
+                    console.info('[rapidapi-warning] apiName=' + (apiName || 'unknown') + ' endpoint=' + endpoint + ' status=404 reason=Not found');
+                  } else {
+                    let parsed = null;
+                    try { parsed = typeof result.body === 'string' ? JSON.parse(result.body) : result.body; } catch (e) { parsed = result.body || null; }
+                    // Accept { fixtures: [...] } or an array directly
+                    const arr = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.fixtures) ? parsed.fixtures : []);
+                    const fixtures = (arr || []).map((ev) => {
+                      const home = ev.home || ev.home_team || (ev.home && ev.home.name) || null;
+                      const away = ev.away || ev.away_team || (ev.away && ev.away.name) || null;
+                      const date = ev.date || ev.commence_time || ev.kickoff || ev.start || null;
+                      return { home_team: home, away_team: away, date };
+                    }).filter(f => f.home_team && f.away_team);
+                    if (fixtures.length) {
+                      const key = `rapidapi:soccer:fixtures:premierleague`;
+                      await redis.set(key, JSON.stringify({ apiName, league: 'premierleague', fixtures, ts }), 'EX', Number(process.env.RAPIDAPI_FIXTURES_TTL_SEC || 300)).catch(() => {});
+                    } else {
+                      console.info('[rapidapi-warning] apiName=' + (apiName || 'unknown') + ' endpoint=' + endpoint + ' status=' + (result.httpStatus || '') + ' reason=No fixtures parsed');
+                    }
+                  }
+                }
+              } catch (e) {
+                /* ignore normalization errors for this provider */
+              }
               const keyPart = normalizeRedisKeyPart(endpoint);
               const storeKey = `rapidapi:${safeName}:${keyPart}`;
               await safeSet(storeKey, { fetchedAt: ts, apiName, endpoint, httpStatus: result.httpStatus, data: result.body }, Number(process.env.RAPIDAPI_TTL_SEC || 300));
