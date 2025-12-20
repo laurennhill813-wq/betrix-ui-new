@@ -735,7 +735,26 @@ export function startPrefetchScheduler({
   };
 
   // Kick off immediate run then interval
-  job();
+  // Run once immediately and then schedule the periodic job. After the
+  // immediate run completes, dump a short `rapidapi:health` snapshot to
+  // stdout so deploy logs (Render) show detailed RapidAPI diagnostics.
+  job()
+    .then(async () => {
+      try {
+        const raw = await redis.get("rapidapi:health").catch(() => null);
+        if (raw) {
+          // Truncate long payloads to avoid excessive log size
+          const out = String(raw).slice(0, 2000);
+          console.log(`[rapidapi-health] ${out}`);
+        } else {
+          console.log("[rapidapi-health] none");
+        }
+      } catch (e) {
+        /* ignore */
+      }
+    })
+    .catch(() => {});
+
   const handle = setInterval(job, Math.max(1, intervalSeconds) * 1000);
 
   return {
