@@ -48,6 +48,45 @@ export function startPrefetchScheduler({
   // Maximum number of items to keep in the prefetch cache for large responses
   const MAX_PREFETCH_STORE = Number(process.env.PREFETCH_STORE_MAX || 1000);
 
+  // Helper: try to extract short live-match summaries from a RapidAPI response body
+  const extractLiveMatches = (body) => {
+    try {
+      if (!body) return [];
+      const obj = typeof body === "string" ? JSON.parse(body) : body;
+      const arrayKeys = ["matches", "data", "events", "fixtures", "results", "games", "items", "response", "list"];
+      const candidates = [];
+      for (const k of arrayKeys) if (Array.isArray(obj[k])) candidates.push(obj[k]);
+      if (Array.isArray(obj)) candidates.push(obj);
+      for (const arr of candidates) {
+        const live = arr.filter((it) => {
+          if (!it) return false;
+          const status = it.status || it.matchStatus || it.gameState || it.state || it.inplay || it.is_live;
+          if (typeof status === "string" && /live|inplay/i.test(status)) return true;
+          if (typeof status === "boolean" && status === true) return true;
+          if (it.score || it.score_full || it.scores || it.result) return true;
+          return false;
+        });
+        if (live && live.length) {
+          return live.slice(0, 3).map((it) => {
+            const home = it.homeTeam?.name || it.home?.name || it.home || it.team1?.name || it.team1 || (it.teams && it.teams[0]) || "home";
+            const away = it.awayTeam?.name || it.away?.name || it.away || it.team2?.name || it.team2 || (it.teams && it.teams[1]) || "away";
+            const score = it.score?.full || it.score?.current || it.score_full || (it.scores ? JSON.stringify(it.scores) : undefined) || it.result || null;
+            const minute = it.minute || it.time || it.currentMinute || it.elapsed || null;
+            const status = it.status || it.matchStatus || (it.is_live ? "LIVE" : undefined) || null;
+            let text = `${home} vs ${away}`;
+            if (score) text += ` (${score})`;
+            if (minute) text += ` [${minute}]`;
+            if (status) text += ` ${status}`;
+            return text;
+          });
+        }
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    return [];
+  };
+
   const job = async () => {
     if (running) return; // avoid overlap
     running = true;
@@ -544,6 +583,17 @@ export function startPrefetchScheduler({
               };
               rapidDiagnostics.apis[apiName].lastUpdated = ts;
               rapidDiagnostics.apis[apiName].status = (result.httpStatus && result.httpStatus >= 200 && result.httpStatus < 300) ? "ok" : "error";
+              // Detect live-match content and log a concise summary (Render captures stdout)
+              try {
+                const liveSamples = extractLiveMatches(result.body);
+                if (liveSamples && liveSamples.length) {
+                  console.log(`[rapidapi-live] ${apiName} ${endpoint} live=${liveSamples.length} sample="${liveSamples[0]}"`);
+                  // write a short ephemeral key for ops to inspect quickly
+                  await redis.set(`rapidapi:live:${safeName}`, JSON.stringify({ apiName, endpoint, samples: liveSamples, ts }), "EX", 30).catch(() => {});
+                }
+              } catch (e) {
+                /* ignore detection errors */
+              }
             } catch (e) {
               rapidDiagnostics.apis[apiName].endpoints[endpoint] = {
                 httpStatus: e && e.status ? e.status : null,
