@@ -28,4 +28,14 @@ describe("RapidApiFetcher", () => {
     expect(res.httpStatus).toBe(200);
     expect(res.body).toEqual({ ok: true });
   });
+
+  test("maps 403 and 429 to errorReason when present", async () => {
+    global.fetch = jest.fn().mockResolvedValueOnce({ status: 403, json: async () => ({ message: 'forbidden' }) });
+    const f = new RapidApiFetcher();
+    const r403 = await f.fetchRapidApi("example.p.rapidapi.com", "/forbidden");
+    expect(r403.httpStatus).toBe(403);
+    global.fetch = jest.fn().mockResolvedValueOnce({ status: 429, json: async () => ({ message: 'rate limit' }) });
+    const r429 = await f.fetchRapidApi("example.p.rapidapi.com", "/ratelimit");
+    expect(r429.httpStatus).toBe(429);
+  });
 });

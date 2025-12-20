@@ -1,24 +1,31 @@
 import { startPrefetchScheduler } from "../src/tasks/prefetch-scheduler.js";
 
-function createInMemoryRedis() {
-  const kv = new Map();
+  const calls = [];
   return {
-    async set(k, v) {
+    calls,
+    async set(k, v, ...rest) {
+      calls.push({ op: "set", key: k, value: v, rest });
       kv.set(k, typeof v === "string" ? v : JSON.stringify(v));
       return "OK";
     },
     async get(k) {
+      calls.push({ op: "get", key: k });
       return kv.has(k) ? kv.get(k) : null;
     },
     async publish(_channel, _msg) {
+      calls.push({ op: "publish", channel: _channel, msg: _msg });
       return 1;
     },
     async del(k) {
+      calls.push({ op: "del", key: k });
       kv.delete(k);
       return 1;
     },
-    async expire(_k, _t) {
+    async expire(k, t) {
+      calls.push({ op: "expire", key: k, ttl: t });
       return 1;
+    },
+  };
     },
   };
 }
