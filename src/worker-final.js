@@ -773,24 +773,24 @@ try {
             if (!sportKey) continue;
             try {
               const oddsEndpoint = `/v4/sports/${encodeURIComponent(sportKey)}/odds?regions=us&markets=h2h,spreads&oddsFormat=decimal`;
-              const oddsRes = await fetcher.fetchRapidApi(oddsApi.host, oddsEndpoint).catch(() => null);
+              const oddsRes = await fetcher.fetchRapidApi(oddsApi.host, oddsEndpoint, { retries: 3, timeout: 12000, backoffBaseMs: 300 }).catch(() => null);
               const total = Array.isArray(oddsRes && oddsRes.body) ? oddsRes.body.length : (oddsRes && oddsRes.body && oddsRes.body.data && Array.isArray(oddsRes.body.data) ? oddsRes.body.data.length : 0);
-              console.log(`[rapidapi-startup-odds-sport] ${sportKey} status=${oddsRes && oddsRes.httpStatus ? oddsRes.httpStatus : 'err'} total=${total}`);
+              console.log(`[rapidapistartupoddssport] ${sportKey} status=${oddsRes && oddsRes.httpStatus ? oddsRes.httpStatus : 'err'} total=${total} - worker-final.js:778`);
             } catch (e) {
-              console.log(`[rapidapi-startup-odds-sport] ${sportKey} error ${e && e.message ? e.message : String(e)}`);
+              console.log(`[rapidapistartupoddssport] ${sportKey} error ${e && e.message ? e.message : String(e)} - worker-final.js:780`);
             }
             try {
               const scoresEndpoint = `/v4/sports/${encodeURIComponent(sportKey)}/scores/`;
-              const scoresRes = await fetcher.fetchRapidApi(oddsApi.host, scoresEndpoint).catch(() => null);
+              const scoresRes = await fetcher.fetchRapidApi(oddsApi.host, scoresEndpoint, { retries: 3, timeout: 12000, backoffBaseMs: 300 }).catch(() => null);
               const totalS = Array.isArray(scoresRes && scoresRes.body) ? scoresRes.body.length : (scoresRes && scoresRes.body && scoresRes.body.data && Array.isArray(scoresRes.body.data) ? scoresRes.body.data.length : 0);
-              console.log(`[rapidapi-startup-scores-sport] ${sportKey} status=${scoresRes && scoresRes.httpStatus ? scoresRes.httpStatus : 'err'} total=${totalS}`);
+              console.log(`[rapidapistartupscoressport] ${sportKey} status=${scoresRes && scoresRes.httpStatus ? scoresRes.httpStatus : 'err'} total=${totalS} - worker-final.js:786`);
             } catch (e) {
-              console.log(`[rapidapi-startup-scores-sport] ${sportKey} error ${e && e.message ? e.message : String(e)}`);
+              console.log(`[rapidapistartupscoressport] ${sportKey} error ${e && e.message ? e.message : String(e)} - worker-final.js:788`);
             }
           }
         }
       } catch (e) {
-        console.log('[rapidapi-startup] sports-list-error', e && e.message ? e.message : String(e));
+        console.log('[rapidapistartup] sportslisterror - worker-final.js:793', e && e.message ? e.message : String(e));
       }
     } catch (e) {
       /* ignore */
