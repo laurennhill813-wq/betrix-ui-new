@@ -10,11 +10,12 @@
 
 import dotenv from "dotenv";
 import fs from "fs";
+import path from "path";
 // Prefer loading .env.local when present (Render uses .env.local for secrets in this workspace)
 const envLocalPath = ".env.local";
 if (fs.existsSync(envLocalPath)) {
   dotenv.config({ path: envLocalPath });
-  console.log("[env] loaded .env.local - worker-final.js:17");
+  console.log("[env] loaded .env.local - worker-final.js:18");
 } else {
   dotenv.config();
 }
@@ -45,6 +46,7 @@ import SportsAggregator from "./services/sports-aggregator.js";
 import OddsAnalyzer from "./services/odds-analyzer.js";
 import { MultiSportAnalyzer } from "./services/multi-sport-analyzer.js";
 import { startPrefetchScheduler } from "./tasks/prefetch-scheduler.js";
+import { RapidApiFetcher } from "./lib/rapidapi-fetcher.js";
 import { APIBootstrap } from "./tasks/api-bootstrap.js";
 // Sportradar integration removed — do not import or start Sportradar prefetch
 import CacheService from "./services/cache.js";
@@ -626,10 +628,51 @@ try {
   });
   // Expose RapidAPI env info in startup logs so Render shows if key and max-sports are set
   try {
-    console.log(`[rapidapi] rapidapi_key_present=${!!process.env.RAPIDAPI_KEY} RAPIDAPI_ODDS_MAX_SPORTS=${process.env.RAPIDAPI_ODDS_MAX_SPORTS || 'unset'}`);
+    console.log(`[rapidapi] rapidapi_key_present=${!!process.env.RAPIDAPI_KEY} RAPIDAPI_ODDS_MAX_SPORTS=${process.env.RAPIDAPI_ODDS_MAX_SPORTS || 'unset'} - worker-final.js:631`);
   } catch (e) {}
 } catch (e) {
   logger.warn("Prefetch scheduler failed to start", e?.message || String(e));
+}
+
+// One-off RapidAPI connectivity probe to force visible startup logs in deployment
+try {
+  (async () => {
+    try {
+      if (!process.env.RAPIDAPI_KEY) {
+        console.log("[rapidapionestep] skipped  RAPIDAPI_KEY not set - worker-final.js:642");
+        return;
+      }
+      const subsPath = path.join(process.cwd(), "src", "rapidapi", "subscriptions.json");
+      let subs = [];
+      try {
+        const raw = fs.readFileSync(subsPath, "utf8");
+        subs = JSON.parse(raw);
+      } catch (e) {
+        /* ignore */
+      }
+      const candidate = (Array.isArray(subs) ? subs : []).find((s) => s && s.host && s.enabled !== false) || subs[0];
+      if (!candidate || !candidate.host) {
+        console.log("[rapidapionestep] nosubscriptionfound - worker-final.js:655");
+        return;
+      }
+      const fetcher = new RapidApiFetcher({ apiKey: process.env.RAPIDAPI_KEY });
+      const endpoint = (candidate.sampleEndpoints && candidate.sampleEndpoints[0]) || "/";
+      try {
+        const res = await fetcher.fetchRapidApi(candidate.host, endpoint, { timeout: 10000 });
+        console.log(`[rapidapionestep] host=${candidate.host} endpoint=${endpoint} status=${res && res.httpStatus ? res.httpStatus : 'nostatus'} - worker-final.js:662`);
+        try {
+          const body = res && res.body ? (typeof res.body === 'string' ? res.body : JSON.stringify(res.body)) : null;
+          if (body) console.log(`[rapidapionestepbody] ${String(body).slice(0,1200)} - worker-final.js:665`);
+        } catch (e) {}
+      } catch (e) {
+        console.log("[rapidapionestep] fetcherror - worker-final.js:668", e && e.message ? e.message : String(e));
+      }
+    } catch (e) {
+      console.log("[rapidapionestep] error - worker-final.js:671", e && e.message ? e.message : String(e));
+    }
+  })();
+} catch (e) {
+  /* ignore */
 }
 
 // Register Data Exposure API endpoints for accessing cached sports data
@@ -685,7 +728,7 @@ try {
           logger.info("✅ Telegram webhook set successfully", {
             url: TELEGRAM_WEBHOOK_URL,
           });
-          console.log("Telegram webhook set successfully - worker-final.js:684");
+          console.log("Telegram webhook set successfully - worker-final.js:731");
         } else {
           logger.warn("⚠️ Telegram setWebhook returned non-ok", {
             result: json,
