@@ -674,9 +674,24 @@ export function startPrefetchScheduler({
                           console.log(`[rapidapi-odds-sport] ${sportKey} total=${total} live=${live} samples=${samples.length}`);
                           await redis.set(`rapidapi:odds:sport:${normalizeRedisKeyPart(String(sportKey))}`, JSON.stringify({ apiName, sportKey, total, live, samples, ts }), 'EX', 60).catch(() => {});
                         }
-
                         // Also fetch scores (live + upcoming) to populate fixture lists
                         try {
+                          // Build a simple lookup of odds samples by (home|away|commence) to attach to fixtures
+                          let oddsEventsMap = new Map();
+                          try {
+                            const parsedOdds = typeof r?.body === 'string' ? JSON.parse(r.body) : r?.body;
+                            const oddsArr = Array.isArray(parsedOdds) ? parsedOdds : (parsedOdds && parsedOdds.data && Array.isArray(parsedOdds.data) ? parsedOdds.data : []);
+                            for (const oe of (oddsArr || [])) {
+                              const h = (oe.home_team || oe.home || (oe.teams && oe.teams[0]) || '').toString();
+                              const a = (oe.away_team || oe.away || (oe.teams && oe.teams[1]) || '').toString();
+                              const t = oe.commence_time || oe.commence || oe.start || '';
+                              const k = `${h}::${a}::${String(t)}`;
+                              oddsEventsMap.set(k, oe);
+                            }
+                          } catch (e) {
+                            /* ignore odds parse errors */
+                          }
+
                           const scoresEndpoint = `/v4/sports/${encodeURIComponent(sportKey)}/scores/`;
                           const scoresRes = await rapidLogger.fetch(api.host, scoresEndpoint, { apiName }).catch(() => null);
                           if (scoresRes && scoresRes.httpStatus && scoresRes.httpStatus >= 200 && scoresRes.httpStatus < 300) {
@@ -700,14 +715,21 @@ export function startPrefetchScheduler({
                                       const home = ev.home_team || ev.home || (ev.teams && ev.teams[0]) || ev.team1 || (ev.home && ev.home.name) || null;
                                       const away = ev.away_team || ev.away || (ev.teams && ev.teams[1]) || ev.team2 || (ev.away && ev.away.name) || null;
                                       const commence = ev.commence_time || ev.commence || ev.start || ev.date || null;
-                                      // prefer explicit league/competition, fall back to sport title from the sport list
-                                      const competition = ev.league || ev.competition || ev.sport_title || (s && (s.title || s.name)) || 'default';
-                                      return { home, away, commence, competition };
-                                    }).filter((f) => f.home && f.away);
+                                      // prefer explicit league/competition, fall back to sport title or sportKey when missing
+                                      const competition = ev.league || ev.competition || ev.sport_title || (s && (s.title || s.name)) || sportKey || 'default';
+                                      const keyMatch = `${home || ''}::${away || ''}::${String(commence || '')}`;
+                                      const oddsSample = oddsEventsMap.get(keyMatch) || null;
+                                      const fixture = { home_team: home, away_team: away, commence, competition };
+                                      if (oddsSample) fixture.odds = oddsSample;
+                                      return fixture;
+                                    }).filter((f) => f.home_team && f.away_team);
                                 if (fixtures.length) {
                                       const league = fixtures[0].competition || 'default';
                                       const key = `rapidapi:${normalizeRedisKeyPart(String(sportKey))}:fixtures:${normalizeRedisKeyPart(String(league))}`;
                                   await redis.set(key, JSON.stringify({ apiName, sportKey, league, fixtures, ts }), 'EX', Number(process.env.RAPIDAPI_FIXTURES_TTL_SEC || 300)).catch(() => {});
+                                } else {
+                                  // no fixtures found - log and skip writing a misleading empty value
+                                  console.warn(`[rapidapi] no_fixtures sport=${sportKey} host=${api.host}`);
                                 }
                               } catch (e) {
                                 /* ignore fixture normalization errors */

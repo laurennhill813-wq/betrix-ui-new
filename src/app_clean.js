@@ -142,7 +142,49 @@ app.get("/health/rapidapi", async (_req, res) => {
           endpoints,
         });
       }
-      return res.json({ ok: true, cached: true, health: out });
+      // Additionally aggregate per-sport fixture counts (from keys written by prefetch)
+      const fixturesBySport = [];
+      try {
+        const keys = await webhookRedis.keys('rapidapi:*:fixtures:*').catch(() => []);
+        const seen = new Map();
+        for (const k of keys) {
+          try {
+            const rawVal = await webhookRedis.get(k).catch(() => null);
+            if (!rawVal) continue;
+            const parsedVal = JSON.parse(rawVal);
+            const sport = parsedVal && parsedVal.sportKey ? parsedVal.sportKey : null;
+            const league = parsedVal && parsedVal.league ? parsedVal.league : null;
+            const upcoming = Array.isArray(parsedVal.fixtures) ? parsedVal.fixtures.length : 0;
+            // attempt to read live count from rapidapi:scores:sport:<sport>
+            let live = null;
+            if (sport) {
+              try {
+                const scoresRaw = await webhookRedis.get(`rapidapi:scores:sport:${sport}`).catch(() => null);
+                if (scoresRaw) {
+                  const parsedScores = JSON.parse(scoresRaw);
+                  live = parsedScores && parsedScores.live ? parsedScores.live : 0;
+                }
+              } catch (e) {
+                live = null;
+              }
+            }
+            const key = sport || k;
+            // accumulate counts for same sport across leagues
+            if (!seen.has(key)) seen.set(key, { apiName: parsedVal.apiName || null, sport: sport || key, upcomingFixtures: 0, liveMatches: 0, lastUpdated: parsedVal && parsedVal.ts ? parsedVal.ts : null });
+            const cur = seen.get(key);
+            cur.upcomingFixtures = cur.upcomingFixtures + upcoming;
+            if (typeof live === 'number') cur.liveMatches = Math.max(cur.liveMatches || 0, live);
+            if (parsedVal && parsedVal.ts) cur.lastUpdated = parsedVal.ts;
+          } catch (e) {
+            /* ignore per-key parse errors */
+          }
+        }
+        for (const v of seen.values()) fixturesBySport.push(v);
+      } catch (e) {
+        /* ignore aggregation errors */
+      }
+
+      return res.json({ ok: true, cached: true, health: out, fixturesBySport });
     } catch (e) {
       return res.json({ ok: true, cached: true, healthRaw: raw });
     }

@@ -38,8 +38,12 @@
     "host": "api.the-odds-api.com",
     "sampleEndpoints": [
       "/v4/sports/?apiKey=YOUR_API_KEY",
-      "/v4/sports/{sport}/odds/?apiKey=YOUR_API_KEY&regions=us&oddsFormat=decimal&markets=h2h,spreads",
-      "/v4/sports/{sport}/scores/?apiKey=YOUR_API_KEY&daysFrom=1",
+      "/v4/sports/basketball_nba/odds/?apiKey=YOUR_API_KEY&regions=us&oddsFormat=decimal&markets=h2h,spreads",
+      "/v4/sports/baseball_mlb/odds/?apiKey=YOUR_API_KEY&regions=us&oddsFormat=decimal&markets=h2h,spreads",
+      "/v4/sports/icehockey_nhl/odds/?apiKey=YOUR_API_KEY&regions=us&oddsFormat=decimal&markets=h2h,spreads",
+      "/v4/sports/basketball_nba/scores/?apiKey=YOUR_API_KEY&daysFrom=7",
+      "/v4/sports/baseball_mlb/scores/?apiKey=YOUR_API_KEY&daysFrom=7",
+      "/v4/sports/icehockey_nhl/scores/?apiKey=YOUR_API_KEY&daysFrom=7",
       "/v4/sports/{sport}/participants?apiKey=YOUR_API_KEY"
     ],
     "note": "Direct The Odds API host and common v4 endpoints; include apiKey in requests or via env for prefetch scripts. Response headers include x-requests-remaining/x-requests-used/x-requests-last"

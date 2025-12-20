@@ -22,7 +22,16 @@ jobs:
   smoke-prefetch:
     needs: test
     runs-on: ubuntu-latest
-    if: ${{ secrets.RAPIDAPI_KEY && secrets.REDIS_URL }}
+    if: ${{ secrets.RAPIDAPI_KEY || true }}
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --save 60 1
+    env:
+      REDIS_URL: redis://127.0.0.1:6379
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js 22
@@ -34,12 +43,18 @@ jobs:
       - name: Run RapidAPI smoke prefetch
         env:
           RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
-          REDIS_URL: ${{ secrets.REDIS_URL }}
+          REDIS_URL: ${{ env.REDIS_URL }}
           RAPIDAPI_TTL_SEC: 60
+          RAPIDAPI_ODDS_MAX_SPORTS: 10
+          RAPIDAPI_FIXTURES_TTL_SEC: 60
         run: node scripts/run-rapidapi-prefetch.mjs
       - name: Redis type check for rapidapi fixtures
-        if: ${{ secrets.REDIS_URL }}
         env:
-          REDIS_URL: ${{ secrets.REDIS_URL }}
+          REDIS_URL: ${{ env.REDIS_URL }}
         run: |
           node -e "(async()=>{const { createClient } = require('redis'); const c=createClient({url:process.env.REDIS_URL}); await c.connect(); const keys = await c.keys('rapidapi:*fixtures*'); let bad=0; for(const k of keys){ const t = await c.type(k); if(t !== 'string'){ console.error('WRONGTYPE', k, t); bad=bad+1;} } await c.quit(); if(bad>0){ console.error('Found wrong-type rapidapi fixture keys'); process.exit(2); } console.log('Redis fixtures type check OK'); })().catch(e=>{ console.error(e); process.exit(2); });"
+      - name: Validate /health/rapidapi and fixture counts
+        env:
+          REDIS_URL: ${{ env.REDIS_URL }}
+        run: |
+          node -e "(async()=>{const { createClient } = require('redis'); const c=createClient({url:process.env.REDIS_URL}); await c.connect(); const raw = await c.get('rapidapi:health'); console.log('rapidapi:health exists=', !!raw); const fixtureKeys = await c.keys('rapidapi:*:fixtures:*'); console.log('fixture keys count=', fixtureKeys.length); for(const k of fixtureKeys.slice(0,10)){ const v=await c.get(k); try{ const p=JSON.parse(v); console.log('->',k, p.sportKey, Array.isArray(p.fixtures)?p.fixtures.length:0); }catch(e){} } await c.quit(); if(!raw){ console.warn('No rapidapi:health key found'); } process.exit(0); })().catch(e=>{ console.error(e); process.exit(2); });"
