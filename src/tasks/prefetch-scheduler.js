@@ -594,6 +594,24 @@ export function startPrefetchScheduler({
               } catch (e) {
                 /* ignore detection errors */
               }
+              // Detect odds-like responses (bookmakers/markets) and log a concise summary
+              try {
+                let parsed = null;
+                try { parsed = typeof result.body === 'string' ? JSON.parse(result.body) : result.body; } catch (e) { parsed = null; }
+                const looksLikeOdds = parsed && (Array.isArray(parsed) && parsed.length && (parsed[0].bookmakers || parsed[0].sport_key || parsed[0].bookmakers) || (parsed.bookmakers || parsed.sport_key));
+                if (looksLikeOdds) {
+                  // log top-level sample: sport_key/home_team/away_team and bookmaker count
+                  const sample = Array.isArray(parsed) ? parsed[0] : parsed;
+                  const sport = sample.sport_key || sample.sport || 'unknown';
+                  const home = sample.home_team || sample.home || (sample.teams && sample.teams[0]) || '';
+                  const away = sample.away_team || sample.away || (sample.teams && sample.teams[1]) || '';
+                  const bookmakers = Array.isArray(sample.bookmakers) ? sample.bookmakers.length : 0;
+                  console.log(`[rapidapi-odds] ${apiName} ${endpoint} sport=${sport} match="${home} vs ${away}" bookmakers=${bookmakers}`);
+                  await redis.set(`rapidapi:odds:${safeName}`, JSON.stringify({ apiName, endpoint, sport, sample: { home, away }, bookmakers, ts }), 'EX', 60).catch(() => {});
+                }
+              } catch (e) {
+                /* ignore */
+              }
             } catch (e) {
               rapidDiagnostics.apis[apiName].endpoints[endpoint] = {
                 httpStatus: e && e.status ? e.status : null,

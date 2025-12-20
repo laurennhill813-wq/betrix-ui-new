@@ -27,7 +27,11 @@
   {
     "name": "Odds (The Odds API)",
     "host": "odds.p.rapidapi.com",
-    "sampleEndpoints": ["/v4/sports/upcoming/odds?regions=us&oddsFormat=decimal&markets=h2h,spreads&dateFormat=iso"]
+    "sampleEndpoints": [
+      "/v4/sports/?",
+      "/v4/sports/upcoming/odds?regions=us&oddsFormat=decimal&markets=h2h,spreads&dateFormat=iso",
+      "/v4/sports/upcoming/scores?daysFrom=1"
+    ]
   },
   {
     "name": "Football Live Stream Api",
