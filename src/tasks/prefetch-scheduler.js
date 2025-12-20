@@ -5,6 +5,8 @@
  */
 import { setTimeout as wait } from "timers/promises";
 void wait;
+import { RapidApiFetcher, normalizeRedisKeyPart } from "../lib/rapidapi-fetcher.js";
+import subscriptions from "../rapidapi/subscriptions.json" assert { type: "json" };
 
 export function startPrefetchScheduler({
   redis,
@@ -476,6 +478,57 @@ export function startPrefetchScheduler({
           );
           await recordFailure("sportsgameodds");
         }
+      }
+
+      // 7) RapidAPI subscriptions: iterate configured subscriptions and fetch sample endpoints
+      try {
+        const rapidFetcher = new RapidApiFetcher({ apiKey: process.env.RAPIDAPI_KEY });
+        const rapidDiagnostics = { updatedAt: ts, apis: {} };
+        for (const api of Array.isArray(subscriptions) ? subscriptions : []) {
+          const apiName = api.name || "unknown";
+          const safeName = normalizeRedisKeyPart(apiName || "unknown");
+          rapidDiagnostics.apis[apiName] = { status: "unknown", lastUpdated: null, endpoints: {} };
+          const host = api.host;
+          const endpoints = Array.isArray(api.sampleEndpoints) ? api.sampleEndpoints : [];
+          for (const endpoint of endpoints.slice(0, 10)) {
+            try {
+              const result = await rapidFetcher.fetchRapidApi(host, endpoint).catch(async (err) => {
+                // record failure to avoid tight loop
+                await recordFailure(`rapidapi:${safeName}`);
+                throw err;
+              });
+              const keyPart = normalizeRedisKeyPart(endpoint);
+              const storeKey = `rapidapi:${safeName}:${keyPart}`;
+              await safeSet(storeKey, { fetchedAt: ts, apiName, endpoint, httpStatus: result.httpStatus, data: result.body }, Number(process.env.RAPIDAPI_TTL_SEC || 300));
+              rapidDiagnostics.apis[apiName].endpoints[endpoint] = {
+                httpStatus: result.httpStatus,
+                errorReason: result.httpStatus && result.httpStatus >= 400 ? `http_${result.httpStatus}` : null,
+                lastUpdated: ts,
+              };
+              rapidDiagnostics.apis[apiName].lastUpdated = ts;
+              rapidDiagnostics.apis[apiName].status = (result.httpStatus && result.httpStatus >= 200 && result.httpStatus < 300) ? "ok" : "error";
+            } catch (e) {
+              rapidDiagnostics.apis[apiName].endpoints[endpoint] = {
+                httpStatus: e && e.status ? e.status : null,
+                errorReason: e && e.message ? String(e.message) : String(e),
+                lastUpdated: Date.now(),
+              };
+              rapidDiagnostics.apis[apiName].lastUpdated = Date.now();
+              rapidDiagnostics.apis[apiName].status = "error";
+            }
+          }
+        }
+        try {
+          await redis.set("rapidapi:health", JSON.stringify(rapidDiagnostics));
+        } catch (e) {
+          /* ignore */
+        }
+        await redis.publish("prefetch:updates", JSON.stringify({ type: "rapidapi", ts }));
+      } catch (e) {
+        await redis.publish(
+          "prefetch:error",
+          JSON.stringify({ type: "rapidapi", error: e.message || String(e), ts }),
+        );
       }
 
       lastRun = ts;

@@ -113,6 +113,25 @@ app.get("/health/sportradar", async (_req, res) => {
   }
 });
 
+// RapidAPI health endpoint: reports diagnostics written by prefetch scheduler
+app.get("/health/rapidapi", async (_req, res) => {
+  try {
+    if (!webhookRedis) return res.status(503).json({ ok: false, reason: "no_redis" });
+    const raw = await webhookRedis.get("rapidapi:health");
+    if (!raw) return res.json({ ok: true, cached: false, message: "no rapidapi health data" });
+    try {
+      const parsed = JSON.parse(raw);
+      // Ensure schema: { updatedAt, apis: { apiName: { status, lastUpdated, endpoints } } }
+      return res.json({ ok: true, cached: true, health: parsed });
+    } catch (e) {
+      return res.json({ ok: true, cached: true, healthRaw: raw });
+    }
+  } catch (err) {
+    console.error("/health/rapidapi error", err?.message || String(err));
+    return res.status(500).json({ ok: false, error: err?.message || String(err) });
+  }
+});
+
 app.post("/webhook/mpesa", (_req, res) => {
   // worker doesn't handle web traffic; keep a stub to avoid undefined routes
   return res.status(200).send("OK");
