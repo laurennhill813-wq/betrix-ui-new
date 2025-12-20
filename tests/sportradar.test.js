@@ -97,4 +97,47 @@ describe("Sportradar registry and prefetch", () => {
       expect(res).toHaveProperty('pathUsed');
     }
   });
+
+  test("prefetch writes health on errors (mocked error responses)", async () => {
+    const mr = new MockRedis();
+
+    // Mock client to return error metadata for a specific sport and success for others
+    jest.unstable_mockModule("../src/services/sportradar-client.js", () => ({
+      fetchAndNormalizeTeams: async (sport) => {
+        if (sport === "soccer") return { items: [], httpStatus: 429, pathUsed: `/mock/${sport}/teams`, errorReason: "rate_limited" };
+        return { items: [{ sport, teamId: `${sport}-1`, name: `${sport} team` }], httpStatus: 200, pathUsed: `/mock/${sport}/teams`, errorReason: null };
+      },
+      fetchAndNormalizeFixtures: async (sport, params) => {
+        if (sport === "tennis") return { items: [], httpStatus: 502, pathUsed: `/mock/${sport}/schedule`, errorReason: "gateway_error" };
+        return { items: [ { sport, league: `${sport}-league`, eventId: `${sport}-ev-1`, startTimeISO: new Date().toISOString(), homeTeam: `${sport} Home`, awayTeam: `${sport} Away`, venue: "Test Stadium", status: "SCHEDULED" } ], httpStatus: 200, pathUsed: `/mock/${sport}/schedule`, errorReason: null };
+      },
+      sportEmoji: () => "🏟️",
+    }));
+
+    const { startSportradarPrefetch } = await import("../src/tasks/sportradar-prefetch.js");
+
+    const handle = startSportradarPrefetch({ redis: mr, cronExpr: "*/30 * * * *", days: 0, ttlFixtures: 10, ttlTeams: 10 });
+    await new Promise((r) => setTimeout(r, 1000));
+
+    const healthRaw = await mr.get("sportradar:health");
+    expect(healthRaw).toBeTruthy();
+    const health = JSON.parse(healthRaw);
+    expect(health.bySport).toBeDefined();
+    // soccer should have recorded rate_limited
+    const soccer = health.bySport["soccer"];
+    expect(soccer).toBeDefined();
+    expect(soccer.teamsCount).toBe(0);
+    expect(soccer.fixturesCount).toBe(0);
+    expect(soccer.httpStatus).toBe(429);
+    expect(soccer.errorReason).toBeTruthy();
+
+    // tennis should have gateway error recorded
+    const tennis = health.bySport["tennis"];
+    expect(tennis).toBeDefined();
+    expect(tennis.fixturesCount).toBe(0);
+    expect(tennis.httpStatus).toBe(502);
+    expect(tennis.errorReason).toBeTruthy();
+
+    try { handle.stop(); } catch (e) {}
+  });
 });

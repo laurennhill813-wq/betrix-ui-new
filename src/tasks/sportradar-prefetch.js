@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { Logger } from "../utils/logger.js";
 import { getTeams, getUpcomingFixtures, fetchAndNormalizeFixtures, fetchAndNormalizeTeams, sportEmoji } from "../services/sportradar-client.js";
 import { SPORTRADAR_SPORTS } from "../config/sportradar-sports.js";
+import { getRedisAdapter } from "../lib/redis-factory.js";
 
 const logger = new Logger("SportradarPrefetch");
 
@@ -14,7 +15,14 @@ function sleep(ms) {
 }
 
 export function startSportradarPrefetch({ redis, cronExpr, days = 2, ttlFixtures, ttlTeams } = {}) {
-  if (!redis) throw new Error("redis required for sportradar prefetch");
+  // allow caller to supply redis adapter or create one from env
+  if (!redis) {
+    try {
+      redis = getRedisAdapter();
+    } catch (e) {
+      throw new Error("redis required for sportradar prefetch");
+    }
+  }
 
   const keyHealth = "sportradar:health";
   const lockKey = "sportradar:prefetch:lock";
@@ -64,7 +72,7 @@ export function startSportradarPrefetch({ redis, cronExpr, days = 2, ttlFixtures
         const sportLog = { sport, lastUpdated: null, teamsCount: 0, fixturesCount: 0, httpStatus: null, errorReason: null, pathUsed: null };
         try {
           // prefetch teams (with metadata)
-          const teamRes = await fetchAndNormalizeTeams(sport, { });
+          const teamRes = await fetchAndNormalizeTeams(sport, {});
           const teams = Array.isArray(teamRes.items) ? teamRes.items : [];
           try {
             await redis.set(`sportradar:teams:${sport}`, JSON.stringify({ fetchedAt: nowISO(), items: teams }), "EX", ttlTeams);
@@ -88,9 +96,15 @@ export function startSportradarPrefetch({ redis, cronExpr, days = 2, ttlFixtures
               const dayFixtures = Array.isArray(dayRes.items) ? dayRes.items : [];
               if (dayFixtures.length) fixtures.push(...dayFixtures);
               // capture last known metadata
-              lastFixtureMeta = { httpStatus: dayRes.httpStatus || lastFixtureMeta.httpStatus, pathUsed: dayRes.pathUsed || lastFixtureMeta.pathUsed, errorReason: dayRes.errorReason || lastFixtureMeta.errorReason };
+              lastFixtureMeta = {
+                httpStatus: dayRes.httpStatus || lastFixtureMeta.httpStatus,
+                pathUsed: dayRes.pathUsed || lastFixtureMeta.pathUsed,
+                errorReason: dayRes.errorReason || lastFixtureMeta.errorReason,
+              };
             } catch (e) {
               logger.warn(`fetch fixtures ${sport} ${isoDate} failed`, e?.message || e);
+              // record network-level error as lastFixtureMeta
+              lastFixtureMeta.errorReason = e?.message || String(e);
             }
             // respect a small pause between date calls
             await sleep(150);
@@ -119,20 +133,42 @@ export function startSportradarPrefetch({ redis, cronExpr, days = 2, ttlFixtures
           // prefer fixture meta for http/path if available
           if (lastFixtureMeta.httpStatus) sportLog.httpStatus = lastFixtureMeta.httpStatus;
           if (lastFixtureMeta.pathUsed) sportLog.pathUsed = lastFixtureMeta.pathUsed;
-          if (lastFixtureMeta.errorReason) sportLog.errorReason = lastFixtureMeta.errorReason;
-          await redis.publish("prefetch:updates", JSON.stringify({ type: "sportradar", sport, ts: Date.now(), fixtures: normalized.length, teams: sportLog.teamsCount }));
+          if (lastFixtureMeta.errorReason && !sportLog.errorReason) sportLog.errorReason = lastFixtureMeta.errorReason;
+          try {
+            await redis.publish("prefetch:updates", JSON.stringify({ type: "sportradar", sport, ts: Date.now(), fixtures: normalized.length, teams: sportLog.teamsCount }));
+          } catch (e) {
+            // publish is optional on some adapters
+          }
         } catch (e) {
           const msg = e?.message || String(e);
           logger.error(`prefetch ${sport} failed`, msg);
           sportLog.errorReason = msg;
+          sportLog.fixturesCount = 0;
+          sportLog.teamsCount = 0;
+          sportLog.lastUpdated = nowISO();
         }
-        health.bySport[sport] = sportLog;
-      }
-      health.updatedAt = nowISO();
-      try {
-        await redis.set(key, JSON.stringify(health), "EX", Math.max(300, ttlFixtures));
-      } catch (e) {
-        logger.warn("failed to write sportradar health to redis", e?.message || e);
+
+        // Update health per-sport so partial results persist even on failures
+        try {
+          // read current health, update this sport, and write back
+          let raw = null;
+          try {
+            raw = await redis.get(key);
+          } catch (e) {
+            raw = null;
+          }
+          const cur = raw ? JSON.parse(raw) : { updatedAt: nowISO(), bySport: {} };
+          cur.bySport = cur.bySport || {};
+          cur.bySport[sport] = sportLog;
+          cur.updatedAt = nowISO();
+          try {
+            await redis.set(key, JSON.stringify(cur), "EX", Math.max(300, ttlFixtures));
+          } catch (e) {
+            logger.warn("failed to write sportradar health to redis (per-sport)", e?.message || e);
+          }
+        } catch (e) {
+          logger.warn("failed to persist per-sport health", e?.message || e);
+        }
       }
     });
   }
