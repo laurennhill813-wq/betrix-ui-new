@@ -92,21 +92,29 @@
   {
     "name": "NewsNow",
     "host": "newsnow.p.rapidapi.com",
-    "sampleEndpoints": ["/newsv2_top_news"]
+    "sampleEndpoints": ["/newsv2_top_news"],
+    "enabled": false,
+    "note": "disabled: sample endpoint returns 404; needs review"
   },
   {
     "name": "TVPRO API",
     "host": "tvpro-api.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/channels"]
+    "sampleEndpoints": ["/v1/channels"],
+    "enabled": false,
+    "note": "disabled: sample endpoint returns 404; needs review"
   },
   {
     "name": "RapidSport (rapidsportapi)",
     "host": "rapidsportapi.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/scores"]
+    "sampleEndpoints": ["/v1/scores"],
+    "enabled": false,
+    "note": "disabled: sample endpoint returns 404; needs review"
   },
   {
     "name": "AllSportsApi",
     "host": "allsportsapi.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/events"]
+    "sampleEndpoints": ["/v1/events"],
+    "enabled": false,
+    "note": "disabled: sample endpoint returns 500; needs review"
   }
 ]

@@ -504,11 +504,36 @@ export function startPrefetchScheduler({
           const endpoints = Array.isArray(api.sampleEndpoints) ? api.sampleEndpoints : [];
           for (const endpoint of endpoints.slice(0, 10)) {
             try {
-              const result = await rapidFetcher.fetchRapidApi(host, endpoint).catch(async (err) => {
+              // Retry loop for transient errors (3 attempts with exponential backoff + jitter)
+              const maxAttempts = 3;
+              let attempt = 0;
+              let result = null;
+              let lastErr = null;
+              while (attempt < maxAttempts) {
+                attempt += 1;
+                try {
+                  result = await rapidFetcher.fetchRapidApi(host, endpoint);
+                  // consider non-2xx as failure to trigger a retry
+                  if (result && result.httpStatus && result.httpStatus >= 200 && result.httpStatus < 300) {
+                    break; // success
+                  }
+                  lastErr = new Error(`http_${result && result.httpStatus ? result.httpStatus : 'err'}`);
+                } catch (err) {
+                  lastErr = err;
+                }
+                if (attempt < maxAttempts) {
+                  const base = 300 * attempt; // ms
+                  const jitter = Math.floor(Math.random() * 200);
+                  const delay = base + jitter;
+                  await new Promise((r) => setTimeout(r, delay));
+                  // continue retrying
+                }
+              }
+              if (!result) {
                 // record failure to avoid tight loop
                 await recordFailure(`rapidapi:${safeName}`);
-                throw err;
-              });
+                throw lastErr || new Error('rapidapi_fetch_failed');
+              }
               const keyPart = normalizeRedisKeyPart(endpoint);
               const storeKey = `rapidapi:${safeName}:${keyPart}`;
               await safeSet(storeKey, { fetchedAt: ts, apiName, endpoint, httpStatus: result.httpStatus, data: result.body }, Number(process.env.RAPIDAPI_TTL_SEC || 300));
