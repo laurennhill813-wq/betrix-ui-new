@@ -121,8 +121,28 @@ app.get("/health/rapidapi", async (_req, res) => {
     if (!raw) return res.json({ ok: true, cached: false, message: "no rapidapi health data" });
     try {
       const parsed = JSON.parse(raw);
-      // Ensure schema: { updatedAt, apis: { apiName: { status, lastUpdated, endpoints } } }
-      return res.json({ ok: true, cached: true, health: parsed });
+      // Normalize to: [{ apiName, status, lastUpdated, endpoints: [{ path, httpStatus, errorReason, lastUpdated }] }]
+      const out = [];
+      const apis = parsed && parsed.apis ? parsed.apis : {};
+      for (const [apiName, info] of Object.entries(apis)) {
+        const endpoints = [];
+        const eps = info && info.endpoints ? info.endpoints : {};
+        for (const [path, e] of Object.entries(eps)) {
+          endpoints.push({
+            path,
+            httpStatus: e.httpStatus || null,
+            errorReason: e.errorReason || null,
+            lastUpdated: e.lastUpdated || null,
+          });
+        }
+        out.push({
+          apiName,
+          status: info.status || "unknown",
+          lastUpdated: info.lastUpdated || parsed.updatedAt || null,
+          endpoints,
+        });
+      }
+      return res.json({ ok: true, cached: true, health: out });
     } catch (e) {
       return res.json({ ok: true, cached: true, healthRaw: raw });
     }

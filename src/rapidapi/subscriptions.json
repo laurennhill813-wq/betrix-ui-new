@@ -9,105 +9,104 @@
   },
   {
     "name": "Football Prediction",
-    "host": "football-prediction.p.rapidapi.com",
+    "host": "football-prediction-api.p.rapidapi.com",
     "sampleEndpoints": [
-      "/predict/match?home=Arsenal&away=Chelsea",
-      "/odds/upcoming"
+      "/api/v2/predictions?market=classic&iso_date=2018-12-01&federation=UEFA"
     ]
   },
   {
     "name": "TheRundown",
-    "host": "therundown.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/scores", "/v1/odds"]
+    "host": "therundown-therundown-v1.p.rapidapi.com",
+    "sampleEndpoints": ["/sports/1/conferences"]
   },
   {
-    "name": "Live Sports Odds",
-    "host": "the-odds-api.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/sports", "/v1/odds"]
+    "name": "Odds (The Odds API)",
+    "host": "odds.p.rapidapi.com",
+    "sampleEndpoints": ["/v4/sports/upcoming/odds?regions=us&oddsFormat=decimal&markets=h2h,spreads&dateFormat=iso"]
   },
   {
     "name": "Football Live Stream Api",
-    "host": "football-live-streams.p.rapidapi.com",
-    "sampleEndpoints": ["/streams/live", "/streams/match?id=1234"]
-  },
-  {
-    "name": "TVPRO API",
-    "host": "tvpro-api.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/channels", "/v1/sports"]
+    "host": "football-live-stream-api.p.rapidapi.com",
+    "sampleEndpoints": ["/link/truc-tiep-tran-dau-coquimbo-unido-vs-universidad-de-chile-2674554"]
   },
   {
     "name": "SportAPI",
-    "host": "rapidsportapi.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/scores", "/v1/stats"]
+    "host": "sportapi7.p.rapidapi.com",
+    "sampleEndpoints": ["/api/v1/player/817181/unique-tournament/132/season/65360/ratings"]
   },
   {
     "name": "BetsAPI",
-    "host": "betsapi.p.rapidapi.com",
-    "sampleEndpoints": ["/bets/inplay", "/bets/markets"]
-  },
-  {
-    "name": "AllSportsApi",
-    "host": "allsportsapi.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/events", "/v1/teams"]
+    "host": "betsapi2.p.rapidapi.com",
+    "sampleEndpoints": ["/v3/bet365/prematch?FI=0"]
   },
   {
     "name": "Sportspage Feeds",
-    "host": "sportspagefeeds.p.rapidapi.com",
-    "sampleEndpoints": ["/feeds/team", "/feeds/schedule"]
+    "host": "sportspage-feeds.p.rapidapi.com",
+    "sampleEndpoints": ["/rankings?league=NCAAF"]
   },
   {
     "name": "Sofascore",
     "host": "sofascore.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/matches", "/v1/teams"]
+    "sampleEndpoints": ["/matches/get-h2h?matchId=8897222"]
   },
   {
     "name": "Sports Information",
     "host": "sports-information.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/news", "/v1/scores"]
+    "sampleEndpoints": ["/mbb/news?limit=30"]
   },
   {
-    "name": "ODDS-API",
-    "host": "odds-api.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/odds", "/v1/markets"]
+    "name": "ODDS-API (alt)",
+    "host": "odds-api1.p.rapidapi.com",
+    "sampleEndpoints": ["/scores?fixtureId=id1200255561449537"]
   },
   {
     "name": "Bet365 API Inplay",
-    "host": "bet365-inplay.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/inplay", "/v1/events"]
+    "host": "bet365-api-inplay.p.rapidapi.com",
+    "sampleEndpoints": ["/bet365/get_leagues"]
   },
   {
     "name": "Pinnacle Odds",
     "host": "pinnacle-odds.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/odds", "/v1/lineups"]
+    "sampleEndpoints": ["/kit/v1/meta-periods?sport_id=1"]
   },
   {
     "name": "Free Livescore API",
-    "host": "free-livescore.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/livescores", "/v1/fixtures"]
+    "host": "free-livescore-api.p.rapidapi.com",
+    "sampleEndpoints": ["/livescore-get-search?sportname=soccer&search=romania"]
   },
   {
     "name": "Free API Live Football Data",
-    "host": "free-football-data.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/leagues", "/v1/standings"]
-  },
-  {
-    "name": "Real-time Sports News API",
-    "host": "realtime-sports-news.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/headlines", "/v1/articles"]
+    "host": "free-api-live-football-data.p.rapidapi.com",
+    "sampleEndpoints": ["/football-players-search?search=m"]
   },
   {
     "name": "Football Pro",
     "host": "football-pro.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/pro/matches", "/v1/pro/odds"]
+    "sampleEndpoints": ["/api/v2.0/corrections/season/17141?tz=Europe%2FAmsterdam"]
   },
   {
     "name": "FlashLive Sports",
     "host": "flashlive-sports.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/live", "/v1/stats"]
+    "sampleEndpoints": ["/v1/news/list?entity_id=1&page=0&category_id=59&locale=en_INT"]
   },
   {
     "name": "NewsNow",
     "host": "newsnow.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/news", "/v1/search?q=soccer"]
+    "sampleEndpoints": ["/newsv2_top_news"]
+  },
+  {
+    "name": "TVPRO API",
+    "host": "tvpro-api.p.rapidapi.com",
+    "sampleEndpoints": ["/v1/channels"]
+  },
+  {
+    "name": "RapidSport (rapidsportapi)",
+    "host": "rapidsportapi.p.rapidapi.com",
+    "sampleEndpoints": ["/v1/scores"]
+  },
+  {
+    "name": "AllSportsApi",
+    "host": "allsportsapi.p.rapidapi.com",
+    "sampleEndpoints": ["/v1/events"]
   }
 ]

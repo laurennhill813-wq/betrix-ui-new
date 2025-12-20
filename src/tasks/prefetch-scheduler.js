@@ -6,7 +6,19 @@
 import { setTimeout as wait } from "timers/promises";
 void wait;
 import { RapidApiFetcher, normalizeRedisKeyPart } from "../lib/rapidapi-fetcher.js";
-import subscriptions from "../rapidapi/subscriptions.json" assert { type: "json" };
+import fs from "fs";
+import path from "path";
+
+// Load subscriptions.json at runtime (avoid import assertions which may not be
+// supported in some runtime environments such as certain deployment builders).
+const subscriptionsPath = path.join(process.cwd(), "src", "rapidapi", "subscriptions.json");
+let subscriptions = [];
+try {
+  subscriptions = JSON.parse(fs.readFileSync(subscriptionsPath, "utf8"));
+} catch (e) {
+  console.warn("Could not load subscriptions.json", e && e.message ? e.message : String(e));
+  subscriptions = [];
+}
 
 export function startPrefetchScheduler({
   redis,
