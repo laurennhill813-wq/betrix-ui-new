@@ -6,7 +6,7 @@
 
 import { CONFIG } from "../config.js";
 import { Logger } from "../utils/logger.js";
-import { probeSportradarCapabilities } from "../services/providers/sportradar.js";
+// Sportradar provider removed — do not probe Sportradar capabilities
 
 const logger = new Logger("APIBootstrap");
 
@@ -28,9 +28,7 @@ export class APIBootstrap {
       providers: {},
     };
 
-    logger.info(
-      "🚀 Initializing providers (Football-Data, SportMonks, Sportradar)",
-    );
+    logger.info("🚀 Initializing providers (Football-Data, SportMonks)");
 
     // Check Football-Data.org
     if (CONFIG.FOOTBALLDATA && CONFIG.FOOTBALLDATA.KEY) {
@@ -69,45 +67,8 @@ export class APIBootstrap {
       logger.warn("⚠️  SportMonks NOT configured");
     }
 
-    // Check Sportradar (optional) — only enabled if SPORTRADAR_KEY provided
-    if (CONFIG.SPORTRADAR && CONFIG.SPORTRADAR.KEY) {
-      status.providers.SPORTRADAR = {
-        enabled: true,
-        key: `${CONFIG.SPORTRADAR.KEY.substring(0, 8)}...${CONFIG.SPORTRADAR.KEY.substring(CONFIG.SPORTRADAR.KEY.length - 4)}`,
-        base: CONFIG.SPORTRADAR.BASE || "https://api.sportradar.com",
-      };
-      this.providers.sportradar = true;
-      logger.info("✅ Sportradar configured", status.providers.SPORTRADAR);
-
-      // Probe Sportradar endpoints and store capability info into Redis for monitoring
-      try {
-        const probe = await probeSportradarCapabilities("soccer");
-        status.providers.SPORTRADAR.capabilities = probe.summary;
-        // write Redis health key with 1 hour TTL
-        try {
-          this.redis.set(
-            "betrix:provider:health:sportradar",
-            JSON.stringify(probe),
-            "EX",
-            3600,
-          );
-        } catch (e) {
-          logger.warn("Failed to write Sportradar health to Redis", e?.message);
-        }
-        logger.info("🔎 Sportradar capability probe result", probe.summary);
-      } catch (e) {
-        logger.warn("🔎 Sportradar capability probe failed", e?.message);
-        status.providers.SPORTRADAR.capabilities = {
-          error: e?.message || "probe_failed",
-        };
-      }
-    } else {
-      status.providers.SPORTRADAR = {
-        enabled: false,
-        reason: "SPORTRADAR_KEY not set",
-      };
-      logger.info("ℹ️  Sportradar not configured (SPORTRADAR_KEY missing)");
-    }
+    // Sportradar support removed from bootstrap. If you need Sportradar
+    // re-enabled, add a dedicated integration later.
 
     // Summary
     const enabledCount = Object.values(this.providers).filter(Boolean).length;
