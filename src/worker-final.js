@@ -999,17 +999,13 @@ try {
           const { aggregateFixtures } = await import("./lib/fixtures-aggregator.js");
           const agg = await aggregateFixtures(redis).catch(() => null);
           if (agg) {
-            // log per-provider and per-sport breakdown
-            try {
-              for (const [p, counts] of Object.entries(agg.providers || {})) {
-                logger.info(`[aggregator] ${p} live=${counts.live} upcoming=${counts.upcoming}`);
-              }
-            } catch (e) {}
+            // Emit unified per-sport breakdown (one line per sport) for consolidated logs
             try {
               for (const [s, counts] of Object.entries(agg.bySport || {})) {
                 logger.info(`[aggregator] ${s} live=${counts.live} upcoming=${counts.upcoming}`);
               }
             } catch (e) {}
+            // Emit overall totals and provider summary (compact)
             try {
               const providerList = Object.keys(agg.providers || {}).join(',');
               logger.info(`[aggregator] providers=${providerList} live=${agg.totalLiveMatches} upcoming=${agg.totalUpcomingFixtures}`);
@@ -1057,11 +1053,6 @@ try {
             const { aggregateFixtures } = await import("./lib/fixtures-aggregator.js");
             const agg = await aggregateFixtures(redis).catch(() => null);
             if (agg) {
-              try {
-                for (const [p, counts] of Object.entries(agg.providers || {})) {
-                  logger.info(`[aggregator] ${p} live=${counts.live} upcoming=${counts.upcoming}`);
-                }
-              } catch (e) {}
               try {
                 for (const [s, counts] of Object.entries(agg.bySport || {})) {
                   logger.info(`[aggregator] ${s} live=${counts.live} upcoming=${counts.upcoming}`);

@@ -79,11 +79,16 @@ app.get("/health/rapidapi", async (_req, res) => {
       // fall through to 500 below
     }
     return res.status(200).json({ ok: true, cached: false, message: "no rapidapi health data" });
-  } catch (err) {
+    } catch (err) {
     logger.error("/health/rapidapi error", err && err.message ? err.message : err);
     return res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
   }
 });
+
+// Startup visibility: confirm this route is registered when the server starts
+try {
+  console.log("/health/rapidapi registered");
+} catch (e) {}
 
 // Apply rate limiter after health/readiness endpoints so platform probes are not blocked
 app.use(limiter);
