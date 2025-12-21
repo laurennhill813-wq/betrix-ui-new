@@ -129,14 +129,15 @@ export async function aggregateFixtures(redis, opts = {}) {
     await redis.set('rapidapi:fixtures:live:total', String(totalLiveMatches)).catch(()=>{});
     await redis.set('rapidapi:fixtures:upcoming:total', String(totalUpcomingFixtures)).catch(()=>{});
     for (const [s, counts] of Object.entries(bySport)) {
-      await redis.set(`rapidapi:fixtures:live:${s}`, String(counts.live)).catch(()=>{});
-      await redis.set(`rapidapi:fixtures:upcoming:${s}`, String(counts.upcoming)).catch(()=>{});
+      const keySafe = String(s).toLowerCase();
+      await redis.set(`rapidapi:fixtures:live:${keySafe}`, String(counts.live)).catch(()=>{});
+      await redis.set(`rapidapi:fixtures:upcoming:${keySafe}`, String(counts.upcoming)).catch(()=>{});
     }
     await redis.set('rapidapi:fixtures:list', JSON.stringify(merged.slice(0, cap))).catch(()=>{});
     await redis.set('rapidapi:fixtures:providers', JSON.stringify(providers)).catch(()=>{});
   } catch (e) {}
 
-  return { totalLiveMatches, totalUpcomingFixtures, providers, fixtures: merged };
+  return { totalLiveMatches, totalUpcomingFixtures, providers, fixtures: merged, bySport };
 }
 
 export default { aggregateFixtures };
