@@ -150,10 +150,14 @@ app.get("/health/rapidapi", async (_req, res) => {
         try {
           const agg = await aggregateFixtures(webhookRedis).catch(() => null);
           if (agg) {
-            // expose unified totals at top level
-            // merged fixtures list is available under rapidapi:fixtures:list key too
-            // but we prefer returning the computed per-provider summary alongside health.
-            return res.json({ ok: true, cached: true, health: out, fixturesBySport, unified: { liveMatches: agg.totalLiveMatches, upcomingFixtures: agg.totalUpcomingFixtures, providers: agg.providers } });
+            // build sports map: { sport: { live, upcoming } }
+            const sportsMap = {};
+            try {
+              for (const [s, counts] of Object.entries(agg.bySport || {})) {
+                sportsMap[s] = { live: Number(counts.live || 0), upcoming: Number(counts.upcoming || 0) };
+              }
+            } catch (e) {}
+            return res.json({ ok: true, cached: true, health: out, fixturesBySport, unified: { liveMatches: agg.totalLiveMatches, upcomingFixtures: agg.totalUpcomingFixtures, providers: agg.providers, sports: sportsMap } });
           }
         } catch (e) {}
       } catch (e) {}

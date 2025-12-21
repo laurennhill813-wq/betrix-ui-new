@@ -8,6 +8,7 @@ import fs from "fs";
 import path from "path";
 import RapidApiLogger from "../lib/rapidapi-logger.js";
 import { aggregateFixtures } from "../lib/fixtures-aggregator.js";
+import { fetchUpcomingFixtures, fetchLiveMatches } from "../lib/rapidapi-client.js";
 import { formatMMDDYYYY, getNextDaysMMDDYYYY } from "../lib/rapidapi-utils.js";
 import { normalizeRedisKeyPart } from "../lib/rapidapi-fetcher.js";
 export function startPrefetchScheduler({
@@ -956,6 +957,73 @@ export function startPrefetchScheduler({
         await redis.publish("prefetch:updates", JSON.stringify({ type: "rapidapi", ts }));
         // Run unified aggregation after provider prefetches so unified totals and lists are available
         try {
+          // Additionally, run provider-specific RapidAPI client fetches (TheRundown, Odds APIs, Heisenbug)
+          try {
+            for (const api of Array.isArray(subscriptions) ? subscriptions : []) {
+              try {
+                const hostLc = String(api.host || '').toLowerCase();
+                // target known RapidAPI sports feeds; skip generic non-http hosts
+                if (!api.host) continue;
+                const provider = { host: api.host, name: api.name };
+                // prefer sampleEndpoints if available
+                const endpoints = Array.isArray(api.sampleEndpoints) && api.sampleEndpoints.length ? api.sampleEndpoints.slice(0,3) : ['/'];
+                const collectedUpcoming = [];
+                const collectedLive = [];
+                for (const ep of endpoints) {
+                  try {
+                    // call upcoming and live fetchers with endpoint path when possible
+                    const upcoming = await fetchUpcomingFixtures(provider, { path: ep }).catch(() => []);
+                    const live = await fetchLiveMatches(provider, { path: ep }).catch(() => []);
+                    if (Array.isArray(upcoming) && upcoming.length) collectedUpcoming.push(...upcoming);
+                    if (Array.isArray(live) && live.length) collectedLive.push(...live);
+                  } catch (e) {
+                    /* ignore per-endpoint errors */
+                  }
+                }
+                // write per-sport Redis keys for collected fixtures
+                const bucketBySport = (arr) => {
+                  const bySport = {};
+                  for (const f of (arr || [])) {
+                    const s = String(f.sport || 'unknown').toLowerCase();
+                    if (!bySport[s]) bySport[s] = [];
+                    bySport[s].push(f);
+                  }
+                  return bySport;
+                };
+                const upBySport = bucketBySport(collectedUpcoming);
+                const liveBySport = bucketBySport(collectedLive);
+                for (const [sport, list] of Object.entries(upBySport)) {
+                  try {
+                    const key = `rapidapi:fixtures:upcoming:${sport}`;
+                    await redis.set(key, JSON.stringify({ apiName: api.name || provider.host, sport, fixtures: list, fetchedAt: ts }), 'EX', Number(process.env.RAPIDAPI_FIXTURES_TTL_SEC || 300)).catch(()=>{});
+                  } catch (e) {}
+                }
+                for (const [sport, list] of Object.entries(liveBySport)) {
+                  try {
+                    const key = `rapidapi:fixtures:live:${sport}`;
+                    await redis.set(key, JSON.stringify({ apiName: api.name || provider.host, sport, fixtures: list, fetchedAt: ts }), 'EX', Number(process.env.RAPIDAPI_FIXTURES_TTL_SEC || 300)).catch(()=>{});
+                  } catch (e) {}
+                }
+
+                try {
+                  // concise logs
+                  console.log(`[rapidapi-client] ${api.name || api.host} upcoming=${collectedUpcoming.length} live=${collectedLive.length}`);
+                  if (hostLc.includes('therundown')) console.log(`[therundown] fetched ${api.name || api.host} upcoming=${collectedUpcoming.length} live=${collectedLive.length}`);
+                } catch (e) {}
+                // Run aggregation after each provider to keep unified Redis keys up-to-date
+                try {
+                  const aggNow = await aggregateFixtures(redis).catch(() => null);
+                  if (aggNow) {
+                    const providerList = Object.keys(aggNow.providers || {}).join(',') || '';
+                    console.log(`[aggregator] providers=${providerList} live=${aggNow.totalLiveMatches} upcoming=${aggNow.totalUpcomingFixtures}`);
+                  }
+                } catch (e) {}
+              } catch (e) {}
+            }
+          } catch (e) {
+            /* ignore client fetch errors */
+          }
+
           const agg = await aggregateFixtures(redis).catch(() => null);
           if (agg) {
             try {

@@ -6,6 +6,7 @@
 
 import { CONFIG } from "../config.js";
 import { Logger } from "../utils/logger.js";
+import { aggregateFixtures } from "../lib/fixtures-aggregator.js";
 // Sportradar provider removed — do not probe Sportradar capabilities
 
 const logger = new Logger("APIBootstrap");
@@ -144,9 +145,21 @@ export class APIBootstrap {
 
       if (fixtures && Array.isArray(fixtures) && fixtures.length > 0) {
         results.totalFixtures = fixtures.length;
-        logger.info(
-          `✅ Found ${fixtures.length} upcoming fixtures from SportMonks/Football-Data`,
-        );
+        // Log per-sport and unified totals from aggregator
+        try {
+          const agg = await aggregateFixtures(this.redis).catch(() => null);
+          if (agg && agg.bySport) {
+            for (const [sport, counts] of Object.entries(agg.bySport)) {
+              logger.info(`[aggregator] ${sport} upcoming=${counts.upcoming} live=${counts.live}`);
+            }
+            const providerList = Object.keys(agg.providers || {}).join(',');
+            logger.info(`[aggregator] providers=${providerList} live=${agg.totalLiveMatches} upcoming=${agg.totalUpcomingFixtures}`);
+          } else {
+            logger.info(`✅ Found ${fixtures.length} upcoming fixtures from SportMonks/Football-Data`);
+          }
+        } catch (e) {
+          logger.info(`✅ Found ${fixtures.length} upcoming fixtures from SportMonks/Football-Data`);
+        }
       } else {
         logger.info("ℹ️  No upcoming fixtures available");
       }
@@ -251,13 +264,20 @@ export class APIBootstrap {
         const liveMatches = await this.prefetchLiveMatches();
         const upcomingFixtures = await this.prefetchUpcomingFixtures();
 
-        if (
-          (liveMatches.totalMatches || 0) > 0 ||
-          (upcomingFixtures.totalFixtures || 0) > 0
-        ) {
-          logger.info(
-            `🔄 Prefetch cycle: ${liveMatches.totalMatches || 0} live, ${upcomingFixtures.totalFixtures || 0} upcoming`,
-          );
+        // Emit unified aggregation summary for observability
+        try {
+          const agg = await aggregateFixtures(this.redis).catch(() => null);
+          if (agg) {
+            for (const [sport, counts] of Object.entries(agg.bySport || {})) {
+              logger.info(`[aggregator] ${sport} live=${counts.live} upcoming=${counts.upcoming}`);
+            }
+            const providerList = Object.keys(agg.providers || {}).join(',');
+            logger.info(`🔄 Prefetch cycle unified: providers=${providerList} live=${agg.totalLiveMatches} upcoming=${agg.totalUpcomingFixtures}`);
+          } else {
+            logger.info(`🔄 Prefetch cycle: ${liveMatches.totalMatches || 0} live, ${upcomingFixtures.totalFixtures || 0} upcoming`);
+          }
+        } catch (e) {
+          logger.info(`🔄 Prefetch cycle: ${liveMatches.totalMatches || 0} live, ${upcomingFixtures.totalFixtures || 0} upcoming`);
         }
       } catch (e) {
         logger.warn("Continuous prefetch cycle failed", e?.message);
