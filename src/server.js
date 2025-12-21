@@ -94,28 +94,39 @@ try {
 // Uses deploy id from environment when available, otherwise falls back to
 // a generic "registered" marker. Uses `cacheSet` so it works with the
 // in-memory fallback when no REDIS_URL is configured (useful in tests).
-(async () => {
-  try {
-    const deployId =
-      process.env.RENDER_DEPLOY_ID || process.env.DEPLOY_ID || process.env.RENDER_DEPLOY || "registered";
-    const key = `rapidapi:startup:${deployId}`;
-    const value = "registered";
-    // 24 hour TTL
-    const ttl = 60 * 60 * 24;
+  (async () => {
     try {
-      await cacheSet(key, value, ttl);
-      try {
-        console.log(`[startup] Redis marker ${key}=${value}`);
-      } catch (e) {}
+      // Prefer a deploy-id when provided by the platform; otherwise fall back
+      // to commit SHA, then the Render service id as a stable identifier.
+      const deployId =
+        process.env.RENDER_DEPLOY_ID ||
+        process.env.COMMIT_SHA ||
+        process.env.RENDER_SERVICE_ID ||
+        null;
+
+      // Always set the global registered marker with a 24-hour TTL
+      const ttlSeconds = 60 * 60 * 24;
+      const globalKey = `rapidapi:startup:registered`;
+      await cacheSet(globalKey, 'registered', ttlSeconds);
+      console.log(`[startup] Redis marker ${globalKey}=registered`);
+
+      // Also set a deploy-specific key when we have a deploy identifier
+      if (deployId) {
+        try {
+          const key = `rapidapi:startup:${deployId}`;
+          await cacheSet(key, 'registered', ttlSeconds);
+          console.log(`[startup] Redis marker ${key}=registered`);
+        } catch (innerErr) {
+          console.warn(
+            '[startup] failed to write deploy-specific redis startup marker',
+            innerErr && innerErr.message ? innerErr.message : innerErr,
+          );
+        }
+      }
     } catch (e) {
-      try {
-        console.warn("[startup] failed to set redis startup marker", e && e.message ? e.message : e);
-      } catch (e2) {}
+      console.warn('[startup] failed to write redis startup marker', e && e.message ? e.message : e);
     }
-  } catch (e) {
-    // do not let startup marker failures crash the server
-  }
-})();
+  })();
 
 // Apply rate limiter after health/readiness endpoints so platform probes are not blocked
 app.use(limiter);

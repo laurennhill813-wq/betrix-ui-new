@@ -1,5 +1,4 @@
 import assert from 'assert';
-import { startServer } from '../src/server.js';
 
 // Ensure /health/rapidapi registration log is emitted on startup
 (async () => {
@@ -12,6 +11,10 @@ import { startServer } from '../src/server.js';
     } catch (e) {}
     try { origLog.apply(console, args); } catch (e) {}
   };
+
+  // Import server after monkeypatching console so the module-level registration
+  // log in src/server.js is captured by this test.
+  const { startServer } = await import('../src/server.js');
 
   let server;
   try {
