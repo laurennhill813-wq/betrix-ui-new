@@ -181,6 +181,7 @@ node src/app.js
 | [API_REFERENCE.md](API_REFERENCE.md)               | All HTTP endpoints, WebSocket, Pub/Sub channels           |
 | [LEGAL.md](LEGAL.md)                               | Data source reuse, attribution, compliance                |
 | [PREFETCH_POLICY.md](PREFETCH_POLICY.md)           | Recommended intervals, TTL policies, backoff tuning       |
+| [docs/therundown_api.md](docs/therundown_api.md)   | TheRundown API integration reference                      |
 
 ## 🧪 Testing
 
