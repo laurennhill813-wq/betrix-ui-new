@@ -90,6 +90,33 @@ try {
   console.log("/health/rapidapi registered");
 } catch (e) {}
 
+// Write a Redis startup marker so boot can be verified programmatically.
+// Uses deploy id from environment when available, otherwise falls back to
+// a generic "registered" marker. Uses `cacheSet` so it works with the
+// in-memory fallback when no REDIS_URL is configured (useful in tests).
+(async () => {
+  try {
+    const deployId =
+      process.env.RENDER_DEPLOY_ID || process.env.DEPLOY_ID || process.env.RENDER_DEPLOY || "registered";
+    const key = `rapidapi:startup:${deployId}`;
+    const value = "registered";
+    // 24 hour TTL
+    const ttl = 60 * 60 * 24;
+    try {
+      await cacheSet(key, value, ttl);
+      try {
+        console.log(`[startup] Redis marker ${key}=${value}`);
+      } catch (e) {}
+    } catch (e) {
+      try {
+        console.warn("[startup] failed to set redis startup marker", e && e.message ? e.message : e);
+      } catch (e2) {}
+    }
+  } catch (e) {
+    // do not let startup marker failures crash the server
+  }
+})();
+
 // Apply rate limiter after health/readiness endpoints so platform probes are not blocked
 app.use(limiter);
 
