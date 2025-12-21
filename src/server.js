@@ -19,6 +19,7 @@ import jobsRouter from "./routes/jobs.js";
 import { cacheSet, getRedisClient } from "./lib/redis-cache.js";
 import createAdminRouter from "./routes/admin.js";
 import { getMetrics as getLivelinessMetrics } from "./lib/liveliness.js";
+import { aggregateFixtures } from "./lib/fixtures-aggregator.js";
 
 const logger = new Logger("Server");
 const app = express();
@@ -57,6 +58,30 @@ app.get("/ready", async (req, res) => {
     return res
       .status(500)
       .json({ status: "error", error: "readiness check failed" });
+  }
+});
+
+// RapidAPI health endpoint: expose unified per-sport fixture totals
+app.get("/health/rapidapi", async (_req, res) => {
+  try {
+    const client = getRedisClient();
+    if (!client) return res.status(503).json({ ok: false, reason: "no_redis" });
+    try {
+      const agg = await aggregateFixtures(client).catch(() => null);
+      if (agg) {
+        const sportsMap = {};
+        for (const [s, counts] of Object.entries(agg.bySport || {})) {
+          sportsMap[s] = { live: Number(counts.live || 0), upcoming: Number(counts.upcoming || 0) };
+        }
+        return res.json({ ok: true, unified: { liveMatches: agg.totalLiveMatches, upcomingFixtures: agg.totalUpcomingFixtures, providers: agg.providers, sports: sportsMap } });
+      }
+    } catch (e) {
+      // fall through to 500 below
+    }
+    return res.status(200).json({ ok: true, cached: false, message: "no rapidapi health data" });
+  } catch (err) {
+    logger.error("/health/rapidapi error", err && err.message ? err.message : err);
+    return res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
   }
 });
 
