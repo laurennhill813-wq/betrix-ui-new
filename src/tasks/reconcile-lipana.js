@@ -21,8 +21,9 @@ export async function reconcileWithLipana(opts = {}) {
     errors: 0,
   };
 
-  const q = `SELECT id, tx_ref, metadata->>'provider_checkout_id' as provider_checkout_id FROM payments WHERE status = 'pending' AND (metadata->>'provider_checkout_id') IS NOT NULL AND created_at < (now() - ($1 || '5 minutes')::interval) LIMIT $2`;
-  const { rows } = await pool.query(q, [`${thresholdMinutes} minutes`, limit]);
+  // Use COALESCE so the SQL interval doesn't get concatenated accidentally
+  const q = `SELECT id, tx_ref, metadata->>'provider_checkout_id' as provider_checkout_id FROM payments WHERE status = 'pending' AND (metadata->>'provider_checkout_id') IS NOT NULL AND created_at < (now() - COALESCE($1, '5 minutes')::interval) LIMIT $2`;
+  const { rows } = await pool.query(q, [thresholdMinutes ? `${thresholdMinutes} minutes` : null, limit]);
   if (!rows || rows.length === 0) return { summary, rows: [] };
 
   for (const r of rows) {
