@@ -302,30 +302,48 @@ const telegram = new TelegramService(
 const userService = new UserService(redis);
 // Periodic Lipana reconciliation (runs only if Postgres pool is available)
 if (pgPool) {
-  const minutes = Number(process.env.RECONCILE_INTERVAL_MINUTES || 10);
-  const intervalMs = Math.max(1, minutes) * 60 * 1000;
-  setInterval(async () => {
-    try {
-      logger.info("Running scheduled Lipana reconciliation");
-      await reconcileWithLipana({
-        pool: pgPool,
-        telegram,
-        redis,
-        thresholdMinutes: Number(process.env.RECONCILE_THRESHOLD_MINUTES || 15),
-        limit: Number(process.env.RECONCILE_LIMIT || 200),
-        adminId:
-          process.env.ADMIN_TELEGRAM_ID ||
-          (CONFIG && CONFIG.ADMIN_TELEGRAM_ID) ||
-          null,
-      });
-      logger.info("Scheduled Lipana reconciliation complete");
-    } catch (err) {
-      logger.error(
-        "Scheduled Lipana reconciliation failed",
-        err?.message || String(err),
-      );
+  // Defensive validation for scheduling interval and threshold
+  const rawInterval = process.env.RECONCILE_INTERVAL_MINUTES;
+  let minutes = rawInterval ? Number(rawInterval) : 10;
+  if (rawInterval && (!Number.isFinite(minutes) || minutes < 0)) {
+    logger.warn("Invalid RECONCILE_INTERVAL_MINUTES, falling back to 10", { raw: rawInterval });
+    minutes = 10;
+  }
+  if (minutes === 0) {
+    logger.info("Lipana reconciliation disabled via RECONCILE_INTERVAL_MINUTES=0");
+  } else {
+    const intervalMs = Math.max(1, minutes) * 60 * 1000;
+    const rawThreshold = process.env.RECONCILE_THRESHOLD_MINUTES;
+    let threshold = rawThreshold ? Number(rawThreshold) : 15;
+    if (rawThreshold && (!Number.isFinite(threshold) || threshold <= 0)) {
+      logger.warn("Invalid RECONCILE_THRESHOLD_MINUTES, falling back to 15", { raw: rawThreshold });
+      threshold = 15;
     }
-  }, intervalMs);
+
+    logger.info("Scheduling Lipana reconciliation", { intervalMinutes: minutes, thresholdMinutes: threshold });
+    setInterval(async () => {
+      try {
+        logger.info("Running scheduled Lipana reconciliation");
+        await reconcileWithLipana({
+          pool: pgPool,
+          telegram,
+          redis,
+          thresholdMinutes: threshold,
+          limit: Number(process.env.RECONCILE_LIMIT || 200),
+          adminId:
+            process.env.ADMIN_TELEGRAM_ID ||
+            (CONFIG && CONFIG.ADMIN_TELEGRAM_ID) ||
+            null,
+        });
+        logger.info("Scheduled Lipana reconciliation complete");
+      } catch (err) {
+        logger.error(
+          "Scheduled Lipana reconciliation failed",
+          err?.message || String(err),
+        );
+      }
+    }, intervalMs);
+  }
 }
 // Do not instantiate API-Football service — set to null so handlers fall back to SportMonks/Football-Data
 const apiFootball = null;

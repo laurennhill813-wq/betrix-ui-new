@@ -8,12 +8,37 @@ const aiRequests = new client.Counter({
   help: "Total AI requests",
   labelNames: ["provider"],
 });
+
+const lipanaRuns = new client.Counter({
+  name: "betrix_lipana_reconciliation_runs_total",
+  help: "Total Lipana reconciliation runs",
+});
+const lipanaFailures = new client.Counter({
+  name: "betrix_lipana_reconciliation_failures_total",
+  help: "Total Lipana reconciliation failures",
+});
+const lipanaSuccess = new client.Counter({
+  name: "betrix_lipana_reconciliation_success_total",
+  help: "Total Lipana reconciliation successes",
+});
 const aiErrors = new client.Counter({
   name: "betrix_ai_errors_total",
+register.registerMetric(lipanaRuns);
+register.registerMetric(lipanaFailures);
+register.registerMetric(lipanaSuccess);
   help: "Total AI errors",
   labelNames: ["provider"],
 });
 const aiLatency = new client.Histogram({
+export function incLipanaRun(n = 1) {
+  lipanaRuns.inc(Number(n));
+}
+export function incLipanaFailure(n = 1) {
+  lipanaFailures.inc(Number(n));
+}
+export function incLipanaSuccess(n = 1) {
+  lipanaSuccess.inc(Number(n));
+}
   name: "betrix_ai_latency_ms",
   help: "AI latency in ms",
   labelNames: ["provider"],
