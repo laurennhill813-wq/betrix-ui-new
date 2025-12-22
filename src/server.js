@@ -18,6 +18,7 @@ import { verifyAndActivatePayment } from "./handlers/payment-router.js";
 import jobsRouter from "./routes/jobs.js";
 import { cacheSet, getRedisClient } from "./lib/redis-cache.js";
 import createAdminRouter from "./routes/admin.js";
+import footballRouter from "./routes/football.js";
 import { getMetrics as getLivelinessMetrics } from "./lib/liveliness.js";
 import { aggregateFixtures } from "./lib/fixtures-aggregator.js";
 
@@ -135,6 +136,9 @@ app.use(limiter);
 app.use("/api", jobsRouter);
 // Admin routes
 app.use("/api", createAdminRouter());
+
+// Football / NFL proxy routes (server-side proxy to RapidAPI)
+app.use("/api/football", footballRouter);
 
 // Telegram webhook
 app.post("/webhook/telegram", async (req, res) => {
@@ -465,11 +469,27 @@ app.post("/webhook/mpesa", async (req, res) => {
 });
 
 // Start server
-export function startServer() {
-  const PORT = process.env.PORT ? Number(process.env.PORT) : 5000;
-  const server = app.listen(PORT, "0.0.0.0", () => {
-    logger.info(`🚀 Server on port ${PORT}`);
+let _server = null;
+
+export function startServer(options = {}) {
+  // If server already started and listening, return same instance (idempotent)
+  try {
+    if (_server && _server.listening) return _server;
+  } catch (e) {
+    _server = null;
+  }
+
+  const PORT = (options && options.port != null) ? Number(options.port) : (process.env.PORT ? Number(process.env.PORT) : 5000);
+  const HOST = process.env.HOST || "0.0.0.0";
+  const server = app.listen(PORT, HOST, () => {
+    const addr = server.address && server.address();
+    const usedPort = addr && addr.port ? addr.port : PORT;
+    logger.info(`🚀 Server on port ${usedPort}`);
   });
+  _server = server;
+
+  // Clear module-level server reference when closed so tests can restart cleanly
+  server.on('close', () => { try { _server = null; } catch (e) { /**/ } });
 
   function shutdown(signal) {
     try {

@@ -18,7 +18,7 @@ import assert from 'assert';
 
   let server;
   try {
-    server = startServer();
+    server = startServer({ port: 0 });
     // allow short time for startup logs
     await new Promise((r) => setTimeout(r, 600));
   } finally {

@@ -11,7 +11,7 @@ try { _clearFallback(); } catch (e) {}
 const { startServer } = await import('../src/server.js');
 
 (async () => {
-  const server = startServer();
+  const server = startServer({ port: 0 });
   try {
     // allow a short time for the async startup marker to run
     await new Promise((r) => setTimeout(r, 800));
