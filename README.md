@@ -1,5 +1,7 @@
 # 🌀 BETRIX - Multi-Sport AI Telegram Bot Platform
 
+![CI Tests](https://github.com/maryreaky/betrix-ui-replit-/actions/workflows/ci-tests.yml/badge.svg)
+
 **Production-ready Telegram bot** with AI-powered analysis, multi-provider resilience, free live sports data, real-time prefetching, and comprehensive monitoring.
 
 ## ✨ Key Features
