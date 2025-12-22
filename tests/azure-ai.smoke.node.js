@@ -13,6 +13,11 @@ function loadAzureAIServiceWithFetch(mockFetch) {
     /import\s+fetch\s+from\s+['"]node-fetch['"];?/g,
     "const fetch = global.__mocked_fetch__",
   );
+  // Replace local fetch helper imports (common in ESM source) with the mocked fetch
+  src = src.replace(
+    /import\s+fetch\s+from\s+['"].*?\/lib\/fetch\.js['"];?/g,
+    "const fetch = global.__mocked_fetch__",
+  );
   // Mock persona and metrics imports used by the service so vm.runInContext doesn't choke on ESM imports
   src = src.replace(
     /import\s+persona\s+from\s+['"].*?persona\.js['"];?/g,
