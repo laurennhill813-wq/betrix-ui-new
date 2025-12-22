@@ -104,7 +104,16 @@ describe("Sportradar registry and prefetch", () => {
         if (sport === "tennis") return { ok: false, status: 502, bodyText: 'Gateway failure' };
         // normal success shape
         const date = params && params.date ? params.date : new Date().toISOString().slice(0,10);
-        return { ok: true, status: 200, body: { games: [ { id: `${sport}-1`, scheduled: `${date}T12:00:00Z`, home: { name: `${sport} Home` }, away: { name: `${sport} Away` } ] }, provider_path: `/mock/${sport}/schedule` };
+        const games = [
+          {
+            id: `${sport}-1`,
+            scheduled: `${date}T12:00:00Z`,
+            home: { name: `${sport} Home` },
+            away: { name: `${sport} Away` },
+          },
+        ];
+        const body = { games };
+        return { ok: true, status: 200, body, provider_path: `/mock/${sport}/schedule` };
       }
     }));
 

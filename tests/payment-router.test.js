@@ -18,31 +18,38 @@ class MockRedis {
   }
 
   async hgetall(key) {
-    return this.data[key] || {};
+    const raw = this.data[key];
+    try {
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return raw || {};
+    }
   }
 
   async hset(key, field, value) {
     // support both object and field/value usage
     if (typeof field === "object") {
-      this.data[key] = field;
+      this.data[key] = JSON.stringify(field);
     } else {
-      this.data[key] = this.data[key] || {};
-      this.data[key][field] = value;
+      const cur = this.data[key] ? (typeof this.data[key] === 'string' ? JSON.parse(this.data[key]) : this.data[key]) : {};
+      cur[field] = value;
+      this.data[key] = JSON.stringify(cur);
     }
     return 1;
   }
 
   async get(key) {
-    return this.data[key] || null;
+    const v = this.data[key];
+    return v === undefined ? null : v;
   }
 
   async setex(key, exp, val) {
-    this.data[key] = val;
+    this.data[key] = typeof val === "string" ? val : JSON.stringify(val);
     return "OK";
   }
 
   async set(key, val) {
-    this.data[key] = val;
+    this.data[key] = typeof val === "string" ? val : JSON.stringify(val);
     return "OK";
   }
 }
