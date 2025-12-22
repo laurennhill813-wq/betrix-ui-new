@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Football Widget</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 1rem; }
+      #fixtures { display: grid; gap: 8px; }
+      .fixture { padding: 8px; border: 1px solid #ddd; border-radius: 6px; }
+    </style>
+  </head>
+  <body>
+    <h3>Live / Upcoming Fixtures</h3>
+    <div id="fixtures">Loading...</div>
+
+    <script>
+      async function fetchMatches() {
+        try {
+          const res = await fetch('/api/football/matches');
+          if (!res.ok) throw new Error('fetch failed: ' + res.status);
+          const json = await res.json();
+          const el = document.getElementById('fixtures');
+          if (!json.ok || !json.data) { el.innerText = 'No data'; return; }
+          const matches = Array.isArray(json.data) ? json.data : (json.data.matches || []);
+          if (!matches.length) { el.innerText = 'No matches'; return; }
+          el.innerHTML = '';
+          matches.slice(0,10).forEach(m => {
+            const d = document.createElement('div');
+            d.className = 'fixture';
+            d.innerText = (m.home_team?.name || m.home || 'Home') + ' vs ' + (m.away_team?.name || m.away || 'Away') + ' — ' + (m.status || m.time || 'TBD');
+            el.appendChild(d);
+          });
+        } catch (e) {
+          document.getElementById('fixtures').innerText = 'Error: ' + (e.message || e);
+        }
+      }
+
+      fetchMatches();
+      setInterval(fetchMatches, 30_000);
+    </script>
+  </body>
+</html>

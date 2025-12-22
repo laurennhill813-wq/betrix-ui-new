@@ -1,4 +1,5 @@
 import lipana from "../lib/lipana-client.js";
+import { normalizeIntervalParam, coerceThresholdMinutes } from "../utils/interval.js";
 
 /**
  * Reconcile pending payments with Lipana
@@ -22,8 +23,10 @@ export async function reconcileWithLipana(opts = {}) {
   };
 
   // Use COALESCE so the SQL interval doesn't get concatenated accidentally
+  // Use our normalization helper so tests can assert behavior deterministically
   const q = `SELECT id, tx_ref, metadata->>'provider_checkout_id' as provider_checkout_id FROM payments WHERE status = 'pending' AND (metadata->>'provider_checkout_id') IS NOT NULL AND created_at < (now() - COALESCE($1, '5 minutes')::interval) LIMIT $2`;
-  const { rows } = await pool.query(q, [thresholdMinutes ? `${thresholdMinutes} minutes` : null, limit]);
+  const intervalParam = normalizeIntervalParam(thresholdMinutes);
+  const { rows } = await pool.query(q, [intervalParam, limit]);
   if (!rows || rows.length === 0) return { summary, rows: [] };
 
   for (const r of rows) {
