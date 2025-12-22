@@ -699,11 +699,17 @@ try {
               console.log('[rapidapisamples] readerror - worker-final.js:699', e && e.message ? e.message : String(e));
             }
           }
+        }
+
+        // Minimal safe debug: indicate prefetch scheduler and rapidapi logging are active
+        try {
+          console.log('[debug] prefetch scheduler active; rapidapi proxy calls will be logged as [rapidapi] entries (keys masked) - worker-final.js:706');
+        } catch (e) {}
         } else {
-          console.log('[rapidapisamples] no persport rapidapi keys found (scheduler may not have run yet) - worker-final.js:703');
+          console.log('[rapidapisamples] no persport rapidapi keys found (scheduler may not have run yet) - worker-final.js:709');
         }
       } catch (e) {
-        console.log('[rapidapisamples] dump error - worker-final.js:706', e && e.message ? e.message : String(e));
+        console.log('[rapidapisamples] dump error - worker-final.js:712', e && e.message ? e.message : String(e));
       }
     })();
   } catch (e) {}
@@ -716,7 +722,7 @@ try {
   (async () => {
     try {
       if (!process.env.RAPIDAPI_KEY) {
-        console.log("[rapidapionestep] skipped  RAPIDAPI_KEY not set - worker-final.js:719");
+        console.log("[rapidapionestep] skipped  RAPIDAPI_KEY not set - worker-final.js:725");
         return;
       }
       const subsPath = path.join(process.cwd(), "src", "rapidapi", "subscriptions.json");
@@ -729,14 +735,14 @@ try {
       }
       const candidate = (Array.isArray(subs) ? subs : []).find((s) => s && s.host && s.enabled !== false) || subs[0];
       if (!candidate || !candidate.host) {
-        console.log("[rapidapionestep] nosubscriptionfound - worker-final.js:732");
+        console.log("[rapidapionestep] nosubscriptionfound - worker-final.js:738");
         return;
       }
       let fetcher = null;
       try {
         fetcher = new RapidApiLogger({ apiKey: process.env.RAPIDAPI_KEY });
       } catch (e) {
-        console.info('[rapidapi] RapidApiLogger init failed in workeronestep, using minimal fallback - worker-final.js:739', e?.message || String(e));
+        console.info('[rapidapi] RapidApiLogger init failed in workeronestep, using minimal fallback - worker-final.js:745', e?.message || String(e));
         fetcher = {
           fetch: async (host, endpoint, opts = {}) => {
             try {
@@ -761,21 +767,21 @@ try {
       const endpoint = (candidate.sampleEndpoints && candidate.sampleEndpoints[0]) || "/";
       try {
         const res = await fetcher.fetch(candidate.host, endpoint, { timeout: 10000 });
-        console.log(`[rapidapionestep] host=${candidate.host} endpoint=${endpoint} status=${res && res.httpStatus ? res.httpStatus : 'nostatus'} - worker-final.js:764`);
+        console.log(`[rapidapionestep] host=${candidate.host} endpoint=${endpoint} status=${res && res.httpStatus ? res.httpStatus : 'nostatus'} - worker-final.js:770`);
         try {
           const body = res && res.body ? (typeof res.body === 'string' ? res.body : JSON.stringify(res.body)) : null;
           // Suppress noisy dumps for common 'No game found' responses — those are logged as concise warnings elsewhere
           if (body && /no game found/i.test(String(body))) {
             // do not dump the full body
           } else if (body) {
-            console.log(`[rapidapionestepbody] ${String(body).slice(0,1200)} - worker-final.js:771`);
+            console.log(`[rapidapionestepbody] ${String(body).slice(0,1200)} - worker-final.js:777`);
           }
         } catch (e) {}
       } catch (e) {
-        console.log("[rapidapionestep] fetcherror - worker-final.js:775", e && e.message ? e.message : String(e));
+        console.log("[rapidapionestep] fetcherror - worker-final.js:781", e && e.message ? e.message : String(e));
       }
     } catch (e) {
-      console.log("[rapidapionestep] error - worker-final.js:778", e && e.message ? e.message : String(e));
+      console.log("[rapidapionestep] error - worker-final.js:784", e && e.message ? e.message : String(e));
     }
   })();
 } catch (e) {
@@ -835,7 +841,7 @@ try {
           logger.info("✅ Telegram webhook set successfully", {
             url: TELEGRAM_WEBHOOK_URL,
           });
-          console.log("Telegram webhook set successfully - worker-final.js:838");
+          console.log("Telegram webhook set successfully - worker-final.js:844");
         } else {
           logger.warn("⚠️ Telegram setWebhook returned non-ok", {
             result: json,
@@ -871,7 +877,7 @@ try {
       try {
         fetcher = new RapidApiLogger({ apiKey: process.env.RAPIDAPI_KEY });
       } catch (e) {
-        console.info('[rapidapi] RapidApiLogger init failed in workerperfprobe, using minimal fallback - worker-final.js:874', e?.message || String(e));
+        console.info('[rapidapi] RapidApiLogger init failed in workerperfprobe, using minimal fallback - worker-final.js:880', e?.message || String(e));
         fetcher = {
           fetch: async (host, endpoint, opts = {}) => {
             try {
@@ -907,17 +913,17 @@ try {
               const oddsEndpoint = `/v4/sports/${encodeURIComponent(sportKey)}/odds?regions=us&markets=h2h,spreads&oddsFormat=decimal`;
               const oddsRes = await fetcher.fetch(oddsApi.host, oddsEndpoint, { retries: 3, timeout: 12000, backoffBaseMs: 300 }).catch(() => null);
               const total = Array.isArray(oddsRes && oddsRes.body) ? oddsRes.body.length : (oddsRes && oddsRes.body && oddsRes.body.data && Array.isArray(oddsRes.body.data) ? oddsRes.body.data.length : 0);
-              console.log(`[rapidapistartupoddssport] ${sportKey} status=${oddsRes && oddsRes.httpStatus ? oddsRes.httpStatus : 'err'} total=${total} - worker-final.js:910`);
+              console.log(`[rapidapistartupoddssport] ${sportKey} status=${oddsRes && oddsRes.httpStatus ? oddsRes.httpStatus : 'err'} total=${total} - worker-final.js:916`);
               // If we hit 429 (rate limit) stop further probes and set a cooldown key
               try {
                 if (oddsRes && Number(oddsRes.httpStatus) === 429) {
                   const backoffSeconds = Number(process.env.RAPIDAPI_BACKOFF_SECONDS || 300);
-                  console.log(`[rapidapi] rate limit detected from Odds API  setting rapidapi:backoff for ${backoffSeconds}s - worker-final.js:915`);
+                  console.log(`[rapidapi] rate limit detected from Odds API  setting rapidapi:backoff for ${backoffSeconds}s - worker-final.js:921`);
                   try {
                     await redis.set('rapidapi:backoff', Date.now());
                     await redis.expire('rapidapi:backoff', backoffSeconds);
                   } catch (e) {
-                    console.log('[rapidapi] failed to write rapidapi:backoff to Redis - worker-final.js:920', e && e.message ? e.message : String(e));
+                    console.log('[rapidapi] failed to write rapidapi:backoff to Redis - worker-final.js:926', e && e.message ? e.message : String(e));
                   }
                   break;
                 }
@@ -925,22 +931,22 @@ try {
                 /* ignore */
               }
             } catch (e) {
-              console.log(`[rapidapistartupoddssport] ${sportKey} error ${e && e.message ? e.message : String(e)} - worker-final.js:928`);
+              console.log(`[rapidapistartupoddssport] ${sportKey} error ${e && e.message ? e.message : String(e)} - worker-final.js:934`);
             }
             try {
               const scoresEndpoint = `/v4/sports/${encodeURIComponent(sportKey)}/scores/`;
               const scoresRes = await fetcher.fetch(oddsApi.host, scoresEndpoint, { retries: 3, timeout: 12000, backoffBaseMs: 300 }).catch(() => null);
               const totalS = Array.isArray(scoresRes && scoresRes.body) ? scoresRes.body.length : (scoresRes && scoresRes.body && scoresRes.body.data && Array.isArray(scoresRes.body.data) ? scoresRes.body.data.length : 0);
-              console.log(`[rapidapistartupscoressport] ${sportKey} status=${scoresRes && scoresRes.httpStatus ? scoresRes.httpStatus : 'err'} total=${totalS} - worker-final.js:934`);
+              console.log(`[rapidapistartupscoressport] ${sportKey} status=${scoresRes && scoresRes.httpStatus ? scoresRes.httpStatus : 'err'} total=${totalS} - worker-final.js:940`);
               try {
                 if (scoresRes && Number(scoresRes.httpStatus) === 429) {
                   const backoffSeconds = Number(process.env.RAPIDAPI_BACKOFF_SECONDS || 300);
-                  console.log(`[rapidapi] rate limit detected from Odds API (scores)  setting rapidapi:backoff for ${backoffSeconds}s - worker-final.js:938`);
+                  console.log(`[rapidapi] rate limit detected from Odds API (scores)  setting rapidapi:backoff for ${backoffSeconds}s - worker-final.js:944`);
                   try {
                     await redis.set('rapidapi:backoff', Date.now());
                     await redis.expire('rapidapi:backoff', backoffSeconds);
                   } catch (e) {
-                    console.log('[rapidapi] failed to write rapidapi:backoff to Redis - worker-final.js:943', e && e.message ? e.message : String(e));
+                    console.log('[rapidapi] failed to write rapidapi:backoff to Redis - worker-final.js:949', e && e.message ? e.message : String(e));
                   }
                   break;
                 }
@@ -948,12 +954,12 @@ try {
                 /* ignore */
               }
             } catch (e) {
-              console.log(`[rapidapistartupscoressport] ${sportKey} error ${e && e.message ? e.message : String(e)} - worker-final.js:951`);
+              console.log(`[rapidapistartupscoressport] ${sportKey} error ${e && e.message ? e.message : String(e)} - worker-final.js:957`);
             }
           }
         }
       } catch (e) {
-        console.log('[rapidapistartup] sportslisterror - worker-final.js:956', e && e.message ? e.message : String(e));
+        console.log('[rapidapistartup] sportslisterror - worker-final.js:962', e && e.message ? e.message : String(e));
       }
     } catch (e) {
       /* ignore */
@@ -1332,13 +1338,13 @@ async function main() {
       const ttlSeconds = 60 * 60 * 24;
       const globalKey = `rapidapi:startup:registered`;
       await cacheSet(globalKey, "registered", ttlSeconds);
-      console.log(`[startup] Redis marker ${globalKey}=registered`);
+      console.log(`[startup] Redis marker ${globalKey}=registered - worker-final.js:1341`);
 
       if (deployId) {
         try {
           const key = `rapidapi:startup:${deployId}`;
           await cacheSet(key, "registered", ttlSeconds);
-          console.log(`[startup] Redis marker ${key}=registered`);
+          console.log(`[startup] Redis marker ${key}=registered - worker-final.js:1347`);
         } catch (innerErr) {
           console.warn(
             '[startup] failed to write deploy-specific redis startup marker (worker)',
@@ -1347,7 +1353,7 @@ async function main() {
         }
       }
     } catch (e) {
-      console.warn('[startup] failed to write worker redis startup marker', e && e.message ? e.message : e);
+      console.warn('[startup] failed to write worker redis startup marker - worker-final.js:1356', e && e.message ? e.message : e);
     }
   })();
 
