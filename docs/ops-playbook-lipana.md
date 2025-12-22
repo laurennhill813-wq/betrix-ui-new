@@ -37,3 +37,17 @@ Escalation
 
 Notes
 - The application includes defensive parsing for interval inputs; prefer numeric minutes values. Disabling scheduling (0) will prevent automatic runs but allow manual reconciliation.
+
+Grafana Integration
+- Dashboard file: `dashboards/lipana-reconciliation.json` (import into Grafana). Dashboard UID: `lipana-reconciliation`.
+- Panels:
+  * **Reconciliation Runs**: counter showing `betrix_lipana_reconciliation_runs_total` (rate over time).
+  * **Reconciliation Successes**: counter showing `betrix_lipana_reconciliation_success_total`.
+  * **Reconciliation Failures**: counter showing `betrix_lipana_reconciliation_failures_total` — thresholded and highlighted red when > 0.
+  * **Success vs Failures (stacked)**: stacked graph showing recent increases for success vs failures to help spot regressions.
+- Alert annotation links to dashboard: the alert includes a `dashboard` annotation that should point to your Grafana instance (example: `https://grafana.example.com/d/lipana-reconciliation/lipana-reconciliation`).
+- Interpretation:
+  * If **Runs** are steady but **Failures** spike, investigate provider or DB errors.
+  * If **Runs** drop to zero, check scheduler configuration (`RECONCILE_INTERVAL_MINUTES`) and worker health.
+- To import: in Grafana, go to "Dashboards → Manage → Import" and upload `dashboards/lipana-reconciliation.json`. After import, edit datasource to your Prometheus instance if necessary.
+
