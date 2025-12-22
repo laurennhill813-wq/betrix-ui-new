@@ -47,6 +47,20 @@ Verify import
 - In Grafana UI: Dashboards → Manage → search for "Lipana Reconciliation".
 - Imported dashboard UID: `lipana-reconciliation`. Folder: `Ops` (as configured in provider file).
 
+Validation script
+- There's a small helper script `scripts/validate-grafana-import.sh` which calls the Grafana search API to verify the dashboard is present.
+- Usage:
+
+```bash
+# Check local Grafana
+GRAFANA_HOST="http://localhost:3000" ./scripts/validate-grafana-import.sh
+
+# Check remote Grafana with API key
+GRAFANA_HOST="https://grafana.your-domain.com" GRAFANA_API_KEY="<api-key>" ./scripts/validate-grafana-import.sh
+```
+
+The script exits `0` when the dashboard is found, `1` when not found, and `2` on network/HTTP errors. It prints diagnostic output and any matching dashboard titles/UIDs.
+
 Alert & Runbook links
 - The Prometheus alert `alerts/lipana-failures.rules.yml` includes `dashboard` and `runbook` annotations. Update the `dashboard` annotation to point at your Grafana host, for example:
 
