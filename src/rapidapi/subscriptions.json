@@ -38,5 +38,14 @@
     "sampleEndpoints": [
       "/rankings?league=NCAAF"
     ]
+  },
+  {
+    "host": "soccersapi.com",
+    "name": "SoccersAPI - Leagues",
+    "sport": "soccer",
+    "directUrl": "https://api.soccersapi.com/v2.2/leagues/?user=28Ekz&token=PT0s9YfsZO&t=list",
+    "sampleEndpoints": [
+      "/v2.2/leagues/?user=28Ekz&token=PT0s9YfsZO&t=list"
+    ]
   }
 ]

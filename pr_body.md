@@ -1,3 +1,25 @@
+PR: provider metadata + probes
+
+What:
+- Publish provider metadata to Redis (`rapidapi:providers:meta`) from `aggregateFixtures`.
+- Detect list-only provider payloads and enrich metadata via `src/lib/rapidapi-normalizers.js` when available.
+- Best-effort provider probes (when `RAPIDAPI_KEY` present) to attempt retrieving home/away fixtures from validated providers.
+- Add `providers-meta.json` and `docs/PROVIDER_NORMALIZERS.md` with instructions for adding normalizers.
+
+Why:
+- UI consumers need to know which providers/teams/seasons are available without relying only on odds fallback.
+- Probes help convert list-only providers into real fixture sources where possible.
+
+Files changed/added:
+- src/lib/fixtures-aggregator.js (updated)
+- src/lib/rapidapi-normalizers.js (existing)
+- scripts/generate-providers-meta.mjs (existing)
+- providers-meta.json (exists in repo)
+- docs/PROVIDER_NORMALIZERS.md (new)
+
+Notes:
+- Probes are conservative; please review `probeEndpoints` and add provider-specific endpoints if you have API docs or keys.
+- Running the aggregator locally requires a Redis instance and, for probes, `RAPIDAPI_KEY` env var.
 This PR documents the Jest ESM import fixes for Node 20 compatibility and adds verification for payment-router mock data handling.
 
 Title: chore: fix tests — Jest ESM imports and payment-router mock data

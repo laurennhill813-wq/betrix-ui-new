@@ -1,0 +1,68 @@
+[
+  {
+    "provider": "sportscore1",
+    "host": "sportscore1.p.rapidapi.com",
+    "meta": {
+      "kind": "unknown",
+      "items": []
+    }
+  },
+  {
+    "provider": "live-score-api",
+    "host": "live-score-api.p.rapidapi.com",
+    "meta": {
+      "kind": "unknown",
+      "items": []
+    }
+  },
+  {
+    "provider": "sportspage",
+    "host": "sportspage-feeds.p.rapidapi.com",
+    "meta": {
+      "provider": "sportspage",
+      "kind": "team-list",
+      "teams": [],
+      "meta": {}
+    }
+  },
+  {
+    "provider": "therundown",
+    "host": "therundown-therundown-v1.p.rapidapi.com",
+    "meta": {
+      "provider": "therundown",
+      "kind": "conference-list",
+      "conferences": [],
+      "meta": {}
+    }
+  },
+  {
+    "provider": "free-football-videos",
+    "host": "free-football-soccer-videos.p.rapidapi.com",
+    "meta": {
+      "provider": "free-football-videos",
+      "kind": "team-list",
+      "teams": [],
+      "meta": {}
+    }
+  },
+  {
+    "provider": "horse-racing",
+    "host": "horse-racing.p.rapidapi.com",
+    "meta": {
+      "provider": "horse-racing",
+      "kind": "odds-market",
+      "markets": [],
+      "meta": {}
+    }
+  },
+  {
+    "provider": "os-sports-perform",
+    "host": "os-sports-perform.p.rapidapi.com",
+    "meta": {
+      "provider": "os-sports-perform",
+      "kind": "season-list",
+      "seasons": [],
+      "meta": {}
+    }
+  }
+]

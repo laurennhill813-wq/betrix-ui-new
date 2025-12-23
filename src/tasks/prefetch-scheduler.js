@@ -6,6 +6,7 @@
 import { setTimeout as wait } from "timers/promises";
 import fs from "fs";
 import path from "path";
+import fetch from "node-fetch";
 import RapidApiLogger from "../lib/rapidapi-logger.js";
 import { aggregateFixtures } from "../lib/fixtures-aggregator.js";
 import { fetchUpcomingFixtures, fetchLiveMatches } from "../lib/rapidapi-client.js";
@@ -960,6 +961,69 @@ export function startPrefetchScheduler({
         } catch (e) {
           /* ignore */
         }
+        
+        // Fetch from direct endpoints (non-RapidAPI) in subscriptions
+        try {
+          for (const api of Array.isArray(subscriptions) ? subscriptions : []) {
+            if (!api.directUrl) continue; // skip if no direct URL
+            const apiName = api.name || "direct-provider";
+            const safeName = normalizeRedisKeyPart(apiName);
+            try {
+              const fetchResponse = await fetch(api.directUrl, { headers: { Accept: 'application/json' } }).catch(err => {
+                console.warn(`[prefetch-direct] ${apiName} fetch error: ${err && err.message ? err.message : String(err)}`);
+                return null;
+              });
+              if (!fetchResponse) continue;
+              if (!fetchResponse.ok) {
+                console.warn(`[prefetch-direct] ${apiName} http ${fetchResponse.status}`);
+                continue;
+              }
+              const body = await fetchResponse.json().catch(err => {
+                console.warn(`[prefetch-direct] ${apiName} json parse error: ${err && err.message ? err.message : String(err)}`);
+                return null;
+              });
+              if (!body) continue;
+              
+              // Store raw response
+              const keyRaw = `rapidapi:${safeName}:raw`;
+              await redis.set(keyRaw, JSON.stringify({ apiName, fetchedAt: ts, data: body }), 'EX', Number(process.env.RAPIDAPI_TTL_SEC || 300)).catch(() => {});
+              
+              // For SoccersAPI leagues: support paginated fetch and store aggregated league names
+              if (api.host === 'soccersapi.com') {
+                try {
+                  const allLeagues = [];
+                  for (let page = 1; page <= 200; page++) {
+                    const pUrl = api.directUrl.includes('?') ? `${api.directUrl}&page=${page}` : `${api.directUrl}?page=${page}`;
+                    const pr = await fetch(pUrl, { headers: { Accept: 'application/json' } }).catch(() => null);
+                    if (!pr || !pr.ok) break;
+                    const pb = await pr.json().catch(() => null);
+                    const items = Array.isArray(pb.data) ? pb.data : (Array.isArray(pb.items) ? pb.items : []);
+                    if (!items || items.length === 0) break;
+                    items.forEach(it => {
+                      const name = it && (it.name || it.title || it.league);
+                      if (name) allLeagues.push(name);
+                    });
+                    if (items.length < 100) break;
+                  }
+                  // Dedupe
+                  const uniq = Array.from(new Set(allLeagues));
+                  if (uniq.length) {
+                    const keyMeta = `rapidapi:${safeName}:leagues`;
+                    await redis.set(keyMeta, JSON.stringify({ apiName, sport: api.sport, leagues: uniq, count: uniq.length, ts }), 'EX', Number(process.env.RAPIDAPI_TTL_SEC || 300)).catch(() => {});
+                    console.log(`[prefetch-direct] ${apiName} leagues=${uniq.length}`);
+                  }
+                } catch (e) {
+                  console.warn(`[prefetch-direct] ${apiName} pagination error: ${e && e.message ? e.message : String(e)}`);
+                }
+              }
+            } catch (e) {
+              console.warn(`[prefetch-direct] ${apiName} error: ${e && e.message ? e.message : String(e)}`);
+            }
+          }
+        } catch (e) {
+          console.warn(`[prefetch-direct] error: ${e && e.message ? e.message : String(e)}`);
+        }
+        
         await redis.publish("prefetch:updates", JSON.stringify({ type: "rapidapi", ts }));
         // Run unified aggregation after provider prefetches so unified totals and lists are available
         try {
