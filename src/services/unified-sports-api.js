@@ -4,7 +4,12 @@
  * Provides consistent interface for the bot to fetch sports data
  */
 
-import fetch from 'node-fetch';
+// Prefer the global `fetch` when tests preload a mock; fall back to node-fetch
+let fetch = globalThis.fetch;
+if (!fetch) {
+  const nf = await import('node-fetch');
+  fetch = nf.default || nf;
+}
 
 const API_KEY = process.env.RAPIDAPI_KEY || 'd04027f383msh0b0565415dfbe6dp1fc23bjsn22d9d050080e';
 

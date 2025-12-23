@@ -1,0 +1,4 @@
+(Environment variables required by the project)
+
+- `SPORTBEX_API_KEY`: API key for Sportbex provider (used by `src/routes/sportbex.js` and probe scripts). Set this in your environment when running Sportbex probes or the app.
+

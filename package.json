@@ -14,6 +14,7 @@
     "ui:start": "node bin/start-server.js",
     "worker": "node src/worker-final.js",
     "test": "node ./scripts/run-all-tests.js",
+    "test:mock": "cross-env NODE_OPTIONS=--require ./tests/setup-mock-fetch.cjs npm test --silent",
     "test:ci": "node ./scripts/run-all-tests.js",
     "redis:validate": "node scripts/validate-redis-connection.js",
     "redis:monitor": "node scripts/monitor-redis-health.js",
@@ -79,6 +80,7 @@
   },
   "homepage": "https://github.com/maryreaky/betrix-ui-replit-#readme",
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "eslint": "8.44.0",
     "eslint-plugin-import": "^2.32.0",
     "jest": "30.2.0"
