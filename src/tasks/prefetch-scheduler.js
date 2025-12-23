@@ -11,6 +11,7 @@ import { aggregateFixtures } from "../lib/fixtures-aggregator.js";
 import { fetchUpcomingFixtures, fetchLiveMatches } from "../lib/rapidapi-client.js";
 import { formatMMDDYYYY, getNextDaysMMDDYYYY } from "../lib/rapidapi-utils.js";
 import { normalizeRedisKeyPart } from "../lib/rapidapi-fetcher.js";
+import { ensureRedisKeyType } from "../utils/redis-helpers.js";
 export function startPrefetchScheduler({
   redis,
   openLiga,
@@ -824,6 +825,7 @@ export function startPrefetchScheduler({
                   if (Array.isArray(sportsList) && sportsList.length) {
                     // Respect rapidapi backoff flag set by worker on 429 to avoid further rate limits
                     try {
+                      await ensureRedisKeyType(redis, 'rapidapi:backoff', 'string').catch(() => null);
                       const backoff = await redis.get('rapidapi:backoff').catch(() => null);
                       if (backoff) {
                         console.log('[rapidapi] skipping per-sport odds/scores due to rapidapi:backoff');
