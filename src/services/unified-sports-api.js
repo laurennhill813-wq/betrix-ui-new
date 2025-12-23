@@ -83,11 +83,12 @@ const API_CONFIG = {
   // Odds & Predictions
   odds_api1: {
     name: 'Match Odds & Scores',
-    url: 'https://odds-api1.p.rapidapi.com/scores',
+    url: 'https://odds-api1.p.rapidapi.com/scores?fixtureId=',
     host: 'odds-api1.p.rapidapi.com',
     sport: 'Multi-Sport',
     dataType: 'odds',
-    method: 'GET'
+    method: 'GET',
+    requiresParam: 'fixtureId'
   },
 
   bet365_inplay: {
@@ -117,6 +118,45 @@ const API_CONFIG = {
     dataType: 'news_feed',
     method: 'POST'
   }
+  ,
+  // Additional providers (previously reported as missing in diagnostics)
+  football_live_stream: {
+    name: 'Football Live Stream Lookup',
+    url: 'https://football-live-streams.p.rapidapi.com/streams?team=',
+    host: 'football-live-streams.p.rapidapi.com',
+    sport: 'Soccer',
+    dataType: 'streams',
+    method: 'GET',
+    requiresParam: 'team_name',
+    enabled: false
+  },
+  free_football_data: {
+    name: 'Free Football Data',
+    url: 'https://free-football.p.rapidapi.com/api/v1/teams',
+    host: 'free-football.p.rapidapi.com',
+    sport: 'Soccer',
+    dataType: 'teams',
+    method: 'GET',
+    enabled: false
+  },
+  sportspage_feeds: {
+    name: 'Sportspage Feeds',
+    url: 'https://sportspage-feeds.p.rapidapi.com/feeds',
+    host: 'sportspage-feeds.p.rapidapi.com',
+    sport: 'Multi-Sport',
+    dataType: 'feeds',
+    method: 'GET',
+    enabled: false
+  },
+  football_pro: {
+    name: 'Football Pro API',
+    url: 'https://football-pro.p.rapidapi.com/api/v1/teams',
+    host: 'football-pro.p.rapidapi.com',
+    sport: 'Soccer',
+    dataType: 'teams',
+    method: 'GET',
+    enabled: false
+  }
 };
 
 class UnifiedSportsAPI {
@@ -140,10 +180,41 @@ class UnifiedSportsAPI {
       return cached.data;
     }
 
-    // Build URL with parameters
+    // Build URL with parameters. Append any primitive params as query params
     let url = config.url;
+    // If a single required param name is declared, support the old style
     if (config.requiresParam && params[config.requiresParam]) {
-      url += encodeURIComponent(params[config.requiresParam]);
+      // append directly for endpoints that expect the value at the end of the URL
+      if (!String(url).includes("?")) {
+        // if url already contains an equals (e.g. ...?q=) then just append value
+        if (url.endsWith("=") || url.includes("=")) {
+          url = `${url}${encodeURIComponent(params[config.requiresParam])}`;
+        } else {
+          url = `${url}${encodeURIComponent(params[config.requiresParam])}`;
+        }
+      } else {
+        url = `${url}&${config.requiresParam}=${encodeURIComponent(
+          params[config.requiresParam],
+        )}`;
+      }
+    }
+
+    // Generic: append any other primitive params as query string
+    const qs = [];
+    Object.keys(params).forEach((k) => {
+      const v = params[k];
+      if (v === undefined || v === null) return;
+      if (k === config.requiresParam) return;
+      if (
+        typeof v === 'string' ||
+        typeof v === 'number' ||
+        typeof v === 'boolean'
+      ) {
+        qs.push(`${encodeURIComponent(k)}=${encodeURIComponent(v)}`);
+      }
+    });
+    if (qs.length > 0) {
+      url += (String(url).includes('?') ? '&' : '?') + qs.join('&');
     }
 
     try {
@@ -158,18 +229,29 @@ class UnifiedSportsAPI {
         timeout: 8000
       });
 
-      if (!response.ok) {
-        throw new Error(`API returned ${response.status}: ${response.statusText}`);
+      // Read raw text and attempt to parse JSON safely to avoid exceptions on empty/non-JSON bodies
+      const rawText = await response.text();
+      let data = null;
+      if (rawText && String(rawText).trim()) {
+        try {
+          data = JSON.parse(rawText);
+        } catch (e) {
+          // fallback to raw text when not valid JSON
+          data = rawText;
+        }
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        const preview = typeof data === 'string' ? data.substring(0, 200) : JSON.stringify(data || {}).substring(0, 200);
+        throw new Error(`API returned ${response.status}: ${response.statusText}${preview ? ' - ' + preview : ''}`);
+      }
 
       // Cache successful response
       this.cache.set(cacheKey, { data, time: Date.now() });
 
       return data;
     } catch (err) {
-      console.error(`[UnifiedSportsAPI] ${apiKey} error:`, err.message);
+      console.error(`[UnifiedSportsAPI] ${apiKey} error:`, err && err.message ? err.message : String(err));
       throw err;
     }
   }
@@ -222,7 +304,18 @@ class UnifiedSportsAPI {
    * Get odds and scores
    */
   async getOdds(fixtureId) {
-    return await this.fetch('odds_api1', { fixtureId });
+    if (!fixtureId) {
+      return { ok: false, status: 400, error: 'fixtureId required' };
+    }
+    try {
+      const data = await this.fetch('odds_api1', { fixtureId });
+      return { ok: true, status: 200, data };
+    } catch (e) {
+      // Normalize error shape so callers can handle gracefully
+      const statusMatch = e && e.message ? e.message.match(/API returned (\d+)/) : null;
+      const status = statusMatch ? Number(statusMatch[1]) : 500;
+      return { ok: false, status, error: e && e.message ? e.message : String(e) };
+    }
   }
 
   /**
@@ -236,14 +329,30 @@ class UnifiedSportsAPI {
    * Get top sports news
    */
   async getTopNews() {
-    return await this.fetch('newsnow', {
+    const raw = await this.fetch('newsnow', {
       body: {
         location: 'us',
         language: 'en',
         page: 1,
         time_bounded: false
       }
-    });
+    }).catch(() => null);
+
+    // Normalize to array form so callers can safely use .length and substring
+    try {
+      if (!raw) return [];
+      if (Array.isArray(raw)) return raw;
+      if (raw.articles && Array.isArray(raw.articles)) return raw.articles;
+      if (raw.items && Array.isArray(raw.items)) return raw.items;
+      if (raw.news && Array.isArray(raw.news)) return raw.news;
+      // Fallback: if object has list-like keys, try to collect them
+      const arr = Object.values(raw).find((v) => Array.isArray(v));
+      if (arr) return arr;
+      // Last resort: wrap single object into array
+      return [raw];
+    } catch (e) {
+      return [];
+    }
   }
 
   /**
@@ -252,6 +361,8 @@ class UnifiedSportsAPI {
   getAvailableSports() {
     const sports = {};
     Object.entries(API_CONFIG).forEach(([key, config]) => {
+      // Skip APIs that are explicitly disabled until validated
+      if (config && config.enabled === false) return;
       if (!sports[config.sport]) {
         sports[config.sport] = [];
       }

@@ -126,8 +126,8 @@ class SportsDataMenus {
       const message = `🏀 <b>BASKETBALL NEWS & FIXTURES</b>\n\n` +
         `Latest News:\n\n` +
         (news && news.length > 0
-          ? news.slice(0, 5).map((n, i) => 
-              `${i + 1}. ${n.description?.substring(0, 50) || n.title || 'Match info'}`
+              ? news.slice(0, 5).map((n, i) => 
+                  `${i + 1}. ${(n.description || n.title || '').substring(0, 50) || 'Match info'}`
             ).join('\n')
           : 'No news available') +
         `\n\nSelect for full details and odds.`;
@@ -219,8 +219,8 @@ class SportsDataMenus {
       const message = `📰 <b>SPORTS NEWS</b>\n\n` +
         `Latest headlines:\n\n` +
         (news && news.length > 0
-          ? news.slice(0, 8).map((n, i) => 
-              `${i + 1}. ${n.title || n.description?.substring(0, 60) || 'News item'}`
+              ? news.slice(0, 8).map((n, i) => 
+                  `${i + 1}. ${n.title || (n.description || '').substring(0, 60) || 'News item'}`
             ).join('\n')
           : 'No news available') +
         `\n\nSelect to read full story and share tips.`;

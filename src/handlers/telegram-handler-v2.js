@@ -11,6 +11,7 @@ import createRedisAdapter from "../utils/redis-adapter.js";
 import IntelligentMenuBuilder from "../utils/intelligent-menu-builder.js";
 import { UserService } from "../services/user.js";
 import FixturesManager from "../utils/fixtures-manager.js";
+import SportsDataMenus from './sports-data-menus.js';
 
 // Note: temporary wide eslint-disable removed. We'll fix lint issues surgically below.
 /*
@@ -4401,6 +4402,66 @@ async function handleSportCallback(data, chatId, userId, redis, services) {
   const sportName = sportKey.charAt(0).toUpperCase() + sportKey.slice(1);
 
   try {
+    // If user selected a quick sport shortcut, delegate to SportsDataMenus
+    try {
+      if (sportKey === 'nfl') {
+        const payload = await SportsDataMenus.handleNFLMenu(userId, chatId);
+        return {
+          method: 'editMessageText',
+          chat_id: chatId,
+          message_id: undefined,
+          text: payload.text,
+          reply_markup: payload.reply_markup,
+          parse_mode: 'HTML'
+        };
+      }
+      if (sportKey === 'soccer') {
+        const payload = await SportsDataMenus.handleSoccerMenu(userId, chatId);
+        return {
+          method: 'editMessageText',
+          chat_id: chatId,
+          message_id: undefined,
+          text: payload.text,
+          reply_markup: payload.reply_markup,
+          parse_mode: 'HTML'
+        };
+      }
+      if (sportKey === 'basketball') {
+        const payload = await SportsDataMenus.handleBasketballMenu(userId, chatId);
+        return {
+          method: 'editMessageText',
+          chat_id: chatId,
+          message_id: undefined,
+          text: payload.text,
+          reply_markup: payload.reply_markup,
+          parse_mode: 'HTML'
+        };
+      }
+      if (sportKey === 'odds') {
+        const payload = await SportsDataMenus.handleLiveOddsMenu(userId, chatId);
+        return {
+          method: 'editMessageText',
+          chat_id: chatId,
+          message_id: undefined,
+          text: payload.text,
+          reply_markup: payload.reply_markup,
+          parse_mode: 'HTML'
+        };
+      }
+      if (sportKey === 'news') {
+        const payload = await SportsDataMenus.handleSportsNewsMenu(userId, chatId);
+        return {
+          method: 'editMessageText',
+          chat_id: chatId,
+          message_id: undefined,
+          text: payload.text,
+          reply_markup: payload.reply_markup,
+          parse_mode: 'HTML'
+        };
+      }
+    } catch (e) {
+      logger.warn('SportsDataMenus delegation failed', e?.message || e);
+    }
     // 🎯 TRY FIXTURES MANAGER FIRST
     let leagues = [];
     try {

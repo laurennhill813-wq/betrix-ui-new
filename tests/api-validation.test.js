@@ -3,7 +3,7 @@
  * Tests each API to determine which ones are working and returning valid data
  */
 
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 const API_KEY = process.env.RAPIDAPI_KEY;
 
@@ -230,10 +230,10 @@ async function runAllTests() {
   return { working, failing, allResults };
 }
 
-// Export for testing
-module.exports = { testAPI, runAllTests };
+// Export for testing (ESM)
+export { testAPI, runAllTests };
 
-// Run if called directly
-if (require.main === module) {
+// Run if called directly (when executed with node)
+if (process.argv[1] && process.argv[1].endsWith('api-validation.test.js')) {
   runAllTests().catch(console.error);
 }

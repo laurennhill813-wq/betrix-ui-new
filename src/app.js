@@ -11,6 +11,7 @@ import createRedisAdapter from "./utils/redis-adapter.js";
 import createAdminRouter from "./routes/admin.js";
 import createWebhooksRouter from "./routes/webhooks.js";
 import createImageProxyRouter from "./routes/image-proxy.js";
+import prefetchSystem from './tasks/prefetch-sports-fixtures.js';
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
@@ -407,6 +408,14 @@ if (process.argv[1] && String(process.argv[1]).endsWith("src/app.js")) {
       const server = app.listen(PORT, () =>
         safeLog(`Server running on port ${PORT}`),
       );
+      // Start the prefetch system (best-effort)
+      try {
+        prefetchSystem.start().catch((e) =>
+          safeLog('PrefetchSystem.start failed:', e?.message || String(e)),
+        );
+      } catch (e) {
+        safeLog('PrefetchSystem initialization failed:', e?.message || String(e));
+      }
       server.on("error", (err) =>
         safeLog("Server error:", err?.message || String(err)),
       );
