@@ -1,0 +1,204 @@
+{
+  "sports": {
+    "soccer": {
+      "fetchedAt": 1766343245102,
+      "count": 2,
+      "samples": [
+        {
+          "id": 536965,
+          "home": "ACF Fiorentina",
+          "away": "Udinese Calcio",
+          "homeScore": 5,
+          "awayScore": 1,
+          "status": "IN_PLAY",
+          "time": "2025-12-21T17:00:00Z",
+          "venue": "TBA",
+          "league": "Serie A",
+          "provider": "football-data",
+          "raw": {
+            "area": {
+              "id": 2114,
+              "name": "Italy",
+              "code": "ITA",
+              "flag": "https://crests.football-data.org/784.svg"
+            },
+            "competition": {
+              "id": 2019,
+              "name": "Serie A",
+              "code": "SA",
+              "type": "LEAGUE",
+              "emblem": "https://crests.football-data.org/SA.png"
+            },
+            "season": {
+              "id": 2395,
+              "startDate": "2025-08-24",
+              "endDate": "2026-05-24",
+              "currentMatchday": 16,
+              "winner": null
+            },
+            "id": 536965,
+            "utcDate": "2025-12-21T17:00:00Z",
+            "status": "IN_PLAY",
+            "matchday": 16,
+            "stage": "REGULAR_SEASON",
+            "group": null,
+            "lastUpdated": "2025-12-21T18:39:57Z",
+            "homeTeam": {
+              "id": 99,
+              "name": "ACF Fiorentina",
+              "shortName": "Fiorentina",
+              "tla": "FIO",
+              "crest": "https://crests.football-data.org/99.png"
+            },
+            "awayTeam": {
+              "id": 115,
+              "name": "Udinese Calcio",
+              "shortName": "Udinese",
+              "tla": "UDI",
+              "crest": "https://crests.football-data.org/115.png"
+            },
+            "score": {
+              "winner": "HOME_TEAM",
+              "duration": "REGULAR",
+              "fullTime": {
+                "home": 5,
+                "away": 1
+              },
+              "halfTime": {
+                "home": 3,
+                "away": 0
+              },
+              "regularTime": {
+                "home": 0,
+                "away": 0
+              },
+              "extraTime": {
+                "home": 0,
+                "away": 0
+              },
+              "penalties": {
+                "home": 0,
+                "away": 0
+              }
+            },
+            "odds": {
+              "msg": "Activate Odds-Package in User-Panel to retrieve odds."
+            },
+            "referees": []
+          },
+          "teams": {
+            "home": {
+              "name": "ACF Fiorentina"
+            },
+            "away": {
+              "name": "Udinese Calcio"
+            }
+          },
+          "fixture": {
+            "date": "2025-12-21T17:00:00Z",
+            "venue": {
+              "name": "TBA"
+            }
+          }
+        },
+        {
+          "id": 544373,
+          "home": "Elche CF",
+          "away": "Rayo Vallecano de Madrid",
+          "homeScore": 1,
+          "awayScore": 0,
+          "status": "IN_PLAY",
+          "time": "2025-12-21T17:30:00Z",
+          "venue": "TBA",
+          "league": "Primera Division",
+          "provider": "football-data",
+          "raw": {
+            "area": {
+              "id": 2224,
+              "name": "Spain",
+              "code": "ESP",
+              "flag": "https://crests.football-data.org/760.svg"
+            },
+            "competition": {
+              "id": 2014,
+              "name": "Primera Division",
+              "code": "PD",
+              "type": "LEAGUE",
+              "emblem": "https://crests.football-data.org/laliga.png"
+            },
+            "season": {
+              "id": 2429,
+              "startDate": "2025-08-17",
+              "endDate": "2026-05-24",
+              "currentMatchday": 17,
+              "winner": null
+            },
+            "id": 544373,
+            "utcDate": "2025-12-21T17:30:00Z",
+            "status": "IN_PLAY",
+            "matchday": 17,
+            "stage": "REGULAR_SEASON",
+            "group": null,
+            "lastUpdated": "2025-12-21T18:41:19Z",
+            "homeTeam": {
+              "id": 285,
+              "name": "Elche CF",
+              "shortName": "Elche",
+              "tla": "ELC",
+              "crest": "https://crests.football-data.org/285.png"
+            },
+            "awayTeam": {
+              "id": 87,
+              "name": "Rayo Vallecano de Madrid",
+              "shortName": "Rayo Vallecano",
+              "tla": "RAY",
+              "crest": "https://crests.football-data.org/87.png"
+            },
+            "score": {
+              "winner": "HOME_TEAM",
+              "duration": "REGULAR",
+              "fullTime": {
+                "home": 1,
+                "away": 0
+              },
+              "halfTime": {
+                "home": 1,
+                "away": 0
+              },
+              "regularTime": {
+                "home": 0,
+                "away": 0
+              },
+              "extraTime": {
+                "home": 0,
+                "away": 0
+              },
+              "penalties": {
+                "home": 0,
+                "away": 0
+              }
+            },
+            "odds": {
+              "msg": "Activate Odds-Package in User-Panel to retrieve odds."
+            },
+            "referees": []
+          },
+          "teams": {
+            "home": {
+              "name": "Elche CF"
+            },
+            "away": {
+              "name": "Rayo Vallecano de Madrid"
+            }
+          },
+          "fixture": {
+            "date": "2025-12-21T17:30:00Z",
+            "venue": {
+              "name": "TBA"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
