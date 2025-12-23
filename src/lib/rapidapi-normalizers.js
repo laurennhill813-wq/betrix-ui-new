@@ -44,10 +44,29 @@ export function normalizeHorseRacing(data) {
   };
 }
 
+export function normalizeSoccersAPI(data) {
+  if (!data || !data.items) {
+    return {
+      provider: 'soccersapi',
+      kind: 'league-list',
+      leagues: [],
+      meta: { sourceHost: data._host || 'api.soccersapi.com' }
+    };
+  }
+  const leagues = Array.isArray(data.items) ? data.items.map(l => l.name || l).filter(Boolean) : [];
+  return {
+    provider: 'soccersapi',
+    kind: 'league-list',
+    leagues,
+    meta: { sourceHost: data._host || 'api.soccersapi.com', count: leagues.length }
+  };
+}
+
 export const dispatch = {
   'sportspage-feeds.p.rapidapi.com': normalizeSportspage,
   'therundown-therundown-v1.p.rapidapi.com': normalizeTheRundown,
   'free-football-soccer-videos.p.rapidapi.com': normalizeFreeFootballVideos,
   'os-sports-perform.p.rapidapi.com': normalizeOsSportsPerform,
-  'horse-racing.p.rapidapi.com': normalizeHorseRacing
+  'horse-racing.p.rapidapi.com': normalizeHorseRacing,
+  'soccersapi.com': normalizeSoccersAPI
 };
