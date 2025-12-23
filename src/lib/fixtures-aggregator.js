@@ -133,6 +133,38 @@ export async function aggregateFixtures(redis, opts = {}) {
   }
 
   // dedupe by home::away::startTime
+  // Fallback: if no basketball/baseball/hockey fixtures, generate from odds metadata
+  if (fixtures.length === 0 || !fixtures.some((f) => ['basketball', 'baseball', 'hockey'].includes(f.sport))) {
+    try {
+      const allOddsKeys = await redis.keys('rapidapi:odds:sport:*').catch(() => []);
+      for (const key of allOddsKeys) {
+        const oddsData = await redis.get(key).catch(() => null);
+        if (!oddsData) continue;
+        const odds = JSON.parse(oddsData);
+        if (!odds.samples || !Array.isArray(odds.samples)) continue;
+        
+        const sportKey = odds.sportKey || '';
+        const sport = normalizeSportFromKey(sportKey);
+        
+        for (const sample of odds.samples.slice(0, 5)) {
+          if (!sample.commence_time) continue;
+          fixtures.push({
+            id: `odds-${sportKey}-${sample.id || sample.event_id || ''}`,
+            homeTeam: sample.home_team || sample.competitors?.[0]?.name || 'Home',
+            awayTeam: sample.away_team || sample.competitors?.[1]?.name || 'Away',
+            sport: sport,
+            startTime: new Date(sample.commence_time).getTime(),
+            type: new Date(sample.commence_time) > new Date() ? 'upcoming' : 'live',
+            league: sample.league_name || sportKey,
+            provider: 'Odds (RapidAPI Fallback)',
+            source: 'odds-metadata',
+          });
+        }
+      }
+    } catch (e) {}
+  }
+
+  // dedupe by home::away::startTime
   const seen = new Map();
   const merged = [];
   for (const f of fixtures) {
