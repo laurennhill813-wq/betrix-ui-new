@@ -1,5 +1,26 @@
 // Aggregator: merge fixtures/live matches from multiple cached providers
 // Exports: aggregateFixtures(redis) -> returns summary and writes Redis totals
+
+function normalizeSportFromKey(sportKey) {
+  if (!sportKey) return 'soccer';
+  const lower = String(sportKey).toLowerCase();
+  // Map Odds API sport keys to simple sport names
+  if (lower.includes('basketball') || lower.includes('nba')) return 'basketball';
+  if (lower.includes('baseball') || lower.includes('mlb')) return 'baseball';
+  if (lower.includes('hockey') || lower.includes('nhl')) return 'hockey';
+  if (lower.includes('american_football') || lower.includes('nfl')) return 'american_football';
+  if (lower.includes('tennis')) return 'tennis';
+  if (lower.includes('volleyball')) return 'volleyball';
+  if (lower.includes('soccer') || lower.includes('football')) return 'soccer';
+  if (lower.includes('rugby')) return 'rugby';
+  if (lower.includes('cricket')) return 'cricket';
+  if (lower.includes('golf')) return 'golf';
+  if (lower.includes('ice_hockey') || lower.includes('icehockey')) return 'hockey';
+  // Default: extract first part before underscore
+  const parts = lower.split('_');
+  return parts[0] || 'soccer';
+}
+
 export async function aggregateFixtures(redis, opts = {}) {
   if (!redis) throw new Error('redis required');
   const now = Date.now();
@@ -16,6 +37,16 @@ export async function aggregateFixtures(redis, opts = {}) {
     'rapidapi:odds:sport:*',
     'rapidapi:*:fixtures:*',
     'rapidapi:soccer:fixtures:*',
+    'rapidapi:basketball:fixtures:*',
+    'rapidapi:baseball:fixtures:*',
+    'rapidapi:hockey:fixtures:*',
+    'rapidapi:tennis:fixtures:*',
+    'rapidapi:volleyball:fixtures:*',
+    'rapidapi:american_football:fixtures:*',
+    'rapidapi:nfl:fixtures:*',
+    'rapidapi:nba:fixtures:*',
+    'rapidapi:mlb:fixtures:*',
+    'rapidapi:nhl:fixtures:*',
   ];
 
   const keys = new Set();
@@ -89,7 +120,7 @@ export async function aggregateFixtures(redis, opts = {}) {
       else if (k.includes('odds') || k.includes('rapidapi:odds')) providerName = 'OddsAPI';
       else providerName = providerName || (k.split(':')[1] || 'unknown');
 
-      const sportHint = (v && v.sportKey) || (v && v.sport) || 'soccer';
+      const sportHint = (v && v.sportKey ? normalizeSportFromKey(v.sportKey) : null) || (v && v.sport) || 'soccer';
       const normalized = normalize(v.data || v || v, providerName, sportHint);
       if (!providers[providerName]) providers[providerName] = { live: 0, upcoming: 0 };
       for (const f of normalized) {

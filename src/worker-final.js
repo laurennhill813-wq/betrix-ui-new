@@ -11,6 +11,8 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import path from "path";
+import fs from "fs";
 import Redis from "ioredis";
 import { getRedis, MockRedis } from "./lib/redis-factory.js";
 import createRedisAdapter from "./utils/redis-adapter.js";
