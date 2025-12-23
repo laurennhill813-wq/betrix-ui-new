@@ -135,6 +135,24 @@ export async function aggregateFixtures(redis, opts = {}) {
     rapidapiDispatch = null;
   }
 
+  // Load direct provider metadata (e.g., SoccersAPI leagues)
+  try {
+    const soccersapiLeagues = await redis.get('rapidapi:soccersapi:leagues').catch(() => null);
+    if (soccersapiLeagues) {
+      const leaguesData = JSON.parse(soccersapiLeagues);
+      if (leaguesData && leaguesData.leagues && Array.isArray(leaguesData.leagues)) {
+        providers['SoccersAPI'] = { live: 0, upcoming: leaguesData.leagues.length };
+        providersMeta.push({
+          provider: 'SoccersAPI',
+          host: 'api.soccersapi.com',
+          meta: { kind: 'league-list', leagues: leaguesData.leagues.slice(0, 50), count: leaguesData.leagues.length }
+        });
+      }
+    }
+  } catch (e) {
+    /* ignore errors loading direct provider metadata */
+  }
+
   for (const item of rawItems) {
     try {
       const k = item.key || '';

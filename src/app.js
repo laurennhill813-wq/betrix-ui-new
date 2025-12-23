@@ -12,6 +12,7 @@ import createAdminRouter from "./routes/admin.js";
 import createWebhooksRouter from "./routes/webhooks.js";
 import createImageProxyRouter from "./routes/image-proxy.js";
 import prefetchSystem from './tasks/prefetch-sports-fixtures.js';
+import createSoccersRouter from './routes/soccersapi.js';
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
@@ -259,6 +260,32 @@ app.use("/admin", createAdminRouter());
 app.use("/webhook", createWebhooksRouter());
 // Internal image proxy (signed requests)
 app.use("/internal", createImageProxyRouter());
+// Mount SoccersAPI routes under /api
+app.use('/api', createSoccersRouter());
+
+// Simple widget preview page for SoccersAPI livescore widget
+app.get('/widget/soccersapi', (_req, res) => {
+  const widgetId = 'wo_w694aef689ca15a79c8eb5f8c_694af9da9b2ea';
+  const html = `<!doctype html>
+  <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>SoccersAPI Livescore Widget</title>
+    <style>body{font-family:Arial,Helvetica,sans-serif;margin:16px;}#ls-widget{width:100%;max-width:900px;margin:0 auto}</style>
+  </head>
+  <body>
+    <h1>SoccersAPI Livescore Widget (Preview)</h1>
+    <!-- Embed code provided by SoccersAPI -->
+    <div id="ls-widget" data-w="${widgetId}" class="livescore-widget"></div>
+    <script type="text/javascript" src="https://ls.soccersapi.com/widget/res/${widgetId}/widget.js" async defer></script>
+    <hr/>
+    <p>Notes: If your site uses a strict Content-Security-Policy, add <code>https://ls.soccersapi.com</code> to <code>script-src</code> and allow any frames/connects the widget requires.</p>
+  </body>
+  </html>`;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  return res.send(html);
+});
 
 // Request-time debug middleware: logs incoming requests and route matching summary
 app.use((req, res, next) => {
