@@ -133,6 +133,12 @@ export async function aggregateFixtures(redis, opts = {}) {
       await redis.set(`rapidapi:fixtures:live:${keySafe}`, String(counts.live)).catch(()=>{});
       await redis.set(`rapidapi:fixtures:upcoming:${keySafe}`, String(counts.upcoming)).catch(()=>{});
     }
+    // ensure the merged list key is a string-typed key (cache) before writing
+    try {
+      // lazy import to avoid cycles in some test harnesses
+      const { ensureRedisKeyType } = await import('../utils/redis-helpers.js');
+      await ensureRedisKeyType(redis, 'rapidapi:fixtures:list', 'string').catch(()=>null);
+    } catch (e) {}
     await redis.set('rapidapi:fixtures:list', JSON.stringify(merged.slice(0, cap))).catch(()=>{});
     await redis.set('rapidapi:fixtures:providers', JSON.stringify(providers)).catch(()=>{});
   } catch (e) {}

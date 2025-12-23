@@ -14,6 +14,7 @@ dotenv.config();
 import Redis from "ioredis";
 import { getRedis, MockRedis } from "./lib/redis-factory.js";
 import createRedisAdapter from "./utils/redis-adapter.js";
+import { ensureRedisKeyType } from "./utils/redis-helpers.js";
 import { CONFIG, validateConfig } from "./config.js";
 import { Logger } from "./utils/logger.js";
 import { TelegramService } from "./services/telegram.js";
@@ -930,6 +931,7 @@ try {
                   const backoffSeconds = Number(process.env.RAPIDAPI_BACKOFF_SECONDS || 300);
                   console.log(`[rapidapi] rate limit detected from Odds API  setting rapidapi:backoff for ${backoffSeconds}s - worker-final.js:923`);
                   try {
+                    await ensureRedisKeyType(redis, 'rapidapi:backoff', 'string');
                     await redis.set('rapidapi:backoff', Date.now());
                     await redis.expire('rapidapi:backoff', backoffSeconds);
                   } catch (e) {
@@ -953,6 +955,7 @@ try {
                   const backoffSeconds = Number(process.env.RAPIDAPI_BACKOFF_SECONDS || 300);
                   console.log(`[rapidapi] rate limit detected from Odds API (scores)  setting rapidapi:backoff for ${backoffSeconds}s - worker-final.js:946`);
                   try {
+                    await ensureRedisKeyType(redis, 'rapidapi:backoff', 'string');
                     await redis.set('rapidapi:backoff', Date.now());
                     await redis.expire('rapidapi:backoff', backoffSeconds);
                   } catch (e) {
