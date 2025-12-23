@@ -1,20 +1,20 @@
-﻿[
-    {
-        "host":  "heisenbug-premier-league-live-scores-v1.p.rapidapi.com",
-        "name":  "Premier League Live Scores",
-        "note":  "Use parameterized endpoints - v3 rebuild 20251223",
-        "sampleEndpoints":  [
-                                "/api/premierleague?date=12202025",
-                                "/api/premierleague?date=\u003cMMddyyyy\u003e"
-                            ]
-    },
-    {
-        "host":  "odds.p.rapidapi.com",
-        "name":  "Odds (The Odds API)",
-        "sampleEndpoints":  [
-                                "/v4/sports/?",
-                                "/v4/sports/upcoming/odds?regions=us\u0026oddsFormat=decimal\u0026markets=h2h,spreads\u0026dateFormat=iso",
-                                "/v4/sports/upcoming/scores?daysFrom=1"
-                            ]
-    }
+[
+  {
+    "host": "heisenbug-premier-league-live-scores-v1.p.rapidapi.com",
+    "name": "Premier League Live Scores",
+    "note": "Use parameterized endpoints",
+    "sampleEndpoints": [
+      "/api/premierleague?date=12202025",
+      "/api/premierleague?date=<MMddyyyy>"
+    ]
+  },
+  {
+    "host": "odds.p.rapidapi.com",
+    "name": "Odds (The Odds API)",
+    "sampleEndpoints": [
+      "/v4/sports/?",
+      "/v4/sports/upcoming/odds?regions=us&oddsFormat=decimal&markets=h2h,spreads&dateFormat=iso",
+      "/v4/sports/upcoming/scores?daysFrom=1"
+    ]
+  }
 ]
