@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { fetchUpcomingFixtures, fetchLiveMatches } from '../src/lib/rapidapi-client.js';
 import { aggregateFixtures } from '../src/lib/fixtures-aggregator.js';
 
@@ -16,7 +17,7 @@ class MockRedis {
 test('rapidapi-client fetchers normalize TheRundown responses and aggregator merges them', async () => {
   // Mock global.fetch to return predictable TheRundown-like payloads
   const now = Date.now();
-  global.fetch = jest.fn(async (url, opts) => {
+  fetch = jest.fn(async (url, opts) => {
     const body = [
       { home_team: 'TR Home', away_team: 'TR Away', commence_time: new Date(now + 60000).toISOString(), sport: 'soccer' },
     ];

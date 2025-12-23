@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { RapidApiFetcher } from '../src/lib/rapidapi-fetcher.js';
 import { startPrefetchScheduler } from '../src/tasks/prefetch-scheduler.js';
 import fs from 'fs';
@@ -8,7 +9,7 @@ describe('RapidAPI full verification', () => {
     process.env.RAPIDAPI_KEY = 'test-key-final';
     process.env.RAPIDAPI_TTL_SEC = String(300);
     // Fetch stub that returns specific statuses for test URLs
-    global.fetch = jest.fn().mockImplementation(async (url) => {
+    fetch = jest.fn().mockImplementation(async (url) => {
       if (url.includes('/forbidden')) return { status: 403, json: async () => ({ message: 'forbidden' }) };
       if (url.includes('/ratelimit')) return { status: 429, json: async () => ({ message: 'rate limit' }) };
       return { status: 200, json: async () => ({ ok: true, url }) };
@@ -66,7 +67,7 @@ describe('RapidAPI full verification', () => {
     };
 
     // Adjust fetch mock so one endpoint returns 403 and another 429
-    global.fetch = jest.fn().mockImplementation(async (url) => {
+    fetch = jest.fn().mockImplementation(async (url) => {
       if (url.includes('newsv2_top_news')) return { status: 403, json: async () => ({ message: 'forbidden' }) };
       if (url.includes('v1/events')) return { status: 429, json: async () => ({ message: 'rate limit' }) };
       return { status: 200, json: async () => ({ ok: true, url }) };

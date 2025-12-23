@@ -1,9 +1,10 @@
+import { jest } from '@jest/globals';
 import { RapidApiFetcher } from "../src/lib/rapidapi-fetcher.js";
 
 describe("RapidApiFetcher", () => {
   beforeEach(() => {
     process.env.RAPIDAPI_KEY = "test-key-123";
-    global.fetch = jest.fn().mockResolvedValue({
+    fetch = jest.fn().mockResolvedValue({
       status: 200,
       json: async () => ({ ok: true }),
     });

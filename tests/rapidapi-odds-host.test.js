@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { startPrefetchScheduler } from "../src/tasks/prefetch-scheduler.js";
 
 function createInMemoryRedis() {
@@ -21,7 +22,7 @@ describe("RapidAPI Odds host handling and fixture normalization", () => {
     process.env.RAPIDAPI_KEY = "test-key";
     process.env.RAPIDAPI_ODDS_MAX_SPORTS = "2";
     // mock fetch to respond for The Odds API direct host
-    global.fetch = jest.fn().mockImplementation(async (url) => {
+    fetch = jest.fn().mockImplementation(async (url) => {
       const u = String(url);
       if (u.includes("/v4/sports/?")) {
         return { status: 200, json: async () => ([{ key: 'basketball_nba', title: 'NBA' }, { key: 'baseball_mlb', title: 'MLB' }]) };

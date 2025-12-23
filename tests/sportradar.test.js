@@ -1,4 +1,5 @@
 /* eslint-env jest */
+import { jest } from '@jest/globals';
 import { SPORTRADAR_SPORTS } from "../src/config/sportradar-sports.js";
 import { getRedis, MockRedis } from "../src/lib/redis-factory.js";
 
