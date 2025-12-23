@@ -285,6 +285,95 @@ export class SportsAggregator {
             void _;
           }
         }
+        // FALLBACK: If Sportradar not available or returned nothing, try using
+        // aggregated RapidAPI fixtures that the prefetch/aggregator writes to
+        // Redis under `rapidapi:fixtures:list`. This helps multi-sport support
+        // when dedicated providers (Sportradar) are not configured.
+        try {
+          if (this.redis) {
+            const rapidKey = "rapidapi:fixtures:list";
+            const raw = await this.redis.get(rapidKey).catch(() => null);
+            if (raw) {
+              let list = null;
+              try {
+                list = typeof raw === "string" ? JSON.parse(raw) : raw;
+              } catch (pe) {
+                list = null;
+              }
+              if (Array.isArray(list) && list.length > 0) {
+                const filtered = list.filter((m) =>
+                  String((m.sport || "").toLowerCase()) === String(sport).toLowerCase() &&
+                  (m.type || "upcoming") !== "live",
+                );
+                if (filtered.length > 0) {
+                  const formatted = filtered.map((f) => ({
+                    id: f.id || null,
+                    sport: f.sport || sport,
+                    league: f.league || null,
+                    home: f.homeTeam || f.home || f.homeTeamName || null,
+                    away: f.awayTeam || f.away || null,
+                    startTime: f.startTime || f.commence_time || f.start || null,
+                    status: f.status || null,
+                    venue: f.venue || null,
+                    raw: f,
+                  }));
+                  this._setCached(cacheKey, formatted);
+                  await this._recordProviderHealth(
+                    "rapidapi",
+                    true,
+                    `Found ${formatted.length} upcoming ${sport} fixtures from aggregated RapidAPI`,
+                  );
+                  return formatted;
+                }
+              }
+            }
+          }
+        } catch (e) {
+          void e;
+        }
+      }
+      // GLOBAL FALLBACK: Try aggregated RapidAPI fixtures regardless of Sportradar
+      try {
+        if (this.redis) {
+          const rapidKey = "rapidapi:fixtures:list";
+          const raw = await this.redis.get(rapidKey).catch(() => null);
+          if (raw) {
+            let list = null;
+            try {
+              list = typeof raw === "string" ? JSON.parse(raw) : raw;
+            } catch (pe) {
+              list = null;
+            }
+            if (Array.isArray(list) && list.length > 0) {
+              const filtered = list.filter((m) =>
+                String((m.sport || "").toLowerCase()) === String(sport).toLowerCase() &&
+                (m.type || "upcoming") !== "live",
+              );
+              if (filtered.length > 0) {
+                const formatted = filtered.map((f) => ({
+                  id: f.id || null,
+                  sport: f.sport || sport,
+                  league: f.league || null,
+                  home: f.homeTeam || f.home || f.homeTeamName || null,
+                  away: f.awayTeam || f.away || null,
+                  startTime: f.startTime || f.commence_time || f.start || null,
+                  status: f.status || null,
+                  venue: f.venue || null,
+                  raw: f,
+                }));
+                this._setCached(cacheKey, formatted);
+                await this._recordProviderHealth(
+                  "rapidapi",
+                  true,
+                  `Found ${formatted.length} upcoming ${sport} fixtures from aggregated RapidAPI (global fallback)`,
+                );
+                return formatted;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        void e;
       }
 
       logger.info(`No upcoming matches found for sport ${sport}`);
