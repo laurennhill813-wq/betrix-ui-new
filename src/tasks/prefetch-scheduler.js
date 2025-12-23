@@ -666,6 +666,14 @@ export function startPrefetchScheduler({
           rapidDiagnostics.apis[apiName] = { status: "unknown", lastUpdated: null, endpoints: {} };
           const host = api.host;
           const endpoints = Array.isArray(api.sampleEndpoints) ? api.sampleEndpoints : [];
+          // If a directUrl is provided for this subscription, prefer the direct fetch
+          // path below and skip RapidAPI-style sample endpoint probes which may
+          // construct a URL from `api.host` (causing host mismatches like
+          // soccersapi.com vs api.soccersapi.com).
+          if (api.directUrl) {
+            console.log(`[prefetch] skipping sampleEndpoints for direct provider ${api.name || api.host}`);
+            continue;
+          }
           for (const endpoint of endpoints.slice(0, 10)) {
             try {
               // Retry loop for transient errors (3 attempts with exponential backoff + jitter)
@@ -969,7 +977,19 @@ export function startPrefetchScheduler({
             const apiName = api.name || "direct-provider";
             const safeName = normalizeRedisKeyPart(apiName);
             try {
-              const fetchResponse = await fetch(api.directUrl, { headers: { Accept: 'application/json' } }).catch(err => {
+              // Build direct fetch URL; prefer environment-provided credentials when available
+              let directBase = api.directUrl;
+              if (api.host && String(api.host).toLowerCase().includes('soccersapi')) {
+                const user = process.env.SOCCERSAPI_USER || '';
+                const token = process.env.SOCCERSAPI_TOKEN || '';
+                const base = process.env.SOCCERSAPI_BASE || 'https://api.soccersapi.com';
+                if (user && token) {
+                  directBase = `${base}/v2.2/leagues/?user=${encodeURIComponent(user)}&token=${encodeURIComponent(token)}&t=list`;
+                } else if (!directBase) {
+                  directBase = `${base}/v2.2/leagues/?t=list`;
+                }
+              }
+              const fetchResponse = await fetch(directBase, { headers: { Accept: 'application/json' } }).catch(err => {
                 console.warn(`[prefetch-direct] ${apiName} fetch error: ${err && err.message ? err.message : String(err)}`);
                 return null;
               });
@@ -993,7 +1013,7 @@ export function startPrefetchScheduler({
                 try {
                   const allLeagues = [];
                   for (let page = 1; page <= 200; page++) {
-                    const pUrl = api.directUrl.includes('?') ? `${api.directUrl}&page=${page}` : `${api.directUrl}?page=${page}`;
+                    const pUrl = directBase && directBase.includes('?') ? `${directBase}&page=${page}` : `${directBase}?page=${page}`;
                     const pr = await fetch(pUrl, { headers: { Accept: 'application/json' } }).catch(() => null);
                     if (!pr || !pr.ok) break;
                     const pb = await pr.json().catch(() => null);

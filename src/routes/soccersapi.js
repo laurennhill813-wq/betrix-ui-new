@@ -25,8 +25,16 @@ router.get('/soccersapi/leagues', async (req, res) => {
     const raw = fs.readFileSync(subsPath, 'utf8');
     const subs = JSON.parse(raw);
     const entry = (Array.isArray(subs) ? subs.find(s => s.host && s.host.includes('soccersapi')) : null) || subs.soccersapi;
-    const url = entry && (entry.directUrl || entry.sampleEndpoint || entry.sampleEndpoints && entry.sampleEndpoints[0]);
-    if (!url) return res.status(404).json({ ok: false, error: 'SoccersAPI directUrl not found in subscriptions.json' });
+    // Build URL preferring environment credentials when present
+    const baseFromEntry = entry && (entry.directUrl || (entry.sampleEndpoints && entry.sampleEndpoints[0]));
+    const base = process.env.SOCCERSAPI_BASE || 'https://api.soccersapi.com';
+    const user = process.env.SOCCERSAPI_USER || '';
+    const token = process.env.SOCCERSAPI_TOKEN || '';
+    let url = baseFromEntry || `${base}/v2.2/leagues/?t=list`;
+    if (String(entry && entry.host || '').toLowerCase().includes('soccersapi') && user && token) {
+      url = `${base}/v2.2/leagues/?user=${encodeURIComponent(user)}&token=${encodeURIComponent(token)}&t=list`;
+    }
+    if (!url) return res.status(404).json({ ok: false, error: 'SoccersAPI directUrl not found in subscriptions.json or env vars' });
 
     const r = await fetch(url, { headers: { Accept: 'application/json' } });
     if (!r.ok) return res.status(502).json({ ok: false, status: r.status, statusText: r.statusText });

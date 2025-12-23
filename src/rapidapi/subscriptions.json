@@ -43,9 +43,10 @@
     "host": "soccersapi.com",
     "name": "SoccersAPI - Leagues",
     "sport": "soccer",
-    "directUrl": "https://api.soccersapi.com/v2.2/leagues/?user=28Ekz&token=PT0s9YfsZO&t=list",
+    "directUrl": "https://api.soccersapi.com/v2.2/leagues/?t=list",
     "sampleEndpoints": [
-      "/v2.2/leagues/?user=28Ekz&token=PT0s9YfsZO&t=list"
-    ]
+      "/v2.2/leagues/?t=list"
+    ],
+    "notes": "Credentials (user/token) should be provided via SOCCERSAPI_USER and SOCCERSAPI_TOKEN env vars in production."
   }
 ]
