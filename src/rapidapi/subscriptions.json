@@ -1,20 +1,42 @@
 [
   {
     "host": "heisenbug-premier-league-live-scores-v1.p.rapidapi.com",
-    "name": "Premier League Live Scores",
-    "note": "Use parameterized endpoints",
+    "name": "Heisenbug - Premier League",
+    "sport": "soccer",
     "sampleEndpoints": [
-      "/api/premierleague?date=12202025",
-      "/api/premierleague?date=<MMddyyyy>"
+      "/api/premierleague?date=12202025"
     ]
   },
   {
-    "host": "odds.p.rapidapi.com",
-    "name": "Odds (The Odds API)",
+    "host": "sofascore.p.rapidapi.com",
+    "name": "SofaScore - Sports",
+    "sport": "multi",
     "sampleEndpoints": [
-      "/v4/sports/?",
-      "/v4/sports/upcoming/odds?regions=us&oddsFormat=decimal&markets=h2h,spreads&dateFormat=iso",
-      "/v4/sports/upcoming/scores?daysFrom=1"
+      "/matches/get-h2h?matchId=8897222"
+    ]
+  },
+  {
+    "host": "free-livescore-api.p.rapidapi.com",
+    "name": "Free LiveScore",
+    "sport": "soccer",
+    "sampleEndpoints": [
+      "/livescore-get-search?sportname=soccer&search=upcoming"
+    ]
+  },
+  {
+    "host": "therundown-therundown-v1.p.rapidapi.com",
+    "name": "The Rundown - NFL",
+    "sport": "nfl",
+    "sampleEndpoints": [
+      "/sports/1/conferences"
+    ]
+  },
+  {
+    "host": "sportspage-feeds.p.rapidapi.com",
+    "name": "Sportspage - Rankings",
+    "sport": "nfl",
+    "sampleEndpoints": [
+      "/rankings?league=NCAAF"
     ]
   }
 ]

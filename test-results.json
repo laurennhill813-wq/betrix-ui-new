@@ -1,0 +1,341 @@
+[
+  {
+    "name": "NFL API Data - Teams",
+    "host": "nfl-api-data.p.rapidapi.com",
+    "sport": "nfl",
+    "status": 429,
+    "success": false,
+    "bodyKeys": [
+      "message"
+    ],
+    "bodyLength": 168,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "Heisenbug - Premier League Team",
+    "host": "heisenbug-premier-league-live-scores-v1.p.rapidapi.com",
+    "sport": "soccer",
+    "status": 200,
+    "success": true,
+    "bodyKeys": [
+      "league",
+      "season",
+      "name",
+      "officialName",
+      "address"
+    ],
+    "bodyLength": 475,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "Football Prediction API",
+    "host": "football-prediction-api.p.rapidapi.com",
+    "sport": "soccer",
+    "status": 429,
+    "success": false,
+    "bodyKeys": [
+      "message"
+    ],
+    "bodyLength": 207,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "The Rundown - Sports",
+    "host": "therundown-therundown-v1.p.rapidapi.com",
+    "sport": "nfl",
+    "status": 200,
+    "success": true,
+    "bodyKeys": [
+      "conferences"
+    ],
+    "bodyLength": 7650,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "Odds API - Upcoming Odds",
+    "host": "odds.p.rapidapi.com",
+    "sport": "multi",
+    "status": 429,
+    "success": false,
+    "bodyKeys": [
+      "message"
+    ],
+    "bodyLength": 170,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "Football Live Stream",
+    "host": "football-live-stream-api.p.rapidapi.com",
+    "sport": "soccer",
+    "status": 429,
+    "success": false,
+    "bodyKeys": [
+      "message"
+    ],
+    "bodyLength": 178,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "SportAPI7 - Player Ratings",
+    "host": "sportapi7.p.rapidapi.com",
+    "sport": "soccer",
+    "status": 429,
+    "success": false,
+    "bodyKeys": [
+      "message"
+    ],
+    "bodyLength": 166,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "BetsAPI2 - Prematch",
+    "host": "betsapi2.p.rapidapi.com",
+    "sport": "multi",
+    "status": 429,
+    "success": false,
+    "bodyKeys": [
+      "message"
+    ],
+    "bodyLength": 180,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "All Sports API 2",
+    "host": "allsportsapi2.p.rapidapi.com",
+    "sport": "multi",
+    "status": 204,
+    "success": true,
+    "bodyKeys": [],
+    "bodyLength": 0,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "Real Time Sports Data",
+    "host": "real-time-sports-data.p.rapidapi.com",
+    "sport": "multi",
+    "status": 502,
+    "success": false,
+    "bodyKeys": [
+      "messages",
+      "info"
+    ],
+    "bodyLength": 149,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "Free Football API - Statistics",
+    "host": "free-football-api-data.p.rapidapi.com",
+    "sport": "soccer",
+    "status": 200,
+    "success": true,
+    "bodyKeys": [
+      "status",
+      "response"
+    ],
+    "bodyLength": 75,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "Sportspage Feeds - Rankings",
+    "host": "sportspage-feeds.p.rapidapi.com",
+    "sport": "nfl",
+    "status": 200,
+    "success": true,
+    "bodyKeys": [
+      "status",
+      "time",
+      "results"
+    ],
+    "bodyLength": 3438,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "SofaScore - H2H",
+    "host": "sofascore.p.rapidapi.com",
+    "sport": "multi",
+    "status": 200,
+    "success": true,
+    "bodyKeys": [
+      "teamDuel",
+      "managerDuel"
+    ],
+    "bodyLength": 102,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "Sports Information - MBB News",
+    "host": "sports-information.p.rapidapi.com",
+    "sport": "basketball",
+    "status": 200,
+    "success": true,
+    "bodyKeys": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "bodyLength": 64445,
+    "hasArray": true,
+    "firstItem": [
+      "description",
+      "published",
+      "premium"
+    ],
+    "arrayLength": 30
+  },
+  {
+    "name": "Odds API 1 - Scores",
+    "host": "odds-api1.p.rapidapi.com",
+    "sport": "multi",
+    "status": 429,
+    "success": false,
+    "bodyKeys": [
+      "message"
+    ],
+    "bodyLength": 180,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "SofaSport - Events Odds",
+    "host": "sofasport.p.rapidapi.com",
+    "sport": "multi",
+    "status": 200,
+    "success": true,
+    "bodyKeys": [
+      "data"
+    ],
+    "bodyLength": 152,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "Bet365 API - Leagues",
+    "host": "bet365-api-inplay.p.rapidapi.com",
+    "sport": "multi",
+    "status": 429,
+    "success": false,
+    "bodyKeys": [
+      "message"
+    ],
+    "bodyLength": 170,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "Pinnacle Odds - Meta Periods",
+    "host": "pinnacle-odds.p.rapidapi.com",
+    "sport": "nfl",
+    "status": 200,
+    "success": true,
+    "bodyKeys": [
+      "periods"
+    ],
+    "bodyLength": 22548,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "Free LiveScore - Search",
+    "host": "free-livescore-api.p.rapidapi.com",
+    "sport": "soccer",
+    "status": 200,
+    "success": true,
+    "bodyKeys": [
+      "status",
+      "response"
+    ],
+    "bodyLength": 3516,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "Free API Live Football - Players",
+    "host": "free-api-live-football-data.p.rapidapi.com",
+    "sport": "soccer",
+    "status": 429,
+    "success": false,
+    "bodyKeys": [
+      "message"
+    ],
+    "bodyLength": 183,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "Real Time Sports News API",
+    "host": "real-time-sports-news-api.p.rapidapi.com",
+    "sport": "multi",
+    "status": 404,
+    "success": false,
+    "bodyKeys": [
+      "message"
+    ],
+    "bodyLength": 61,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "Football Pro - Corrections",
+    "host": "football-pro.p.rapidapi.com",
+    "sport": "soccer",
+    "status": 200,
+    "success": true,
+    "bodyKeys": [
+      "data",
+      "meta"
+    ],
+    "bodyLength": 5288,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  },
+  {
+    "name": "FlashLive Sports - News",
+    "host": "flashlive-sports.p.rapidapi.com",
+    "sport": "multi",
+    "status": 200,
+    "success": true,
+    "bodyKeys": [
+      "DATA"
+    ],
+    "bodyLength": 1111,
+    "hasArray": false,
+    "firstItem": null,
+    "arrayLength": null
+  }
+]
