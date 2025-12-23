@@ -1,0 +1,268 @@
+≡ƒº¬ EXTRACTING RAW DATA FROM WORKING APIS
+Showing actual team names, fixtures, and data structures
+
+
+====================================================================================================
+≡ƒöì Free LiveScore [soccer]
+====================================================================================================
+URL: https://free-livescore-api.p.rapidapi.com/livescore-get-search?sportname=soccer&search=premier
+
+Γ£à Status: 200
+≡ƒôª Response size: 3314 bytes
+
+≡ƒôï STRUCTURE: Object with 2 keys
+
+≡ƒö╣ Top-level keys: status, response
+
+≡ƒö╣ Data sample:
+{
+  "status": "success",
+  "response": {
+    "Sorting": [
+      "Stages",
+      "Teams"
+    ],
+    "Stages": [
+      {
+        "Sid": "21997",
+        "Snm": "Premier League",
+        "Sds": "Premier League",
+        "Scd": "premier-league",
+        "Cnm": "England",
+        "CompUrlName": "premier-league",
+        "CnmT": "england",
+        "Ccd": "england",
+        "Cid": "34",
+        "Scu": 0,
+        "CompId": "65",
+        "CompN": "Premier League",
+        "CompD": "England",
+        "CompST": "England",
+        "badgeUrl": "premier-league-2024.png",
+        "firstColor": "3F1152",
+        "Spid": 1
+      },
+      {
+        "Sid": "22039",
+        "Snm": "Premiership",
+        "Sds": "Premiership",
+        "Scd": "scotland-premiership",
+        "Cnm": "Scotland",
+        "CompUrlName": "premiership",
+        "CnmT": "scotland",
+        "Ccd": "scotland",
+        "Cid": "36",
+        "Scu": 0,
+        "CompId": "69",
+        "CompN": "Premiership",
+
+... (157 more lines)
+
+≡ƒæÑ Potential teams/leagues: status, response, Sorting, Stages, Sid, Snm, Sds, Scd, Cnm, CompUrlName
+
+====================================================================================================
+≡ƒöì The Rundown - NFL [nfl]
+====================================================================================================
+URL: https://therundown-therundown-v1.p.rapidapi.com/sports/1/conferences
+
+Γ£à Status: 200
+≡ƒôª Response size: 7650 bytes
+
+≡ƒôï STRUCTURE: Object with 1 keys
+
+≡ƒö╣ Top-level keys: conferences
+
+≡ƒö╣ Data sample:
+{
+  "conferences": [
+    {
+      "conference_id": 91,
+      "division_id": 1,
+      "sport_id": 1,
+      "name": "Atlantic Coast Conference"
+    },
+    {
+      "conference_id": 731,
+      "division_id": 1,
+      "sport_id": 1,
+      "name": "Big 12 Conference"
+    },
+    {
+      "conference_id": 88,
+      "division_id": 1,
+      "sport_id": 1,
+      "name": "Big Ten Conference"
+    },
+    {
+      "conference_id": 766,
+      "sport_id": 1,
+      "name": "SEC - East"
+    },
+    {
+      "conference_id": 760,
+      "sport_id": 1,
+      "name": "SEC - West"
+    },
+    {
+      "conference_id": 86,
+      "division_id": 1,
+      "sport_id": 1,
+      "name": "Southeastern Conference"
+    },
+    {
+      "conference_id": 85,
+      "division_id": 1,
+      "sport_id": 1,
+
+... (552 more lines)
+
+≡ƒæÑ Potential teams/leagues: conferences, conference_id, division_id, sport_id, name
+
+====================================================================================================
+≡ƒöì Sportspage - NCAAF [nfl]
+====================================================================================================
+URL: https://sportspage-feeds.p.rapidapi.com/rankings?league=NCAAF&limit=5
+
+Γ£à Status: 200
+≡ƒôª Response size: 3438 bytes
+
+≡ƒôï STRUCTURE: Object with 3 keys
+
+≡ƒö╣ Top-level keys: status, time, results
+
+≡ƒö╣ Data sample:
+{
+  "status": 200,
+  "time": "2025-12-23T15:47:56.028Z",
+  "results": [
+    {
+      "name": "College Football Playoff",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Indiana",
+          "teamId": 1370
+        },
+        {
+          "rank": 2,
+          "team": "Ohio State",
+          "teamId": 1387
+        },
+        {
+          "rank": 3,
+          "team": "Georgia",
+          "teamId": 1365
+        },
+        {
+          "rank": 4,
+          "team": "Texas Tech",
+          "teamId": 1158
+        },
+        {
+          "rank": 5,
+          "team": "Oregon",
+          "teamId": 1388
+        },
+        {
+          "rank": 6,
+          "team": "Mississippi",
+          "teamId": 1138
+        },
+        {
+          "rank": 7,
+          "team": "Texas A&M",
+
+... (356 more lines)
+
+≡ƒæÑ Potential teams/leagues: status, time, results, name, rankings, rank, team, teamId
+
+====================================================================================================
+≡ƒöì SofaScore - Match [multi]
+====================================================================================================
+URL: https://sofascore.p.rapidapi.com/matches/get-h2h?matchId=8897222
+
+Γ£à Status: 200
+≡ƒôª Response size: 102 bytes
+
+≡ƒôï STRUCTURE: Object with 2 keys
+
+≡ƒö╣ Top-level keys: teamDuel, managerDuel
+
+≡ƒö╣ Data sample:
+{
+  "teamDuel": {
+    "homeWins": 8,
+    "awayWins": 0,
+    "draws": 2
+  },
+  "managerDuel": {
+    "homeWins": 6,
+    "awayWins": 6,
+    "draws": 2
+  }
+}
+
+≡ƒæÑ Potential teams/leagues: teamDuel, homeWins, awayWins, draws, managerDuel
+
+====================================================================================================
+≡ƒöì Pinnacle Odds [nfl]
+====================================================================================================
+URL: https://pinnacle-odds.p.rapidapi.com/kit/v1/meta-periods?sport_id=1
+
+Γ£à Status: 200
+≡ƒôª Response size: 22548 bytes
+
+≡ƒôï STRUCTURE: Object with 1 keys
+
+≡ƒö╣ Top-level keys: periods
+
+≡ƒö╣ Data sample:
+{
+  "periods": [
+    {
+      "number": 0,
+      "sport_id": 1,
+      "description": "Match",
+      "short_description": "Match",
+      "spread_description": "Handicap",
+      "moneyline_description": "1X2",
+      "total_description": "Total",
+      "team_1_total_description": "Team 1 Goals",
+      "team_2_total_description": "Team 2 Goals",
+      "spread_short_description": "HDP",
+      "moneyline_short_description": "1X2",
+      "total_short_description": "O/U",
+      "team_1_total_short_description": "Team 1 Goals",
+      "team_2_total_short_description": "Team 2 Goals"
+    },
+    {
+      "number": 1,
+      "sport_id": 1,
+      "description": "1st Half",
+      "short_description": "1st H",
+      "spread_description": "1H Handicap",
+      "moneyline_description": "1H 1X2",
+      "total_description": "1H Total",
+      "team_1_total_description": "1H Team 1 Goals",
+      "team_2_total_description": "1H Team 2 Goals",
+      "spread_short_description": "1H HDP",
+      "moneyline_short_description": "1H 1X2",
+      "total_short_description": "1H O/U",
+      "team_1_total_short_description": "1H GOAL",
+      "team_2_total_short_description": "1H GOAL"
+    },
+    {
+      "number": 2,
+      "sport_id": 1,
+      "description": "2nd Half",
+      "short_description": "2nd H",
+      "spread_description": "2H Handicap",
+
+... (604 more lines)
+
+≡ƒæÑ Potential teams/leagues: periods, number, sport_id, description, short_description, spread_description, moneyline_description, total_description, team_1_total_description, team_2_total_description
+
+====================================================================================================
+Γ£à EXTRACTION COMPLETE
+====================================================================================================
+
