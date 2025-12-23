@@ -633,13 +633,17 @@ export function startPrefetchScheduler({
           rapidLogger = {
             fetch: async (host, endpoint, opts = {}) => {
               try {
-                const url = `https://${host}${endpoint}`;
+                let url = `https://${host}${endpoint}`;
                 const headers = {
                   'X-RapidAPI-Key': process.env.RAPIDAPI_KEY || '',
                   'X-RapidAPI-Host': host,
                   Accept: 'application/json',
                 };
-                if (String(host || '').toLowerCase().includes('the-odds-api.com')) headers['x-api-key'] = process.env.RAPIDAPI_KEY || '';
+                // The Odds API (api.the-odds-api.com) requires apiKey as query parameter, not header
+                if (String(host || '').toLowerCase().includes('the-odds-api.com')) {
+                  const separator = url.includes('?') ? '&' : '?';
+                  url += `${separator}apiKey=${encodeURIComponent(process.env.RAPIDAPI_KEY || '')}`;
+                }
                 const res = await fetch(url, { method: 'GET', headers }).catch((err) => { throw err; });
                 const body = await (res && typeof res.json === 'function' ? res.json().catch(() => null) : null);
                 // capture headers
