@@ -993,27 +993,28 @@ export function startPrefetchScheduler({
                               } catch (e) {
                                 /* ignore fixture normalization errors */
                               }
+                            }
+                          } catch (e) {
+                            /* ignore per-sport scores errors */
                           }
                         } catch (e) {
-                          /* ignore per-sport scores errors */
+                          /* continue on per-sport errors */
                         }
-                      } catch (e) {
-                        /* continue on per-sport errors */
+                        count += 1;
                       }
-                      count += 1;
                     }
+                  } catch (e) {
+                    /* ignore per-sport fetch errors */
                   }
                 } catch (e) {
-                  /* ignore per-sport fetch errors */
+                  rapidDiagnostics.apis[apiName].endpoints[endpoint] = {
+                    httpStatus: e && e.status ? e.status : null,
+                    errorReason: e && e.message ? String(e.message) : String(e),
+                    lastUpdated: Date.now(),
+                  };
+                  rapidDiagnostics.apis[apiName].lastUpdated = Date.now();
+                  rapidDiagnostics.apis[apiName].status = "error";
                 }
-              } catch (e) {
-                rapidDiagnostics.apis[apiName].endpoints[endpoint] = {
-                  httpStatus: e && e.status ? e.status : null,
-                  errorReason: e && e.message ? String(e.message) : String(e),
-                  lastUpdated: Date.now(),
-                };
-                rapidDiagnostics.apis[apiName].lastUpdated = Date.now();
-                rapidDiagnostics.apis[apiName].status = "error";
               }
             }
           }
