@@ -13,6 +13,7 @@ import createWebhooksRouter from "./routes/webhooks.js";
 import createImageProxyRouter from "./routes/image-proxy.js";
 import prefetchSystem from './tasks/prefetch-sports-fixtures.js';
 import createSoccersRouter from './routes/soccersapi.js';
+import createSportbexRouter from './routes/sportbex.js';
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
@@ -262,6 +263,7 @@ app.use("/webhook", createWebhooksRouter());
 app.use("/internal", createImageProxyRouter());
 // Mount SoccersAPI routes under /api
 app.use('/api', createSoccersRouter());
+app.use('/api', createSportbexRouter());
 
 // Simple widget preview page for SoccersAPI livescore widget
 app.get('/widget/soccersapi', (_req, res) => {
