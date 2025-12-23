@@ -180,32 +180,31 @@
 
     <script>
       const apiUrl = "/monitor";
+      const prefetchApi = "/admin/prefetch-health";
 
       async function fetchAndRender() {
         try {
-          const response = await fetch(apiUrl);
-          const data = await response.json();
+          const [resp, pResp] = await Promise.all([fetch(apiUrl), fetch(prefetchApi)]);
+          const data = await resp.json().catch(()=>({success:false}));
+          const pData = await pResp.json().catch(()=>null);
 
           if (!data.success) {
-            showError("Failed to fetch metrics: " + data.message);
+            showError("Failed to fetch metrics: " + (data.message||'unknown'));
             return;
           }
 
           const metrics = data.data;
-          const html = renderDashboard(metrics);
+          const html = renderDashboard(metrics, pData);
           document.getElementById("content").innerHTML = html;
-          document.getElementById("last-update").textContent =
-            new Date().toLocaleTimeString();
+          document.getElementById("last-update").textContent = new Date().toLocaleTimeString();
         } catch (error) {
           showError("Error: " + error.message);
         }
       }
 
-      function renderDashboard(m) {
+      function renderDashboard(m, p) {
         const workerStatus = m.services.worker.healthy ? "healthy" : "degraded";
-        const workerStatusClass = m.services.worker.healthy
-          ? "status-healthy"
-          : "status-degraded";
+        const workerStatusClass = m.services.worker.healthy ? "status-healthy" : "status-degraded";
 
         return `
         <div class="grid">
@@ -276,7 +275,7 @@
 
         <div class="chart-section">
           <h3>📊 Prefetch Source Health</h3>
-          ${renderPrefetchHealth(m.prefetch)}
+          ${renderPrefetchHealth(m.prefetch, p)}
         </div>
 
         <div class="chart-section">
@@ -286,41 +285,41 @@
       `;
       }
 
-      function renderPrefetchHealth(prefetch) {
-        const sources = ["rss", "openligadb", "scorebat", "footballdata"];
-        return sources
-          .map((src) => {
-            const failures = prefetch.failures[src] || 0;
-            const color =
-              failures === 0 ? "#28a745" : failures < 3 ? "#ffc107" : "#dc3545";
-            return `
-          <div class="bar">
-            <span class="bar-label">${src}</span>
-            <div class="bar-value" style="background: ${color}; width: ${Math.min(100, failures * 20)}%">
-              ${failures > 0 ? failures + " failures" : "Healthy"}
+      function renderPrefetchHealth(prefetch, p) {
+        // prefer provider health from admin endpoint when available
+        const providers = p && p.providers ? p.providers : {};
+        const keys = Object.keys(providers).length ? Object.keys(providers) : ["rss","openligadb","scorebat","footballdata"];
+        return keys.map((k) => {
+          const v = providers[k];
+          const healthy = v && v.ok === true;
+          const fails = v && v.fails ? v.fails : 0;
+          const color = healthy ? '#28a745' : (fails < 3 ? '#ffc107' : '#dc3545');
+          const statusText = healthy ? 'Healthy' : (v && v.message ? v.message : 'Degraded');
+          return `
+            <div class="bar">
+              <span class="bar-label">${k}</span>
+              <div class="bar-value" style="background: ${color}; width: ${Math.min(100, (fails || 0) * 20)}%">
+                ${statusText}
+              </div>
+              <span class="bar-text">${fails}</span>
             </div>
-            <span class="bar-text">${failures}</span>
-          </div>
-        `;
-          })
-          .join("");
+          `;
+        }).join('');
       }
 
       function renderLastUpdates(updates) {
         const sources = ["rss", "openligadb", "scorebat", "footballdata"];
-        return sources
-          .map((src) => {
-            const info = updates[src];
-            const status = info ? `${info.age_seconds}s ago` : "Never";
-            const time = info ? info.timestamp : "N/A";
-            return `
-          <div class="bar">
-            <span class="bar-label">${src}</span>
-            <span class="bar-text">${time === "N/A" ? time : new Date(time).toLocaleTimeString()}</span>
-          </div>
-        `;
-          })
-          .join("");
+        return sources.map((src) => {
+          const info = updates[src];
+          const status = info ? `${info.age_seconds}s ago` : "Never";
+          const time = info ? info.timestamp : "N/A";
+          return `
+            <div class="bar">
+              <span class="bar-label">${src}</span>
+              <span class="bar-text">${time === "N/A" ? time : new Date(time).toLocaleTimeString()}</span>
+            </div>
+          `;
+        }).join('');
       }
 
       function formatUptime(seconds) {
@@ -331,8 +330,7 @@
       }
 
       function showError(msg) {
-        document.getElementById("content").innerHTML =
-          `<div class="error">${msg}</div>`;
+        document.getElementById("content").innerHTML = `<div class="error">${msg}</div>`;
       }
 
       // Initial load and auto-refresh

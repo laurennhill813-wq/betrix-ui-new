@@ -211,6 +211,40 @@ export function startPrefetchScheduler({
         } catch (e) {
           /* ignore */
         }
+
+        // Alert via Telegram for repeated failures (guarded by env)
+        try {
+          const alertThreshold = Number(process.env.PREFETCH_ALERT_THRESHOLD || 3);
+          const alertThrottleSec = Number(process.env.PREFETCH_ALERT_THROTTLE_SEC || 3600);
+          const alreadySent = await redis.get(`prefetch:alert:sent:${type}`).catch(() => null);
+          if ((Number(fails) >= alertThreshold) && !alreadySent) {
+            const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || process.env.BOT_TOKEN || null;
+            const ADMIN_CHAT = process.env.ADMIN_TELEGRAM_ID || process.env.BOT_BROADCAST_CHAT_ID || null;
+            if (TELEGRAM_TOKEN && ADMIN_CHAT) {
+              // fire-and-forget - do not block scheduler
+              (async () => {
+                try {
+                  const msg = `?? Prefetch alert: provider=${type} failures=${fails} message=${encodeURIComponent(health && health.message ? health.message : 'failure')}`;
+                  const url = `https://api.telegram.org/bot${encodeURIComponent(TELEGRAM_TOKEN)}/sendMessage`;
+                  // prefer simple text message
+                  await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: Number(ADMIN_CHAT), text: msg }),
+                    timeout: 5000,
+                  }).catch(() => null);
+                } catch (e) {
+                  /* ignore alert send errors */
+                }
+              })();
+              // mark alert sent to avoid spamming
+              await redis.set(`prefetch:alert:sent:${type}`, String(Date.now()), 'EX', alertThrottleSec).catch(() => {});
+            }
+          }
+        } catch (e) {
+          /* ignore alerting errors */
+        }
+
         return { fails, next, delay };
       } catch (e) {
         void e;
