@@ -39,9 +39,27 @@ class ContextManager {
         tokens: estimateTokens(message),
       };
 
-      await this.redis.lpush(key, JSON.stringify(entry));
-      await this.redis.ltrim(key, 0, MAX_CONTEXT_HISTORY);
-      await this.redis.expire(key, CONTEXT_TTL);
+      try {
+        await this.redis.lpush(key, JSON.stringify(entry));
+        await this.redis.ltrim(key, 0, MAX_CONTEXT_HISTORY);
+        await this.redis.expire(key, CONTEXT_TTL);
+      } catch (err) {
+        // If WRONGTYPE error (key exists as string/other type), delete and recreate
+        if (err.message && err.message.includes("WRONGTYPE")) {
+          try {
+            await this.redis.del(key);
+            await this.redis.lpush(key, JSON.stringify(entry));
+            await this.redis.ltrim(key, 0, MAX_CONTEXT_HISTORY);
+            await this.redis.expire(key, CONTEXT_TTL);
+          } catch (retryErr) {
+            logger.warn("Record message failed after WRONGTYPE recovery", retryErr);
+            throw retryErr;
+          }
+        } else {
+          throw err;
+        }
+      }
+
       // Maintain a rolling token sum for quick checks
       try {
         const tokenKey = `context:${userId}:tokens`;
@@ -61,7 +79,23 @@ class ContextManager {
   async getContext(userId) {
     try {
       const key = `context:${userId}:history`;
-      const messages = await this.redis.lrange(key, 0, -1);
+      let messages = [];
+      
+      try {
+        messages = await this.redis.lrange(key, 0, -1);
+      } catch (err) {
+        // If WRONGTYPE error (key exists as string/other type), delete and return empty
+        if (err.message && err.message.includes("WRONGTYPE")) {
+          try {
+            await this.redis.del(key);
+            logger.warn(`Recovered from WRONGTYPE on ${key}, deleted corrupted key`);
+          } catch (delErr) {
+            logger.warn(`Failed to delete corrupted ${key}`, delErr);
+          }
+          return [];
+        }
+        throw err;
+      }
 
       return messages
         .map((m) => {
