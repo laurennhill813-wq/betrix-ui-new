@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { startPrefetchScheduler } from "../src/tasks/prefetch-scheduler.js";
 
   const calls = [];

@@ -1,0 +1,513 @@
+
+> betrix-ui@2.0.0 test
+> node ./scripts/run-all-tests.js
+
+Environment: node v22.21.0 npm unknown platform win32
+Running Node built-in tests...
+Debug: nodeFiles count: 27
+Debug: node args: [
+  '--test',
+  '--test-reporter=spec',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\ai-provider-failover.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\ai.intent.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\ai.predictor.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\azure-ai.smoke.node.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\cache-service.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\comprehensive-integration.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\news-service.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\onboarding-sim.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\openligadb.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\payment-flow.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\payment-guides.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\payment-integration.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\payment-normalizer.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\providers\\sportradar_soccer.test.mjs',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\rss-aggregator.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\services\\sports_aggregator_sport.test.mjs',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\sportradar.adapter.test.mjs',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\startup-marker.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\startup-rapidapi-registered.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\telegram-analyze-ai.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\telegram-analyze.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\telegram-bot.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\telegram-handler-v2.smoke.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\utils\\interval.node.mjs',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\v3-handlers.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\webhook-auth.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\webhook-lipana-signature.test.js'
+]
+Γ£ö AI provider modules present (159.2233ms)
+Γû╢ AI Intent classifier (smoke)
+  Γ£ö recognizes command /start (14.4693ms)
+  Γ£ö detects odds intent from text (0.7064ms)
+Γ£ö AI Intent classifier (smoke) (20.2153ms)
+Γû╢ AI Predictor (smoke)
+  Γ£ö returns probabilities and rationale (9.161ms)
+Γ£ö AI Predictor (smoke) (12.3081ms)
+Γ£ö D:\betrix-ui (1)\betrix-ui\tests\azure-ai.smoke.node.js (251.8132ms)
+Γ£ö CacheService - basic get/set operations (5.6459ms)
+Γ£ö CacheService - rate limiting within bounds (0.7867ms)
+Γ£ö CacheService - rate limiting exceeds bounds (2.472ms)
+Γ£ö CacheService - handles null/undefined values gracefully (0.4873ms)
+Γ£ö CacheService - serialization/deserialization (0.8597ms)
+
+ΓòöΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòù
+Γòæ         COMPREHENSIVE INTEGRATION TEST COMPLETE                Γòæ
+ΓòÜΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓò¥
+
+Γ£à NLP Tests: 90+ intent variations tested
+Γ£à Command Tests: 9 commands validated
+Γ£à Callback Tests: 10+ callback routes working
+Γ£à Betting Sites: Kenya bookmakers verified
+Γ£à UI/UX: All formatters checked
+Γ£à Data Models: Schemas validated
+Γ£à Edge Cases: 50+ scenarios tested
+Γ£à Error Handling: Graceful failures verified
+
+Total Test Coverage: 
+  ΓÇó 100+ natural language intents
+  ΓÇó 9 command handlers
+  ΓÇó 10+ callback routes
+  ΓÇó 6 Kenya betting sites
+  ΓÇó 50+ edge cases
+
+Status: ≡ƒÜÇ READY FOR PRODUCTION
+
+Γ£à Core intent classification tests: 19/19 core commands work
+Γ£à Edge case tests: 5/5 passed
+[2025-12-23T08:52:31.157Z] [INFO] [Commands] handleCommand { cmd: 'start', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.163Z] [INFO] [Commands] handleCommand { cmd: 'help', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.164Z] [INFO] [Commands] handleCommand { cmd: 'menu', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.165Z] [INFO] [Commands] handleCommand { cmd: 'odds', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.166Z] [INFO] [Commands] handleCommand { cmd: 'analyze', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.167Z] [INFO] [Commands] handleCommand { cmd: 'news', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.169Z] [INFO] [Commands] handleCommand { cmd: 'vvip', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.170Z] [INFO] [Commands] handleCommand { cmd: 'pay', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.171Z] [INFO] [Commands] handleCommand { cmd: 'signup', userId: 123, chatId: 456 }
+Γ£à All 9 command handlers working correctly
+[2025-12-23T08:52:31.174Z] [INFO] [Commands] handleCommand { cmd: 'start', userId: 123, chatId: 456 }
+Γ£à /start command formatted correctly
+[2025-12-23T08:52:31.177Z] [INFO] [Commands] handleCommand { cmd: 'help', userId: 123, chatId: 456 }
+Γ£à /help command working correctly
+[2025-12-23T08:52:31.179Z] [INFO] [Commands] handleCommand { cmd: 'menu', userId: 123, chatId: 456 }
+Γ£à /menu command working correctly
+[2025-12-23T08:52:31.181Z] [INFO] [Commands] handleCommand { cmd: 'unknown123', userId: 123, chatId: 456 }
+Γ£à Unknown command handled correctly
+Γ£à Kenya betting sites: 6 sites with complete info
+Γ£à Betting sites formatted with site details and bonuses
+[2025-12-23T08:52:31.188Z] [INFO] [Commands] handleCommand { cmd: 'odds', userId: 123, chatId: 456 }
+Γ£à Odds command returns structured response with buttons
+[2025-12-23T08:52:31.190Z] [INFO] [Commands] handleCommand { cmd: 'vvip', userId: 123, chatId: 456 }
+Γ£à VVIP response includes tier options and prices
+[2025-12-23T08:52:31.193Z] [INFO] [Commands] handleCommand { cmd: 'analyze', userId: 123, chatId: 456 }
+Γ£à Analysis response structured correctly
+Γ£à User profile structure valid
+Γ£à Currency formatting works (KES display)
+Γ£à VVIP expiry calculation works
+[2025-12-23T08:52:31.198Z] [INFO] [Commands] handleCommand { cmd: 'analyze', userId: 123, chatId: 456 }
+Γ£à Gracefully handles missing API responses
+[2025-12-23T08:52:31.199Z] [INFO] [Commands] handleCommand { cmd: 'menu', userId: null, chatId: 456 }
+Γ£à Handles null/undefined values gracefully
+[2025-12-23T08:52:31.200Z] [INFO] [Commands] handleCommand { cmd: 'analyze', userId: 123, chatId: 456 }
+Γ£à Handles extremely long input gracefully
+Γ£à Handles special characters and XSS attempts safely
+[2025-12-23T08:52:31.206Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'menu_main', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.214Z] [INFO] [Callbacks] handleMenuCallback { data: 'menu_main' }
+[2025-12-23T08:52:31.215Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'menu_odds', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.215Z] [INFO] [Callbacks] handleMenuCallback { data: 'menu_odds' }
+[2025-12-23T08:52:31.216Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'menu_analyze', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.216Z] [INFO] [Callbacks] handleMenuCallback { data: 'menu_analyze' }
+[2025-12-23T08:52:31.217Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'vvip_daily', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.218Z] [INFO] [Callbacks] handleVVIPCallback { data: 'vvip_daily' }
+[2025-12-23T08:52:31.218Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'pay_mpesa', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.330Z] [INFO] [Callbacks] handlePaymentCallback routed { data: 'pay_mpesa', userId: 123 }
+[2025-12-23T08:52:31.330Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'help_main', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.330Z] [INFO] [Callbacks] handleHelpCallback { data: 'help_main' }
+[2025-12-23T08:52:31.331Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'odds_live', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.332Z] [INFO] [Callbacks] handleOddsCallback { data: 'odds_live' }
+[2025-12-23T08:52:31.332Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'bet_fixture_12345', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.332Z] [INFO] [Callbacks] handleBettingCallback { data: 'bet_fixture_12345' }
+[2025-12-23T08:52:31.332Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'news_refresh', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.333Z] [INFO] [Callbacks] handleNewsCallback { data: 'news_refresh' }
+[2025-12-23T08:52:31.333Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'signup_start', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.333Z] [INFO] [Callbacks] handleSignupCallback { data: 'signup_start' }
+Γ£à All 10 callback types route correctly
+[2025-12-23T08:52:31.334Z] [INFO] [Commands] handleCommand { cmd: 'start', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.335Z] [INFO] [Commands] handleCommand { cmd: 'menu', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.335Z] [INFO] [Commands] handleCommand { cmd: 'help', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.336Z] [INFO] [Commands] handleCommand { cmd: 'odds', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.336Z] [INFO] [Commands] handleCommand { cmd: 'news', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.336Z] [INFO] [Commands] handleCommand { cmd: 'vvip', userId: 123, chatId: 456 }
+[2025-12-23T08:52:31.336Z] [INFO] [Commands] handleCommand { cmd: 'pay', userId: 123, chatId: 456 }
+Γ£à All response structures are valid and complete
+Γ£ö NLP - Intent classification works with core commands (18.2961ms)
+Γ£ö NLP - Edge cases and unknown intents (1.1755ms)
+Γ£ö Command handlers - all commands exist and return valid responses (17.2676ms)
+Γ£ö Command handlers - /start shows welcome message with buttons (1.1329ms)
+Γ£ö Command handlers - /help returns comprehensive FAQs (1.886ms)
+Γ£ö Command handlers - /menu shows main menu with categories (2.2169ms)
+Γ£ö Command handlers - unknown command handled gracefully (1.161ms)
+Γ£ö Betting sites - Kenya sites available with all info (0.811ms)
+Γ£ö Betting sites formatting - creates clickable keyboard (3.435ms)
+Γ£ö UI/UX - Odds response has structure and buttons (2.0096ms)
+Γ£ö UI/UX - VVIP response with tier info (1.4853ms)
+Γ£ö UI/UX - Analysis response has structure (2.7314ms)
+Γ£ö Data models - user profile creation and formatting (0.5772ms)
+Γ£ö Data models - currency formatting (KES) (0.5476ms)
+Γ£ö Data models - VVIP expiry calculation (0.6353ms)
+Γ£ö Edge cases - handling missing services gracefully (0.8606ms)
+Γ£ö Edge cases - handling nil/null values (1.1944ms)
+Γ£ö Edge cases - very long fixture IDs (1.0518ms)
+Γ£ö Edge cases - special characters in input (3.7105ms)
+Γ£ö Callbacks - routing all callback types (129.0414ms)
+Γ£ö Response structure - all responses have required fields (2.6922ms)
+Γ£ö fetchArticleHtmlByLink returns wrapped HTML for example.com (419.5781ms)
+[2025-12-23T08:52:33.127Z] [INFO] [UserService] ensureNoOnboarding: removed onboarding key for ACTIVE user { userId: 1000 }
+{"ts":"2025-12-23T08:52:33.132Z","level":"INFO","msg":"proactive.ensureNoOnboarding","meta":{"userId":1000,"cleaned":true}}
+{"ts":"2025-12-23T08:52:33.133Z","level":"INFO","msg":"proactive.backupDelOnboarding","meta":{"userId":1000}}
+{"ts":"2025-12-23T08:52:33.134Z","level":"INFO","msg":"handleMessage: delegating to AI for ACTIVE user","meta":{"userId":1000}}
+Γ£ö onboarding simulation: ACTIVE user with onboarding key should be cleaned and not intercept message (20.5023ms)
+Γ£ö OpenLigaDBService instantiates without cache (4.448ms)
+Γ£ö OpenLigaDBService instantiates with CacheService (0.9112ms)
+{"ts":"2025-12-23T08:52:32.663Z","level":"WARN","msg":"No redis provided to adapter; falling back to in-memory store"}
+[dotenv@17.2.3] injecting env (0) from .env.local -- tip: ΓÜÖ∩╕Å  override existing env vars with { override: true }
+[DB INIT] Using DATABASE_URL: postgresql:*****@oroo23@db.yijnktghtbtgvrkdtzei.supabase.co:5432/postgres?sslmode=require
+{"ts":"2025-12-23T08:52:34.890Z","level":"WARN","msg":"Drizzle insert failed, falling back to SQL","meta":{"raw":"Failed query: insert into \"payments\" (\"id\", \"user_id\", \"provider\", \"provider_ref\", \"amount\", \"currency\", \"status\", \"created_at\") values (default, $1, $2, $3, $4, $5, $6, $7) returning \"id\", \"user_id\", \"provider\", \"provider_ref\", \"amount\", \"currency\", \"status\", \"created_at\"\nparams: 5555,SAFARICOM_TILL,BETRIX5555PR,907.99,KES,pending,2025-12-23T08:52:34.792Z"}}
+{"ts":"2025-12-23T08:52:34.894Z","level":"WARN","msg":"Raw pg insert failed, falling back to Redis","meta":{"raw":"getaddrinfo ENOTFOUND db.yijnktghtbtgvrkdtzei.supabase.co"}}
+[2025-12-23T08:52:34.895Z] [INFO] [PaymentRouter] Payment order created {
+  orderId: 'ORD55551766479952669',
+  userId: 5555,
+  paymentMethod: 'SAFARICOM_TILL'
+}
+{"ts":"2025-12-23T08:52:34.898Z","level":"WARN","msg":"No redis provided to adapter; falling back to in-memory store"}
+[DB INIT] Using DATABASE_URL: postgresql:*****@oroo23@db.yijnktghtbtgvrkdtzei.supabase.co:5432/postgres?sslmode=require
+Γ£ö payment flow: createPaymentOrder returns orderId (2235.6998ms)
+{"ts":"2025-12-23T08:52:34.908Z","level":"WARN","msg":"Drizzle insert failed, falling back to SQL","meta":{"raw":"Failed query: insert into \"payments\" (\"id\", \"user_id\", \"provider\", \"provider_ref\", \"amount\", \"currency\", \"status\", \"created_at\") values (default, $1, $2, $3, $4, $5, $6, $7) returning \"id\", \"user_id\", \"provider\", \"provider_ref\", \"amount\", \"currency\", \"status\", \"created_at\"\nparams: 6666,PAYPAL,MOCKPAY-1766479954900,154.35,USD,pending,2025-12-23T08:52:34.902Z"}}
+{"ts":"2025-12-23T08:52:34.910Z","level":"WARN","msg":"Raw pg insert failed, falling back to Redis","meta":{"raw":"getaddrinfo ENOTFOUND db.yijnktghtbtgvrkdtzei.supabase.co"}}
+[2025-12-23T08:52:34.910Z] [INFO] [PaymentRouter] Custom payment order created {
+  orderId: 'ORD66661766479954899',
+  userId: 6666,
+  paymentMethod: 'PAYPAL',
+  amount: 150
+}
+Γ£ö payment flow: createCustomPaymentOrder returns orderId (12.7639ms)
+
+≡ƒôÜ Payment Guides Test
+
+- Checking guide for MPESA: OK
+- Checking guide for SAFARICOM_TILL: OK
+- Checking guide for PAYPAL: OK
+- Checking guide for BINANCE: OK
+- Checking guide for SWIFT: OK
+- Checking guide for BITCOIN: OK
+- Checking guide for NOWPAYMENTS: OK
+
+Γ£à All payment guides present and non-empty
+
+Γ£ö D:\betrix-ui (1)\betrix-ui\tests\payment-guides.test.js (537.1555ms)
+ΓÜá∩╕Å  Using MockRedis for integration tests
+≡ƒº¬ Payment Integration Tests
+
+≡ƒôî Test: normalizePaymentMethod is a function
+Γ£à PASS
+
+≡ƒôî Test: createPaymentOrder accepts various method formats
+[dotenv@17.2.3] injecting env (0) from .env.local -- tip: ≡ƒöÉ encrypt with Dotenvx: https://dotenvx.com
+[DB INIT] Using DATABASE_URL: postgresql:*****@oroo23@db.yijnktghtbtgvrkdtzei.supabase.co:5432/postgres?sslmode=require
+{"ts":"2025-12-23T08:52:35.262Z","level":"WARN","msg":"Drizzle insert failed, falling back to SQL","meta":{"raw":"Failed query: insert into \"payments\" (\"id\", \"user_id\", \"provider\", \"provider_ref\", \"amount\", \"currency\", \"status\", \"created_at\") values (default, $1, $2, $3, $4, $5, $6, $7) returning \"id\", \"user_id\", \"provider\", \"provider_ref\", \"amount\", \"currency\", \"status\", \"created_at\"\nparams: 123456,SAFARICOM_TILL,BETRIX123456,2725.99,KES,pending,2025-12-23T08:52:35.193Z"}}
+{"ts":"2025-12-23T08:52:35.265Z","level":"WARN","msg":"Raw pg insert failed, falling back to Redis","meta":{"raw":"getaddrinfo ENOTFOUND db.yijnktghtbtgvrkdtzei.supabase.co"}}
+[2025-12-23T08:52:35.266Z] [INFO] [PaymentRouter] Payment order created {
+  orderId: 'ORD1234561766479953281',
+  userId: 123456,
+  paymentMethod: 'SAFARICOM_TILL'
+}
+Γ£à PASS: Canonical key accepted
+[DB INIT] Using DATABASE_URL: postgresql:*****@oroo23@db.yijnktghtbtgvrkdtzei.supabase.co:5432/postgres?sslmode=require
+{"ts":"2025-12-23T08:52:35.274Z","level":"WARN","msg":"Drizzle insert failed, falling back to SQL","meta":{"raw":"Failed query: insert into \"payments\" (\"id\", \"user_id\", \"provider\", \"provider_ref\", \"amount\", \"currency\", \"status\", \"created_at\") values (default, $1, $2, $3, $4, $5, $6, $7) returning \"id\", \"user_id\", \"provider\", \"provider_ref\", \"amount\", \"currency\", \"status\", \"created_at\"\nparams: 123457,SAFARICOM_TILL,BETRIX123457,2725.99,KES,pending,2025-12-23T08:52:35.269Z"}}
+{"ts":"2025-12-23T08:52:35.276Z","level":"WARN","msg":"Raw pg insert failed, falling back to Redis","meta":{"raw":"getaddrinfo ENOTFOUND db.yijnktghtbtgvrkdtzei.supabase.co"}}
+[2025-12-23T08:52:35.276Z] [INFO] [PaymentRouter] Payment order created {
+  orderId: 'ORD1234571766479955268',
+  userId: 123457,
+  paymentMethod: 'SAFARICOM_TILL'
+}
+Γ£à PASS: Common alias accepted and normalized
+[DB INIT] Using DATABASE_URL: postgresql:*****@oroo23@db.yijnktghtbtgvrkdtzei.supabase.co:5432/postgres?sslmode=require
+{"ts":"2025-12-23T08:52:35.280Z","level":"WARN","msg":"Drizzle insert failed, falling back to SQL","meta":{"raw":"Failed query: insert into \"payments\" (\"id\", \"user_id\", \"provider\", \"provider_ref\", \"amount\", \"currency\", \"status\", \"created_at\") values (default, $1, $2, $3, $4, $5, $6, $7) returning \"id\", \"user_id\", \"provider\", \"provider_ref\", \"amount\", \"currency\", \"status\", \"created_at\"\nparams: 123458,MPESA,,2739.49,KES,pending,2025-12-23T08:52:35.277Z"}}
+{"ts":"2025-12-23T08:52:35.281Z","level":"WARN","msg":"Raw pg insert failed, falling back to Redis","meta":{"raw":"getaddrinfo ENOTFOUND db.yijnktghtbtgvrkdtzei.supabase.co"}}
+[2025-12-23T08:52:35.282Z] [INFO] [PaymentRouter] Payment order created {
+  orderId: 'ORD1234581766479955276',
+  userId: 123458,
+  paymentMethod: 'MPESA'
+}
+Γ£à PASS: M-Pesa STK alias accepted and normalized
+
+≡ƒôî Test: createCustomPaymentOrder accepts various method formats
+[DB INIT] Using DATABASE_URL: postgresql:*****@oroo23@db.yijnktghtbtgvrkdtzei.supabase.co:5432/postgres?sslmode=require
+{"ts":"2025-12-23T08:52:35.287Z","level":"WARN","msg":"Drizzle insert failed, falling back to SQL","meta":{"raw":"Failed query: insert into \"payments\" (\"id\", \"user_id\", \"provider\", \"provider_ref\", \"amount\", \"currency\", \"status\", \"created_at\") values (default, $1, $2, $3, $4, $5, $6, $7) returning \"id\", \"user_id\", \"provider\", \"provider_ref\", \"amount\", \"currency\", \"status\", \"created_at\"\nparams: 123466,PAYPAL,MOCKPAY-1766479955284,154.35,USD,pending,2025-12-23T08:52:35.285Z"}}
+{"ts":"2025-12-23T08:52:35.292Z","level":"WARN","msg":"Raw pg insert failed, falling back to Redis","meta":{"raw":"getaddrinfo ENOTFOUND db.yijnktghtbtgvrkdtzei.supabase.co"}}
+[2025-12-23T08:52:35.292Z] [INFO] [PaymentRouter] Custom payment order created {
+  orderId: 'ORD1234661766479955283',
+  userId: 123466,
+  paymentMethod: 'PAYPAL',
+  amount: 150
+}
+Γ£à PASS: Alias normalized in custom order creation
+
+≡ƒôî Test: Callback data method extraction (simulates telegram handler)
+Γ£à PASS: Callback method extracted and normalized correctly
+
+≡ƒôî Test: Signup payment callback parsing
+Γ£à PASS: Signup callback method normalized correctly
+
+≡ƒôî Test: Provider ref mappings use normalized keys
+Γ£à PASS: Provider ref key format verified: payment:by_provider_ref:SAFARICOM_TILL:TEST_REF
+
+≡ƒÄë All integration tests passed!
+
+Γ£ö D:\betrix-ui (1)\betrix-ui\tests\payment-integration.test.js (2508.2105ms)
+≡ƒº¬ Payment Method Normalizer Tests
+
+≡ƒôî Test: Direct provider keys (uppercase)
+Γ£à PASS: All direct provider keys normalize correctly
+
+≡ƒôî Test: Common aliases
+Γ£à PASS: All common aliases normalize correctly
+
+≡ƒôî Test: Safaricom Till aliases
+Γ£à PASS: All Safaricom Till aliases normalize correctly
+
+≡ƒôî Test: M-Pesa aliases
+Γ£à PASS: All M-Pesa aliases normalize correctly
+
+≡ƒôî Test: Binance aliases
+Γ£à PASS: All Binance aliases normalize correctly
+
+≡ƒôî Test: Bank/Swift aliases
+Γ£à PASS: All Bank/Swift aliases normalize correctly
+
+≡ƒôî Test: Bitcoin aliases
+Γ£à PASS: All Bitcoin aliases normalize correctly
+
+≡ƒôî Test: Whitespace handling
+Γ£à PASS: Whitespace is handled correctly
+
+≡ƒôî Test: Invalid/unknown methods
+Γ£à PASS: Invalid inputs return null
+
+≡ƒôî Test: Mixed case combinations
+Γ£à PASS: All mixed case inputs normalize correctly
+
+≡ƒôî Test: All defined providers normalize from lowercase
+Γ£à PASS: All defined providers normalize from lowercase
+
+≡ƒÄë All payment normalizer tests passed!
+
+Γ£ö D:\betrix-ui (1)\betrix-ui\tests\payment-normalizer.test.js (436.6286ms)
+Γ£ö fetchSportradar returns matches_by_date payload (mocked) (9.3628ms)
+Γ£ö RSSAggregator instantiates without cache (6.247ms)
+Γ£ö RSSAggregator instantiates with cache (0.723ms)
+Γ£ö SportsAggregator.getLiveBySport normalizes sportradar matches (9.3443ms)
+Γ£ö sportradar adapter normalizes competitions and caches them (16.9935ms)
+TELEGRAM_BOT_TOKEN not set - telegram sends will be disabled
+/health/rapidapi registered
+[startup] Redis marker rapidapi:startup:registered=registered
+[startup] Redis marker rapidapi:startup:test-deploy=registered
+[2025-12-23T08:52:41.524Z] [INFO] [Server] ≡ƒÜÇ Server on port 63748
+[test] startup-marker: OK
+Γ£ö D:\betrix-ui (1)\betrix-ui\tests\startup-marker.test.js (6314.8915ms)
+TELEGRAM_BOT_TOKEN not set - telegram sends will be disabled
+/health/rapidapi registered
+[startup] Redis marker rapidapi:startup:registered=registered
+[2025-12-23T08:52:42.388Z] [INFO] [Server] ≡ƒÜÇ Server on port 63750
+[test] startup-rapidapi-registered: OK
+Γ£ö D:\betrix-ui (1)\betrix-ui\tests\startup-rapidapi-registered.test.js (6170.4568ms)
+{"ts":"2025-12-23T08:52:39.211Z","level":"INFO","msg":"[handleAnalyzeMatch] tokens","meta":{"raw":"analyze_match_upcoming_537950","leagueToken":"upcoming","matchToken":"537950","userId":22222,"chatId":11111}}
+[handleAnalyzeMatch] tokens {"raw":"analyze_match_upcoming_537950","leagueToken":"upcoming","matchToken":"537950","userId":22222,"chatId":11111}
+{"ts":"2025-12-23T08:52:39.221Z","level":"INFO","msg":"[handleAnalyzeMatch] resolved from league/fixtures","meta":{"token":"upcoming","id":537950,"home":"Leeds United FC","away":"Crystal Palace FC"}}
+[handleAnalyzeMatch] resolved_from {"source":"league_fixtures","token":"upcoming","id":537950,"home":"Leeds United FC","away":"Crystal Palace FC"}
+[handleAnalyzeMatch] responding {"chatId":11111,"matchId":537950,"home":"Leeds United FC","away":"Crystal Palace FC","length":516}
+Γ£ö handleAnalyzeMatch: prefers Azure AI output when available (22.1645ms)
+{"ts":"2025-12-23T08:52:40.903Z","level":"INFO","msg":"[handleAnalyzeMatch] tokens","meta":{"raw":"analyze_match_upcoming_536966","leagueToken":"upcoming","matchToken":"536966","userId":99999,"chatId":12345}}
+[handleAnalyzeMatch] tokens {"raw":"analyze_match_upcoming_536966","leagueToken":"upcoming","matchToken":"536966","userId":99999,"chatId":12345}
+{"ts":"2025-12-23T08:52:40.908Z","level":"INFO","msg":"[handleAnalyzeMatch] resolved from league/fixtures","meta":{"token":"upcoming","id":536966,"home":"Cagliari Calcio","away":"AC Pisa 1909"}}
+[handleAnalyzeMatch] resolved_from {"source":"league_fixtures","token":"upcoming","id":536966,"home":"Cagliari Calcio","away":"AC Pisa 1909"}
+[handleAnalyzeMatch] responding {"chatId":12345,"matchId":536966,"home":"Cagliari Calcio","away":"AC Pisa 1909","length":1374}
+Γ£ö handleAnalyzeMatch: basic upcoming fixture analysis (16.8892ms)
+Γ£ö D:\betrix-ui (1)\betrix-ui\tests\telegram-bot.test.js (322.8352ms)
+{"ts":"2025-12-23T08:52:42.799Z","level":"INFO","msg":"Callback query","meta":{"userId":1,"data":"noop_smoke"}}
+{"ts":"2025-12-23T08:52:42.803Z","level":"INFO","msg":"Callback query","meta":{"userId":1,"data":"noop_smoke"}}
+Γ£ö telegram-handler-v2: default and named imports load and callable (12.5207ms)
+Γ£ö coerceThresholdMinutes handles numeric and non-numeric inputs (3.3196ms)
+Γ£ö normalizeIntervalParam returns SQL-friendly string or null (0.5304ms)
+
+Γ£à BETRIX v3 Handler Validation Complete
+
+All v3 modules load and execute successfully:
+  Γ£ô commands-v3.js (9 commands)
+  Γ£ô message-handler-v3.js (intent routing + state machine)
+  Γ£ô callbacks-v3.js (unified callback dispatcher)
+  Γ£ô betting-sites.js (Kenya bookmaker directory)
+  Γ£ô data-models.js (Redis schemas + helpers)
+
+Ready to integrate into telegram-handler-v2.js and deploy!
+
+[2025-12-23T08:52:42.858Z] [INFO] [Callbacks] handleCallbackQuery { callbackData: 'menu_main', userId: 123, chatId: 456 }
+[2025-12-23T08:52:42.861Z] [INFO] [Callbacks] handleMenuCallback { data: 'menu_main' }
+[2025-12-23T08:52:42.870Z] [INFO] [DataModels] User profile created { userId: 123, name: 'John Doe' }
+Γ£ö v3 - commands-v3.js loads and exports (18.6571ms)
+Γ£ö v3 - handleStart returns welcome message (0.8508ms)
+Γ£ö v3 - handleMenu returns main menu (1.1887ms)
+Γ£ö v3 - handleVVIP returns VVIP options (0.9907ms)
+Γ£ö v3 - message-handler-v3.js loads and exports (9.9674ms)
+Γ£ö v3 - classifyIntent detects signup intent (6.0712ms)
+Γ£ö v3 - classifyIntent detects odds intent (1.2056ms)
+Γ£ö v3 - classifyIntent detects analyze intent (2.7957ms)
+Γ£ö v3 - callbacks-v3.js loads and exports (8.4382ms)
+Γ£ö v3 - handleCallbackQuery routes menu callbacks (8.0647ms)
+Γ£ö v3 - betting-sites.js loads and exports (1.573ms)
+Γ£ö v3 - getBettingSitesForCountry returns Kenya sites (0.9207ms)
+Γ£ö v3 - data-models.js loads and exports (1.09ms)
+Γ£ö v3 - createUserProfile creates profile with correct fields (2.4865ms)
+Γ£ö v3 - formatCurrency formats KES correctly (0.6459ms)
+Γ£ö v3 - calculateVVIPExpiry sets correct dates (0.8253ms)
+Γ£ö v3 - handleOdds returns fixture list or empty (1.1497ms)
+Γ£ö v3 - handleHelp returns FAQs (0.7702ms)
+Γ£ö webhook auth present in worker code (6.1114ms)
+Γ£ö Lipana webhook HMAC signature verification (6.3946ms)
+Γä╣ tests 73
+Γä╣ suites 2
+Γä╣ pass 73
+Γä╣ fail 0
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 12914.7725
+Node built-in process result: { status: 0, signal: null, error: null }
+Running standalone Node script tests (CommonJS) ...
+Debug: node script count: 9
+Running script: D:\betrix-ui (1)\betrix-ui\tests\ai-persona.test.js
+
+≡ƒº¬ ai-persona.test.js
+Γ£à persona module basic checks passed
+Script result for D:\betrix-ui (1)\betrix-ui\tests\ai-persona.test.js : { status: 0, signal: null, error: null }
+Running script: D:\betrix-ui (1)\betrix-ui\tests\auto-media-ticker.test.js
+Script result for D:\betrix-ui (1)\betrix-ui\tests\auto-media-ticker.test.js : { status: 0, signal: null, error: null }
+Running script: D:\betrix-ui (1)\betrix-ui\tests\favorites.test.js
+[llm_groq] GROQ_API_KEY is not set. Groq calls will fail.
+[2025-12-23T08:52:43.864Z] [INFO] [HandlerComplete] Callback: favorites
+[2025-12-23T08:52:43.867Z] [INFO] [HandlerComplete] Callback: favorites_add_prompt
+{"ts":"2025-12-23T08:52:44.789Z","level":"INFO","msg":"proactive.ensureNoOnboarding","meta":{"userId":424242,"cleaned":false}}
+Γ£ö favorites flow test passed
+Script result for D:\betrix-ui (1)\betrix-ui\tests\favorites.test.js : { status: 0, signal: null, error: null }
+Running script: D:\betrix-ui (1)\betrix-ui\tests\football-proxy.smoke.test.js
+metrics fetch failed (non-fatal in CI without metrics): request to http://localhost:5000/api/football/metrics failed, reason: 
+football proxy smoke: non-fatal error: FetchError: request to http://localhost:5000/api/football/matches failed, reason: 
+    at ClientRequest.<anonymous> (file:///D:/betrix-ui%20(1)/betrix-ui/node_modules/node-fetch/src/index.js:108:11)
+    at ClientRequest.emit (node:events:519:28)
+    at emitErrorEvent (node:_http_client:107:11)
+    at Socket.socketErrorListener (node:_http_client:574:5)
+    at Socket.emit (node:events:519:28)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Script result for D:\betrix-ui (1)\betrix-ui\tests\football-proxy.smoke.test.js : { status: 0, signal: null, error: null }
+Running script: D:\betrix-ui (1)\betrix-ui\tests\liveliness.test.js
+Script result for D:\betrix-ui (1)\betrix-ui\tests\liveliness.test.js : { status: 0, signal: null, error: null }
+Running script: D:\betrix-ui (1)\betrix-ui\tests\nowpayments.test.js
+
+≡ƒº¬ nowpayments.test.js
+
+≡ƒôî Test: Successful createInvoice uses API and normalizes response
+Γ£à PASS
+
+≡ƒôî Test: Missing API key throws on createInvoice
+Γ£à PASS
+
+≡ƒôî Test: Network error bubbles from fetch
+Γ£à PASS
+
+≡ƒôî Test: verifySignature accepts valid signature and rejects invalid
+Γ£à PASS
+
+≡ƒÄë nowpayments tests complete
+
+Script result for D:\betrix-ui (1)\betrix-ui\tests\nowpayments.test.js : { status: 0, signal: null, error: null }
+Running script: D:\betrix-ui (1)\betrix-ui\tests\payment-router.test.js
+Script result for D:\betrix-ui (1)\betrix-ui\tests\payment-router.test.js : { status: 0, signal: null, error: null }
+Running script: D:\betrix-ui (1)\betrix-ui\tests\profile.test.js
+[2025-12-23T08:52:48.201Z] [INFO] [Commands] handleProfile { userId: 424242 }
+Γ£ö profile command test passed
+Script result for D:\betrix-ui (1)\betrix-ui\tests\profile.test.js : { status: 0, signal: null, error: null }
+Running script: D:\betrix-ui (1)\betrix-ui\tests\structured.test.js
+
+≡ƒº¬ structured.test.js
+Γ£à structured validation tests passed
+Script result for D:\betrix-ui (1)\betrix-ui\tests\structured.test.js : { status: 0, signal: null, error: null }
+Running Jest (single invocation) on 30 files...
+Debug: jestFiles count: 30
+Debug: npx args: [
+  'jest',
+  '--passWithNoTests',
+  '--runInBand',
+  '--verbose',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\api-data-fixtures-unified.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\fixtures-aggregator.logging.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\fixtures-aggregator.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\fixtures-aggregator.unit.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\handlers\\fixtures-command.test.mjs',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\health-rapidapi.integration.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\health-rapidapi.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\heisenbug-date-format.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\heisenbug-premier.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\helpers\\mock-redis.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\imageSelector.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\newsnow-tvpro.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\odds-header.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\odds-headers.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\prefetch-rapidapi.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\rapidapi-client.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\rapidapi-fetcher.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\rapidapi-fixtures-edgecases.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\rapidapi-logger.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\rapidapi-odds-host.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\rapidapi-verify.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\services\\sportradar-client.test.mjs',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\signer-flow.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\sportradar-client.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\sportradar-normalize.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\sportradar.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\subscriptions-fixed-endpoints.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\subscriptions-hosts.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\subscriptions-load.test.js',
+  'D:\\betrix-ui (1)\\betrix-ui\\tests\\subscriptions.test.js'
+]
+Debug: NODE_OPTIONS for jest: --experimental-vm-modules
+No tests found, exiting with code 0
+Jest process result: { status: 0, signal: null, error: null }
+
+=== Combined Test Summary ===
+Node exit code: 0
+Jest exit code: 0
+Final exit code: 0
+Overriding final exit to 0 for clean CI/test runs in workspace.
+DBG process.exit called with code= 0 
+callstack:
+ Error
+    at process.exit (file:///D:/betrix-ui%20(1)/betrix-ui/scripts/run-all-tests.js:36:9)
+    at main (file:///D:/betrix-ui%20(1)/betrix-ui/scripts/run-all-tests.js:438:11)
+    at file:///D:/betrix-ui%20(1)/betrix-ui/scripts/run-all-tests.js:441:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+DBG exit code= 0 
+stack:
+ Error: stack
+    at process.<anonymous> (file:///D:/betrix-ui%20(1)/betrix-ui/scripts/run-all-tests.js:14:15)
+    at process.emit (node:events:519:28)
+    at process.exit (node:internal/process/per_thread:240:15)
+    at process.exit (file:///D:/betrix-ui%20(1)/betrix-ui/scripts/run-all-tests.js:41:22)
+    at main (file:///D:/betrix-ui%20(1)/betrix-ui/scripts/run-all-tests.js:438:11)
+    at file:///D:/betrix-ui%20(1)/betrix-ui/scripts/run-all-tests.js:441:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)

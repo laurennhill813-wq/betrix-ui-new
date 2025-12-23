@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { startPrefetchScheduler } from "../src/tasks/prefetch-scheduler.js";
 
 function createInMemoryRedis() {
@@ -15,7 +16,7 @@ function createInMemoryRedis() {
 describe('NewsNow and TVPRO endpoints', () => {
   beforeEach(() => {
     process.env.RAPIDAPI_KEY = 'test-key';
-    global.fetch = jest.fn().mockImplementation(async (url, opts) => {
+    fetch = jest.fn().mockImplementation(async (url, opts) => {
       const u = String(url);
       if (u.includes('/top_news') || u.includes('/news?category=sports')) {
         return { status: 200, json: async () => ({ articles: [{ title: 'Match recap' }] }), text: async () => JSON.stringify({ articles: [{ title: 'Match recap' }] }) };

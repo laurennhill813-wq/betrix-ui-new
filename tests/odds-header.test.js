@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { RapidApiFetcher } from '../src/lib/rapidapi-fetcher.js';
 
 describe('Odds API header authentication', () => {
@@ -7,7 +8,7 @@ describe('Odds API header authentication', () => {
     process.env.RAPIDAPI_KEY = 'secret-123';
     const fetcher = new RapidApiFetcher({ apiKey: process.env.RAPIDAPI_KEY });
     const captured = {};
-    global.fetch = jest.fn().mockImplementation(async (url, opts) => {
+    fetch = jest.fn().mockImplementation(async (url, opts) => {
       captured.url = String(url);
       captured.opts = opts;
       return { status: 200, json: async () => ({}), headers: { entries: () => new Map() } };

@@ -15,34 +15,58 @@ import {
 class MockRedis {
   constructor() {
     this.data = {};
+    this.types = {}; // Track key types: "string" or "hash"
+  }
+
+  async type(key) {
+    return this.types[key] || "none";
   }
 
   async hgetall(key) {
-    return this.data[key] || {};
+    const raw = this.data[key];
+    this.types[key] = "hash";
+    try {
+      if (!raw) return {};
+      // If raw is a string, parse it; if it's already an object, return it
+      return typeof raw === "string" ? JSON.parse(raw) : raw;
+    } catch (e) {
+      // Debug: surface parsing error
+      console.log(`[MockRedis hgetall debug] key=${key}, raw=${raw}, error=${e.message}`);
+      return raw || {};
+    }
   }
 
   async hset(key, field, value) {
+    this.types[key] = "hash";
     // support both object and field/value usage
     if (typeof field === "object") {
-      this.data[key] = field;
+      this.data[key] = JSON.stringify(field);
     } else {
-      this.data[key] = this.data[key] || {};
-      this.data[key][field] = value;
+      const cur = this.data[key] ? (typeof this.data[key] === "string" ? JSON.parse(this.data[key]) : this.data[key]) : {};
+      cur[field] = value;
+      this.data[key] = JSON.stringify(cur);
     }
     return 1;
   }
 
   async get(key) {
-    return this.data[key] || null;
+    const v = this.data[key];
+    if (v !== undefined) {
+      this.types[key] = "string";
+      return v;
+    }
+    return null;
   }
 
   async setex(key, exp, val) {
-    this.data[key] = val;
+    this.types[key] = "string";
+    this.data[key] = typeof val === "string" ? val : JSON.stringify(val);
     return "OK";
   }
 
   async set(key, val) {
-    this.data[key] = val;
+    this.types[key] = "string";
+    this.data[key] = typeof val === "string" ? val : JSON.stringify(val);
     return "OK";
   }
 }

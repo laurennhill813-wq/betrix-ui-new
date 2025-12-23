@@ -1,0 +1,82 @@
+{
+  "rapidapi:fixtures:live:total": 0,
+  "rapidapi:fixtures:upcoming:total": 5,
+  "rapidapi:fixtures:live:basketball": 0,
+  "rapidapi:fixtures:upcoming:basketball": 2,
+  "rapidapi:fixtures:live:tennis": 0,
+  "rapidapi:fixtures:upcoming:tennis": 1,
+  "rapidapi:fixtures:live:soccer": 0,
+  "rapidapi:fixtures:upcoming:soccer": 1,
+  "rapidapi:fixtures:live:rugby": 0,
+  "rapidapi:fixtures:upcoming:rugby": 1,
+  "rapidapi:fixtures:list": [
+    {
+      "provider": "OddsAPI",
+      "sport": "basketball",
+      "league": null,
+      "type": "upcoming",
+      "homeTeam": "Bulls",
+      "awayTeam": "Celtics",
+      "startTime": "2025-12-23T15:36:00.374Z",
+      "odds": null
+    },
+    {
+      "provider": "OddsAPI",
+      "sport": "basketball",
+      "league": null,
+      "type": "upcoming",
+      "homeTeam": "Lakers",
+      "awayTeam": "Heat",
+      "startTime": "2025-12-24T18:00:00.000Z",
+      "odds": null
+    },
+    {
+      "provider": "sportspage",
+      "sport": "tennis",
+      "league": null,
+      "type": "upcoming",
+      "homeTeam": "Serena",
+      "awayTeam": "Osaka",
+      "startTime": "2025-12-23T15:36:00.374Z",
+      "odds": null
+    },
+    {
+      "provider": "Heisenbug",
+      "sport": "soccer",
+      "league": null,
+      "type": "upcoming",
+      "homeTeam": "Man City",
+      "awayTeam": "Man U",
+      "startTime": "2025-12-25T12:00:00.000Z",
+      "odds": null
+    },
+    {
+      "provider": "therundown",
+      "sport": "rugby",
+      "league": null,
+      "type": "upcoming",
+      "homeTeam": "Team A",
+      "awayTeam": "Team B",
+      "startTime": "2025-12-26T14:00:00.000Z",
+      "odds": null
+    }
+  ],
+  "rapidapi:fixtures:providers": {
+    "OddsAPI": {
+      "live": 0,
+      "upcoming": 2
+    },
+    "sportspage": {
+      "live": 0,
+      "upcoming": 1
+    },
+    "Heisenbug": {
+      "live": 0,
+      "upcoming": 1
+    },
+    "therundown": {
+      "live": 0,
+      "upcoming": 1
+    }
+  }
+}

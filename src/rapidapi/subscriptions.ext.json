@@ -1,0 +1,46 @@
+[
+  {
+    "name": "Odds (The Odds API)",
+    "sport": "various",
+    "type": "both",
+    "method": "GET",
+    "host": "odds.p.rapidapi.com",
+    "endpoints": [
+      "/v4/sports/?",
+      "/v4/sports/upcoming/odds?regions=us&oddsFormat=decimal&markets=h2h,spreads&dateFormat=iso",
+      "/v4/sports/upcoming/scores?daysFrom=1"
+    ]
+  },
+  {
+    "name": "Sportspage Fixtures (Basketball)",
+    "sport": "basketball",
+    "type": "both",
+    "method": "GET",
+    "host": "sportspage-feeds.p.rapidapi.com",
+    "endpoints": ["/fixtures?league=NBA&days=7"]
+  },
+  {
+    "name": "Heisenbug Premier League",
+    "sport": "soccer",
+    "type": "both",
+    "method": "GET",
+    "host": "heisenbug-premier-league-live-scores-v1.p.rapidapi.com",
+    "endpoints": ["/api/premierleague?date=<MMddyyyy>", "/api/premierleague/team?name=Liverpool"]
+  },
+  {
+    "name": "NFL Teams",
+    "sport": "americanfootball",
+    "type": "upcoming",
+    "method": "GET",
+    "host": "nfl-api-data.p.rapidapi.com",
+    "endpoints": ["/nfl-team-listing/v1/data"]
+  },
+  {
+    "name": "Free Football API Data",
+    "sport": "soccer",
+    "type": "both",
+    "method": "GET",
+    "host": "free-football-api-data.p.rapidapi.com",
+    "endpoints": ["/football-event-statistics?eventid=12650707"]
+  }
+]

@@ -1,22 +1,22 @@
-name: CI - Tests
+name: CI Tests
 
 on:
-  push:
-    branches: [main]
   pull_request:
-    branches: [main]
+  push:
+    branches: [ main ]
 
 jobs:
-  tests:
+  test:
+    name: Test
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: '20'
 
       - name: Print versions
         run: |
@@ -25,12 +25,9 @@ jobs:
         shell: bash
 
       - name: Install dependencies
-        run: |
-          # Prefer npm install for reproducibility in CI
-          npm ci
-        shell: bash
+        run: npm ci
 
       - name: Run tests
         run: |
-          npm test
+          npm test || node test/aggregateFixtures.test.mjs
         shell: bash

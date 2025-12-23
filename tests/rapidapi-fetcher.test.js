@@ -1,9 +1,10 @@
+import { jest } from '@jest/globals';
 import { RapidApiFetcher } from "../src/lib/rapidapi-fetcher.js";
 
 describe("RapidApiFetcher", () => {
   beforeEach(() => {
     process.env.RAPIDAPI_KEY = "test-key-123";
-    global.fetch = jest.fn().mockResolvedValue({
+    fetch = jest.fn().mockResolvedValue({
       status: 200,
       json: async () => ({ ok: true }),
     });
@@ -30,17 +31,17 @@ describe("RapidApiFetcher", () => {
   });
 
   test("maps 403 and 429 to errorReason when present", async () => {
-    global.fetch = jest.fn().mockResolvedValueOnce({ status: 403, json: async () => ({ message: 'forbidden' }) });
+    fetch = jest.fn().mockResolvedValueOnce({ status: 403, json: async () => ({ message: 'forbidden' }) });
     const f = new RapidApiFetcher();
     const r403 = await f.fetchRapidApi("example.p.rapidapi.com", "/forbidden");
     expect(r403.httpStatus).toBe(403);
-    global.fetch = jest.fn().mockResolvedValueOnce({ status: 429, json: async () => ({ message: 'rate limit' }) });
+    fetch = jest.fn().mockResolvedValueOnce({ status: 429, json: async () => ({ message: 'rate limit' }) });
     const r429 = await f.fetchRapidApi("example.p.rapidapi.com", "/ratelimit");
     expect(r429.httpStatus).toBe(429);
   });
 
   test("preserves header entries returned by fetch", async () => {
-    global.fetch = jest.fn().mockResolvedValueOnce({
+    fetch = jest.fn().mockResolvedValueOnce({
       status: 200,
       json: async () => ({ ok: true }),
       headers: {

@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { startPrefetchScheduler } from "../src/tasks/prefetch-scheduler.js";
 
 function createInMemoryRedis() {
@@ -27,7 +28,7 @@ describe("Prefetch RapidAPI integration", () => {
   beforeEach(() => {
     process.env.RAPIDAPI_KEY = "test-key-xyz";
     // mock fetch to return a predictable response
-    global.fetch = jest.fn().mockImplementation(async (url) => {
+    fetch = jest.fn().mockImplementation(async (url) => {
       if (url.includes("/api/premierleague/team")) {
         return { status: 200, json: async () => ({ team: "Liverpool" }) };
       }

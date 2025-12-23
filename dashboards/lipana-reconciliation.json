@@ -1,0 +1,67 @@
+{
+  "id": null,
+  "uid": "lipana-reconciliation",
+  "title": "Lipana Reconciliation",
+  "tags": ["payments", "lipana", "reconciliation"],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "version": 1,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Reconciliation Runs",
+      "id": 1,
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "sum(rate(betrix_lipana_reconciliation_runs_total[5m]))", "legendFormat": "runs" }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "type": "stat",
+      "title": "Reconciliation Successes",
+      "id": 2,
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "sum(rate(betrix_lipana_reconciliation_success_total[5m]))", "legendFormat": "success" }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "type": "stat",
+      "title": "Reconciliation Failures",
+      "id": 3,
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "sum(rate(betrix_lipana_reconciliation_failures_total[5m]))", "legendFormat": "failures" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "graph",
+      "title": "Success vs Failures (stacked)",
+      "id": 4,
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "sum(increase(betrix_lipana_reconciliation_success_total[1h]))", "legendFormat": "success" },
+        { "expr": "sum(increase(betrix_lipana_reconciliation_failures_total[1h]))", "legendFormat": "failures" }
+      ],
+      "stack": true,
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    }
+  ],
+  "links": [
+    {
+      "title": "Ops Playbook",
+      "type": "link",
+      "url": "https://raw.githubusercontent.com/elijahjessy311-afk/betrix-ui-new/main/docs/ops-playbook-lipana.md",
+      "targetBlank": true
+    }
+  ],
+  "time": { "from": "now-6h", "to": "now" }
+}
