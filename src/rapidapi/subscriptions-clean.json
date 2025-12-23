@@ -1,0 +1,36 @@
+[
+  {
+    "name": "Premier League Live Scores",
+    "host": "heisenbug-premier-league-live-scores-v1.p.rapidapi.com",
+    "sampleEndpoints": [
+      "/api/premierleague?date=12202025",
+      "/api/premierleague?date=<MMddyyyy>"
+    ],
+    "note": "Use parameterized endpoints"
+  },
+  {
+    "name": "Odds (The Odds API)",
+    "host": "odds.p.rapidapi.com",
+    "sampleEndpoints": [
+      "/v4/sports/?",
+      "/v4/sports/upcoming/odds?regions=us&oddsFormat=decimal&markets=h2h,spreads&dateFormat=iso",
+      "/v4/sports/upcoming/scores?daysFrom=1"
+    ]
+  },
+  {
+    "name": "Sportspage Fixtures (Basketball)",
+    "host": "sportspage-feeds.p.rapidapi.com",
+    "sampleEndpoints": ["/fixtures?league=NBA&days=7"],
+    "sport": "basketball",
+    "enabled": false,
+    "note": "disabled: sampleEndpoint may not work without auth"
+  },
+  {
+    "name": "Sportspage Fixtures (Baseball)",
+    "host": "sportspage-feeds.p.rapidapi.com",
+    "sampleEndpoints": ["/fixtures?league=MLB&days=7"],
+    "sport": "baseball",
+    "enabled": false,
+    "note": "disabled: sampleEndpoint may not work without auth"
+  }
+]

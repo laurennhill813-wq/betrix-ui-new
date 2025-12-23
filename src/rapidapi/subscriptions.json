@@ -1,172 +1,20 @@
-[
-  {
-    "name": "Premier League Live Scores",
-    "host": "heisenbug-premier-league-live-scores-v1.p.rapidapi.com",
-    "sampleEndpoints": [
-      "/api/premierleague?date=12202025",
-      "/api/premierleague?date=<MMddyyyy>",
-      "/api/premierleague/team?name=<TeamName>",
-      "/api/premierleague/team?name=Liverpool",
-      "/api/premierleague/formations?team1=Everton&team2=Manchester+United",
-      "/api/premierleague/table",
-      "/api/premierleague/match/stats?team1=Stoke&team2=Liverpool"
-    ],
-    "note": "Use parameterized endpoints; scheduler will iterate a date range (next N days) and team lookups"
-  },
-  {
-    "name": "Football Prediction",
-    "host": "football-prediction-api.p.rapidapi.com",
-    "sampleEndpoints": [
-      "/api/v2/predictions?market=classic&iso_date=2018-12-01&federation=UEFA"
-    ]
-  },
-  {
-    "name": "TheRundown",
-    "host": "therundown-therundown-v1.p.rapidapi.com",
-    "sampleEndpoints": ["/sports/1/conferences"]
-  },
-  {
-    "name": "Odds (The Odds API)",
-    "host": "odds.p.rapidapi.com",
-    "sampleEndpoints": [
-      "/v4/sports/?",
-      "/v4/sports/upcoming/odds?regions=us&oddsFormat=decimal&markets=h2h,spreads&dateFormat=iso",
-      "/v4/sports/upcoming/scores?daysFrom=1"
-    ]
-  },
-  {
-    "name": "The Odds API (direct - Basketball)",
-    "host": "api.the-odds-api.com",
-    "sampleEndpoints": [
-      "/v4/sports/basketball_nba/odds/?regions=us&oddsFormat=decimal&markets=h2h,spreads",
-      "/v4/sports/basketball_nba/scores/?daysFrom=7"
-    ],
-    "sport": "basketball",
-    "note": "Direct The Odds API host for NBA; use header X-RapidAPI-Key for auth"
-  },
-  {
-    "name": "The Odds API (direct - Baseball)",
-    "host": "api.the-odds-api.com",
-    "sampleEndpoints": [
-      "/v4/sports/baseball_mlb/odds/?regions=us&oddsFormat=decimal&markets=h2h,spreads",
-      "/v4/sports/baseball_mlb/scores/?daysFrom=7"
-    ],
-    "sport": "baseball",
-    "note": "Direct The Odds API host for MLB; use header X-RapidAPI-Key for auth"
-  },
-  {
-    "name": "The Odds API (direct - Hockey)",
-    "host": "api.the-odds-api.com",
-    "sampleEndpoints": [
-      "/v4/sports/icehockey_nhl/odds/?regions=us&oddsFormat=decimal&markets=h2h,spreads",
-      "/v4/sports/icehockey_nhl/scores/?daysFrom=7"
-    ],
-    "sport": "hockey",
-    "note": "Direct The Odds API host for NHL; use header X-RapidAPI-Key for auth"
-  },
-  {
-    "name": "Football Live Stream Api",
-    "host": "football-live-stream-api.p.rapidapi.com",
-    "sampleEndpoints": ["/link/truc-tiep-tran-dau-coquimbo-unido-vs-universidad-de-chile-2674554"]
-  },
-  {
-    "name": "SportAPI",
-    "host": "sportapi7.p.rapidapi.com",
-    "sampleEndpoints": ["/api/v1/player/817181/unique-tournament/132/season/65360/ratings"]
-  },
-  {
-    "name": "BetsAPI",
-    "host": "betsapi2.p.rapidapi.com",
-    "sampleEndpoints": ["/v3/bet365/prematch?FI=0"]
-  },
-  {
-    "name": "Sportspage Feeds",
-    "host": "sportspage-feeds.p.rapidapi.com",
-    "sampleEndpoints": ["/rankings?league=NCAAF"]
-  },
-  {
-    "name": "Sofascore",
-    "host": "sofascore.p.rapidapi.com",
-    "sampleEndpoints": ["/matches/get-h2h?matchId=8897222"]
-  },
-  {
-    "name": "Sports Information",
-    "host": "sports-information.p.rapidapi.com",
-    "sampleEndpoints": ["/mbb/news?limit=30"]
-  },
-  {
-    "name": "Sportspage Fixtures (Basketball)",
-    "host": "sportspage-feeds.p.rapidapi.com",
-    "sampleEndpoints": ["/fixtures?league=NBA&days=7"],
-    "sport": "basketball"
-  },
-  {
-    "name": "Sportspage Fixtures (Baseball)",
-    "host": "sportspage-feeds.p.rapidapi.com",
-    "sampleEndpoints": ["/fixtures?league=MLB&days=7"],
-    "sport": "baseball"
-  },
-  {
-    "name": "ODDS-API (alt)",
-    "host": "odds-api1.p.rapidapi.com",
-    "sampleEndpoints": ["/scores?fixtureId=id1200255561449537"]
-  },
-  {
-    "name": "Bet365 API Inplay",
-    "host": "bet365-api-inplay.p.rapidapi.com",
-    "sampleEndpoints": ["/bet365/get_leagues"]
-  },
-  {
-    "name": "Pinnacle Odds",
-    "host": "pinnacle-odds.p.rapidapi.com",
-    "sampleEndpoints": ["/kit/v1/meta-periods?sport_id=1"]
-  },
-  {
-    "name": "Free Livescore API",
-    "host": "free-livescore-api.p.rapidapi.com",
-    "sampleEndpoints": ["/livescore-get-search?sportname=soccer&search=romania"]
-  },
-  {
-    "name": "Free API Live Football Data",
-    "host": "free-api-live-football-data.p.rapidapi.com",
-    "sampleEndpoints": ["/football-players-search?search=m"]
-  },
-  {
-    "name": "Football Pro",
-    "host": "football-pro.p.rapidapi.com",
-    "sampleEndpoints": ["/api/v2.0/corrections/season/17141?tz=Europe%2FAmsterdam"]
-  },
-  {
-    "name": "FlashLive Sports",
-    "host": "flashlive-sports.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/news/list?entity_id=1&page=0&category_id=59&locale=en_INT"]
-  },
-  {
-    "name": "NewsNow",
-    "host": "newsnow.p.rapidapi.com",
-    "sampleEndpoints": ["/top_news", "/news?category=sports"],
-    "enabled": false,
-    "note": "disabled: sample endpoint returns 404; needs review"
-  },
-  {
-    "name": "TVPRO API",
-    "host": "tvpro-api.p.rapidapi.com",
-    "sampleEndpoints": ["/channels", "/programs?date=2025-12-20"],
-    "enabled": false,
-    "note": "disabled: sample endpoint returns 404; needs review"
-  },
-  {
-    "name": "RapidSport (rapidsportapi)",
-    "host": "rapidsportapi.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/scores"],
-    "enabled": false,
-    "note": "disabled: sample endpoint returns 404; needs review"
-  },
-  {
-    "name": "AllSportsApi",
-    "host": "allsportsapi.p.rapidapi.com",
-    "sampleEndpoints": ["/v1/events"],
-    "enabled": false,
-    "note": "disabled: sample endpoint returns 500; needs review"
-  }
+﻿[
+    {
+        "host":  "heisenbug-premier-league-live-scores-v1.p.rapidapi.com",
+        "name":  "Premier League Live Scores",
+        "note":  "Use parameterized endpoints",
+        "sampleEndpoints":  [
+                                "/api/premierleague?date=12202025",
+                                "/api/premierleague?date=\u003cMMddyyyy\u003e"
+                            ]
+    },
+    {
+        "host":  "odds.p.rapidapi.com",
+        "name":  "Odds (The Odds API)",
+        "sampleEndpoints":  [
+                                "/v4/sports/?",
+                                "/v4/sports/upcoming/odds?regions=us\u0026oddsFormat=decimal\u0026markets=h2h,spreads\u0026dateFormat=iso",
+                                "/v4/sports/upcoming/scores?daysFrom=1"
+                            ]
+    }
 ]
