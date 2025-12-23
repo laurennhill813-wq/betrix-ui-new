@@ -874,7 +874,7 @@ export function startPrefetchScheduler({
                   const home = sample.home_team || sample.home || (sample.teams && sample.teams[0]) || '';
                   const away = sample.away_team || sample.away || (sample.teams && sample.teams[1]) || '';
                   const bookmakers = Array.isArray(sample.bookmakers) ? sample.bookmakers.length : 0;
-                  console.log(`[rapidapi-odds] ${apiName} ${endpoint} sport=${sport} match="${home} vs ${away}" bookmakers=${bookmakers}`);
+                  console.log `[rapidapi-odds] ${apiName} ${endpoint} sport=${sport} match="${home} vs ${away}" bookmakers=${bookmakers}`;
                   await redis.set(`rapidapi:odds:${safeName}`, JSON.stringify({ apiName, endpoint, sport, sample: { home, away }, bookmakers, ts }), 'EX', 60).catch(() => {});
                 }
               } catch (e) {
