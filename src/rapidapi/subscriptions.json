@@ -35,19 +35,34 @@
     ]
   },
   {
-    "name": "The Odds API (direct)",
+    "name": "The Odds API (direct - Basketball)",
     "host": "api.the-odds-api.com",
     "sampleEndpoints": [
-      "/v4/sports/",
       "/v4/sports/basketball_nba/odds/?regions=us&oddsFormat=decimal&markets=h2h,spreads",
-      "/v4/sports/baseball_mlb/odds/?regions=us&oddsFormat=decimal&markets=h2h,spreads",
-      "/v4/sports/icehockey_nhl/odds/?regions=us&oddsFormat=decimal&markets=h2h,spreads",
-      "/v4/sports/basketball_nba/scores/?daysFrom=7",
-      "/v4/sports/baseball_mlb/scores/?daysFrom=7",
-      "/v4/sports/icehockey_nhl/scores/?daysFrom=7",
-      "/v4/sports/{sport}/participants"
+      "/v4/sports/basketball_nba/scores/?daysFrom=7"
     ],
-    "note": "Direct The Odds API host and common v4 endpoints; use header X-RapidAPI-Key for auth. Response headers include x-requests-remaining/x-requests-used/x-requests-last"
+    "sport": "basketball",
+    "note": "Direct The Odds API host for NBA; use header X-RapidAPI-Key for auth"
+  },
+  {
+    "name": "The Odds API (direct - Baseball)",
+    "host": "api.the-odds-api.com",
+    "sampleEndpoints": [
+      "/v4/sports/baseball_mlb/odds/?regions=us&oddsFormat=decimal&markets=h2h,spreads",
+      "/v4/sports/baseball_mlb/scores/?daysFrom=7"
+    ],
+    "sport": "baseball",
+    "note": "Direct The Odds API host for MLB; use header X-RapidAPI-Key for auth"
+  },
+  {
+    "name": "The Odds API (direct - Hockey)",
+    "host": "api.the-odds-api.com",
+    "sampleEndpoints": [
+      "/v4/sports/icehockey_nhl/odds/?regions=us&oddsFormat=decimal&markets=h2h,spreads",
+      "/v4/sports/icehockey_nhl/scores/?daysFrom=7"
+    ],
+    "sport": "hockey",
+    "note": "Direct The Odds API host for NHL; use header X-RapidAPI-Key for auth"
   },
   {
     "name": "Football Live Stream Api",
@@ -82,12 +97,14 @@
   {
     "name": "Sportspage Fixtures (Basketball)",
     "host": "sportspage-feeds.p.rapidapi.com",
-    "sampleEndpoints": ["/fixtures?league=NBA&days=7"]
+    "sampleEndpoints": ["/fixtures?league=NBA&days=7"],
+    "sport": "basketball"
   },
   {
     "name": "Sportspage Fixtures (Baseball)",
     "host": "sportspage-feeds.p.rapidapi.com",
-    "sampleEndpoints": ["/fixtures?league=MLB&days=7"]
+    "sampleEndpoints": ["/fixtures?league=MLB&days=7"],
+    "sport": "baseball"
   },
   {
     "name": "ODDS-API (alt)",

@@ -27,7 +27,7 @@ function normalizeEvent(ev, providerName, sportHint = 'soccer') {
     const type = (status && /live|inplay|running/i.test(String(status))) ? 'live' : (start ? (Date.parse(String(start)) <= Date.now() ? 'live' : 'upcoming') : 'upcoming');
     return {
       provider: providerName || 'unknown',
-      sport: ev.sport || sportHint,
+      sport: sportHint && sportHint !== 'soccer' ? sportHint : (ev.sport || sportHint),
       league: league || null,
       type,
       homeTeam: home || null,

@@ -977,9 +977,9 @@ export function startPrefetchScheduler({
                 const collectedLive = [];
                 for (const ep of endpoints) {
                   try {
-                    // call upcoming and live fetchers with endpoint path when possible
-                    const upcoming = await fetchUpcomingFixtures(provider, { path: ep }).catch(() => []);
-                    const live = await fetchLiveMatches(provider, { path: ep }).catch(() => []);
+                    // call upcoming and live fetchers with endpoint path and sport hint when available
+                    const upcoming = await fetchUpcomingFixtures(provider, { path: ep, sport: api.sport }).catch(() => []);
+                    const live = await fetchLiveMatches(provider, { path: ep, sport: api.sport }).catch(() => []);
                     if (Array.isArray(upcoming) && upcoming.length) collectedUpcoming.push(...upcoming);
                     if (Array.isArray(live) && live.length) collectedLive.push(...live);
                   } catch (e) {
