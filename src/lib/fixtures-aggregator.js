@@ -78,6 +78,24 @@ export async function aggregateFixtures(redis, opts = {}) {
 
   const fixtures = [];
   const providers = {};
+  const providersMeta = [];
+
+  // helper: small mapping of probe endpoints per host (best-effort)
+  const probeEndpoints = {
+    'therundown-therundown-v1.p.rapidapi.com': [
+      'https://therundown-therundown-v1.p.rapidapi.com/sports/1/events',
+      'https://therundown-therundown-v1.p.rapidapi.com/sports/1/lines'
+    ],
+    'sportspage-feeds.p.rapidapi.com': [
+      'https://sportspage-feeds.p.rapidapi.com/scores?league=NCAAF'
+    ],
+    'os-sports-perform.p.rapidapi.com': [
+      'https://os-sports-perform.p.rapidapi.com/v1/tournaments/events?tournament_id=1'
+    ],
+    'free-football-soccer-videos.p.rapidapi.com': [
+      'https://free-football-soccer-videos.p.rapidapi.com/'
+    ]
+  };
 
   const normalize = (raw, providerName, sportHint) => {
     try {
@@ -108,6 +126,15 @@ export async function aggregateFixtures(redis, opts = {}) {
     } catch (e) { return []; }
   };
 
+  // try to load rapidapi normalizers to enrich provider metadata (optional)
+  let rapidapiDispatch = null;
+  try {
+    const mod = await import('./rapidapi-normalizers.js');
+    rapidapiDispatch = mod.dispatch || null;
+  } catch (e) {
+    rapidapiDispatch = null;
+  }
+
   for (const item of rawItems) {
     try {
       const k = item.key || '';
@@ -121,6 +148,26 @@ export async function aggregateFixtures(redis, opts = {}) {
       else providerName = providerName || (k.split(':')[1] || 'unknown');
 
       const sportHint = (v && v.sportKey ? normalizeSportFromKey(v.sportKey) : null) || (v && v.sport) || 'soccer';
+
+      // If this provider payload looks like a simple list (teams/seasons/conferences/items),
+      // treat it as metadata rather than source of home/away fixtures. Record counts for
+      // visibility but don't attempt to synthesize fixtures from single-name lists.
+      const listCandidates = v && (v.items || v.teams || v.seasons || v.conferences || v.list);
+      if (Array.isArray(listCandidates) && listCandidates.length > 0) {
+        if (!providers[providerName]) providers[providerName] = { live: 0, upcoming: 0 };
+        // record as upcoming metadata count so UI can show available teams/leagues
+        providers[providerName].upcoming += listCandidates.length;
+        // enrich provider metadata if we have a normalizer for this host
+        try {
+          const host = k.split(':').slice(0,3).join(':');
+          if (rapidapiDispatch && rapidapiDispatch[host]) {
+            const meta = rapidapiDispatch[host]({ items: listCandidates, _host: host, _status: v._status || null, _teamsCount: listCandidates.length });
+            providersMeta.push({ provider: providerName, host, meta });
+          }
+        } catch (e) {}
+        continue; // skip fixture normalization for pure lists
+      }
+
       const normalized = normalize(v.data || v || v, providerName, sportHint);
       if (!providers[providerName]) providers[providerName] = { live: 0, upcoming: 0 };
       for (const f of normalized) {
@@ -164,6 +211,38 @@ export async function aggregateFixtures(redis, opts = {}) {
     } catch (e) {}
   }
 
+  // Attempt best-effort probes for providers that exposed only lists to retrieve real fixtures.
+  // Requires `RAPIDAPI_KEY` in the environment; failures are swallowed to keep aggregator robust.
+  try {
+    const rapidapiKey = process.env.RAPIDAPI_KEY || process.env.RAPIDAPI_KEY_ALT || null;
+    if (rapidapiKey && providersMeta.length) {
+      for (const pm of providersMeta) {
+        try {
+          const host = pm.host;
+          const probes = probeEndpoints[host] || [];
+          for (const url of probes) {
+            try {
+              const res = await fetch(url, { headers: { 'X-RapidAPI-Host': host, 'X-RapidAPI-Key': rapidapiKey, 'Accept': 'application/json' } });
+              if (!res || res.status >= 400) continue;
+              const body = await res.json().catch(() => null);
+              if (!body) continue;
+              // normalize any returned events using existing normalize() helper
+              const sportHint = pm.meta && (pm.meta.sport || pm.meta.seasons || pm.meta.kind) ? (pm.meta.sport || 'soccer') : 'soccer';
+              const events = normalize(body, pm.provider || pm.provider || 'rapidapi-probe', sportHint);
+              for (const ev of events) {
+                if (!ev.homeTeam || !ev.awayTeam) continue;
+                fixtures.push(ev);
+                if (!providers[ev.provider]) providers[ev.provider] = { live: 0, upcoming: 0 };
+                if (ev.type === 'live') providers[ev.provider].live += 1;
+                else providers[ev.provider].upcoming += 1;
+              }
+            } catch (e) { /* ignore per-probe error */ }
+          }
+        } catch (e) { /* ignore provider probe error */ }
+      }
+    }
+  } catch (e) {}
+
   // dedupe by home::away::startTime
   const seen = new Map();
   const merged = [];
@@ -196,6 +275,10 @@ export async function aggregateFixtures(redis, opts = {}) {
       await redis.set(`rapidapi:fixtures:live:${keySafe}`, String(counts.live)).catch(()=>{});
       await redis.set(`rapidapi:fixtures:upcoming:${keySafe}`, String(counts.upcoming)).catch(()=>{});
     }
+    // write provider metadata so UI can discover provider capabilities
+    try {
+      await redis.set('rapidapi:providers:meta', JSON.stringify(providersMeta || [])).catch(()=>{});
+    } catch (e) {}
     // ensure the merged list key is a string-typed key (cache) before writing
     try {
       // lazy import to avoid cycles in some test harnesses
