@@ -2,7 +2,7 @@
     {
         "host":  "heisenbug-premier-league-live-scores-v1.p.rapidapi.com",
         "name":  "Premier League Live Scores",
-        "note":  "Use parameterized endpoints",
+        "note":  "Use parameterized endpoints - v3 rebuild 20251223",
         "sampleEndpoints":  [
                                 "/api/premierleague?date=12202025",
                                 "/api/premierleague?date=\u003cMMddyyyy\u003e"
