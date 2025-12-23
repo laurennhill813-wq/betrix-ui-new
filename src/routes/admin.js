@@ -378,5 +378,50 @@ export default function createAdminRouter() {
     }
   });
 
+  // Admin: prefetch/provider health summary
+  router.get('/admin/prefetch-health', async (req, res) => {
+    try {
+      const redis = req.app && req.app.locals && req.app.locals.redis;
+      if (!redis) return res.status(500).json({ ok: false, error: 'no redis client' });
+
+      // provider health keys
+      const healthKeys = await redis.keys('betrix:provider:health:*').catch(() => []);
+      const providers = {};
+      for (const k of healthKeys.slice(0, 200)) {
+        try {
+          const raw = await redis.get(k).catch(() => null);
+          providers[k.replace('betrix:provider:health:', '')] = raw ? JSON.parse(raw) : null;
+        } catch (e) {
+          providers[k.replace('betrix:provider:health:', '')] = null;
+        }
+      }
+
+      // prefetch failures
+      const failKeys = await redis.keys('prefetch:failures:*').catch(() => []);
+      const failures = {};
+      for (const fk of failKeys.slice(0, 200)) {
+        try {
+          const val = await redis.get(fk).catch(() => null);
+          failures[fk.replace('prefetch:failures:', '')] = val ? Number(val) : 0;
+        } catch (e) {
+          failures[fk.replace('prefetch:failures:', '')] = null;
+        }
+      }
+
+      // rapidapi health snapshot (if present)
+      let rapidapiHealth = null;
+      try {
+        const raw = await redis.get('rapidapi:health').catch(() => null);
+        rapidapiHealth = raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        rapidapiHealth = null;
+      }
+
+      return res.json({ ok: true, providers, failures, rapidapiHealth });
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: String(e) });
+    }
+  });
+
   return router;
 }

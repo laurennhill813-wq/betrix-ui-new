@@ -165,6 +165,13 @@ export function startPrefetchScheduler({
       try {
         await redis.del(`prefetch:failures:${type}`);
         await redis.del(`prefetch:next:${type}`);
+        // also set provider health
+        try {
+          const health = { ok: true, ts: Date.now(), message: 'ok' };
+          await redis.set(`betrix:provider:health:${type}`, JSON.stringify(health), 'EX', 60 * 60 * 24).catch(() => {});
+        } catch (e) {
+          /* ignore */
+        }
       } catch (e) {
         void e;
       }
@@ -191,6 +198,19 @@ export function startPrefetchScheduler({
             Math.min(maxBackoff + 60, Math.floor(delay) + 60),
           )
           .catch(() => {});
+        // set provider health (failed)
+        try {
+          const health = {
+            ok: false,
+            ts: Date.now(),
+            fails: Number(fails) || 1,
+            nextRunAt: next * 1000,
+            message: `backoff ${Math.floor(delay)}s after ${fails} failures`,
+          };
+          await redis.set(`betrix:provider:health:${type}`, JSON.stringify(health), 'EX', 60 * 60 * 24).catch(() => {});
+        } catch (e) {
+          /* ignore */
+        }
         return { fails, next, delay };
       } catch (e) {
         void e;
@@ -949,18 +969,18 @@ export function startPrefetchScheduler({
                       count += 1;
                     }
                   }
+                } catch (e) {
+                  /* ignore per-sport fetch errors */
                 }
               } catch (e) {
-                /* ignore per-sport fetch errors */
+                rapidDiagnostics.apis[apiName].endpoints[endpoint] = {
+                  httpStatus: e && e.status ? e.status : null,
+                  errorReason: e && e.message ? String(e.message) : String(e),
+                  lastUpdated: Date.now(),
+                };
+                rapidDiagnostics.apis[apiName].lastUpdated = Date.now();
+                rapidDiagnostics.apis[apiName].status = "error";
               }
-            } catch (e) {
-              rapidDiagnostics.apis[apiName].endpoints[endpoint] = {
-                httpStatus: e && e.status ? e.status : null,
-                errorReason: e && e.message ? String(e.message) : String(e),
-                lastUpdated: Date.now(),
-              };
-              rapidDiagnostics.apis[apiName].lastUpdated = Date.now();
-              rapidDiagnostics.apis[apiName].status = "error";
             }
           }
         }
