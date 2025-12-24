@@ -142,6 +142,27 @@ export function startPrefetchScheduler({
           const endpoints = Array.isArray(api.sampleEndpoints) ? api.sampleEndpoints.slice(0, 3) : [];
           if (!host || endpoints.length === 0) continue;
 
+          // Skip APIs currently in backoff according to Redis key set by recordFailure
+          try {
+            const typeKey = String(api.name || api.host || 'unknown');
+            const nextVal = await redis.get(`prefetch:next:${typeKey}`).catch(() => null);
+            if (nextVal) {
+              const nextNum = Number(nextVal);
+              const nowSec = Math.floor(Date.now() / 1000);
+              if (nextNum && nextNum > nowSec) {
+                // mark a lightweight backoff indicator for observability and skip
+                try {
+                  await safeSet(
+                    `rapidapi:backoff:${normalizeRedisKeyPart(String(api.host || api.name))}`,
+                    { backoff_active: true, backoffKey: `prefetch:next:${typeKey}`, until: nextNum },
+                    Number(process.env.RAPIDAPI_TTL_SEC || 300)
+                  );
+                } catch (e) { /* ignore */ }
+                continue;
+              }
+            }
+          } catch (e) { /* ignore backoff check errors */ }
+
           for (const endpoint of endpoints) {
             try {
               const res = rapidLogger
