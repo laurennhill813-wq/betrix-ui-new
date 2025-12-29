@@ -2047,6 +2047,61 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
       };
     }
 
+    // Handle Till payment submission (must come before pay: check)
+    if (data === "till:payment_sent") {
+      try {
+        const userId = cq.from && cq.from.id ? cq.from.id : null;
+        const chatId =
+          cq.message && cq.message.chat && cq.message.chat.id
+            ? cq.message.chat.id
+            : null;
+
+        if (!userId) {
+          return {
+            method: "answerCallbackQuery",
+            callback_query_id: cq.id,
+            text: "Error: Could not identify user",
+            show_alert: true,
+          };
+        }
+
+        // Set flag indicating we're waiting for receipt code
+        await redis.setex(
+          `payment:awaiting_receipt:${userId}`,
+          300,
+          "till",
+        );
+
+        // Store the order info so receipt handler can find it
+        await redis.setex(
+          `payment:pending_order:${userId}`,
+          300,
+          JSON.stringify({
+            orderId: `ORD${userId}${Date.now()}`,
+            userId: userId,
+            amount: 100,
+            method: "TILL",
+            createdAt: new Date().toISOString(),
+          }),
+        );
+
+        return {
+          method: "sendMessage",
+          chat_id: chatId,
+          text: "Please send your Till receipt code (e.g., ABC123XYZ) to confirm payment:",
+          reply_to_message_id: cq.message?.message_id,
+        };
+      } catch (err) {
+        logger.warn("till:payment_sent handler failed", err?.message);
+        return {
+          method: "answerCallbackQuery",
+          callback_query_id: cq.id,
+          text: "Error processing payment confirmation",
+          show_alert: true,
+        };
+      }
+    }
+
     // Handle NCBA payment submission (must come before pay: check)
     if (data === "ncba:payment_sent") {
       try {
@@ -2195,6 +2250,76 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
             method: "answerCallbackQuery",
             callback_query_id: cq.id,
             text: "❌ Failed to process NCBA payment. Please try again later.",
+            show_alert: true,
+          };
+        }
+      }
+
+      // Handle Till payment confirmation
+      if (method === "till") {
+        try {
+          const userId = cq.from && cq.from.id ? cq.from.id : null;
+          const chatId =
+            cq.message && cq.message.chat && cq.message.chat.id
+              ? cq.message.chat.id
+              : null;
+
+          const amount = 100; // default Till amount
+
+          // Create payment order
+          const order = await createCustomPaymentOrder(
+            redis,
+            userId,
+            amount,
+            "TILL",
+          );
+
+          const tillNumber = process.env.MPESA_TILL || "606215";
+
+          let instrText = `Order ID: ${order.orderId}\n\n`;
+          instrText +=
+            `SAFARICOM TILL PAYMENT\n\n` +
+            `Till Number: ${tillNumber}\n` +
+            `Amount: ${amount} KES\n\n` +
+            `HOW TO PAY (Using Safaricom App or USSD):\n` +
+            `1. Open Safaricom App or dial *100#\n` +
+            `2. Select Pay Bills/Buy\n` +
+            `3. Select Business Numbers\n` +
+            `4. Enter Till Number: ${tillNumber}\n` +
+            `5. Enter Amount: ${amount}\n` +
+            `6. Confirm and complete payment\n\n` +
+            `After Paying:\n` +
+            `- You will receive a Till receipt on your phone\n` +
+            `- Copy the receipt code\n` +
+            `- Paste it in this chat for instant verification\n` +
+            `- Your subscription activates immediately!`;
+
+          return {
+            method: "editMessageText",
+            chat_id: chatId,
+            message_id: cq.message.message_id,
+            text: instrText,
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: "I have paid",
+                    callback_data: "till:payment_sent",
+                  },
+                  { text: "Cancel", callback_data: "payment" },
+                ],
+              ],
+            },
+          };
+        } catch (err) {
+          logger.warn(
+            "pay_confirm:till handler failed",
+            err?.message || String(err),
+          );
+          return {
+            method: "answerCallbackQuery",
+            callback_query_id: cq.id,
+            text: "Failed to process Till payment. Please try again later.",
             show_alert: true,
           };
         }
