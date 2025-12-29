@@ -49,6 +49,29 @@ export async function runMediaAiTick() {
   );
   scored.sort((a, b) => b.score - a.score);
 
+  // Snapshot top candidates for immediate diagnostics (always log)
+  try {
+    const topSnapshot = scored.slice(0, 10);
+    const snapshotRows = await Promise.all(
+      topSnapshot.map(async (r) => {
+        const id = r.ev && (r.ev.id || (r.ev.raw && r.ev.raw.id)) ? (r.ev.id || (r.ev.raw && r.ev.raw.id)) : buildEventId(r.ev);
+        const dup = await hasPostedEvent(id).catch(() => false);
+        return {
+          id,
+          score: r.score,
+          home: r.ev && (r.ev.home || r.ev.homeName || r.ev.home_team) ? (r.ev.home || r.ev.homeName || r.ev.home_team) : null,
+          away: r.ev && (r.ev.away || r.ev.awayName || r.ev.away_team) ? (r.ev.away || r.ev.awayName || r.ev.away_team) : null,
+          sport: r.ev && r.ev.sport,
+          status: r.ev && r.ev.status,
+          dup,
+        };
+      }),
+    );
+    console.info("[MediaAiTicker] Candidates snapshot:", JSON.stringify(snapshotRows, null, 2));
+  } catch (e) {
+    console.warn("[MediaAiTicker] failed to produce candidates snapshot", e && e.message ? e.message : e);
+  }
+
   // pick the top candidate that passes thresholds and hasn't been posted recently
   let chosen = null;
   for (const s of scored) {
@@ -69,9 +92,10 @@ export async function runMediaAiTick() {
     } catch (e) {
       /* ignore weighting errors */
     }
-    // require a minimal score threshold to avoid low-value posts
-    // Lowered from 40 to 15 to allow upcoming fixtures when no live matches exist
-    if (s.score < Number(process.env.MEDIA_AI_MIN_SCORE || 15)) continue;
+      // require a minimal score threshold to avoid low-value posts
+      // Lowered to 10 to allow more upcoming fixtures when no live matches exist
+      const minScore = Number(process.env.MEDIA_AI_MIN_SCORE || 10);
+      if (s.score < minScore) continue;
     const evId = buildEventId(s.ev);
     const already = await hasPostedEvent(evId).catch(() => false);
     if (already) continue;
@@ -82,9 +106,26 @@ export async function runMediaAiTick() {
   }
 
   if (!chosen)
-    return console.info(
-      "[MediaAiTicker] No candidate passed scoring/duplication checks",
-    );
+    {
+      console.info("[MediaAiTicker] No candidate passed scoring/duplication checks");
+      // If debug mode enabled, dump top scored candidates and duplication status
+      try {
+        if (process.env.MEDIA_AI_DEBUG === "1") {
+          const top = scored.slice(0, 8);
+          const debugRows = await Promise.all(
+            top.map(async (r) => {
+              const id = r.ev && (r.ev.id || (r.ev.raw && r.ev.raw.id)) ? (r.ev.id || (r.ev.raw && r.ev.raw.id)) : buildEventId(r.ev);
+              const dup = await hasPostedEvent(id).catch(() => false);
+              return { id, score: r.score, home: r.ev.home, away: r.ev.away, sport: r.ev.sport, dup };
+            }),
+          );
+          console.info("[MediaAiTicker][DEBUG] topCandidates", JSON.stringify(debugRows, null, 2));
+        }
+      } catch (e) {
+        console.warn("[MediaAiTicker] debug dump failed", e && e.message ? e.message : e);
+      }
+      return;
+    }
 
   const [image, aiSummary] = await Promise.all([
     // try provider adapters first, then fall back to the generic ImageProvider
