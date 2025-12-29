@@ -278,7 +278,7 @@ export async function selectBestImageForEventFallback(sportEvent = {}) {
     if (!ImageProvider || typeof ImageProvider.findImage !== "function")
       return null;
     const q =
-      `${sportEvent.home || ""} ${sportEvent.away || ""} ${sportEvent.league || ""}`.trim() ||
+      `${sportEvent.home || ""} ${sportEvent.away || ""} ${sportEvent.league || ""} ${sportEvent.sport || ""}`.trim() ||
       "sports";
     let found = null;
     try {
@@ -302,21 +302,48 @@ export async function selectBestImageForEventFallback(sportEvent = {}) {
 async function wikiImageForName(name) {
   if (!name) return null;
   try {
-    const variants = [name, `${name} F.C.`, `${name} FC`, `${name} Football Club`];
-    const titles = variants.map(encodeURIComponent).join("|");
-    // Request thumbnail (raster) to avoid SVG originals
-    const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=600&titles=${titles}`;
-    const headers = {
-      "User-Agent": process.env.MEDIA_FETCH_UA || "betrix-bot/1.0 (+https://betrix.example)",
-      Accept: "application/json,text/html;q=0.9,*/*;q=0.8",
-    };
-    const res = await fetch(url, { redirect: "follow", headers });
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (!data || !data.query || !data.query.pages) return null;
-    for (const pid of Object.keys(data.query.pages)) {
-      const p = data.query.pages[pid];
-      if (p && p.thumbnail && p.thumbnail.source) return p.thumbnail.source;
+    // Build sport-aware variants; try common team name patterns and sport-specific disambiguators
+    const variants = [name, `${name} F.C.`, `${name} FC`, `${name} Football Club`, `${name} (team)`];
+    // Try to detect likely sport from caller via a trailing second param
+    // If caller provided sport, it will be available via arguments[1]
+    const sport = arguments && arguments[1] ? String(arguments[1]).toLowerCase() : "";
+    if (sport) {
+      if (sport.includes("nfl") || sport.includes("american") || sport.includes("football")) {
+        variants.push(`${name} (American football)`, `${name} (NFL team)`);
+      }
+      if (sport.includes("nba") || sport.includes("basketball")) {
+        variants.push(`${name} (basketball)` , `${name} (basketball team)`);
+      }
+      if (sport.includes("mlb") || sport.includes("baseball")) {
+        variants.push(`${name} (baseball)` , `${name} (baseball team)`);
+      }
+      if (sport.includes("nhl") || sport.includes("hockey")) {
+        variants.push(`${name} (ice hockey)` , `${name} (ice hockey team)`);
+      }
+    }
+
+    // Try REST summary endpoint per-variant (returns thumbnail/originalimage)
+    for (const v of variants) {
+      try {
+        const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(v)}`;
+        const headers = {
+          "User-Agent": process.env.MEDIA_FETCH_UA || "betrix-bot/1.0 (+https://betrix.example)",
+          Accept: "application/json,text/html;q=0.9,*/*;q=0.8",
+        };
+        const sres = await fetch(summaryUrl, { redirect: "follow", headers, timeout: 5000 });
+        try { console.info('[imageSelector] wikiSummaryLookup', { title: v, status: sres && sres.status }); } catch(e) {}
+        if (!sres || !sres.ok) continue;
+        const sjson = await sres.json();
+        const thumb = sjson && (sjson.thumbnail && sjson.thumbnail.source) ? sjson.thumbnail.source : (sjson && sjson.originalimage && sjson.originalimage.source ? sjson.originalimage.source : null);
+        if (thumb) {
+          const low = String(thumb).toLowerCase().split('?')[0];
+          if (low.endsWith('.svg')) continue;
+          const resolved = await resolveDirectImage(thumb).catch(() => null);
+          if (resolved) return resolved;
+        }
+      } catch (e) {
+        /* ignore and try next variant */
+      }
     }
   } catch (e) {
     // ignore
@@ -337,7 +364,7 @@ export async function selectBestImageForEventFallbackExtended(sportEvent = {}) {
     Boolean,
   );
   for (const n of names) {
-    const w = await wikiImageForName(n);
+    const w = await wikiImageForName(n, sportEvent.sport);
     if (w) {
       // Skip direct SVG files (endsWith .svg) since Telegram can't fetch them.
       // Allow thumbnail URLs that embed '/svg/' but end with a raster extension.
@@ -396,7 +423,7 @@ async function getYouTubeVideosForEvent(sportEvent = {}) {
   try {
     const key = process.env.YOUTUBE_API_KEY;
     if (!key) return out;
-    const q = `${sportEvent.home || ""} ${sportEvent.away || ""} ${sportEvent.league || ""}`.trim();
+    const q = `${sportEvent.home || ""} ${sportEvent.away || ""} ${sportEvent.league || ""} ${sportEvent.sport || ""}`.trim();
     if (!q) return out;
     const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=5&q=${encodeURIComponent(q)}&key=${key}`;
     const res = await fetch(url, { redirect: 'follow', timeout: 8000 });
