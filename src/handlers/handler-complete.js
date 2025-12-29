@@ -2145,6 +2145,61 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
         }
       }
 
+      // Handle NCBA payment submission
+      if (data === "ncba:payment_sent") {
+        try {
+          const userId = cq.from && cq.from.id ? cq.from.id : null;
+          const chatId =
+            cq.message && cq.message.chat && cq.message.chat.id
+              ? cq.message.chat.id
+              : null;
+
+          if (!userId) {
+            return {
+              method: "answerCallbackQuery",
+              callback_query_id: cq.id,
+              text: "Error: Could not identify user",
+              show_alert: true,
+            };
+          }
+
+          // Set flag indicating we're waiting for receipt code
+          await redis.setex(
+            `payment:awaiting_receipt:${userId}`,
+            300,
+            "ncba",
+          );
+
+          // Store the order info so receipt handler can find it
+          await redis.setex(
+            `payment:pending_order:${userId}`,
+            300,
+            JSON.stringify({
+              orderId: order.orderId,
+              userId: userId,
+              amount: amount,
+              method: "NCBA",
+              createdAt: new Date().toISOString(),
+            }),
+          );
+
+          return {
+            method: "sendMessage",
+            chat_id: chatId,
+            text: "Please send your M-Pesa receipt code (e.g., MTN123ABC) to confirm payment:",
+            reply_to_message_id: cq.message?.message_id,
+          };
+        } catch (err) {
+          logger.warn("ncba:payment_sent handler failed", err?.message);
+          return {
+            method: "answerCallbackQuery",
+            callback_query_id: cq.id,
+            text: "Error processing payment confirmation",
+            show_alert: true,
+          };
+        }
+      }
+
       // Only handle MPESA/STK confirmation here; other methods are no-ops
       if (method === "mpesa" || method === "mpesa_stk" || method === "lipana") {
         try {

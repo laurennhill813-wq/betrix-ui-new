@@ -1656,6 +1656,52 @@ async function handleUpdate(update) {
         return await handleSignupFlow(chatId, userId, text, signupState);
       }
 
+      // Check if user is awaiting NCBA receipt code
+      const awaitingReceipt = await redis.get(`payment:awaiting_receipt:${userId}`);
+      if (awaitingReceipt && text) {
+        try {
+          // Extract receipt code (expecting format like MTN123ABC or similar)
+          const receiptCode = String(text).trim().toUpperCase();
+          
+          // Simple validation: receipt codes are typically 6-12 alphanumeric characters
+          if (receiptCode.length >= 6 && receiptCode.length <= 20) {
+            // Store the receipt code with the pending order
+            const pendingOrder = await redis.get(`payment:pending_order:${userId}`);
+            if (pendingOrder) {
+              const order = JSON.parse(pendingOrder);
+              // Save receipt code to the order
+              await redis.setex(
+                `payment:receipt:${order.orderId}`,
+                3600,
+                receiptCode,
+              );
+              await redis.del(`payment:awaiting_receipt:${userId}`);
+              
+              // Send confirmation message
+              await telegram.sendMessage(
+                chatId,
+                `Receipt code received: ${receiptCode}\n\nProcessing your payment...\n\nYour subscription will activate once we verify the payment.`,
+              );
+              return;
+            }
+          }
+          
+          // If we get here, receipt code was invalid
+          await telegram.sendMessage(
+            chatId,
+            `Invalid receipt code format. Please send a valid M-Pesa receipt code (e.g., MTN123ABC).`,
+          );
+          return;
+        } catch (err) {
+          logger.warn("NCBA receipt processing failed", err?.message);
+          await telegram.sendMessage(
+            chatId,
+            "Error processing receipt code. Please try again.",
+          );
+          return;
+        }
+      }
+
       // Parse and route
       const { cmd, args } = parseCommand(text);
 
