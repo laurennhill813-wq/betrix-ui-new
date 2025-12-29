@@ -9,6 +9,7 @@ import { scoreEvent } from "../brain/interestScorer.js";
 import {
   buildEventId,
   hasPostedEvent,
+  hasPostedWithin,
   markEventPosted,
 } from "../brain/memory.js";
 import { bumpEventMention } from "../brain/trending.js";
@@ -97,7 +98,9 @@ export async function runMediaAiTick() {
       const minScore = Number(process.env.MEDIA_AI_MIN_SCORE || 10);
       if (s.score < minScore) continue;
     const evId = buildEventId(s.ev);
-    const already = await hasPostedEvent(evId).catch(() => false);
+    // consider duplicates only if posted recently (default: 1 hour)
+    const dupWindow = Number(process.env.MEDIA_AI_DUP_WINDOW_SECONDS || 3600);
+    const already = await hasPostedWithin(evId, dupWindow).catch(() => false);
     if (already) continue;
     chosen = s.ev;
     chosen._score = s.score;
@@ -115,7 +118,8 @@ export async function runMediaAiTick() {
           const debugRows = await Promise.all(
             top.map(async (r) => {
               const id = r.ev && (r.ev.id || (r.ev.raw && r.ev.raw.id)) ? (r.ev.id || (r.ev.raw && r.ev.raw.id)) : buildEventId(r.ev);
-              const dup = await hasPostedEvent(id).catch(() => false);
+              const dupWindow = Number(process.env.MEDIA_AI_DUP_WINDOW_SECONDS || 3600);
+              const dup = await hasPostedWithin(id, dupWindow).catch(() => false);
               return { id, score: r.score, home: r.ev.home, away: r.ev.away, sport: r.ev.sport, dup };
             }),
           );

@@ -16,6 +16,22 @@ export async function hasPostedEvent(eventId) {
   }
 }
 
+// Check whether an event was posted within the last `withinSeconds` seconds.
+export async function hasPostedWithin(eventId, withinSeconds = 3600) {
+  if (!eventId) return false;
+  try {
+    const key = `betrix:posted:${eventId}`;
+    const v = await cacheGet(key);
+    if (!v || !v.postedAt) return false;
+    const postedAt = Number(v.postedAt || v.posted_at || 0);
+    if (!postedAt) return false;
+    const ageSec = (Date.now() - postedAt) / 1000;
+    return ageSec <= Number(withinSeconds || 0);
+  } catch (e) {
+    return false;
+  }
+}
+
 export async function markEventPosted(eventId, meta = {}) {
   if (!eventId) return false;
   try {
