@@ -652,10 +652,10 @@ export function buildPaymentDetailsMenu(method) {
   let text = `🌀 *BETRIX* - ${paymentMethod.emoji} ${paymentMethod.name}\n\n`;
 
   if (method === "till") {
-    text += `📍 *Safaricom Till Payment*\n\n`;
-    text += `1️⃣ Open Safaricom App or USSD: *#100*\n`;
+    text += `📍 Safaricom Till Payment\n\n`;
+    text += `1️⃣ Open Safaricom App or dial USSD code 100\n`;
     text += `2️⃣ Select "Pay Bills/Buy" → "Business Numbers"\n`;
-    text += `3️⃣ Enter Till Number: *${TILL_NUMBER}*\n`;
+    text += `3️⃣ Enter Till Number: ${TILL_NUMBER}\n`;
     text += `4️⃣ Enter Amount and confirm\n`;
     text += `5️⃣ Share your Till receipt here\n\n`;
     text += `✅ Payment confirms instantly!\n`;

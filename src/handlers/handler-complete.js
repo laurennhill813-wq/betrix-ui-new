@@ -2287,7 +2287,7 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
             `Till Number: ${tillNumber}\n` +
             `Amount: ${amount} KES\n\n` +
             `HOW TO PAY (Using Safaricom App or USSD):\n` +
-            `1. Open Safaricom App or dial *100#\n` +
+            `1. Open Safaricom App or dial USSD: dial 100 and press call\n` +
             `2. Select Pay Bills/Buy\n` +
             `3. Select Business Numbers\n` +
             `4. Enter Till Number: ${tillNumber}\n` +
