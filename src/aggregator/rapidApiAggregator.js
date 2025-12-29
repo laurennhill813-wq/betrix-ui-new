@@ -2,7 +2,22 @@
 // Reads `process.env.RAPIDAPI_KEY` (and optionally `RAPIDAPI_HOSTS` comma-separated)
 // and attempts to fetch additional events from various RapidAPI endpoints.
 
+
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
+const RAPIDAPI_PROVIDERS = (process.env.RAPIDAPI_PROVIDERS || 'sportscore1,therundown,live-score-api').split(',').map(s => s.trim().toLowerCase());
+const RAPIDAPI_CACHE_TTL = 60; // seconds
+const rapidApiCache = new Map();
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function fetchWithRetry(url, headers, retries = 2, backoff = 1000) {
+  for (let i = 0; i <= retries; ++i) {
+    const res = await fetchJson(url, headers);
+    if (res) return res;
+    if (i < retries) await sleep(backoff * (i + 1));
+  }
+  return null;
+}
 
 async function fetchJson(url, headers = {}) {
   try {
@@ -39,69 +54,98 @@ export async function getExtraEvents() {
 
   const results = [];
 
-  // 1) sportscore1 search (generic event search)
-  try {
-    const url = 'https://sportscore1.p.rapidapi.com/events/search?sport_id=1&page=1';
-    const headers = { ...headersBase, 'x-rapidapi-host': 'sportscore1.p.rapidapi.com' };
-    const json = await fetchJson(url, headers);
-    if (json && Array.isArray(json.data)) {
-      for (const it of json.data.slice(0, 50)) {
-        const ev = normalizeEvent({
-          sport: it.sport_id || it.sport || 'soccer',
-          league: it.league_name || it.competition,
-          home: it.home_team_name || it.home_team || it.home,
-          away: it.away_team_name || it.away_team || it.away,
-          status: it.status || it.match_status,
-          id: it.event_id || it.id,
-          raw: it,
-        });
-        if (ev) results.push(ev);
-      }
-    }
-  } catch (e) {}
 
-  // 2) therundown conferences -> try to expand to events per sport if available
-  try {
-    const url = 'https://therundown-therundown-v1.p.rapidapi.com/sports/1/conferences';
-    const headers = { ...headersBase, 'x-rapidapi-host': 'therundown-therundown-v1.p.rapidapi.com' };
-    const json = await fetchJson(url, headers);
-    if (json && Array.isArray(json)) {
-      // not necessarily events, but include as lightweight fixtures placeholder
-      for (const c of json.slice(0, 20)) {
-        const ev = normalizeEvent({
-          sport: 'american_football',
-          league: c.name || c.alias || null,
-          home: c.home || null,
-          away: c.away || null,
-          status: 'UPCOMING',
-          id: c.id || c.key || null,
-          raw: c,
-        });
-        if (ev) results.push(ev);
-      }
+  // Caching: key is providers+RAPIDAPI_KEY
+  const cacheKey = `${RAPIDAPI_KEY}:${RAPIDAPI_PROVIDERS.join(',')}`;
+  const now = Math.floor(Date.now() / 1000);
+  if (rapidApiCache.has(cacheKey)) {
+    const { ts, data } = rapidApiCache.get(cacheKey);
+    if (now - ts < RAPIDAPI_CACHE_TTL) {
+      console.log(`[RapidAPI] Using cached events (${data.length})`);
+      return data;
     }
-  } catch (e) {}
+  }
 
-  // 3) live-score API sample (if you know an event id) -- try a small id probe
-  try {
-    const url = 'https://live-score-api.p.rapidapi.com/scores/events.json?id=164008';
-    const headers = { ...headersBase, 'x-rapidapi-host': 'live-score-api.p.rapidapi.com' };
-    const json = await fetchJson(url, headers);
-    if (json && json.events && Array.isArray(json.events)) {
-      for (const it of json.events.slice(0, 10)) {
-        const ev = normalizeEvent({
-          sport: it.sport || 'soccer',
-          league: it.league || it.competition || null,
-          home: it.home || it.home_name || it.home_team || null,
-          away: it.away || it.away_name || it.away_team || null,
-          status: it.status || it.state || null,
-          id: it.event_id || it.id,
-          raw: it,
-        });
-        if (ev) results.push(ev);
+  // Provider selection
+  if (RAPIDAPI_PROVIDERS.includes('sportscore1')) {
+    try {
+      const url = 'https://sportscore1.p.rapidapi.com/events/search?sport_id=1&page=1';
+      const headers = { ...headersBase, 'x-rapidapi-host': 'sportscore1.p.rapidapi.com' };
+      const json = await fetchWithRetry(url, headers);
+      if (json && Array.isArray(json.data)) {
+        for (const it of json.data.slice(0, 50)) {
+          const ev = normalizeEvent({
+            sport: it.sport_id || it.sport || 'soccer',
+            league: it.league_name || it.competition,
+            home: it.home_team_name || it.home_team || it.home,
+            away: it.away_team_name || it.away_team || it.away,
+            status: it.status || it.match_status,
+            id: it.event_id || it.id,
+            raw: it,
+          });
+          if (ev) results.push(ev);
+        }
       }
-    }
-  } catch (e) {}
+    } catch (e) { console.warn('[RapidAPI] sportscore1 error', e?.message || e); }
+  }
+
+  if (RAPIDAPI_PROVIDERS.includes('therundown')) {
+    try {
+      const url = 'https://therundown-therundown-v1.p.rapidapi.com/sports/1/conferences';
+      const headers = { ...headersBase, 'x-rapidapi-host': 'therundown-therundown-v1.p.rapidapi.com' };
+      const json = await fetchWithRetry(url, headers);
+      if (json && Array.isArray(json)) {
+        for (const c of json.slice(0, 20)) {
+          const ev = normalizeEvent({
+            sport: 'american_football',
+            league: c.name || c.alias || null,
+            home: c.home || null,
+            away: c.away || null,
+            status: 'UPCOMING',
+            id: c.id || c.key || null,
+            raw: c,
+          });
+          if (ev) results.push(ev);
+        }
+      }
+    } catch (e) { console.warn('[RapidAPI] therundown error', e?.message || e); }
+  }
+
+  if (RAPIDAPI_PROVIDERS.includes('live-score-api')) {
+    try {
+      const url = 'https://live-score-api.p.rapidapi.com/scores/events.json?id=164008';
+      const headers = { ...headersBase, 'x-rapidapi-host': 'live-score-api.p.rapidapi.com' };
+      const json = await fetchWithRetry(url, headers);
+      if (json && json.events && Array.isArray(json.events)) {
+        for (const it of json.events.slice(0, 10)) {
+          const ev = normalizeEvent({
+            sport: it.sport || 'soccer',
+            league: it.league || it.competition || null,
+            home: it.home || it.home_name || it.home_team || null,
+            away: it.away || it.away_name || it.away_team || null,
+            status: it.status || it.state || null,
+            id: it.event_id || it.id,
+            raw: it,
+          });
+          if (ev) results.push(ev);
+        }
+      }
+    } catch (e) { console.warn('[RapidAPI] live-score-api error', e?.message || e); }
+  }
+
+  // Deduplicate by id
+  const seen = new Set();
+  const deduped = [];
+  for (const r of results) {
+    if (!r || !r.id) continue;
+    if (seen.has(r.id)) continue;
+    seen.add(r.id);
+    deduped.push(r);
+  }
+
+  rapidApiCache.set(cacheKey, { ts: now, data: deduped });
+  console.log(`[RapidAPI] Aggregated ${deduped.length} events from providers: ${RAPIDAPI_PROVIDERS.join(',')}`);
+  return deduped;
 
   // Deduplicate by id
   const seen = new Set();

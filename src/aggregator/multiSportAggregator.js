@@ -46,9 +46,12 @@ export async function getInterestingEvents() {
     const rapid = await safeFetch(rapidApi.getExtraEvents?.bind(rapidApi));
     if (Array.isArray(rapid) && rapid.length > 0) {
       all.push(...rapid);
+      console.log(`[multiSportAggregator] RapidAPI augmentation: added ${rapid.length} events`);
+    } else {
+      console.log(`[multiSportAggregator] RapidAPI augmentation: no events added`);
     }
   } catch (e) {
-    // ignore rapidapi errors
+    console.warn('[multiSportAggregator] RapidAPI fetch error', e?.message || e);
   }
 
   const normalized = all.map((ev) => ({
