@@ -309,7 +309,11 @@ export async function selectBestImageForEventFallbackExtended(sportEvent = {}) {
   return null;
 }
 
-export default { selectBestImageForEvent };
+export default {
+  selectBestImageForEvent,
+  selectBestMediaForEventCombined,
+  selectBestImageForEventCombined,
+};
 
 // Export a combined selector that will try provider modules first and then
 // the generic ImageProvider fallback when available.
