@@ -2089,25 +2089,28 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
             await import("./payment-router.js")
           ).getPaymentInstructions(redis, order.orderId, "NCBA");
 
-          let instrText = `🏦 NCBA Paybill Payment\n\n`;
-          instrText += `Order ID: \`${order.orderId}\`\n`;
-          instrText += `Amount: *${amount} KES*\n`;
-          instrText += `Paybill: *880100*\n`;
-          instrText += `Account: *1006989273*\n\n`;
+          let instrText = `Order ID: ${order.orderId}\n\n`;
 
           if (instructions && instructions.manualSteps) {
             instrText += instructions.manualSteps.join("\n");
           } else {
             instrText +=
+              `🏦 NCBA PAYBILL PAYMENT\n\n` +
+              `Paybill: 880100\n` +
+              `Account: 1006989273\n` +
+              `Amount: ${amount} KES\n\n` +
+              `📱 HOW TO PAY (Using M-Pesa):\n` +
               `1️⃣ Open M-Pesa on your phone\n` +
-              `2️⃣ Select Lipa Na M-Pesa Online\n` +
+              `2️⃣ Tap Lipa Na M-Pesa Online\n` +
               `3️⃣ Enter Paybill: 880100\n` +
               `4️⃣ Enter Account: 1006989273\n` +
-              `5️⃣ Enter Amount: ${amount} KES\n` +
-              `6️⃣ Enter M-Pesa PIN\n` +
-              `7️⃣ Share your receipt code here\n\n` +
+              `5️⃣ Enter Amount: ${amount}\n` +
+              `6️⃣ Enter Your M-Pesa PIN\n` +
+              `7️⃣ You'll get a confirmation message\n\n` +
               `✅ After Paying:\n` +
-              `• Paste your M-Pesa receipt code in this chat\n` +
+              `• You'll receive an M-Pesa confirmation SMS\n` +
+              `• Copy the receipt code\n` +
+              `• Paste it in this chat for instant verification\n` +
               `• Your subscription activates immediately!`;
           }
 
