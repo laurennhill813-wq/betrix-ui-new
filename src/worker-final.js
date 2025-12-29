@@ -99,6 +99,7 @@ try {
 // ---- SAFE startup test broadcast (temporary) ----
 // Prefer sending to configured admin ID to avoid posting to a channel the bot
 // isn't a member of. If no admin or broadcast ID is configured, skip the test.
+// DISABLED: Startup test broadcast was cluttering the channel with test messages
 try {
   const adminId =
     process.env.ADMIN_TELEGRAM_ID ||
@@ -110,13 +111,14 @@ try {
     null;
   const target = adminId || broadcastEnv || null;
 
-  if (target) {
+  if (false && target) {  // ← DISABLED: Set to 'true' to re-enable
     const msg = adminId
       ? "🚀 BETRIX TEST BROADCAST — Admin delivery check."
       : "🚀 BETRIX TEST BROADCAST — Channel delivery check.";
 
     // Use broadcastText helper which is async; do not block initialization.
-    broadcastText(String(target), msg)
+    // NOTE: broadcastText(text, options) - first param is text, NOT chatId
+    broadcastText(msg)
       .then(() => logger.info("Startup test broadcast dispatched", { target }))
       .catch((err) =>
         logger.error(
@@ -126,7 +128,7 @@ try {
       );
   } else {
     logger.info(
-      "No ADMIN_TELEGRAM_ID or BOT_BROADCAST_CHAT_ID set — skipping startup test broadcast",
+      "Startup test broadcast disabled (set to avoid channel clutter)",
     );
   }
 } catch (e) {
@@ -1256,8 +1258,10 @@ try {
     await import("./automation/liveAlerts.js");
 
   function startSchedulers() {
+    // NOTE: MediaAiTicker is the primary real-content ticker (runs via setInterval)
+    // The old MediaTicker (fallback placeholder) is disabled here to avoid duplicate posts
     try {
-      startMediaTickerScheduler(cron, sportsAggregator);
+      // startMediaTickerScheduler(cron, sportsAggregator);  // DISABLED - use MediaAiTicker instead
     } catch (e) {
       logger.warn(
         "MediaTicker failed to start",

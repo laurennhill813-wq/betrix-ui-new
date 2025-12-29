@@ -1,7 +1,9 @@
 import { cacheGet, cacheSet, incrWithTTL, getRaw } from "./redis-cache.js";
 
-const MIN_MINUTES = Number(process.env.MIN_MINUTES_BETWEEN_POSTS || 15);
-const MAX_PER_HOUR = Number(process.env.MAX_POSTS_PER_HOUR || 3);
+// Set to 0 for disabled (allow unlimited), or set minimum minutes between posts
+// For 1-minute interval posting, set MIN_MINUTES to 0 (disabled)
+const MIN_MINUTES = Number(process.env.MIN_MINUTES_BETWEEN_POSTS || 0);
+const MAX_PER_HOUR = Number(process.env.MAX_POSTS_PER_HOUR || 999);
 
 function hourKey() {
   const d = new Date();
