@@ -143,6 +143,19 @@ export async function selectBestImageForEvent(sportEvent = {}) {
       candidates.push(...f.map((u) => ({ url: u, source: "sportradar-flag" })));
   }
 
+  // Always try public team logos (Wikimedia) as a low-cost fallback
+  try {
+    const publicLogos = await getPublicTeamLogos(sportEvent).catch(() => []);
+    if (publicLogos && publicLogos.length) {
+      candidates.push(...publicLogos.map((u) => ({ url: u.url || u, source: u.source || 'team-logo-public' })));
+    }
+  } catch (e) {}
+
+  // Debug: log how many raw candidates we collected
+  try {
+    console.info("[imageSelector] raw-candidates-count", JSON.stringify({count: candidates.length, sample: candidates.slice(0,5).map(c=>c && (c.url||c.imageUrl||c.src))}));
+  } catch (e) {}
+
   // Prefer raster images first (jpg/png), then fall back to SVGs or others
   const rasterExtRe = /\.(jpe?g|png|gif)($|\?)/i;
   // If configured, deprioritize Sportradar candidates (they may require provider-side access).
