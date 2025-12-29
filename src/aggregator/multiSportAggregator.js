@@ -3,6 +3,7 @@
 // Also optionally blends in news items if NEWS_BLEND_MODE enabled
 
 import { getLatestNews } from "./newsAggregator.js";
+import rapidApi from "./rapidApiAggregator.js";
 
 let globalSportsAggregator = null;
 
@@ -39,6 +40,16 @@ export async function getInterestingEvents() {
   ]).catch(() => [[], []]);
 
   const all = [...(liveMatches || []), ...(upcomingFixtures || [])];
+
+  // Attempt to augment with RapidAPI-sourced events when available
+  try {
+    const rapid = await safeFetch(rapidApi.getExtraEvents?.bind(rapidApi));
+    if (Array.isArray(rapid) && rapid.length > 0) {
+      all.push(...rapid);
+    }
+  } catch (e) {
+    // ignore rapidapi errors
+  }
 
   const normalized = all.map((ev) => ({
     sport: ev.sport || ev.sport_name || ev.sportId || "soccer",
