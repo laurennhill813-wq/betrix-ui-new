@@ -50,6 +50,41 @@ async function safeCall(fn, ...args) {
       console.warn("imageSelector provider call failed", e?.message || e);
     } catch (_) {}
     return [];
+
+  // Simple public team logo fetcher - works without API keys
+  async function getPublicTeamLogos(sportEvent = {}) {
+    const logos = [];
+    if (!sportEvent.home && !sportEvent.away) return logos;
+  
+    // Try to fetch team logos from public APIs (no auth required)
+    const teams = [sportEvent.home, sportEvent.away].filter(Boolean);
+    for (const team of teams) {
+      try {
+        // Use Fotmob or similar free logo sources
+        const encodedTeam = encodeURIComponent(team);
+        // Wikipedia logo as fallback (raster images preferred)
+        const wikiUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=original&titles=${encodedTeam}`;
+        const res = await fetch(wikiUrl, { redirect: "follow", timeout: 5000 });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.query?.pages) {
+            for (const page of Object.values(data.query.pages)) {
+              if (page?.original?.source) {
+                const imgUrl = page.original.source;
+                // Only accept raster images (not SVG)
+                if (!imgUrl.toLowerCase().includes(".svg")) {
+                  logos.push({ url: imgUrl, source: "team-logo-public" });
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Silent fail - will continue to next team
+      }
+    }
+    return logos;
+  }
   }
 }
 
@@ -70,6 +105,9 @@ export async function selectBestImageForEvent(sportEvent = {}) {
   const reuters = await tryImport("../data/images-reuters.js");
   if (reuters && typeof reuters.getReutersImages === "function") {
     candidates.push(...(await safeCall(reuters.getReutersImages, sportEvent)));
+
+    // Add public team logos as a built-in fallback
+    candidates.push(...(await getPublicTeamLogos(sportEvent)));
   }
 
   const getty = await tryImport("../data/images-getty.js");

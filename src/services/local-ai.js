@@ -58,23 +58,37 @@ class LocalAIService {
       if (jsonMatch) {
         const data = JSON.parse(jsonMatch[0]);
         if (data.home && data.away && data.league) {
-          // Build a compelling sports caption from the data
+          // Build a compelling sports caption with EMOJIS and PERSONALITY
           const status = (data.status || "").toUpperCase();
           const score = data.score || {};
           const scoreStr =
             score.home !== undefined && score.away !== undefined
               ? `${score.home}-${score.away}`
               : "";
-          const time = data.time ? `${data.minute || data.time}'` : "";
-          const story =
-            status === "LIVE"
-              ? `${data.home} and ${data.away} battle it out live.`
-              : `${data.home} face ${data.away} — a key ${data.league} encounter.`;
-
+          const time = data.time ? `'${data.minute || data.time}` : "";
+          
+          // Personality-driven narratives with emojis
+          let story = "";
+          if (status === "LIVE") {
+            story = `⚽ **${data.home} vs ${data.away}** — Live action! ${scoreStr} ${time}`;
+          } else if (data.league && data.league.toLowerCase().includes("champions")) {
+            story = `🏆 **${data.home} vs ${data.away}** — Elite clash in the ${data.league}!`;
+          } else if (data.league && data.league.toLowerCase().includes("premier")) {
+            story = `👑 **${data.home} vs ${data.away}** — Premier drama incoming!`;
+          } else {
+            story = `⚡ **${data.home} vs ${data.away}** — Big match alert in ${data.league}!`;
+          }
+          
+          // Build tags with energy
+          const leagueTag = (data.league || "Sports")
+            .replace(/\s+/g, "")
+            .slice(0, 20);
+          const homeTag = (data.home || "").split(" ")[0].slice(0, 10);
+          
           return [
-            `**${data.home} vs ${data.away}**`,
-            `${story} ${scoreStr} ${time}`.trim(),
-            `#${(data.league || "Sports").replace(/\s+/g, "")} #BETRIXLive`,
+            story,
+            `🔥 Will ${homeTag} deliver? Watch this unfold...`,
+            `#${leagueTag} #BETRIXLive #Sports`,
           ]
             .join("\n")
             .trim();
