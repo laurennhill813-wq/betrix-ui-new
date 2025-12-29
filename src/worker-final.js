@@ -59,7 +59,7 @@ import SportsDataAPI from "./services/sportsdata-api.js";
 import ImageProvider from "./services/image-provider.js";
 import { registerDataExposureAPI } from "./app_clean.js";
 import app from "./app_clean.js";
-import { runMediaAiTick } from "./tickers/mediaAiTicker.js";
+import { runAdvancedMediaAiTick, setRedisClient } from "./tickers/advancedMediaAiTicker.js";
 import { setSportsAggregator } from "./aggregator/multiSportAggregator.js";
 import { canPostNow, markPosted } from "./lib/liveliness.js";
 import { Pool } from "pg";
@@ -1117,7 +1117,7 @@ if (typeof v2Handler.setTelemetryRedis === "function") {
   } catch (e) {}
 }
 
-// ===== SCHEDULE: Media AI Ticker =====
+// ===== SCHEDULE: Advanced Media AI Ticker v2 =====
 try {
   const intervalSeconds = Number(
     process.env.MEDIA_AI_INTERVAL_SECONDS ||
@@ -1125,6 +1125,9 @@ try {
       60,
   );
   if (intervalSeconds > 0) {
+    // Initialize Redis for Advanced Media AI Ticker deduplication
+    setRedisClient(redis);
+    
     setInterval(
       async () => {
         try {
@@ -1132,8 +1135,8 @@ try {
           const ok = await canPostNow();
           if (!ok) return;
 
-          await runMediaAiTick();
-          // markPosted is best-effort; if runMediaAiTick posted, mark it
+          await runAdvancedMediaAiTick();
+          // markPosted is best-effort; if runAdvancedMediaAiTick posted, mark it
           try {
             await markPosted();
           } catch (e) {
@@ -1141,7 +1144,7 @@ try {
           }
         } catch (e) {
           logger.warn(
-            "MediaAiTicker scheduled run failed",
+            "AdvancedMediaAiTicker scheduled run failed",
             e?.message || String(e),
           );
         }
