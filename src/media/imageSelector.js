@@ -65,7 +65,11 @@ async function getPublicTeamLogos(sportEvent = {}) {
       const encodedTeam = encodeURIComponent(team);
       // Request a thumbnail (raster) from Wikimedia rather than the original (often SVG)
       const wikiUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=600&titles=${encodedTeam}`;
-      const res = await fetch(wikiUrl, { redirect: "follow", timeout: 5000 });
+      const headers = {
+        "User-Agent": process.env.MEDIA_FETCH_UA || "betrix-bot/1.0 (+https://betrix.example)",
+        Accept: "application/json,text/html;q=0.9,*/*;q=0.8",
+      };
+      const res = await fetch(wikiUrl, { redirect: "follow", timeout: 5000, headers });
       if (res.ok) {
         const data = await res.json();
         if (data?.query?.pages) {
@@ -261,7 +265,11 @@ async function wikiImageForName(name) {
     const titles = variants.map(encodeURIComponent).join("|");
     // Request thumbnail (raster) to avoid SVG originals
     const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=600&titles=${titles}`;
-    const res = await fetch(url, { redirect: "follow" });
+    const headers = {
+      "User-Agent": process.env.MEDIA_FETCH_UA || "betrix-bot/1.0 (+https://betrix.example)",
+      Accept: "application/json,text/html;q=0.9,*/*;q=0.8",
+    };
+    const res = await fetch(url, { redirect: "follow", headers });
     if (!res.ok) return null;
     const data = await res.json();
     if (!data || !data.query || !data.query.pages) return null;
@@ -375,7 +383,7 @@ async function getRssItemsForEvent(sportEvent = {}) {
     if (feeds.length === 0 || keywords.length === 0) return out;
     for (const f of feeds) {
       try {
-        const r = await fetch(f, { redirect: 'follow', timeout: 8000 });
+        const r = await fetch(f, { redirect: 'follow', timeout: 8000, headers: { "User-Agent": process.env.MEDIA_FETCH_UA || "betrix-bot/1.0 (+https://betrix.example)", Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' } });
         if (!r.ok) continue;
         const txt = await r.text();
         // crude parse: find <item> blocks
@@ -417,7 +425,7 @@ async function extractEmbedForUrl(url) {
       } catch (e) {}
     }
     // fallback: fetch page and try og:video / og:image
-    const r2 = await fetch(url, { redirect: 'follow', timeout: 8000 });
+    const r2 = await fetch(url, { redirect: 'follow', timeout: 8000, headers: { "User-Agent": process.env.MEDIA_FETCH_UA || "betrix-bot/1.0 (+https://betrix.example)", Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' } });
     if (!r2.ok) return null;
     const html = await r2.text();
     let match = html.match(/<meta[^>]+property=["']og:video["'][^>]+content=["']([^"']+)["']/i);

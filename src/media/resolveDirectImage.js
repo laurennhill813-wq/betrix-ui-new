@@ -20,7 +20,12 @@ export async function resolveDirectImage(rawUrl) {
   if (looksLikeDirectImage(rawUrl)) return rawUrl;
 
   try {
-    const res = await fetch(rawUrl, { redirect: "follow" });
+    const defaultHeaders = {
+      // Some hosts (Wikipedia, social sites) block unknown/empty user agents.
+      "User-Agent": process.env.MEDIA_FETCH_UA || "betrix-bot/1.0 (+https://betrix.example)",
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/*;q=0.8,*/*;q=0.5",
+    };
+    const res = await fetch(rawUrl, { redirect: "follow", headers: defaultHeaders });
 
     const finalUrl = res.url || rawUrl;
     if (looksLikeDirectImage(finalUrl)) return finalUrl;
@@ -49,9 +54,10 @@ export async function resolveDirectImage(rawUrl) {
     if (ogImage) {
       if (looksLikeDirectImage(ogImage)) return ogImage;
       // follow the og image to see if it resolves to an image
-      try {
+        try {
         const ogRes = await fetch(new URL(ogImage, finalUrl).toString(), {
           redirect: "follow",
+          headers: defaultHeaders,
         });
         const ogFinal = ogRes.url || ogImage;
         const ogCT =
@@ -72,9 +78,10 @@ export async function resolveDirectImage(rawUrl) {
     const twitterImage = $('meta[name="twitter:image"]').attr("content");
     if (twitterImage) {
       if (looksLikeDirectImage(twitterImage)) return twitterImage;
-      try {
+        try {
         const tRes = await fetch(new URL(twitterImage, finalUrl).toString(), {
           redirect: "follow",
+          headers: defaultHeaders,
         });
         const tFinal = tRes.url || twitterImage;
         const tCT =
@@ -102,6 +109,7 @@ export async function resolveDirectImage(rawUrl) {
           const head = await fetch(candidate, {
             method: "HEAD",
             redirect: "follow",
+            headers: defaultHeaders,
           });
           const hCT =
             (head.headers && head.headers.get
