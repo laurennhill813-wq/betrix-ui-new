@@ -22,30 +22,12 @@ export function selectBestSportradarAsset(assets = []) {
   // 2. Prefer largest JPEGs (exclude resized variants)
   const jpegCandidates = cleaned.filter(
     (url) =>
-      const variants = [name, `${name} F.C.`, `${name} FC`, `${name} Football Club`];
-      // Try REST summary endpoint per-variant (returns thumbnail/originalimage)
-      for (const v of variants) {
-        try {
-          const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(v)}`;
-          const headers = {
-            "User-Agent": process.env.MEDIA_FETCH_UA || "betrix-bot/1.0 (+https://betrix.example)",
-            Accept: "application/json,text/html;q=0.9,*/*;q=0.8",
-          };
-          const sres = await fetch(summaryUrl, { redirect: "follow", headers, timeout: 5000 });
-          try { console.info('[imageSelector] wikiSummaryLookup', { title: v, status: sres && sres.status }); } catch(e) {}
-          if (!sres || !sres.ok) continue;
-          const sjson = await sres.json();
-          const thumb = sjson && (sjson.thumbnail && sjson.thumbnail.source) ? sjson.thumbnail.source : (sjson && sjson.originalimage && sjson.originalimage.source ? sjson.originalimage.source : null);
-          if (thumb) {
-            const low = String(thumb).toLowerCase().split('?')[0];
-            if (low.endsWith('.svg')) continue;
-            const resolved = await resolveDirectImage(thumb).catch(() => null);
-            if (resolved) return resolved;
-          }
-        } catch (e) {
-          /* ignore and try next variant */
-        }
-      }
+      url.toLowerCase().endsWith(".jpg") &&
+      !url.includes("width=") &&
+      !url.includes("/small/") &&
+      !url.includes("/medium/") &&
+      !url.includes("/large/"),
+  );
   // 3. Avoid PNG flags unless absolutely nothing else exists
   const png = cleaned.find((url) => url.toLowerCase().endsWith(".png"));
   if (png) return png;
