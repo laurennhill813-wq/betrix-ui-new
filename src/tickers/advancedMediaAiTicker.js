@@ -327,8 +327,14 @@ class SportRotationManager {
    * Pick next sport based on weights
    * Encourages variety by reducing weight of recently-posted sports
    */
-  getNextSport(recentSportStats = {}) {
-    const sports = Object.entries(SUPPORTED_SPORTS);
+  getNextSport(availableSports = null, recentSportStats = {}) {
+    // availableSports: optional array of supported sport keys (lowercase)
+    const allEntries = Object.entries(SUPPORTED_SPORTS);
+    let sports = allEntries;
+    if (Array.isArray(availableSports) && availableSports.length > 0) {
+      const availSet = new Set(availableSports.map((s) => String(s).toLowerCase()));
+      sports = allEntries.filter(([key]) => availSet.has(String(key).toLowerCase()));
+    }
     const scores = sports.map(([key, config]) => {
       let weight = config.weight;
 
@@ -358,6 +364,9 @@ class SportRotationManager {
       .join(' | ');
     console.log(`[SportRotation] Top weights: ${logScores}`);
     console.log(`[SportRotation] Recent history: ${this.lastSports.slice(-5).join(' <- ')}`);
+    if (Array.isArray(availableSports) && availableSports.length > 0) {
+      console.log(`[SportRotation] Available sports passed: ${availableSports.join(', ')}`);
+    }
 
     // Weighted random pick
     const totalWeight = scores.reduce((sum, s) => sum + s.weight, 0);
@@ -413,13 +422,24 @@ async function getNewsArticles(count = 5) {
  * Uses sport rotation to prefer certain sports
  */
 async function getDiverseContent() {
-  // Get the selected sport for this iteration
-  const selectedSport = sportRotation.getNextSport();
-  console.log(`[AdvancedMediaAiTicker] getDiverseContent() requesting ${selectedSport}`);
-  
   // Fetch all events
   const allLiveEvents = await getInterestingEvents().catch(() => []);
   console.log(`[AdvancedMediaAiTicker] Fetched ${allLiveEvents.length} total events`);
+  
+  // Determine which supported sports are actually present in the fetched events
+  const available = [];
+  if (allLiveEvents.length > 0) {
+    const supportedKeys = Object.keys(SUPPORTED_SPORTS);
+    const eventSports = Array.from(new Set(allLiveEvents.map(e => String(e.sport || '').toLowerCase())));
+    for (const key of supportedKeys) {
+      if (eventSports.some(es => es.includes(key) || key.includes(es))) {
+        available.push(key);
+      }
+    }
+  }
+
+  const selectedSport = sportRotation.getNextSport(available.length ? available : null);
+  console.log(`[AdvancedMediaAiTicker] getDiverseContent() requesting ${selectedSport}`);
   if (allLiveEvents.length > 0) {
     const sportBreakdown = {};
     allLiveEvents.forEach(e => {
@@ -427,6 +447,11 @@ async function getDiverseContent() {
       sportBreakdown[s] = (sportBreakdown[s] || 0) + 1;
     });
     console.log(`[AdvancedMediaAiTicker] Available sports: ${Object.entries(sportBreakdown).map(([k, v]) => `${k}(${v})`).join(', ')}`);
+    if (available.length > 0) {
+      console.log(`[AdvancedMediaAiTicker] Supported sports available: ${available.join(', ')}`);
+    } else {
+      console.log(`[AdvancedMediaAiTicker] No supported sports detected in fetched events`);
+    }
   }
   
   // Try to filter for the selected sport first, but fallback to all if no match
