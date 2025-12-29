@@ -73,6 +73,14 @@ async function getPublicTeamLogos(sportEvent = {}) {
       try { console.info('[imageSelector] wikiThumbAttempt', { team, wikiUrl, status: res && res.status }); } catch(e) {}
       if (res.ok) {
         const data = await res.json();
+        try {
+          const pages = data && data.query && data.query.pages ? Object.keys(data.query.pages) : [];
+          const sample = pages.slice(0,3).map(pid => {
+            const p = data.query.pages[pid];
+            return { id: pid, title: p && p.title, hasThumbnail: !!(p && p.thumbnail && p.thumbnail.source), thumbnail: p && p.thumbnail && p.thumbnail.source };
+          });
+          try { console.info('[imageSelector] wikiResponsePages', { team, pagesCount: pages.length, sample }); } catch(e) {}
+        } catch (e) {}
         if (data?.query?.pages) {
           for (const page of Object.values(data.query.pages)) {
             if (page?.thumbnail && page.thumbnail.source) {
