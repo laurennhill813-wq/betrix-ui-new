@@ -473,8 +473,14 @@ async function getDiverseContent() {
   const newsArticles = await getNewsArticles(3).catch(() => []);
   console.log(`[AdvancedMediaAiTicker] Fetched ${newsArticles.length} news articles`);
 
-  // Combine and diversify
-  const all = [...liveEvents, ...newsArticles];
+  // If there are no live events for the selected sport, prefer news when available
+  let all;
+  if ((liveEvents.length === 0 || !liveEvents) && newsArticles.length > 0) {
+    console.log(`[AdvancedMediaAiTicker] No events for ${selectedSport}; preferring news fallback`);
+    all = [...newsArticles];
+  } else {
+    all = [...liveEvents, ...newsArticles];
+  }
 
   return all.map((item) => ({
     ...item,
