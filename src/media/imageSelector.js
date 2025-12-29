@@ -441,24 +441,43 @@ async function extractEmbedForUrl(url) {
 export async function selectBestMediaForEventCombined(ev) {
   try {
     const [imageCand, yt, rss] = await Promise.all([
-      selectBestImageForEventCombined(ev).catch(()=>null),
-      getYouTubeVideosForEvent(ev).catch(()=>[]),
-      getRssItemsForEvent(ev).catch(()=>[])
+      selectBestImageForEventCombined(ev).catch(() => null),
+      getYouTubeVideosForEvent(ev).catch(() => []),
+      getRssItemsForEvent(ev).catch(() => []),
     ]);
+    // Debug: log counts of candidates to help root-cause missing media
+    try {
+      console.info("[imageSelector] media-candidates", JSON.stringify({
+        imageFound: !!imageCand,
+        imageUrl: imageCand ? (imageCand.imageUrl || imageCand.url) : null,
+        youTubeCount: Array.isArray(yt) ? yt.length : 0,
+        rssCount: Array.isArray(rss) ? rss.length : 0,
+      }));
+    } catch (e) {}
     const videos = [];
     if (Array.isArray(yt) && yt.length) videos.push(...yt.map(v=>({...v, source: v.source||'youtube'})));
     if (Array.isArray(rss) && rss.length) videos.push(...rss.filter(r=>r.type==='video'));
     // If RSS contains embed-only links, attempt to extract
     const embeds = (Array.isArray(rss)? rss.filter(r=>r.type==='embed') : []).slice(0,6);
     for (const e of embeds) {
-      const ex = await extractEmbedForUrl(e.url).catch(()=>null);
-      if (ex) videos.push(ex);
+      try {
+        const ex = await extractEmbedForUrl(e.url).catch(() => null);
+        if (ex) videos.push(ex);
+      } catch (err) {}
     }
     // prefer videos: return first video candidate
     if (videos.length > 0) {
-      return { mediaUrl: videos[0].url, type: videos[0].type || 'video', source: videos[0].source || 'video' };
+      try {
+        console.info("[imageSelector] selected-video", videos[0].url);
+      } catch (e) {}
+      return { mediaUrl: videos[0].url, type: videos[0].type || "video", source: videos[0].source || "video" };
     }
-    if (imageCand) return { mediaUrl: imageCand.imageUrl, type: 'image', source: imageCand.source };
+    if (imageCand) {
+      try {
+        console.info("[imageSelector] selected-image", imageCand.imageUrl || imageCand.url);
+      } catch (e) {}
+      return { mediaUrl: imageCand.imageUrl, type: "image", source: imageCand.source };
+    }
   } catch (e) {
     // ignore
   }

@@ -75,8 +75,8 @@ export async function runMediaAiTick() {
     console.warn("[MediaAiTicker] snapshot failed", e && e.message);
   }
 
-  // Pick best candidate
-  let chosen = null;
+  // Pick best candidate — collect eligible and pick randomly among top N to rotate
+  const eligible = [];
   for (const s of scored) {
     try {
       const sport = s.ev && s.ev.sport ? String(s.ev.sport).toLowerCase() : "";
@@ -103,16 +103,22 @@ export async function runMediaAiTick() {
     const already = await hasPostedWithin(evId, dupWindow).catch(() => false);
     if (already) continue;
 
-    chosen = s.ev;
-    chosen._score = s.score;
-    chosen._eventId = evId;
-    break;
+    eligible.push({ ev: s.ev, score: s.score, evId });
+    // continue looping to gather a pool
   }
 
-  if (!chosen) {
+  if (!eligible || eligible.length === 0) {
     console.info("[MediaAiTicker] No candidate passed checks");
     return;
   }
+
+  // Randomize among the top N eligible candidates to avoid reposting the same one
+  const TOP_POOL = Number(process.env.MEDIA_AI_TOP_POOL || 6);
+  const pool = eligible.slice(0, TOP_POOL);
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  let chosen = pick.ev;
+  chosen._score = pick.score;
+  chosen._eventId = pick.evId;
 
   console.info("[MediaAiTicker] Selected event", {
     home: chosen.home,
