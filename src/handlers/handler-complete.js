@@ -2175,9 +2175,9 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
             `payment:pending_order:${userId}`,
             300,
             JSON.stringify({
-              orderId: order.orderId,
+              orderId: `ORD${userId}${Date.now()}`,
               userId: userId,
-              amount: amount,
+              amount: 100,
               method: "NCBA",
               createdAt: new Date().toISOString(),
             }),
