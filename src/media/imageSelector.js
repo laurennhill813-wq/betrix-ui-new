@@ -257,17 +257,17 @@ export async function selectBestImageForEventFallback(sportEvent = {}) {
 async function wikiImageForName(name) {
   if (!name) return null;
   try {
-    const titles = [name, `${name} F.C.`, `${name} FC`, `${name} Football Club`]
-      .map(encodeURIComponent)
-      .join("|");
-    const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=original&titles=${titles}`;
+    const variants = [name, `${name} F.C.`, `${name} FC`, `${name} Football Club`];
+    const titles = variants.map(encodeURIComponent).join("|");
+    // Request thumbnail (raster) to avoid SVG originals
+    const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=600&titles=${titles}`;
     const res = await fetch(url, { redirect: "follow" });
     if (!res.ok) return null;
     const data = await res.json();
     if (!data || !data.query || !data.query.pages) return null;
     for (const pid of Object.keys(data.query.pages)) {
       const p = data.query.pages[pid];
-      if (p && p.original && p.original.source) return p.original.source;
+      if (p && p.thumbnail && p.thumbnail.source) return p.thumbnail.source;
     }
   } catch (e) {
     // ignore
@@ -290,10 +290,16 @@ export async function selectBestImageForEventFallbackExtended(sportEvent = {}) {
   for (const n of names) {
     const w = await wikiImageForName(n);
     if (w) {
-      // Skip SVG URLs (Telegram 400 error) unless it's the only option
-      if (String(w || "").toLowerCase().includes(".svg")) {
-        console.info("[imageSelector] Skipping SVG URL from Wikimedia:", w);
-        continue;
+      // Skip direct SVG files (endsWith .svg) since Telegram can't fetch them.
+      // Allow thumbnail URLs that embed '/svg/' but end with a raster extension.
+      try {
+        const low = String(w || "").toLowerCase().split("?")[0].split("#")[0];
+        if (low.endsWith(".svg")) {
+          console.info("[imageSelector] Skipping SVG URL from Wikimedia:", w);
+          continue;
+        }
+      } catch (e) {
+        /* ignore */
       }
       const resolved = await resolveDirectImage(w).catch(() => null);
       if (resolved)
