@@ -48,6 +48,44 @@ export async function sendTelegramPhoto(
     return null;
   }
   try {
+    // Verify that the provided URL points to an image.
+    // Some providers return HTML pages (landing pages) instead of direct image files.
+    let isImage = false;
+    try {
+      const headRes = await fetch(photoUrl, { method: "HEAD", redirect: "follow" });
+      const ct = headRes.headers && headRes.headers.get ? headRes.headers.get("content-type") : "";
+      if (headRes.ok && ct && ct.startsWith("image/")) isImage = true;
+    } catch (e) {
+      // HEAD can fail on some hosts; ignore and try a light GET below
+      isImage = false;
+    }
+
+    if (!isImage) {
+      try {
+        const getRes = await fetch(photoUrl, { method: "GET", redirect: "follow" });
+        const ct = getRes.headers && getRes.headers.get ? getRes.headers.get("content-type") : "";
+        if (getRes.ok && ct && ct.startsWith("image/")) {
+          isImage = true;
+        } else {
+          // Try to extract an OpenGraph image from HTML
+          const body = await getRes.text().catch(() => "");
+          const og = body.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
+          if (og && og[1]) {
+            photoUrl = og[1];
+            isImage = true;
+          }
+        }
+      } catch (e) {
+        isImage = false;
+      }
+    }
+
+    if (!isImage) {
+      // Not an image URL — send as text fallback with caption instead of attempting sendPhoto
+      console.warn("[Telegram] photoUrl is not a direct image; falling back to sendMessage");
+      return await sendTelegramMessage(chatId, caption || "[image omitted]", options);
+    }
+
     const payload = Object.assign(
       { chat_id: chatId, photo: photoUrl, caption },
       options,
@@ -55,6 +93,11 @@ export async function sendTelegramPhoto(
     return await safeFetch("/sendPhoto", payload);
   } catch (err) {
     console.error("[Telegram] sendPhoto failed", err?.message || err);
+    try {
+      (await import("../brain/telemetry.js")).default.incCounter(
+        "sendphoto_failures",
+      );
+    } catch (e) {}
 
     // If Telegram couldn't fetch the provided URL (e.g. wrong type of web page content),
     // attempt to fetch the image locally and upload it as multipart/form-data using `form-data`.
@@ -71,7 +114,7 @@ export async function sendTelegramPhoto(
           imgRes.headers && imgRes.headers.get
             ? imgRes.headers.get("content-type")
             : "";
-        if (imgRes.ok && ct && ct.startsWith("image/")) {
+          if (imgRes.ok && ct && ct.startsWith("image/")) {
           const buf = Buffer.from(await imgRes.arrayBuffer());
           const FormDataPkg = (await import("form-data")).default;
           const formData = new FormDataPkg();
@@ -107,8 +150,18 @@ export async function sendTelegramPhoto(
               uploadResp.status,
               uploadJson,
             );
+            try {
+              (await import("../brain/telemetry.js")).default.incCounter(
+                "upload_fallback_failures",
+              );
+            } catch (e) {}
             return null;
           }
+          try {
+            (await import("../brain/telemetry.js")).default.incCounter(
+              "upload_fallback_success",
+            );
+          } catch (e) {}
           return uploadJson;
         }
       }

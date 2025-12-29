@@ -1,0 +1,16 @@
+﻿import fetch from 'node-fetch';
+
+const SPORTBEX_BASE = process.env.SPORTBEX_BASE || 'https://trial-api.sportbex.com/api';
+const SPORTBEX_KEY = process.env.SPORTBEX_API_KEY || '';
+
+export async function fetchSportbex(path, opts = {}) {
+  const url = path.startsWith('http') ? path : `${SPORTBEX_BASE}${path.startsWith('/') ? '' : '/'}${path}`;
+  const headers = Object.assign({}, opts.headers || {});
+  if (SPORTBEX_KEY) headers['sportbex-api-key'] = SPORTBEX_KEY;
+  headers['Accept'] = headers['Accept'] || 'application/json';
+  const res = await fetch(url, Object.assign({ method: opts.method || 'GET', headers, body: opts.body }, opts.fetchOptions || {}));
+  const body = await (res && typeof res.json === 'function' ? res.json().catch(() => null) : null);
+  return { httpStatus: res.status, body, headers: res.headers };
+}
+
+export default { fetchSportbex };

@@ -1,0 +1,1251 @@
+﻿/**
+ * Prefetch scheduler: warms caches for free-data sources and publishes Redis notifications.
+ * Configurable via env var PREFETCH_INTERVAL_SECONDS (default 60).
+ * WARNING: setting this below ~10s may stress remote APIs and trigger rate limits.
+ */
+import { setTimeout as wait } from "timers/promises";
+import fs from "fs";
+import path from "path";
+import fetch from "node-fetch";
+import RapidApiLogger from "../lib/rapidapi-logger.js";
+import { aggregateFixtures } from "../lib/fixtures-aggregator.js";
+import { fetchUpcomingFixtures, fetchLiveMatches } from "../lib/rapidapi-client.js";
+import { formatMMDDYYYY, getNextDaysMMDDYYYY } from "../lib/rapidapi-utils.js";
+import { normalizeRedisKeyPart } from "../lib/rapidapi-fetcher.js";
+import { ensureRedisKeyType } from "../utils/redis-helpers.js";
+export function startPrefetchScheduler({
+  redis,
+  openLiga,
+  rss,
+  scorebat,
+  footballData,
+  sportsAggregator,
+  sportsgameodds,
+  flashlive,
+  intervalSeconds = null,
+} = {}) {
+  if (!redis) throw new Error("redis required");
+  intervalSeconds =
+    intervalSeconds || Number(process.env.PREFETCH_INTERVAL_SECONDS || 60);
+
+  let running = false;
+  let lastRun = 0;
+
+  // Load subscriptions.json at runtime so `subscriptions` is defined
+  let subscriptions = [];
+  try {
+    const subsPath = path.join(process.cwd(), "src", "rapidapi", "subscriptions.json");
+    const raw = fs.readFileSync(subsPath, "utf8");
+    subscriptions = JSON.parse(raw);
+  } catch (e) {
+    console.warn("[rapidapi] failed to load subscriptions.json", e && e.message ? e.message : String(e));
+    subscriptions = [];
+  }
+
+  const safeSet = async (key, value, ttl) => {
+    try {
+        // Proactive Heisenbug aggregation: if subscriptions include Heisenbug provider,
+        // perform a dedicated aggregation so UI fixtures are populated even when
+        // sampleEndpoints are placeholders.
+        try {
+          const heis = (Array.isArray(subscriptions) ? subscriptions : []).find(s => s && s.host && String(s.host).toLowerCase().includes('heisenbug-premier-league'));
+          if (heis) {
+            try {
+              // ensure rapidLogger exists
+              if (!rapidLogger) {
+                try { rapidLogger = new RapidApiLogger({ apiKey: process.env.RAPIDAPI_KEY }); } catch (e) {}
+              }
+              if (rapidLogger) {
+                const host = heis.host;
+                const days = Number(process.env.HEISENBUG_DAYS || 7);
+                const aggregated = [];
+                const dates = getNextDaysMMDDYYYY(Math.max(1, days));
+                for (const dateStr of dates) {
+                  const dateEndpoint = `/api/premierleague?date=${encodeURIComponent(dateStr)}`;
+                  const resDate = await rapidLogger.fetch(host, dateEndpoint, { apiName: heis.name || 'Premier League' }).catch(()=>null);
+                  if (!resDate) continue;
+                  if (resDate.httpStatus === 404) continue;
+                  let parsedDate = null;
+                  try { parsedDate = typeof resDate.body === 'string' ? JSON.parse(resDate.body) : resDate.body; } catch (e) { parsedDate = resDate.body || null; }
+                  const arrDate = Array.isArray(parsedDate) ? parsedDate : (parsedDate && Array.isArray(parsedDate.fixtures) ? parsedDate.fixtures : []);
+                  for (const ev of (arrDate || [])) {
+                    const home = ev.home || ev.home_team || (ev.home && ev.home.name) || null;
+                    const away = ev.away || ev.away_team || (ev.away && ev.away.name) || null;
+                    const date = ev.date || ev.commence_time || ev.kickoff || ev.start || null;
+                    if (home && away) aggregated.push({ home_team: home, away_team: away, date });
+                  }
+                }
+                // write aggregated fixtures if any
+                const seen = new Map();
+                for (const f of aggregated) {
+                  const k = `${String(f.home_team)}::${String(f.away_team)}::${String(f.date || '')}`;
+                  if (!seen.has(k)) seen.set(k, f);
+                }
+                const fixtures = Array.from(seen.values());
+                if (fixtures.length) {
+                  const key = `rapidapi:soccer:fixtures:premierleague`;
+                  await redis.set(key, JSON.stringify({ apiName: heis.name || 'Premier League', league: 'premierleague', fixtures, ts }), 'EX', Number(process.env.RAPIDAPI_FIXTURES_TTL_SEC || 300)).catch(()=>{});
+                }
+              }
+            } catch (e) {}
+          }
+        } catch (e) {}
+      await redis.set(key, JSON.stringify(value), "EX", ttl).catch(() => {});
+    } catch (e) {
+      void e;
+    }
+  };
+
+  // Maximum number of items to keep in the prefetch cache for large responses
+  const MAX_PREFETCH_STORE = Number(process.env.PREFETCH_STORE_MAX || 1000);
+
+  // Helper: try to extract short live-match summaries from a RapidAPI response body
+  const extractLiveMatches = (body) => {
+    try {
+      if (!body) return [];
+      const obj = typeof body === "string" ? JSON.parse(body) : body;
+      const arrayKeys = ["matches", "data", "events", "fixtures", "results", "games", "items", "response", "list"];
+      const candidates = [];
+      for (const k of arrayKeys) if (Array.isArray(obj[k])) candidates.push(obj[k]);
+      if (Array.isArray(obj)) candidates.push(obj);
+      for (const arr of candidates) {
+        const live = arr.filter((it) => {
+          if (!it) return false;
+          const status = it.status || it.matchStatus || it.gameState || it.state || it.inplay || it.is_live;
+          if (typeof status === "string" && /live|inplay/i.test(status)) return true;
+          if (typeof status === "boolean" && status === true) return true;
+          if (it.score || it.score_full || it.scores || it.result) return true;
+          return false;
+        });
+        if (live && live.length) {
+          return live.slice(0, 3).map((it) => {
+            const home = it.homeTeam?.name || it.home?.name || it.home || it.team1?.name || it.team1 || (it.teams && it.teams[0]) || "home";
+            const away = it.awayTeam?.name || it.away?.name || it.away || it.team2?.name || it.team2 || (it.teams && it.teams[1]) || "away";
+            const score = it.score?.full || it.score?.current || it.score_full || (it.scores ? JSON.stringify(it.scores) : undefined) || it.result || null;
+            const minute = it.minute || it.time || it.currentMinute || it.elapsed || null;
+            const status = it.status || it.matchStatus || (it.is_live ? "LIVE" : undefined) || null;
+            let text = `${home} vs ${away}`;
+            if (score) text += ` (${score})`;
+            if (minute) text += ` [${minute}]`;
+            if (status) text += ` ${status}`;
+            return text;
+          });
+        }
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    return [];
+  };
+
+  const job = async () => {
+    if (running) return; // avoid overlap
+    running = true;
+    const ts = Date.now();
+    const nowSec = Math.floor(ts / 1000);
+
+    const maxBackoff = Number(process.env.PREFETCH_MAX_BACKOFF_SECONDS || 3600);
+    const baseBackoff = Number(
+      process.env.PREFETCH_BASE_BACKOFF_SECONDS || Math.max(1, intervalSeconds),
+    );
+
+    const isAllowedToRun = async (type) => {
+      try {
+        const nxt = await redis.get(`prefetch:next:${type}`);
+        if (!nxt) return true;
+        const n = Number(nxt);
+        return nowSec >= n;
+      } catch (e) {
+        void e;
+        return true;
+      }
+    };
+
+    const recordSuccess = async (type) => {
+      try {
+        await redis.del(`prefetch:failures:${type}`);
+        await redis.del(`prefetch:next:${type}`);
+        // also set provider health
+        try {
+          const health = { ok: true, ts: Date.now(), message: 'ok' };
+          await redis.set(`betrix:provider:health:${type}`, JSON.stringify(health), 'EX', 60 * 60 * 24).catch(() => {});
+        } catch (e) {
+          /* ignore */
+        }
+      } catch (e) {
+        void e;
+      }
+    };
+
+    const recordFailure = async (type) => {
+      try {
+        const fails = await redis
+          .incr(`prefetch:failures:${type}`)
+          .catch(() => 1);
+        await redis
+          .expire(`prefetch:failures:${type}`, 60 * 60 * 24)
+          .catch(() => {});
+        const delay = Math.min(
+          maxBackoff,
+          Math.pow(2, Math.max(0, fails - 1)) * baseBackoff,
+        );
+        const next = nowSec + Math.max(1, Math.floor(delay));
+        await redis
+          .set(
+            `prefetch:next:${type}`,
+            String(next),
+            "EX",
+            Math.min(maxBackoff + 60, Math.floor(delay) + 60),
+          )
+          .catch(() => {});
+        // set provider health (failed)
+        try {
+          const health = {
+            ok: false,
+            ts: Date.now(),
+            fails: Number(fails) || 1,
+            nextRunAt: next * 1000,
+            message: `backoff ${Math.floor(delay)}s after ${fails} failures`,
+          };
+          await redis.set(`betrix:provider:health:${type}`, JSON.stringify(health), 'EX', 60 * 60 * 24).catch(() => {});
+        } catch (e) {
+          /* ignore */
+        }
+
+        // Alert via Telegram for repeated failures (guarded by env)
+        try {
+          const alertThreshold = Number(process.env.PREFETCH_ALERT_THRESHOLD || 3);
+          const alertThrottleSec = Number(process.env.PREFETCH_ALERT_THROTTLE_SEC || 3600);
+          const alreadySent = await redis.get(`prefetch:alert:sent:${type}`).catch(() => null);
+          if ((Number(fails) >= alertThreshold) && !alreadySent) {
+            const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || process.env.BOT_TOKEN || null;
+            const ADMIN_CHAT = process.env.ADMIN_TELEGRAM_ID || process.env.BOT_BROADCAST_CHAT_ID || null;
+            if (TELEGRAM_TOKEN && ADMIN_CHAT) {
+              // fire-and-forget - do not block scheduler
+              (async () => {
+                try {
+                  const msg = `⚠️ Prefetch alert: provider=${type} failures=${fails} message=${encodeURIComponent(health && health.message ? health.message : 'failure')}`;
+                  const url = `https://api.telegram.org/bot${encodeURIComponent(TELEGRAM_TOKEN)}/sendMessage`;
+                  // prefer simple text message
+                  await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: Number(ADMIN_CHAT), text: msg }),
+                    timeout: 5000,
+                  }).catch(() => null);
+                } catch (e) {
+                  /* ignore alert send errors */
+                }
+              })();
+              // mark alert sent to avoid spamming
+              await redis.set(`prefetch:alert:sent:${type}`, String(Date.now()), 'EX', alertThrottleSec).catch(() => {});
+            }
+          }
+        } catch (e) {
+          /* ignore alerting errors */
+        }
+
+        return { fails, next, delay };
+      } catch (e) {
+        void e;
+        return null;
+      }
+    };
+    try {
+      // 1) News feeds - lightweight, good to run frequently
+      if (rss) {
+        try {
+          if (!(await isAllowedToRun("rss"))) {
+            /* skip due to backoff */
+          } else {
+            const feeds = [
+              "https://feeds.bbci.co.uk/sport/football/rss.xml",
+              "https://www.theguardian.com/football/rss",
+              "https://www.espn.com/espn/rss/football/news",
+            ];
+            const r = await rss.fetchMultiple(feeds).catch(async (err) => {
+              await recordFailure("rss");
+              throw err;
+            });
+            if (r) {
+              await safeSet(
+                "prefetch:rss:football",
+                { fetchedAt: ts, feeds: r },
+                60,
+              );
+              await recordSuccess("rss");
+            }
+            await redis.publish(
+              "prefetch:updates",
+              JSON.stringify({ type: "rss", ts }),
+            );
+          }
+        } catch (e) {
+          await redis.publish(
+            "prefetch:error",
+            JSON.stringify({ type: "rss", error: e.message || String(e), ts }),
+          );
+          await recordFailure("rss");
+        }
+      }
+
+      // 2) ScoreBat - lightweight when freeFeed
+      if (scorebat) {
+        try {
+          if (!(await isAllowedToRun("scorebat"))) {
+            /* skip due to backoff */
+          } else {
+            const sb = await scorebat.freeFeed().catch(async (err) => {
+              await recordFailure("scorebat");
+              throw err;
+            });
+            if (sb) {
+              await safeSet(
+                "prefetch:scorebat:free",
+                { fetchedAt: ts, data: sb },
+                60,
+              );
+              await recordSuccess("scorebat");
+            }
+            await redis.publish(
+              "prefetch:updates",
+              JSON.stringify({ type: "scorebat", ts }),
+            );
+          }
+        } catch (e) {
+          await redis.publish(
+            "prefetch:error",
+            JSON.stringify({
+              type: "scorebat",
+              error: e.message || String(e),
+              ts,
+            }),
+          );
+          await recordFailure("scorebat");
+        }
+      }
+
+      // 3) OpenLigaDB - small queries for popular leagues
+      if (openLiga) {
+        try {
+          if (!(await isAllowedToRun("openligadb"))) {
+            /* skip due to backoff */
+          } else {
+            const leagues = await openLiga
+              .getAvailableLeagues()
+              .catch(async (err) => {
+                await recordFailure("openligadb");
+                throw err;
+              });
+            if (leagues) {
+              await safeSet(
+                "prefetch:openligadb:leagues",
+                { fetchedAt: ts, leagues },
+                120,
+              );
+              await recordSuccess("openligadb");
+            }
+            // fetch recent matches for a short list of popular league shortcuts
+            const popular = [
+              "bl1",
+              "bl2",
+              "bl3",
+              "1bl",
+              "dfl",
+              "mls",
+              "epl",
+              "pd1",
+            ];
+            for (const l of popular.slice(0, 5)) {
+              const recent = await openLiga
+                .getRecentMatches(l, new Date().getFullYear(), 2)
+                .catch(async (_err) => {
+                  await recordFailure("openligadb");
+                  return [];
+                });
+              await safeSet(
+                `prefetch:openligadb:recent:${l}`,
+                { fetchedAt: ts, recent },
+                30,
+              );
+            }
+            await redis.publish(
+              "prefetch:updates",
+              JSON.stringify({ type: "openligadb", ts }),
+            );
+          }
+        } catch (e) {
+          await redis.publish(
+            "prefetch:error",
+            JSON.stringify({
+              type: "openligadb",
+              error: e.message || String(e),
+              ts,
+            }),
+          );
+          await recordFailure("openligadb");
+        }
+      }
+
+      // 4) Football-data CSVs - heavier, keep longer TTL
+      if (footballData) {
+        try {
+          // try E0 (EPL) and SP1 (LaLiga) short samples
+          const samples = [];
+          try {
+            const epl = await footballData
+              .fixturesFromCsv("E0", "2324")
+              .catch(() => null);
+            if (epl) samples.push({ comp: "E0", data: epl });
+          } catch (e) {
+            void e;
+          }
+          try {
+            const la = await footballData
+              .fixturesFromCsv("SP1", "2324")
+              .catch(() => null);
+            if (la) samples.push({ comp: "SP1", data: la });
+          } catch (e) {
+            void e;
+          }
+          for (const s of samples) {
+            await safeSet(
+              `prefetch:footballdata:${s.comp}:2324`,
+              { fetchedAt: ts, data: s.data },
+              60 * 60,
+            );
+          }
+          await redis.publish(
+            "prefetch:updates",
+            JSON.stringify({ type: "footballdata", ts }),
+          );
+        } catch (e) {
+          await redis.publish(
+            "prefetch:error",
+            JSON.stringify({
+              type: "footballdata",
+              error: e.message || String(e),
+              ts,
+            }),
+          );
+        }
+      }
+
+      // 5) SportMonks & Football-Data live/fixtures - main providers, prefetch every 60s
+      // Note: SportMonks may be temporarily paused due to TLS/DNS issues. We still
+      // want to allow Football-Data prefetch to run while SportMonks is paused.
+      if (sportsAggregator) {
+        try {
+          const allowedToRunSports =
+            (await isAllowedToRun("sportsmonks")) ||
+            (await isAllowedToRun("footballdata"));
+          if (!allowedToRunSports) {
+            /* skip due to backoff for both providers */
+          } else {
+            // Fetch full lists (but cap to MAX_PREFETCH_STORE to avoid unbounded Redis usage)
+            const live = await sportsAggregator
+              .getAllLiveMatches()
+              .catch(async (err) => {
+                await recordFailure("sportsmonks");
+                throw err;
+              });
+            if (live && live.length > 0) {
+              const cappedLive = Array.isArray(live)
+                ? live.slice(0, Math.min(MAX_PREFETCH_STORE, live.length))
+                : [];
+              await safeSet(
+                "prefetch:sportsmonks:live",
+                { fetchedAt: ts, count: live.length, data: cappedLive },
+                30,
+              );
+              // Also write a consolidated key expected by Telegram handler: betrix:prefetch:live:by-sport
+              const bySport = {
+                sports: {
+                  soccer: {
+                    fetchedAt: ts,
+                    count: live.length,
+                    samples: cappedLive,
+                  },
+                },
+              };
+              await safeSet("betrix:prefetch:live:by-sport", bySport, 30);
+              await recordSuccess("sportsmonks");
+            }
+            const fixtures = await sportsAggregator
+              .getFixtures()
+              .catch(async (_err) => {
+                await recordFailure("sportsmonks-fixtures");
+                return [];
+              });
+            if (fixtures && fixtures.length > 0) {
+              const cappedFixtures = Array.isArray(fixtures)
+                ? fixtures.slice(
+                    0,
+                    Math.min(MAX_PREFETCH_STORE, fixtures.length),
+                  )
+                : [];
+              await safeSet(
+                "prefetch:sportsmonks:fixtures",
+                { fetchedAt: ts, count: fixtures.length, data: cappedFixtures },
+                60,
+              );
+              // Also publish an easy-to-read consolidated upcoming fixtures key
+              await safeSet(
+                "betrix:prefetch:upcoming:by-sport",
+                {
+                  sports: {
+                    soccer: {
+                      fetchedAt: ts,
+                      count: fixtures.length,
+                      samples: cappedFixtures,
+                    },
+                  },
+                },
+                60,
+              );
+              await recordSuccess("sportsmonks-fixtures");
+            }
+            await redis.publish(
+              "prefetch:updates",
+              JSON.stringify({
+                type: "sportsmonks",
+                ts,
+                live: live ? live.length : 0,
+                fixtures: fixtures ? fixtures.length : 0,
+              }),
+            );
+          }
+        } catch (e) {
+          await redis.publish(
+            "prefetch:error",
+            JSON.stringify({
+              type: "sportsmonks",
+              error: e.message || String(e),
+              ts,
+            }),
+          );
+          await recordFailure("sportsmonks");
+        }
+      }
+
+      // 6) SportGameOdds (sgo) - use pagination helpers to fetch league events and sample odds
+      if (sportsgameodds) {
+        try {
+          if (!(await isAllowedToRun("sportsgameodds"))) {
+            /* skip due to backoff */
+          } else {
+            const cfg = process.env.SGO_PREFETCH_LEAGUES || "EPL,NBA,NFL";
+            const leagues = cfg
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+              .slice(0, 10);
+            for (const league of leagues) {
+              try {
+                const events = await sportsgameodds
+                  .fetchAllEvents({ league, redis, forceFetch: true })
+                  .catch(async (err) => {
+                    await recordFailure(`sgo-events:${league}`);
+                    throw err;
+                  });
+                if (events) {
+                  const capped = Array.isArray(events)
+                    ? events.slice(
+                        0,
+                        Math.min(MAX_PREFETCH_STORE, events.length),
+                      )
+                    : events;
+                  await safeSet(
+                    `prefetch:sgo:events:${league}`,
+                    {
+                      fetchedAt: ts,
+                      count: Array.isArray(events) ? events.length : 0,
+                      data: capped,
+                    },
+                    60,
+                  );
+                  // For the first few events, fetch odds to warm odds caches
+                  const sampleIds = (
+                    Array.isArray(capped)
+                      ? capped
+                          .slice(0, 5)
+                          .map((ev) => ev.id || ev.eventId || ev._id)
+                          .filter(Boolean)
+                      : []
+                  ).slice(0, 5);
+                  if (sampleIds.length) {
+                    try {
+                      const odds = await sportsgameodds
+                        .fetchAllOdds({
+                          league,
+                          eventIDs: sampleIds.join(","),
+                          redis,
+                          forceFetch: true,
+                        })
+                        .catch(async (err) => {
+                          await recordFailure(`sgo-odds:${league}`);
+                          throw err;
+                        });
+                      if (odds)
+                        await safeSet(
+                          `prefetch:sgo:odds:${league}`,
+                          {
+                            fetchedAt: ts,
+                            sample: sampleIds.length,
+                            data: odds,
+                          },
+                          60,
+                        );
+                    } catch (e) {
+                      console.warn(
+                        "sgo fetchAllOdds failed",
+                        e?.message || String(e),
+                      );
+                    }
+                  }
+                  await recordSuccess("sportsgameodds");
+                }
+              } catch (e) {
+                await redis.publish(
+                  "prefetch:error",
+                  JSON.stringify({
+                    type: "sportsgameodds",
+                    league,
+                    error: e.message || String(e),
+                    ts,
+                  }),
+                );
+                await recordFailure("sportsgameodds");
+              }
+            }
+            await redis.publish(
+              "prefetch:updates",
+              JSON.stringify({ type: "sportsgameodds", ts }),
+            );
+          }
+        } catch (e) {
+          await redis.publish(
+            "prefetch:error",
+            JSON.stringify({
+              type: "sportsgameodds",
+              error: e.message || String(e),
+              ts,
+            }),
+          );
+          await recordFailure("sportsgameodds");
+        }
+      }
+
+      // 6b) FlashLive Sports integration (if configured)
+      if (flashlive) {
+        try {
+          if (!(await isAllowedToRun('flashlive'))) {
+            /* skip due to backoff */
+          } else {
+            try {
+              const live = await flashlive.getLiveEvents().catch(async (err) => {
+                await recordFailure('flashlive');
+                throw err;
+              });
+              if (live && live.length > 0) {
+                // normalize minimal fixtures for UI (home/away/start)
+                const fixtures = (Array.isArray(live) ? live : []).map((ev) => {
+                  const home = ev.home_team || ev.home || (ev.home && ev.home.name) || (ev.teams && ev.teams[0]) || null;
+                  const away = ev.away_team || ev.away || (ev.away && ev.away.name) || (ev.teams && ev.teams[1]) || null;
+                  const commence = ev.commence_time || ev.start || ev.date || ev.scheduled || null;
+                  const competition = ev.competition || ev.tournament || ev.league || ev.competition_name || null;
+                  return { home_team: home, away_team: away, commence, competition, raw: ev };
+                }).filter(f => f.home_team && f.away_team);
+                if (fixtures.length) {
+                  const key = `rapidapi:flashlive:fixtures:live`;
+                  await redis.set(key, JSON.stringify({ apiName: 'FlashLive', fixtures, fetchedAt: ts }), 'EX', Number(process.env.RAPIDAPI_FIXTURES_TTL_SEC || 300)).catch(()=>{});
+                }
+              }
+              const upcoming = await flashlive.getEventsList({ page: 0 }).catch(()=>[]);
+              if (upcoming && upcoming.length) {
+                const samples = upcoming.slice(0, Math.min(MAX_PREFETCH_STORE, upcoming.length)).map((ev) => ({ home_team: ev.home_team||ev.home||null, away_team: ev.away_team||ev.away||null, commence: ev.date||ev.start||null, competition: ev.competition||ev.tournament||null, raw: ev }));
+                const key2 = `rapidapi:flashlive:fixtures:upcoming`;
+                await redis.set(key2, JSON.stringify({ apiName: 'FlashLive', fixtures: samples, fetchedAt: ts }), 'EX', Number(process.env.RAPIDAPI_FIXTURES_TTL_SEC || 300)).catch(()=>{});
+              }
+              await recordSuccess('flashlive');
+            } catch (e) {
+              await redis.publish('prefetch:error', JSON.stringify({ type: 'flashlive', error: e.message || String(e), ts }));
+              await recordFailure('flashlive');
+            }
+            await redis.publish('prefetch:updates', JSON.stringify({ type: 'flashlive', ts }));
+          }
+        } catch (e) {
+          await redis.publish('prefetch:error', JSON.stringify({ type: 'flashlive', error: e.message || String(e), ts }));
+        }
+      }
+
+      // 7) RapidAPI subscriptions: iterate configured subscriptions and fetch sample endpoints
+      try {
+        let rapidLogger = null;
+        try {
+          rapidLogger = new RapidApiLogger({ apiKey: process.env.RAPIDAPI_KEY });
+        } catch (e) {
+          console.info('[rapidapi] RapidApiLogger init failed, falling back to minimal fetcher', e?.message || String(e));
+          rapidLogger = {
+            fetch: async (host, endpoint, opts = {}) => {
+              try {
+                let url = `https://${host}${endpoint}`;
+                const headers = {
+                  'X-RapidAPI-Key': process.env.RAPIDAPI_KEY || '',
+                  'X-RapidAPI-Host': host,
+                  Accept: 'application/json',
+                };
+                // The Odds API (api.the-odds-api.com) requires apiKey as query parameter, not header
+                if (String(host || '').toLowerCase().includes('the-odds-api.com')) {
+                  const separator = url.includes('?') ? '&' : '?';
+                  url += `${separator}apiKey=${encodeURIComponent(process.env.RAPIDAPI_KEY || '')}`;
+                }
+                const res = await fetch(url, { method: 'GET', headers }).catch((err) => { throw err; });
+                const body = await (res && typeof res.json === 'function' ? res.json().catch(() => null) : null);
+                // capture headers
+                let hdrs = {};
+                try { if (res && res.headers && typeof res.headers.entries === 'function') for (const [k,v] of res.headers.entries()) hdrs[k]=v; } catch (e) {}
+                return { httpStatus: res.status, body, headers: hdrs };
+              } catch (err) {
+                return { httpStatus: null, body: null, error: { message: err && err.message ? err.message : String(err) } };
+              }
+            }
+          };
+        }
+        const rapidDiagnostics = { updatedAt: ts, apis: {} };
+        for (const api of Array.isArray(subscriptions) ? subscriptions : []) {
+          try { if (api && api.host && String(api.host).toLowerCase().includes('heisenbug-premier-league')) console.log('[debug] processing heisenbug provider in scheduler'); } catch(e) {}
+          const apiName = api.name || "unknown";
+          const safeName = normalizeRedisKeyPart(apiName || "unknown");
+          rapidDiagnostics.apis[apiName] = { status: "unknown", lastUpdated: null, endpoints: {} };
+          const host = api.host;
+          const endpoints = Array.isArray(api.sampleEndpoints) ? api.sampleEndpoints : [];
+          // If a directUrl is provided for this subscription, prefer the direct fetch
+          // path below and skip RapidAPI-style sample endpoint probes which may
+          // construct a URL from `api.host` (causing host mismatches like
+          // soccersapi.com vs api.soccersapi.com).
+          if (api.directUrl) {
+            console.log(`[prefetch] skipping sampleEndpoints for direct provider ${api.name || api.host}`);
+            continue;
+          }
+          for (const endpoint of endpoints.slice(0, 10)) {
+            try {
+              // Retry loop for transient errors (3 attempts with exponential backoff + jitter)
+              const maxAttempts = 3;
+              let attempt = 0;
+              let result = null;
+              let lastErr = null;
+              while (attempt < maxAttempts) {
+                attempt += 1;
+                try {
+                  result = await rapidLogger.fetch(host, endpoint, { apiName });
+                  // consider non-2xx as failure to trigger a retry
+                  if (result && result.httpStatus && result.httpStatus >= 200 && result.httpStatus < 300) {
+                    break; // success
+                  }
+                  lastErr = new Error(`http_${result && result.httpStatus ? result.httpStatus : 'err'}`);
+                } catch (err) {
+                  lastErr = err;
+                }
+                if (attempt < maxAttempts) {
+                  const base = 300 * attempt; // ms
+                  const jitter = Math.floor(Math.random() * 200);
+                  const delay = base + jitter;
+                  await new Promise((r) => setTimeout(r, delay));
+                  // continue retrying
+                }
+              }
+              if (!result) {
+                // record failure to avoid tight loop
+                await recordFailure(`rapidapi:${safeName}`);
+                throw lastErr || new Error('rapidapi_fetch_failed');
+              }
+              // Special-case: Heisenbug Premier League provider normalization
+              try {
+                const hostLc = String(host || '').toLowerCase();
+                const endpointLc = String(endpoint || '').toLowerCase();
+                if (hostLc.includes('heisenbug-premier-league') && endpointLc.startsWith('/api/premierleague')) {
+                  // Heisenbug: aggregate fixtures across a date range and optional team lookups
+                  const days = Number(process.env.HEISENBUG_DAYS || 7);
+                  const aggregated = [];
+                  console.log('[heisenbug] prefetch aggregator running days=' + days);
+                  for (let d = 0; d < Math.max(1, days); d++) {
+                    const dt = new Date();
+                    dt.setUTCDate(dt.getUTCDate() + d);
+                    const dateStr = dt.toISOString().slice(0, 10);
+                    try {
+                      const dateEndpoint = `/api/premierleague?date=${encodeURIComponent(dateStr)}`;
+                      const resDate = await rapidLogger.fetch(host, dateEndpoint, { apiName }).catch(() => null);
+                      if (!resDate) continue;
+                      if (resDate.httpStatus === 404) {
+                        console.info('[rapidapi-warning] apiName=' + (apiName || 'unknown') + ' endpoint=' + dateEndpoint + ' status=404 reason=Not found');
+                        continue;
+                      }
+                      let parsedDate = null;
+                      try { parsedDate = typeof resDate.body === 'string' ? JSON.parse(resDate.body) : resDate.body; } catch (e) { parsedDate = resDate.body || null; }
+                      const arrDate = Array.isArray(parsedDate) ? parsedDate : (parsedDate && Array.isArray(parsedDate.fixtures) ? parsedDate.fixtures : []);
+                      for (const ev of (arrDate || [])) {
+                        const home = ev.home || ev.home_team || (ev.home && ev.home.name) || null;
+                        const away = ev.away || ev.away_team || (ev.away && ev.away.name) || null;
+                        const date = ev.date || ev.commence_time || ev.kickoff || ev.start || null;
+                        if (home && away) aggregated.push({ home_team: home, away_team: away, date });
+                      }
+                    } catch (e) {
+                      /* ignore per-day fetch errors */
+                    }
+                  }
+                  const teamsEnv = process.env.HEISENBUG_TEAMS || "Liverpool,Manchester United,Arsenal";
+                  const teams = String(teamsEnv || '').split(',').map(s=>s.trim()).filter(Boolean).slice(0,5);
+                  for (const t of teams) {
+                    try {
+                      const teamEndpoint = `/api/premierleague/team?name=${encodeURIComponent(t)}`;
+                      const resTeam = await rapidLogger.fetch(host, teamEndpoint, { apiName }).catch(() => null);
+                      if (!resTeam) continue;
+                      if (resTeam.httpStatus === 404) {
+                        console.info('[rapidapi-warning] apiName=' + (apiName || 'unknown') + ' endpoint=' + teamEndpoint + ' status=404 reason=Not found');
+                        continue;
+                      }
+                      let parsedTeam = null;
+                      try { parsedTeam = typeof resTeam.body === 'string' ? JSON.parse(resTeam.body) : resTeam.body; } catch (e) { parsedTeam = resTeam.body || null; }
+                      const arrTeam = Array.isArray(parsedTeam) ? parsedTeam : (parsedTeam && Array.isArray(parsedTeam.fixtures) ? parsedTeam.fixtures : []);
+                      for (const ev of (arrTeam || [])) {
+                        const home = ev.home || ev.home_team || (ev.home && ev.home.name) || null;
+                        const away = ev.away || ev.away_team || (ev.away && ev.away.name) || null;
+                        const date = ev.date || ev.commence_time || ev.kickoff || ev.start || null;
+                        if (home && away) aggregated.push({ home_team: home, away_team: away, date });
+                      }
+                    } catch (e) {
+                      /* ignore per-team fetch errors */
+                    }
+                  }
+                  const seen = new Map();
+                  for (const f of aggregated) {
+                    const k = `${String(f.home_team)}::${String(f.away_team)}::${String(f.date || '')}`;
+                    if (!seen.has(k)) seen.set(k, f);
+                  }
+                  const fixtures = Array.from(seen.values());
+                  if (fixtures.length) {
+                    const key = `rapidapi:soccer:fixtures:premierleague`;
+                    await redis.set(key, JSON.stringify({ apiName, league: 'premierleague', fixtures, ts }), 'EX', Number(process.env.RAPIDAPI_FIXTURES_TTL_SEC || 300)).catch(() => {});
+                  } else {
+                    console.info('[rapidapi-warning] apiName=' + (apiName || 'unknown') + ' endpoint=' + endpoint + ' status=' + (result && result.httpStatus ? result.httpStatus : '') + ' reason=No fixtures parsed');
+                  }
+                }
+              } catch (e) {
+                /* ignore normalization errors for this provider */
+              }
+              try {
+                if (result && result.httpStatus === 404) {
+                  try {
+                    console.info('[rapidapi-warning] apiName=' + (apiName || 'unknown') + ' endpoint=' + endpoint + ' status=404 reason=Not found');
+                  } catch (e) {}
+                }
+              } catch (e) {}
+              const keyPart = normalizeRedisKeyPart(endpoint);
+              const storeKey = `rapidapi:${safeName}:${keyPart}`;
+              await safeSet(storeKey, { fetchedAt: ts, apiName, endpoint, httpStatus: result.httpStatus, data: result.body }, Number(process.env.RAPIDAPI_TTL_SEC || 300));
+              rapidDiagnostics.apis[apiName].endpoints[endpoint] = {
+                httpStatus: result.httpStatus,
+                errorReason: result.httpStatus && result.httpStatus >= 400 ? `http_${result.httpStatus}` : null,
+                lastUpdated: ts,
+              };
+              rapidDiagnostics.apis[apiName].lastUpdated = ts;
+              rapidDiagnostics.apis[apiName].status = (result.httpStatus && result.httpStatus >= 200 && result.httpStatus < 300) ? "ok" : "error";
+              // Detect live-match content and log a concise summary (Render captures stdout)
+              try {
+                const liveSamples = extractLiveMatches(result.body);
+                if (liveSamples && liveSamples.length) {
+                  console.log(`[rapidapi-live] ${apiName} ${endpoint} live=${liveSamples.length} sample="${liveSamples[0]}"`);
+                  // write a short ephemeral key for ops to inspect quickly
+                  await redis.set(`rapidapi:live:${safeName}`, JSON.stringify({ apiName, endpoint, samples: liveSamples, ts }), "EX", 30).catch(() => {});
+                }
+              } catch (e) {
+                /* ignore detection errors */
+              }
+              // Detect odds-like responses (bookmakers/markets) and log a concise summary
+              try {
+                let parsed = null;
+                try { parsed = typeof result.body === 'string' ? JSON.parse(result.body) : result.body; } catch (e) { parsed = null; }
+                const looksLikeOdds = parsed && (Array.isArray(parsed) && parsed.length && (parsed[0].bookmakers || parsed[0].sport_key || parsed[0].bookmakers) || (parsed.bookmakers || parsed.sport_key));
+                if (looksLikeOdds) {
+                  // log top-level sample: sport_key/home_team/away_team and bookmaker count
+                  const sample = Array.isArray(parsed) ? parsed[0] : parsed;
+                  const sport = sample.sport_key || sample.sport || 'unknown';
+                  const home = sample.home_team || sample.home || (sample.teams && sample.teams[0]) || '';
+                  const away = sample.away_team || sample.away || (sample.teams && sample.teams[1]) || '';
+                  const bookmakers = Array.isArray(sample.bookmakers) ? sample.bookmakers.length : 0;
+                  console.log `[rapidapi-odds] ${apiName} ${endpoint} sport=${sport} match="${home} vs ${away}" bookmakers=${bookmakers}`;
+                  await redis.set(`rapidapi:odds:${safeName}`, JSON.stringify({ apiName, endpoint, sport, sample: { home, away }, bookmakers, ts }), 'EX', 60).catch(() => {});
+                }
+              } catch (e) {
+                /* ignore */
+              }
+
+              // If this is The Odds API, also fetch per-sport odds list (bounded)
+              try {
+                if (api.host && (api.host.includes('odds.p.rapidapi.com') || api.host.includes('the-odds-api') || /odds[-.]?api/i.test(api.host))) {
+                  const maxSports = Number(process.env.RAPIDAPI_ODDS_MAX_SPORTS || 12);
+                  // fetch sports list (this endpoint does not count against quota)
+                      const sportsRes = await rapidLogger.fetch(api.host, '/v4/sports/?', { apiName });
+                  let sportsList = [];
+                  try { sportsList = typeof sportsRes.body === 'string' ? JSON.parse(sportsRes.body) : sportsRes.body; } catch (e) { sportsList = sportsRes.body || []; }
+                  if (Array.isArray(sportsList) && sportsList.length) {
+                    // Respect rapidapi backoff flag set by worker on 429 to avoid further rate limits
+                    try {
+                      await ensureRedisKeyType(redis, 'rapidapi:backoff', 'string').catch(() => null);
+                      const backoff = await redis.get('rapidapi:backoff').catch(() => null);
+                      if (backoff) {
+                        console.log('[rapidapi] skipping per-sport odds/scores due to rapidapi:backoff');
+                      }
+                    } catch (e) {
+                      // ignore
+                    }
+                    // Determine max sports to fetch. Allow 'ALL' to fetch full list.
+                    const envMax = String(process.env.RAPIDAPI_ODDS_MAX_SPORTS || "12").toUpperCase();
+                    let effectiveMax = Number(process.env.RAPIDAPI_ODDS_MAX_SPORTS || 12);
+                    if (envMax === "ALL" || envMax === "0") {
+                      effectiveMax = sportsList.length;
+                    } else if (Number.isNaN(effectiveMax) || effectiveMax <= 0) {
+                      effectiveMax = Math.min(1000, sportsList.length);
+                    }
+                    console.log(`[rapidapi] odds-api=${api.host} sportsAvailable=${sportsList.length} prefetchLimit=${effectiveMax}`);
+                    let count = 0;
+                    for (const s of sportsList) {
+                      if (count >= effectiveMax) break;
+                      const sportKey = s && (s.key || s.sport_key || s.id);
+                      if (!sportKey) continue;
+                      try {
+                        const sportEndpoint = `/v4/sports/${encodeURIComponent(sportKey)}/odds?regions=us&markets=h2h,spreads&oddsFormat=decimal`;
+                        const r = await rapidLogger.fetch(api.host, sportEndpoint, { apiName }).catch(() => null);
+                        if (r && r.httpStatus && r.httpStatus >= 200 && r.httpStatus < 300) {
+                          let parsed = null;
+                          try { parsed = typeof r.body === 'string' ? JSON.parse(r.body) : r.body; } catch (e) { parsed = null; }
+                          const events = Array.isArray(parsed) ? parsed : (parsed && parsed.data && Array.isArray(parsed.data) ? parsed.data : []);
+                          const total = events.length;
+                          const now = Date.now();
+                          const live = events.filter((ev) => {
+                            try {
+                              const commence = ev.commence_time ? new Date(ev.commence_time).getTime() : null;
+                              return commence && commence <= now;
+                            } catch (e) { return false; }
+                          }).length;
+                          const samples = events.slice(0, 5);
+                          console.log(`[rapidapi-odds-sport] ${sportKey} total=${total} live=${live} samples=${samples.length}`);
+                          await redis.set(`rapidapi:odds:sport:${normalizeRedisKeyPart(String(sportKey))}`, JSON.stringify({ apiName, sportKey, total, live, samples, ts }), 'EX', 60).catch(() => {});
+                        }
+                        // Also fetch scores (live + upcoming) to populate fixture lists
+                        try {
+                          // Build a simple lookup of odds samples by (home|away|commence) to attach to fixtures
+                          let oddsEventsMap = new Map();
+                          try {
+                            const parsedOdds = typeof r?.body === 'string' ? JSON.parse(r.body) : r?.body;
+                            const oddsArr = Array.isArray(parsedOdds) ? parsedOdds : (parsedOdds && parsedOdds.data && Array.isArray(parsedOdds.data) ? parsedOdds.data : []);
+                            for (const oe of (oddsArr || [])) {
+                              const h = (oe.home_team || oe.home || (oe.teams && oe.teams[0]) || '').toString();
+                              const a = (oe.away_team || oe.away || (oe.teams && oe.teams[1]) || '').toString();
+                              const t = oe.commence_time || oe.commence || oe.start || '';
+                              const k = `${h}::${a}::${String(t)}`;
+                              oddsEventsMap.set(k, oe);
+                            }
+                          } catch (e) {
+                            /* ignore odds parse errors */
+                          }
+
+                          const scoresEndpoint = `/v4/sports/${encodeURIComponent(sportKey)}/scores/`;
+                          const scoresRes = await rapidLogger.fetch(api.host, scoresEndpoint, { apiName }).catch(() => null);
+                          if (scoresRes && scoresRes.httpStatus && scoresRes.httpStatus >= 200 && scoresRes.httpStatus < 300) {
+                            let parsedScores = null;
+                            try { parsedScores = typeof scoresRes.body === 'string' ? JSON.parse(scoresRes.body) : scoresRes.body; } catch (e) { parsedScores = null; }
+                            const scoreEvents = Array.isArray(parsedScores) ? parsedScores : (parsedScores && parsedScores.data && Array.isArray(parsedScores.data) ? parsedScores.data : []);
+                              const totalScores = scoreEvents.length;
+                              const liveScores = scoreEvents.filter((ev) => {
+                              try {
+                                const commence = ev.commence_time ? new Date(ev.commence_time).getTime() : null;
+                                return commence && commence <= Date.now();
+                              } catch (e) { return false; }
+                            }).length;
+                              const scoreSamples = scoreEvents.slice(0, 5);
+                              console.log(`[rapidapi-scores-sport] ${sportKey} total=${totalScores} live=${liveScores} samples=${scoreSamples.length}`);
+                              await redis.set(`rapidapi:scores:sport:${normalizeRedisKeyPart(String(sportKey))}`, JSON.stringify({ apiName, sportKey, total: totalScores, live: liveScores, samples: scoreSamples, ts }), 'EX', 60).catch(() => {});
+
+                              // Attempt to normalize fixtures for UI buttons: write rapidapi:<sport>:fixtures:<league>
+                              try {
+                                const fixtures = (scoreEvents || []).map((ev) => {
+                                      const home = ev.home_team || ev.home || (ev.teams && ev.teams[0]) || ev.team1 || (ev.home && ev.home.name) || null;
+                                      const away = ev.away_team || ev.away || (ev.teams && ev.teams[1]) || ev.team2 || (ev.away && ev.away.name) || null;
+                                      const commence = ev.commence_time || ev.commence || ev.start || ev.date || null;
+                                      // prefer explicit league/competition, fall back to sport title or sportKey when missing
+                                      const competition = ev.league || ev.competition || ev.sport_title || (s && (s.title || s.name)) || sportKey || 'default';
+                                      const keyMatch = `${home || ''}::${away || ''}::${String(commence || '')}`;
+                                      const oddsSample = oddsEventsMap.get(keyMatch) || null;
+                                      const fixture = { home_team: home, away_team: away, commence, competition };
+                                      if (oddsSample) fixture.odds = oddsSample;
+                                      return fixture;
+                                    }).filter((f) => f.home_team && f.away_team);
+                                if (fixtures.length) {
+                                      const league = fixtures[0].competition || 'default';
+                                      const key = `rapidapi:${normalizeRedisKeyPart(String(sportKey))}:fixtures:${normalizeRedisKeyPart(String(league))}`;
+                                  await redis.set(key, JSON.stringify({ apiName, sportKey, league, fixtures, ts }), 'EX', Number(process.env.RAPIDAPI_FIXTURES_TTL_SEC || 300)).catch(() => {});
+                                } else {
+                                  // no fixtures found - log and skip writing a misleading empty value
+                                  console.warn(`[rapidapi] no_fixtures sport=${sportKey} host=${api.host}`);
+                                }
+                              } catch (e) {
+                                /* ignore fixture normalization errors */
+                              }
+                          }
+                        } catch (e) {
+                          /* ignore per-sport scores errors */
+                        }
+                      } catch (e) {
+                        /* continue on per-sport errors */
+                      }
+                      count += 1;
+                    }
+                  }
+                } catch (e) {
+                  /* ignore per-sport fetch errors */
+                }
+              } catch (e) {
+                rapidDiagnostics.apis[apiName].endpoints[endpoint] = {
+                  httpStatus: e && e.status ? e.status : null,
+                  errorReason: e && e.message ? String(e.message) : String(e),
+                  lastUpdated: Date.now(),
+                };
+                rapidDiagnostics.apis[apiName].lastUpdated = Date.now();
+                rapidDiagnostics.apis[apiName].status = "error";
+              }
+            }
+          }
+        }
+        try {
+          await redis.set("rapidapi:health", JSON.stringify(rapidDiagnostics));
+        } catch (e) {
+          /* ignore */
+        }
+        
+        // Fetch from direct endpoints (non-RapidAPI) in subscriptions
+        try {
+          for (const api of Array.isArray(subscriptions) ? subscriptions : []) {
+            if (!api.directUrl) continue; // skip if no direct URL
+            const apiName = api.name || "direct-provider";
+            const safeName = normalizeRedisKeyPart(apiName);
+            try {
+              // Build direct fetch URL; prefer environment-provided credentials when available
+              let directBase = api.directUrl;
+              if (api.host && String(api.host).toLowerCase().includes('soccersapi')) {
+                const user = process.env.SOCCERSAPI_USER || '';
+                const token = process.env.SOCCERSAPI_TOKEN || '';
+                const base = process.env.SOCCERSAPI_BASE || 'https://api.soccersapi.com';
+                if (user && token) {
+                  directBase = `${base}/v2.2/leagues/?user=${encodeURIComponent(user)}&token=${encodeURIComponent(token)}&t=list`;
+                } else if (!directBase) {
+                  directBase = `${base}/v2.2/leagues/?t=list`;
+                }
+              }
+              const fetchResponse = await fetch(directBase, { headers: { Accept: 'application/json' } }).catch(err => {
+                console.warn(`[prefetch-direct] ${apiName} fetch error: ${err && err.message ? err.message : String(err)}`);
+                return null;
+              });
+              if (!fetchResponse) continue;
+              if (!fetchResponse.ok) {
+                console.warn(`[prefetch-direct] ${apiName} http ${fetchResponse.status}`);
+                continue;
+              }
+              const body = await fetchResponse.json().catch(err => {
+                console.warn(`[prefetch-direct] ${apiName} json parse error: ${err && err.message ? err.message : String(err)}`);
+                return null;
+              });
+              if (!body) continue;
+              
+              // Store raw response
+              const keyRaw = `rapidapi:${safeName}:raw`;
+              await redis.set(keyRaw, JSON.stringify({ apiName, fetchedAt: ts, data: body }), 'EX', Number(process.env.RAPIDAPI_TTL_SEC || 300)).catch(() => {});
+              
+              // For SoccersAPI leagues: support paginated fetch and store aggregated league names
+              if (api.host === 'soccersapi.com') {
+                try {
+                  const allLeagues = [];
+                  for (let page = 1; page <= 200; page++) {
+                    const pUrl = directBase && directBase.includes('?') ? `${directBase}&page=${page}` : `${directBase}?page=${page}`;
+                    const pr = await fetch(pUrl, { headers: { Accept: 'application/json' } }).catch(() => null);
+                    if (!pr || !pr.ok) break;
+                    const pb = await pr.json().catch(() => null);
+                    const items = Array.isArray(pb.data) ? pb.data : (Array.isArray(pb.items) ? pb.items : []);
+                    if (!items || items.length === 0) break;
+                    items.forEach(it => {
+                      const name = it && (it.name || it.title || it.league);
+                      if (name) allLeagues.push(name);
+                    });
+                    if (items.length < 100) break;
+                  }
+                  // Dedupe
+                  const uniq = Array.from(new Set(allLeagues));
+                  if (uniq.length) {
+                    const keyMeta = `rapidapi:${safeName}:leagues`;
+                    await redis.set(keyMeta, JSON.stringify({ apiName, sport: api.sport, leagues: uniq, count: uniq.length, ts }), 'EX', Number(process.env.RAPIDAPI_TTL_SEC || 300)).catch(() => {});
+                    console.log(`[prefetch-direct] ${apiName} leagues=${uniq.length}`);
+                  }
+                } catch (e) {
+                  console.warn(`[prefetch-direct] ${apiName} pagination error: ${e && e.message ? e.message : String(e)}`);
+                }
+              }
+            } catch (e) {
+              console.warn(`[prefetch-direct] ${apiName} error: ${e && e.message ? e.message : String(e)}`);
+            }
+          }
+        } catch (e) {
+          console.warn(`[prefetch-direct] error: ${e && e.message ? e.message : String(e)}`);
+        }
+        
+        await redis.publish("prefetch:updates", JSON.stringify({ type: "rapidapi", ts }));
+        // Run unified aggregation after provider prefetches so unified totals and lists are available
+        try {
+          // Additionally, run provider-specific RapidAPI client fetches (TheRundown, Odds APIs, Heisenbug)
+          try {
+            for (const api of Array.isArray(subscriptions) ? subscriptions : []) {
+              try {
+                const hostLc = String(api.host || '').toLowerCase();
+                // target known RapidAPI sports feeds; skip generic non-http hosts
+                if (!api.host) continue;
+                const provider = { host: api.host, name: api.name };
+                // prefer sampleEndpoints if available
+                const endpoints = Array.isArray(api.sampleEndpoints) && api.sampleEndpoints.length ? api.sampleEndpoints.slice(0,3) : ['/'];
+                const collectedUpcoming = [];
+                const collectedLive = [];
+                for (const ep of endpoints) {
+                  try {
+                    // call upcoming and live fetchers with endpoint path and sport hint when available
+                    const upcoming = await fetchUpcomingFixtures(provider, { path: ep, sport: api.sport }).catch(() => []);
+                    const live = await fetchLiveMatches(provider, { path: ep, sport: api.sport }).catch(() => []);
+                    if (Array.isArray(upcoming) && upcoming.length) collectedUpcoming.push(...upcoming);
+                    if (Array.isArray(live) && live.length) collectedLive.push(...live);
+                  } catch (e) {
+                    /* ignore per-endpoint errors */
+                  }
+                }
+                // write per-sport Redis keys for collected fixtures
+                const bucketBySport = (arr) => {
+                  const bySport = {};
+                  for (const f of (arr || [])) {
+                    const s = String(f.sport || 'unknown').toLowerCase();
+                    if (!bySport[s]) bySport[s] = [];
+                    bySport[s].push(f);
+                  }
+                  return bySport;
+                };
+                const upBySport = bucketBySport(collectedUpcoming);
+                const liveBySport = bucketBySport(collectedLive);
+                for (const [sport, list] of Object.entries(upBySport)) {
+                  try {
+                    const key = `rapidapi:fixtures:upcoming:${sport}`;
+                    await redis.set(key, JSON.stringify({ apiName: api.name || provider.host, sport, fixtures: list, fetchedAt: ts }), 'EX', Number(process.env.RAPIDAPI_FIXTURES_TTL_SEC || 300)).catch(()=>{});
+                  } catch (e) {}
+                }
+                for (const [sport, list] of Object.entries(liveBySport)) {
+                  try {
+                    const key = `rapidapi:fixtures:live:${sport}`;
+                    await redis.set(key, JSON.stringify({ apiName: api.name || provider.host, sport, fixtures: list, fetchedAt: ts }), 'EX', Number(process.env.RAPIDAPI_FIXTURES_TTL_SEC || 300)).catch(()=>{});
+                  } catch (e) {}
+                }
+
+                try {
+                  // concise logs
+                  console.log(`[rapidapi-client] ${api.name || api.host} upcoming=${collectedUpcoming.length} live=${collectedLive.length}`);
+                  if (hostLc.includes('therundown')) console.log(`[therundown] fetched ${api.name || api.host} upcoming=${collectedUpcoming.length} live=${collectedLive.length}`);
+                } catch (e) {}
+                // Run aggregation after each provider to keep unified Redis keys up-to-date
+                try {
+                  const aggNow = await aggregateFixtures(redis).catch(() => null);
+                  if (aggNow) {
+                    const providerList = Object.keys(aggNow.providers || {}).join(',') || '';
+                    console.log(`[aggregator] providers=${providerList} live=${aggNow.totalLiveMatches} upcoming=${aggNow.totalUpcomingFixtures}`);
+                  }
+                } catch (e) {}
+              } catch (e) {}
+            }
+          } catch (e) {
+            /* ignore client fetch errors */
+          }
+
+          const agg = await aggregateFixtures(redis).catch(() => null);
+          if (agg) {
+            try {
+              console.log(`[aggregator] liveMatches=${agg.totalLiveMatches} upcomingFixtures=${agg.totalUpcomingFixtures} providers=${Object.keys(agg.providers||{}).join(',')}`);
+            } catch (e) {}
+          }
+        } catch (e) {
+          /* ignore aggregator failures */
+        }
+      } catch (e) {
+        await redis.publish(
+          "prefetch:error",
+          JSON.stringify({ type: "rapidapi", error: e.message || String(e), ts }),
+        );
+      }
+
+      lastRun = ts;
+    } catch (err) {
+      await redis.publish(
+        "prefetch:error",
+        JSON.stringify({
+          type: "unknown",
+          error: err.message || String(err),
+          ts,
+        }),
+      );
+    } finally {
+      running = false;
+    }
+  };
+
+  // Kick off immediate run then interval
+  // Run once immediately and then schedule the periodic job. After the
+  // immediate run completes, dump a short `rapidapi:health` snapshot to
+  // stdout so deploy logs (Render) show detailed RapidAPI diagnostics.
+  job()
+    .then(async () => {
+      try {
+        const raw = await redis.get("rapidapi:health").catch(() => null);
+        if (raw) {
+          // Truncate long payloads to avoid excessive log size
+          const out = String(raw).slice(0, 2000);
+          console.log(`[rapidapi-health] ${out}`);
+        } else {
+          console.log("[rapidapi-health] none");
+        }
+        // Dump a small set of per-sport rapidapi keys for quick verification
+        try {
+          const oddsKeys = await redis.keys('rapidapi:odds:sport:*').catch(() => []);
+          const scoresKeys = await redis.keys('rapidapi:scores:sport:*').catch(() => []);
+          const sampleOdds = (oddsKeys || []).slice(0, 5);
+          const sampleScores = (scoresKeys || []).slice(0, 5);
+          for (const k of sampleOdds) {
+            try {
+              const v = await redis.get(k).catch(() => null);
+              if (v) console.log('[rapidapi-samples] odds', k, String(v).slice(0, 1000));
+            } catch (e) {}
+          }
+          for (const k of sampleScores) {
+            try {
+              const v = await redis.get(k).catch(() => null);
+              if (v) console.log('[rapidapi-samples] scores', k, String(v).slice(0, 1000));
+            } catch (e) {}
+          }
+          if ((sampleOdds.length === 0) && (sampleScores.length === 0)) console.log('[rapidapi-samples] none found');
+        } catch (e) {
+          /* ignore sample dump errors */
+        }
+      } catch (e) {
+        /* ignore */
+      }
+    })
+    .catch(() => {});
+
+  const handle = setInterval(job, Math.max(1, intervalSeconds) * 1000);
+
+  return {
+    stop: () => clearInterval(handle),
+    lastRun: () => lastRun,
+  };
+}

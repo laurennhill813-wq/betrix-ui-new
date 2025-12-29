@@ -1,0 +1,55 @@
+{
+  "name": "betrixai-bot-ncba-payment",
+  "version": "1.0.0",
+  "description": "BETRIXAI Telegram Bot with NCBA Manual Payment Integration - Zero APIs Required",
+  "author": "BETRIXAI Team",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  },
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "test": "node --test",
+    "admin": "node src/bot/admin-dashboard.js",
+    "admin:interactive": "node src/bot/admin-dashboard.js",
+    "admin:approve": "node src/bot/admin-dashboard.js approve",
+    "admin:pending": "node src/bot/admin-dashboard.js list-pending",
+    "admin:stats": "node src/bot/admin-dashboard.js stats",
+    "admin:reconcile": "node src/bot/admin-dashboard.js import ./ncba_statement.csv",
+    "admin:export": "node src/bot/admin-dashboard.js export",
+    "admin:backup": "node src/bot/admin-dashboard.js backup",
+    "admin:restore": "node src/bot/admin-dashboard.js restore",
+    "check-syntax": "node _syntax_check.js"
+  },
+  "dependencies": {
+    "telegraf": "^4.14.0",
+    "csv-parser": "^3.0.0",
+    "node-cron": "^3.0.2",
+    "uuid": "^9.0.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "payment",
+    "m-pesa",
+    "ncba",
+    "betrixai",
+    "manual-verification",
+    "reconciliation"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/maryreaky/betrix-ui-replit-.git"
+  },
+  "bugs": {
+    "url": "https://github.com/maryreaky/betrix-ui-replit-/issues"
+  },
+  "homepage": "https://github.com/maryreaky/betrix-ui-replit-#readme"
+}
