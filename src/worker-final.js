@@ -428,6 +428,7 @@ const sportsAggregator = new SportsAggregator(redis, {
   rss: rssAggregator,
   openLiga,
   allowedProviders: ["SPORTSMONKS", "FOOTBALLDATA"],
+});
 // Inject the real sportsAggregator into multiSportAggregator so getInterestingEvents() has data
 try {
   setSportsAggregator(sportsAggregator);
@@ -435,7 +436,6 @@ try {
 } catch (e) {
   logger.warn("Failed to inject sportsAggregator", e?.message || String(e));
 }
-});
 let flashLiveService = null;
 try {
   const flashKey = process.env.FLASHLIVE_API_KEY || process.env.FLASHLIVE_KEY || null;
