@@ -682,17 +682,17 @@ export function buildPaymentDetailsMenu(method) {
     text += `SWIFT: *BTRXKENA*\n`;
     text += `Reference: Type your user ID\n\n`;
     text += `⏱️ Processing: 2-3 hours`;
-    } else if (method === "ncba") {
-      text += `🏦 *NCBA Paybill Payment*\n\n`;
-      text += `1️⃣ Open M-Pesa on your phone\n`;
-      text += `2️⃣ Select "Lipa Na M-Pesa Online"\n`;
-      text += `3️⃣ Enter Paybill: *880100*\n`;
-      text += `4️⃣ Enter Account: *1006989273*\n`;
-      text += `5️⃣ Enter Amount: *100 KSh* (or your desired amount)\n`;
-      text += `6️⃣ Enter M-Pesa PIN and confirm\n`;
-      text += `7️⃣ Share your M-Pesa receipt code here\n\n`;
-      text += `✅ Payment confirms instantly!\n`;
-      text += `💬 Send receipt code (e.g., MTN***RTY) to complete your subscription.`;
+  } else if (method === "ncba") {
+    text += `🏦 NCBA Paybill Payment\n\n`;
+    text += `1️⃣ Open M-Pesa on your phone\n`;
+    text += `2️⃣ Select Lipa Na M-Pesa Online\n`;
+    text += `3️⃣ Enter Paybill: *880100*\n`;
+    text += `4️⃣ Enter Account: *1006989273*\n`;
+    text += `5️⃣ Enter Amount and confirm\n`;
+    text += `6️⃣ Enter M-Pesa PIN\n`;
+    text += `7️⃣ Share your M-Pesa receipt code here\n\n`;
+    text += `✅ Payment confirms instantly!\n`;
+    text += `💬 Send receipt code to complete your subscription.`;
   }
 
   const reply_markup = {
