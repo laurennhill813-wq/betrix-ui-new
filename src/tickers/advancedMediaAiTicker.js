@@ -180,16 +180,16 @@ class ImageDeduplicator {
       return true;
     }
 
-    // Check Redis if available
-    if (redis) {
+    // Check Redis if available and has get method
+    if (redis && typeof redis.get === 'function') {
       try {
-        const exists = await redis.exists(this.redisPrefix + hash);
+        const exists = await redis.get(this.redisPrefix + hash);
         if (exists) {
           this.hashCache.set(hash, true);
           return true;
         }
       } catch (e) {
-        console.warn("[ImageDedup] Redis check failed:", e.message);
+        // Redis not available or method not supported, continue with memory-only
       }
     }
 
@@ -204,16 +204,20 @@ class ImageDeduplicator {
     const hash = this.hashUrl(imageUrl);
     this.hashCache.set(hash, true);
 
-    if (redis) {
+    if (redis && typeof redis.set === 'function') {
       try {
-        // Store for 30 days
-        await redis.setex(
+        // Store for 30 days using set with EX option or setex
+        await redis.set(
           this.redisPrefix + hash,
-          30 * 24 * 60 * 60,
-          "1"
-        );
+          "1",
+          'EX',
+          30 * 24 * 60 * 60
+        ).catch(() => {
+          // Fallback: if EX not supported, try without expiry
+          return redis.set(this.redisPrefix + hash, "1");
+        });
       } catch (e) {
-        console.warn("[ImageDedup] Redis mark failed:", e.message);
+        // Redis not available or method not supported, continue with memory-only
       }
     }
   }
@@ -256,12 +260,12 @@ class TeamDeduplicator {
       return true;
     }
 
-    // Check Redis if available
-    if (redis) {
+    // Check Redis if available and has get method
+    if (redis && typeof redis.get === 'function') {
       try {
         const [exists1, exists2] = await Promise.all([
-          redis.exists(this.redisPrefix + key1),
-          redis.exists(this.redisPrefix + key2),
+          redis.get(this.redisPrefix + key1).catch(() => null),
+          redis.get(this.redisPrefix + key2).catch(() => null),
         ]);
         if (exists1 || exists2) {
           this.recentTeams.add(key1);
@@ -269,7 +273,7 @@ class TeamDeduplicator {
           return true;
         }
       } catch (e) {
-        console.warn("[TeamDedup] Redis check failed:", e.message);
+        // Redis not available or method not supported, continue with memory-only
       }
     }
 
@@ -286,14 +290,14 @@ class TeamDeduplicator {
     this.recentTeams.add(key1);
     this.recentTeams.add(key2);
 
-    if (redis) {
+    if (redis && typeof redis.set === 'function') {
       try {
         await Promise.all([
-          redis.setex(this.redisPrefix + key1, 2 * 60 * 60, "1"),
-          redis.setex(this.redisPrefix + key2, 2 * 60 * 60, "1"),
+          redis.set(this.redisPrefix + key1, "1", 'EX', 2 * 60 * 60).catch(() => redis.set(this.redisPrefix + key1, "1")),
+          redis.set(this.redisPrefix + key2, "1", 'EX', 2 * 60 * 60).catch(() => redis.set(this.redisPrefix + key2, "1")),
         ]);
       } catch (e) {
-        console.warn("[TeamDedup] Redis mark failed:", e.message);
+        // Redis not available or method not supported, continue with memory-only
       }
     }
   }
@@ -396,12 +400,29 @@ async function getNewsArticles(count = 5) {
 
 /**
  * Get diverse sports events and news
+ * Uses sport rotation to prefer certain sports
  */
 async function getDiverseContent() {
-  const [liveEvents, newsArticles] = await Promise.all([
-    getInterestingEvents().catch(() => []),
-    getNewsArticles(3),
-  ]);
+  // Get the selected sport for this iteration
+  const selectedSport = sportRotation.getNextSport();
+  
+  // Fetch all events
+  const allLiveEvents = await getInterestingEvents().catch(() => []);
+  
+  // Try to filter for the selected sport first, but fallback to all if no match
+  let liveEvents = allLiveEvents.filter(e => {
+    const eventSport = String(e.sport || '').toLowerCase();
+    const selectedKey = String(selectedSport).toLowerCase();
+    return eventSport.includes(selectedKey) || selectedKey.includes(eventSport);
+  });
+  
+  // If filtering reduces events too much, use all events (graceful fallback)
+  if (liveEvents.length === 0) {
+    liveEvents = allLiveEvents;
+  }
+  
+  // Get news articles
+  const newsArticles = await getNewsArticles(3).catch(() => []);
 
   // Combine and diversify
   const all = [...liveEvents, ...newsArticles];
