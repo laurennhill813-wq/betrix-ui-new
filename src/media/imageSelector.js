@@ -240,18 +240,25 @@ async function wikiImageForName(name) {
 }
 
 // Extend fallback to try Wikimedia when ImageProvider is not available or returns nothing
+// Skip Wikimedia SVGs (they fail with Telegram) unless absolutely necessary
 export async function selectBestImageForEventFallbackExtended(sportEvent = {}) {
   const direct = await selectBestImageForEventFallback(sportEvent).catch(
     () => null,
   );
   if (direct) return direct;
   // Try home team, away team, league for Wikimedia images
+  // BUT: deprioritize SVGs as Telegram cannot fetch them directly
   const names = [sportEvent.home, sportEvent.away, sportEvent.league].filter(
     Boolean,
   );
   for (const n of names) {
     const w = await wikiImageForName(n);
     if (w) {
+      // Skip SVG URLs (Telegram 400 error) unless it's the only option
+      if (String(w || "").toLowerCase().includes(".svg")) {
+        console.info("[imageSelector] Skipping SVG URL from Wikimedia:", w);
+        continue;
+      }
       const resolved = await resolveDirectImage(w).catch(() => null);
       if (resolved)
         return { imageUrl: resolved, source: "wikipedia", rawUrl: w };
@@ -265,13 +272,17 @@ export default { selectBestImageForEvent };
 // Export a combined selector that will try provider modules first and then
 // the generic ImageProvider fallback when available.
 export async function selectBestImageForEventCombined(ev) {
-  // Prefer the generic image provider and Wikimedia first (likely to return public raster images),
-  // then fall back to provider modules (Getty/Reuters/Sportradar) if nothing found.
-  const fallbackFirst = await selectBestImageForEventFallbackExtended(ev).catch(
-    () => null,
-  );
-  if (fallbackFirst) return fallbackFirst;
-  return await selectBestImageForEvent(ev).catch(() => null);
+  // Parallel fetch: try both sources simultaneously for speed
+  const [fallbackImg, providerImg] = await Promise.all([
+    selectBestImageForEventFallbackExtended(ev).catch(() => null),
+    selectBestImageForEvent(ev).catch(() => null),
+  ]);
+  
+  // Prefer public raster (ImageProvider/Wikipedia) but only if not SVG
+  // Otherwise use provider modules
+  if (fallbackImg) return fallbackImg;
+  if (providerImg) return providerImg;
+  return null;
 }
 
 // Backwards-compat alias used by other modules: try extended fallback first (ImageProvider/Wikipedia)

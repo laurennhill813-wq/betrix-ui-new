@@ -124,15 +124,15 @@ export async function summarizeEventForTelegram(
     "Return ONLY the caption text, no explanation.",
   ].join("\n");
 
-  // Try provider chain: Azure -> Gemini -> Local
+  // Try provider chain: LocalAI (no rate limits) -> Azure -> Gemini
+  const locOut = await tryLocal(prompt);
+  if (locOut) return { caption: locOut, tone: effectiveTone };
+
   const azureOut = await tryAzure(prompt);
   if (azureOut) return { caption: azureOut, tone: effectiveTone };
 
   const gemOut = await tryGemini(prompt);
   if (gemOut) return { caption: gemOut, tone: effectiveTone };
-
-  const locOut = await tryLocal(prompt);
-  if (locOut) return { caption: locOut, tone: effectiveTone };
 
   // Fallback deterministic caption
   const fallback = `**${home || "Home"} vs ${away || "Away"}**\n${status || ""} ${time || ""}\n#${(league || "Sports").replace(/\s+/g, "")} #BETRIXLive`;
