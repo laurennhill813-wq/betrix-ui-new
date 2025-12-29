@@ -2095,23 +2095,23 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
             instrText += instructions.manualSteps.join("\n");
           } else {
             instrText +=
-              `🏦 NCBA PAYBILL PAYMENT\n\n` +
+              `NCBA PAYBILL PAYMENT\n\n` +
               `Paybill: 880100\n` +
               `Account: 1006989273\n` +
               `Amount: ${amount} KES\n\n` +
-              `📱 HOW TO PAY (Using M-Pesa):\n` +
-              `1️⃣ Open M-Pesa on your phone\n` +
-              `2️⃣ Tap Lipa Na M-Pesa Online\n` +
-              `3️⃣ Enter Paybill: 880100\n` +
-              `4️⃣ Enter Account: 1006989273\n` +
-              `5️⃣ Enter Amount: ${amount}\n` +
-              `6️⃣ Enter Your M-Pesa PIN\n` +
-              `7️⃣ You'll get a confirmation message\n\n` +
-              `✅ After Paying:\n` +
-              `• You'll receive an M-Pesa confirmation SMS\n` +
-              `• Copy the receipt code\n` +
-              `• Paste it in this chat for instant verification\n` +
-              `• Your subscription activates immediately!`;
+              `HOW TO PAY (Using M-Pesa):\n` +
+              `1. Open M-Pesa on your phone\n` +
+              `2. Tap Lipa Na M-Pesa Online\n` +
+              `3. Enter Paybill: 880100\n` +
+              `4. Enter Account: 1006989273\n` +
+              `5. Enter Amount: ${amount}\n` +
+              `6. Enter Your M-Pesa PIN\n` +
+              `7. You will get a confirmation message\n\n` +
+              `After Paying:\n` +
+              `- You will receive an M-Pesa confirmation SMS\n` +
+              `- Copy the receipt code\n` +
+              `- Paste it in this chat for instant verification\n` +
+              `- Your subscription activates immediately!`;
           }
 
           return {
@@ -2123,14 +2123,13 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
               inline_keyboard: [
                 [
                   {
-                    text: "✅ I have paid",
+                    text: "I have paid",
                     callback_data: "ncba:payment_sent",
                   },
-                  { text: "❌ Cancel", callback_data: "payment" },
+                  { text: "Cancel", callback_data: "payment" },
                 ],
               ],
             },
-            parse_mode: "Markdown",
           };
         } catch (err) {
           logger.warn(
