@@ -2258,21 +2258,26 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
       // Handle Till payment confirmation
       if (method === "till") {
         try {
+          logger.info("Till payment confirmation: starting");
           const userId = cq.from && cq.from.id ? cq.from.id : null;
           const chatId =
             cq.message && cq.message.chat && cq.message.chat.id
               ? cq.message.chat.id
               : null;
 
+          logger.info(`Till payment confirmation: userId=${userId}, chatId=${chatId}`);
+
           const amount = 100; // default Till amount
 
           // Create payment order
+          logger.info("Till payment confirmation: calling createCustomPaymentOrder");
           const order = await createCustomPaymentOrder(
             redis,
             userId,
             amount,
             "TILL",
           );
+          logger.info(`Till payment confirmation: order created - orderId=${order?.orderId}`);
 
           const tillNumber = process.env.MPESA_TILL || "606215";
 
@@ -2294,6 +2299,7 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
             `- Paste it in this chat for instant verification\n` +
             `- Your subscription activates immediately!`;
 
+          logger.info("Till payment confirmation: returning editMessageText response");
           return {
             method: "editMessageText",
             chat_id: chatId,
@@ -2312,6 +2318,11 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
             },
           };
         } catch (err) {
+          logger.error(
+            "pay_confirm:till handler error",
+            err?.message || String(err),
+            { stack: err?.stack }
+          );
           logger.warn(
             "pay_confirm:till handler failed",
             err?.message || String(err),
