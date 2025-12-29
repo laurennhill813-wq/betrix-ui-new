@@ -146,18 +146,6 @@ export async function getExtraEvents() {
   rapidApiCache.set(cacheKey, { ts: now, data: deduped });
   console.log(`[RapidAPI] Aggregated ${deduped.length} events from providers: ${RAPIDAPI_PROVIDERS.join(',')}`);
   return deduped;
-
-  // Deduplicate by id
-  const seen = new Set();
-  const deduped = [];
-  for (const r of results) {
-    if (!r || !r.id) continue;
-    if (seen.has(r.id)) continue;
-    seen.add(r.id);
-    deduped.push(r);
-  }
-
-  return deduped;
 }
 
 export default { getExtraEvents };
