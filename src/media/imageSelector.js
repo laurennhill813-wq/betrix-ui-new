@@ -1,5 +1,6 @@
 import resolveDirectImage from "./resolveDirectImage.js";
 import ImageProvider from "../services/image-provider.js";
+import fetch from "../lib/fetch.js";
 
 // Deterministic Sportradar asset selector: prefer original.jpg, then largest JPEG
 export function selectBestSportradarAsset(assets = []) {
@@ -50,42 +51,39 @@ async function safeCall(fn, ...args) {
       console.warn("imageSelector provider call failed", e?.message || e);
     } catch (_) {}
     return [];
+  }
+}
 
-  // Simple public team logo fetcher - works without API keys
-  async function getPublicTeamLogos(sportEvent = {}) {
-    const logos = [];
-    if (!sportEvent.home && !sportEvent.away) return logos;
-  
-    // Try to fetch team logos from public APIs (no auth required)
-    const teams = [sportEvent.home, sportEvent.away].filter(Boolean);
-    for (const team of teams) {
-      try {
-        // Use Fotmob or similar free logo sources
-        const encodedTeam = encodeURIComponent(team);
-        // Wikipedia logo as fallback (raster images preferred)
-        const wikiUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=original&titles=${encodedTeam}`;
-        const res = await fetch(wikiUrl, { redirect: "follow", timeout: 5000 });
-        if (res.ok) {
-          const data = await res.json();
-          if (data?.query?.pages) {
-            for (const page of Object.values(data.query.pages)) {
-              if (page?.original?.source) {
-                const imgUrl = page.original.source;
-                // Only accept raster images (not SVG)
-                if (!imgUrl.toLowerCase().includes(".svg")) {
-                  logos.push({ url: imgUrl, source: "team-logo-public" });
-                }
+// Simple public team logo fetcher - works without API keys
+async function getPublicTeamLogos(sportEvent = {}) {
+  const logos = [];
+  if (!sportEvent.home && !sportEvent.away) return logos;
+
+  const teams = [sportEvent.home, sportEvent.away].filter(Boolean);
+  for (const team of teams) {
+    try {
+      const encodedTeam = encodeURIComponent(team);
+      // Request a thumbnail (raster) from Wikimedia rather than the original (often SVG)
+      const wikiUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=600&titles=${encodedTeam}`;
+      const res = await fetch(wikiUrl, { redirect: "follow", timeout: 5000 });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.query?.pages) {
+          for (const page of Object.values(data.query.pages)) {
+            if (page?.thumbnail && page.thumbnail.source) {
+              const imgUrl = page.thumbnail.source;
+              if (!imgUrl.toLowerCase().includes(".svg")) {
+                logos.push({ url: imgUrl, source: "team-logo-public" });
               }
             }
           }
         }
-      } catch (e) {
-        // Silent fail - will continue to next team
       }
+    } catch (e) {
+      // ignore
     }
-    return logos;
   }
-  }
+  return logos;
 }
 
 async function tryImport(modulePath) {
