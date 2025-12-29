@@ -76,6 +76,7 @@ const CONFIG = {
     SAFE_CHUNK: Math.max(500, Number(process.env.TELEGRAM_SAFE_CHUNK || 3000)),
     ADMIN_ID: process.env.ADMIN_TELEGRAM_ID,
     BOT_USERNAME: process.env.BOT_USERNAME,
+    BROADCAST_CHAT_ID: process.env.BOT_BROADCAST_CHAT_ID,
   },
 
   // M-Pesa (Daraja)

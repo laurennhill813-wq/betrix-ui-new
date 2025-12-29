@@ -1112,7 +1112,7 @@ try {
   const intervalSeconds = Number(
     process.env.MEDIA_AI_INTERVAL_SECONDS ||
       process.env.MEDIA_AI_TICK_INTERVAL_SECONDS ||
-      180,
+      60,
   );
   if (intervalSeconds > 0) {
     setInterval(

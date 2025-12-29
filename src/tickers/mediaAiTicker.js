@@ -16,7 +16,7 @@ import telemetry from "../brain/telemetry.js";
 import { broadcastText } from "../telegram/broadcast.js";
 
 const POSTING_COOLDOWN_MS = Number(
-  process.env.MEDIA_AI_COOLDOWN_MS || 5 * 60 * 1000,
+  process.env.MEDIA_AI_COOLDOWN_MS || 30 * 1000,
 );
 let lastPostedAt = 0;
 
