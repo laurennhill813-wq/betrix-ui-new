@@ -21,6 +21,7 @@ class PaymentPresenter {
           { text: "₿ Binance (Crypto)", callback_data: "pay:binance" },
         ],
         [{ text: "🏦 Bank Transfer", callback_data: "pay:bank" }],
+        [{ text: "🏦 NCBA Paybill", callback_data: "pay:ncba" }],
         [{ text: "⬅️ Back", callback_data: "menu:main" }],
       ],
     };

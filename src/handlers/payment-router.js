@@ -73,6 +73,20 @@ export const PAYMENT_PROVIDERS = {
     processor: "swift",
     description: "International bank transfer",
   },
+  NCBA: {
+    name: "NCBA Paybill",
+    symbol: "🏦",
+    icon: "ncba",
+    paybill: process.env.NCBA_PAYBILL || "880100",
+    account: process.env.NCBA_ACCOUNT || "1006989273",
+    regions: ["KE"],
+    minAmount: 100,
+    maxAmount: 999999,
+    fee: 0.01, // 1%
+    currencies: ["KES"],
+    processor: "ncba",
+    description: "M-Pesa to NCBA Paybill 880100 with account 1006989273",
+  },
   BITCOIN: {
     name: "Bitcoin",
     symbol: "₿",
@@ -179,6 +193,10 @@ export function getPaymentGuide(paymentMethod) {
     case "SWIFT":
       steps =
         generateSwiftInstructions("ORDER_ID", provider.minAmount).steps || [];
+      break;
+    case "NCBA":
+      steps =
+        generateNCBAInstructions("ORDER_ID", provider.minAmount).manualSteps || [];
       break;
     case "BITCOIN":
       steps =
@@ -287,6 +305,48 @@ function generateTillQRCode(till, amount, ref) {
   const url = `https://betrix.app/pay/till?till=${till}&amount=${amount}&ref=${ref}`;
   return url;
 }
+
+/**
+ * Generate NCBA Paybill Payment Instructions
+ */
+export function generateNCBAInstructions(userId, amount) {
+  const provider = PAYMENT_PROVIDERS.NCBA;
+  const reference = `BETRIX${userId}${Date.now()}`
+    .substring(0, 12)
+    .toUpperCase();
+
+  return {
+    method: "ncba_paybill",
+    paybill: provider.paybill,
+    account: provider.account,
+    amount,
+    reference,
+    description: `Send ${amount} KES via M-Pesa to NCBA Paybill`,
+    manualSteps: [
+      `🏦 *NCBA PAYBILL PAYMENT*`,
+      ``,
+      `💳 *PAYBILL: ${provider.paybill}*`,
+      `🔢 *ACCOUNT: ${provider.account}*`,
+      `💰 *AMOUNT: ${amount} KES*`,
+      ``,
+      `📱 *HOW TO PAY (Using M-Pesa):*`,
+      `1️⃣ Open M-Pesa on your phone`,
+      `2️⃣ Tap *"Lipa Na M-Pesa Online"*`,
+      `3️⃣ Enter Paybill: *${provider.paybill}*`,
+      `4️⃣ Enter Account: *${provider.account}*`,
+      `5️⃣ Enter Amount: *${amount}*`,
+      `6️⃣ Enter Your M-Pesa PIN`,
+      `7️⃣ You'll get a confirmation message`,
+      ``,
+      `✅ *After Paying:*`,
+      `• You'll receive an M-Pesa confirmation SMS`,
+      `• Copy the receipt code (e.g., MTN***RTY)`,
+      `• Paste it in this chat for instant verification`,
+      `• Your subscription activates immediately!`,
+    ],
+  };
+}
+
 
 /**
  * Create payment order
@@ -767,6 +827,7 @@ export async function getPaymentInstructions(redis, orderId, paymentMethod) {
     const instructions = {
       MPESA: generateMPesaInstructions(orderId, totalAmount),
       SAFARICOM_TILL: generateSafaricomTillPayment(userId, totalAmount, tier),
+      NCBA: generateNCBAInstructions(userId, totalAmount),
       PAYPAL:
         orderData.metadata && orderData.metadata.checkoutUrl
           ? {

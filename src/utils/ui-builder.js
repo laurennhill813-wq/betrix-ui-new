@@ -300,6 +300,7 @@ class UIBuilder {
           { text: "₿ Binance", callback_data: "pay:binance" },
           { text: "🏦 Bank Transfer", callback_data: "pay:bank" },
         ],
+        [{ text: "🏦 NCBA Paybill", callback_data: "pay:ncba" }],
         [{ text: `${EMOJIS.back} Back`, callback_data: "menu:main" }],
       ],
     };

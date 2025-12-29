@@ -151,6 +151,16 @@ const CONFIG = {
       MONTHLY: { KES: 2500, USD: 20 },
     },
   },
+    // NCBA Payment (Manual M-Pesa receipt verification with automated daily reconciliation)
+    NCBA: {
+      ENABLED: Boolean(process.env.NCBA_PAYBILL),
+      PAYBILL: process.env.NCBA_PAYBILL || "880100",
+      ACCOUNT: process.env.NCBA_ACCOUNT || "1006989273",
+      AMOUNT_DEFAULT: Number(process.env.NCBA_AMOUNT_DEFAULT || 100),
+      STATEMENT_PATH: process.env.NCBA_STATEMENT_PATH || "./ncba_statement.csv",
+      CURRENCY: "KSh",
+      ADMIN_IDS: (process.env.ADMIN_IDS || "").split(",").filter(Boolean),
+    },
 
   // Pagination
   PAGE_SIZE: 5,
