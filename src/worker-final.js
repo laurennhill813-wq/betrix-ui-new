@@ -1290,45 +1290,15 @@ try {
 
   startSchedulers();
   logger.info("✅ Automation schedulers start attempted");
-  // ---- Startup test broadcast (temporary) ----
+  // ---- Startup test broadcast DISABLED ----
+  // DISABLED: Second test broadcast section was also posting "BETRIX TEST BROADCAST" messages
+  // User wants ONLY real media content, not test messages - removed entirely
   try {
-    const testChat =
-      process.env.BOT_BROADCAST_CHAT_ID ||
-      (CONFIG && CONFIG.TELEGRAM && CONFIG.TELEGRAM.BROADCAST_CHAT_ID) ||
-      null;
-    if (testChat) {
-      (async () => {
-        try {
-          // Attempt to fetch a representative image and send as photo where possible
-          const caption =
-            "🚀 BETRIX TEST BROADCAST — If you see this, the channel wiring works.";
-          const imageUrl = await ImageProvider.findImage({
-            q: "betrix test broadcast",
-          });
-          if (imageUrl) {
-            await telegram.sendPhoto(Number(testChat), imageUrl, caption, {
-              disable_notification: true,
-            });
-          } else {
-            // Fallback to text-only broadcast
-            await telegram.sendMessage(Number(testChat), caption);
-          }
-          logger.info("Startup test broadcast sent", { chat: testChat });
-        } catch (err) {
-          logger.error(
-            "Startup test broadcast failed",
-            err && err.message ? err.message : String(err),
-          );
-        }
-      })();
-    } else {
-      logger.info(
-        "No BOT_BROADCAST_CHAT_ID set — skipping startup test broadcast",
-      );
-    }
+    // const testChat = ...  DISABLED - do not send test broadcasts
+    logger.info("Startup test broadcast disabled (second instance) - using only real MediaAiTicker");
   } catch (e) {
     logger.warn(
-      "Startup test broadcast encountered an error",
+      "Startup test broadcast check error",
       e && e.message ? e.message : String(e),
     );
   }
