@@ -30,8 +30,9 @@ export async function getInterestingEvents() {
   // Fetch live matches and upcoming fixtures (next X hours) from the real aggregator
   const [liveMatches, upcomingFixtures] = await Promise.all([
     safeFetch(globalSportsAggregator.getLiveMatches?.bind(globalSportsAggregator)),
-    // pass 24 to get fixtures within next 24 hours (if implemented by aggregator)
-    safeFetch(globalSportsAggregator.getUpcomingFixtures?.bind(globalSportsAggregator), 24),
+    // Use the real aggregator's `getFixtures` to fetch upcoming fixtures
+    // When called without a leagueId it returns upcoming fixtures across major competitions
+    safeFetch(globalSportsAggregator.getFixtures?.bind(globalSportsAggregator), null, {}),
   ]).catch(() => [[], []]);
 
   const all = [...(liveMatches || []), ...(upcomingFixtures || [])];

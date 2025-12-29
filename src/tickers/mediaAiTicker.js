@@ -70,7 +70,8 @@ export async function runMediaAiTick() {
       /* ignore weighting errors */
     }
     // require a minimal score threshold to avoid low-value posts
-    if (s.score < Number(process.env.MEDIA_AI_MIN_SCORE || 40)) continue;
+    // Lowered from 40 to 15 to allow upcoming fixtures when no live matches exist
+    if (s.score < Number(process.env.MEDIA_AI_MIN_SCORE || 15)) continue;
     const evId = buildEventId(s.ev);
     const already = await hasPostedEvent(evId).catch(() => false);
     if (already) continue;
