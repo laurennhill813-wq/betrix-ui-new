@@ -211,16 +211,39 @@ export async function fetchAndCacheImage(url) {
   const finalPath = cue + "." + ext;
   const meta = { contentType: ct, url: fetchUrl, fetchedAt: Date.now() };
 
-  // Stream to file
-  const stream = res.body;
+  // Stream to file: convert Web Stream to Node stream if needed
   const tmpPath = finalPath + ".tmp";
-  await new Promise((resolve, reject) => {
-    const out = fs.createWriteStream(tmpPath);
-    stream.pipe(out);
-    out.on("finish", resolve);
-    out.on("error", reject);
-    stream.on("error", reject);
-  });
+  const out = fs.createWriteStream(tmpPath);
+  
+  // Check if res.body is a Node stream or a Web stream
+  if (res.body && typeof res.body.pipe === "function") {
+    // Node stream
+    await new Promise((resolve, reject) => {
+      res.body.pipe(out);
+      out.on("finish", resolve);
+      out.on("error", reject);
+      res.body.on("error", reject);
+    });
+  } else if (res.body && res.body[Symbol.asyncIterator]) {
+    // Web stream (async iterable)
+    await new Promise(async (resolve, reject) => {
+      try {
+        for await (const chunk of res.body) {
+          out.write(chunk);
+        }
+        out.end();
+        out.on("finish", resolve);
+        out.on("error", reject);
+      } catch (e) {
+        reject(e);
+      }
+    });
+  } else {
+    // Fallback: convert buffer
+    const buf = await res.arrayBuffer();
+    await fs.promises.writeFile(tmpPath, Buffer.from(buf));
+  }
+  
   // rename
   await fs.promises.rename(tmpPath, finalPath);
   await fs.promises.writeFile(metaPath, JSON.stringify(meta), "utf8");

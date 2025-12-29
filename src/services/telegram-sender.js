@@ -182,58 +182,62 @@ export async function sendPhotoWithCaption({
           try {
             telemetry.incCounter("upload_fallback_attempts");
           } catch (e) {}
-          // Attempt to proxy-and-cache the image (handles protected Sportradar URLs)
-          try {
-            const cached = await imageProxy.fetchAndCacheImage(photoUrl);
-            if (cached && cached.path) {
-              const filename = path.basename(cached.path);
-              const form = new FormData();
-              form.append("chat_id", String(chatId));
-              if (caption) form.append("caption", caption);
-              form.append("photo", fs.createReadStream(cached.path), {
-                filename,
-                contentType: cached.contentType,
-              });
-              const headers = form.getHeaders();
-              const retryRes = await fetch(url, {
-                method: "POST",
-                body: form,
-                headers,
-              });
-              if (!retryRes.ok) {
-                const rtxt = await retryRes.text().catch(() => "");
-                console.error(
-                  "Telegram sendPhoto (upload via proxy) failed",
-                  retryRes.status,
-                  rtxt.slice ? rtxt.slice(0, 200) : rtxt,
-                );
-              } else {
-                console.info(
-                  "Telegram sendPhoto upload fallback (proxy) succeeded",
-                );
-                try {
-                  telemetry.incCounter("upload_fallback_success");
-                } catch (e) {}
-                // Attempt to cleanup proxied cached file to avoid accumulation
-                try {
-                  if (cached && cached.path)
-                    await fs.promises.unlink(cached.path);
-                } catch (unlinkErr) {
-                  console.warn(
-                    "Failed to remove cached proxy file:",
-                    unlinkErr && unlinkErr.message
-                      ? unlinkErr.message
-                      : unlinkErr,
+          // Skip proxy for SVG and other problematic formats; go straight to direct fetch+upload
+          const isSvg = String(photoUrl || "").toLowerCase().includes(".svg");
+          if (!isSvg) {
+            // Attempt to proxy-and-cache the image (handles protected Sportradar URLs)
+            try {
+              const cached = await imageProxy.fetchAndCacheImage(photoUrl);
+              if (cached && cached.path) {
+                const filename = path.basename(cached.path);
+                const form = new FormData();
+                form.append("chat_id", String(chatId));
+                if (caption) form.append("caption", caption);
+                form.append("photo", fs.createReadStream(cached.path), {
+                  filename,
+                  contentType: cached.contentType,
+                });
+                const headers = form.getHeaders();
+                const retryRes = await fetch(url, {
+                  method: "POST",
+                  body: form,
+                  headers,
+                });
+                if (!retryRes.ok) {
+                  const rtxt = await retryRes.text().catch(() => "");
+                  console.error(
+                    "Telegram sendPhoto (upload via proxy) failed",
+                    retryRes.status,
+                    rtxt.slice ? rtxt.slice(0, 200) : rtxt,
                   );
+                } else {
+                  console.info(
+                    "Telegram sendPhoto upload fallback (proxy) succeeded",
+                  );
+                  try {
+                    telemetry.incCounter("upload_fallback_success");
+                  } catch (e) {}
+                  // Attempt to cleanup proxied cached file to avoid accumulation
+                  try {
+                    if (cached && cached.path)
+                      await fs.promises.unlink(cached.path);
+                  } catch (unlinkErr) {
+                    console.warn(
+                      "Failed to remove cached proxy file:",
+                      unlinkErr && unlinkErr.message
+                        ? unlinkErr.message
+                        : unlinkErr,
+                    );
+                  }
+                  return; // success
                 }
-                return; // success
               }
+            } catch (proxyErr) {
+              console.error(
+                "Image proxy fetch failed",
+                proxyErr && proxyErr.message ? proxyErr.message : proxyErr,
+              );
             }
-          } catch (proxyErr) {
-            console.error(
-              "Image proxy fetch failed",
-              proxyErr && proxyErr.message ? proxyErr.message : proxyErr,
-            );
           }
 
           // If proxy didn't return an image, fall back to previous strategy
