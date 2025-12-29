@@ -2294,10 +2294,10 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
             `5. Enter Amount: ${amount}\n` +
             `6. Confirm and complete payment\n\n` +
             `After Paying:\n` +
-            `- You will receive a Till receipt on your phone\n` +
-            `- Copy the receipt code\n` +
-            `- Paste it in this chat for instant verification\n` +
-            `- Your subscription activates immediately!`;
+            `You will receive a Till receipt on your phone\n` +
+            `Copy the receipt code\n` +
+            `Paste it in this chat for instant verification\n` +
+            `Your subscription activates immediately!`;
 
           logger.info("Till payment confirmation: returning editMessageText response");
           return {
