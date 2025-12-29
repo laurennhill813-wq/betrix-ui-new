@@ -45,18 +45,20 @@ export const ADVANCED_MEDIA_CONFIG = {
   },
 
   // ===== SPORT WEIGHTS (Probability Distribution) =====
+  // Defaults ensure multi-sport posting without environment variables
+  // Sum should equal ~1.0 for proper weighted distribution
   SPORT_WEIGHTS: {
-    soccer: Number(process.env.WEIGHT_SOCCER || 0.25),
-    nfl: Number(process.env.WEIGHT_NFL || 0.15),
-    nba: Number(process.env.WEIGHT_NBA || 0.15),
-    tennis: Number(process.env.WEIGHT_TENNIS || 0.12),
-    boxing: Number(process.env.WEIGHT_BOXING || 0.1),
-    cricket: Number(process.env.WEIGHT_CRICKET || 0.1),
-    nhl: Number(process.env.WEIGHT_NHL || 0.08),
-    f1: Number(process.env.WEIGHT_F1 || 0.08),
-    mlb: Number(process.env.WEIGHT_MLB || 0.07),
-    rugby: Number(process.env.WEIGHT_RUGBY || 0.06),
-    news: Number(process.env.WEIGHT_NEWS || 0.05),
+    soccer: Number(process.env.WEIGHT_SOCCER || 0.25),    // 25%
+    nfl: Number(process.env.WEIGHT_NFL || 0.15),          // 15%
+    nba: Number(process.env.WEIGHT_NBA || 0.15),          // 15%
+    tennis: Number(process.env.WEIGHT_TENNIS || 0.12),    // 12%
+    boxing: Number(process.env.WEIGHT_BOXING || 0.10),    // 10%
+    cricket: Number(process.env.WEIGHT_CRICKET || 0.10),  // 10%
+    nhl: Number(process.env.WEIGHT_NHL || 0.08),          // 8%
+    f1: Number(process.env.WEIGHT_F1 || 0.08),            // 8%
+    mlb: Number(process.env.WEIGHT_MLB || 0.07),          // 7%
+    rugby: Number(process.env.WEIGHT_RUGBY || 0.06),      // 6%
+    news: Number(process.env.WEIGHT_NEWS || 0.05),        // 5%
   },
 
   // ===== NEWS INTEGRATION =====

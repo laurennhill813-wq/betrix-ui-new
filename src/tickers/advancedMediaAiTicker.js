@@ -31,6 +31,7 @@ import {
 import { bumpEventMention } from "../brain/trending.js";
 import telemetry from "../brain/telemetry.js";
 import { broadcastText } from "../telegram/broadcast.js";
+import { ADVANCED_MEDIA_CONFIG } from "../config/advancedMediaConfig.js";
 import crypto from "crypto";
 
 // Get Redis if available for advanced deduplication
@@ -48,92 +49,106 @@ let lastPostedAt = 0;
 
 /**
  * SUPPORTED SPORTS with sport ID mapping and aliases
- * Each sport has:
- * - apiId: The ID used in APIs
- * - aliases: Alternative names users might search for
- * - weight: Rotation probability (sum to ~1.0 for balanced)
- * - emoji: Display emoji
- * - newsKeywords: Keywords to fetch news
+ * Weights are dynamically loaded from ADVANCED_MEDIA_CONFIG
+ * This enables easy customization via environment variables or defaults
  */
-const SUPPORTED_SPORTS = {
-  soccer: {
-    apiId: "soccer",
-    aliases: ["football", "epl", "premier league", "la liga", "serie a"],
-    weight: 0.25, // 25% of posts
-    emoji: "⚽",
-    newsKeywords: ["transfer news", "football", "soccer", "goal"],
-  },
-  nfl: {
-    apiId: "nfl",
-    aliases: ["american football", "nfl", "afl"],
-    weight: 0.15,
-    emoji: "🏈",
-    newsKeywords: ["NFL", "touchdown", "football"],
-  },
-  nba: {
-    apiId: "nba",
-    aliases: ["basketball", "nba"],
-    weight: 0.15,
-    emoji: "🏀",
-    newsKeywords: ["NBA", "basketball", "three pointer"],
-  },
-  tennis: {
-    apiId: "tennis",
-    aliases: ["atp", "wta", "wimbledon", "grand slam"],
-    weight: 0.12,
-    emoji: "🎾",
-    newsKeywords: ["tennis", "ATP", "WTA", "Federer", "Nadal"],
-  },
-  boxing: {
-    apiId: "boxing",
-    aliases: ["boxing", "mma", "ufc", "fighter"],
-    weight: 0.1,
-    emoji: "🥊",
-    newsKeywords: ["boxing", "UFC", "fighter", "knockout"],
-  },
-  cricket: {
-    apiId: "cricket",
-    aliases: ["cricket", "ipl", "test match", "t20"],
-    weight: 0.1,
-    emoji: "🏏",
-    newsKeywords: ["cricket", "IPL", "test match"],
-  },
-  nhl: {
-    apiId: "nhl",
-    aliases: ["ice hockey", "nhl", "hockey"],
-    weight: 0.08,
-    emoji: "🏒",
-    newsKeywords: ["hockey", "NHL", "goal"],
-  },
-  f1: {
-    apiId: "f1",
-    aliases: ["formula 1", "f1", "racing", "formula one"],
-    weight: 0.08,
-    emoji: "🏎️",
-    newsKeywords: ["F1", "racing", "Ferrari", "Mercedes"],
-  },
-  mlb: {
-    apiId: "mlb",
-    aliases: ["baseball", "mlb"],
-    weight: 0.07,
-    emoji: "⚾",
-    newsKeywords: ["baseball", "MLB", "home run"],
-  },
-  rugby: {
-    apiId: "rugby",
-    aliases: ["rugby", "rugby league"],
-    weight: 0.06,
-    emoji: "🏉",
-    newsKeywords: ["rugby", "try", "scrum"],
-  },
-  news: {
-    apiId: "news",
-    aliases: ["breaking news", "transfer news", "announcement"],
-    weight: 0.05,
-    emoji: "📰",
-    newsKeywords: ["breaking", "news", "announcement"],
-  },
+const getSupportedSports = () => {
+  const weights = ADVANCED_MEDIA_CONFIG.SPORT_WEIGHTS || {
+    soccer: 0.25,
+    nfl: 0.15,
+    nba: 0.15,
+    tennis: 0.12,
+    boxing: 0.1,
+    cricket: 0.1,
+    nhl: 0.08,
+    f1: 0.08,
+    mlb: 0.07,
+    rugby: 0.06,
+    news: 0.05,
+  };
+
+  return {
+    soccer: {
+      apiId: "soccer",
+      aliases: ["football", "epl", "premier league", "la liga", "serie a"],
+      weight: weights.soccer,
+      emoji: "⚽",
+      newsKeywords: ["transfer news", "football", "soccer", "goal"],
+    },
+    nfl: {
+      apiId: "nfl",
+      aliases: ["american football", "nfl", "afl"],
+      weight: weights.nfl,
+      emoji: "🏈",
+      newsKeywords: ["NFL", "touchdown", "football"],
+    },
+    nba: {
+      apiId: "nba",
+      aliases: ["basketball", "nba"],
+      weight: weights.nba,
+      emoji: "🏀",
+      newsKeywords: ["NBA", "basketball", "three pointer"],
+    },
+    tennis: {
+      apiId: "tennis",
+      aliases: ["atp", "wta", "wimbledon", "grand slam"],
+      weight: weights.tennis,
+      emoji: "🎾",
+      newsKeywords: ["tennis", "ATP", "WTA", "Federer", "Nadal"],
+    },
+    boxing: {
+      apiId: "boxing",
+      aliases: ["boxing", "mma", "ufc", "fighter"],
+      weight: weights.boxing,
+      emoji: "🥊",
+      newsKeywords: ["boxing", "UFC", "fighter", "knockout"],
+    },
+    cricket: {
+      apiId: "cricket",
+      aliases: ["cricket", "ipl", "test match", "t20"],
+      weight: weights.cricket,
+      emoji: "🏏",
+      newsKeywords: ["cricket", "IPL", "test match"],
+    },
+    nhl: {
+      apiId: "nhl",
+      aliases: ["ice hockey", "nhl", "hockey"],
+      weight: weights.nhl,
+      emoji: "🏒",
+      newsKeywords: ["hockey", "NHL", "goal"],
+    },
+    f1: {
+      apiId: "f1",
+      aliases: ["formula 1", "f1", "racing", "formula one"],
+      weight: weights.f1,
+      emoji: "🏎️",
+      newsKeywords: ["F1", "racing", "Ferrari", "Mercedes"],
+    },
+    mlb: {
+      apiId: "mlb",
+      aliases: ["baseball", "mlb"],
+      weight: weights.mlb,
+      emoji: "⚾",
+      newsKeywords: ["baseball", "MLB", "home run"],
+    },
+    rugby: {
+      apiId: "rugby",
+      aliases: ["rugby", "rugby league"],
+      weight: weights.rugby,
+      emoji: "🏉",
+      newsKeywords: ["rugby", "try", "scrum"],
+    },
+    news: {
+      apiId: "news",
+      aliases: ["breaking news", "transfer news", "announcement"],
+      weight: weights.news,
+      emoji: "📰",
+      newsKeywords: ["breaking", "news", "announcement"],
+    },
+  };
 };
+
+const SUPPORTED_SPORTS = getSupportedSports();
 
 /**
  * Image Deduplication Helper
