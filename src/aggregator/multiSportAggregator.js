@@ -1,5 +1,8 @@
-// multiSportAggregator: gather interesting events across many sports
+// multiSportAggregator: gather interesting events across many sports AND general news
 // Delegates to the real SportsAggregator instance (injected from worker-final.js)
+// Also optionally blends in news items if NEWS_BLEND_MODE enabled
+
+import { getLatestNews } from "./newsAggregator.js";
 
 let globalSportsAggregator = null;
 
@@ -51,8 +54,32 @@ export async function getInterestingEvents() {
     raw: ev,
   }));
 
+  // Optionally blend in news if enabled
+  let blended = [...normalized];
+  const newsBlendMode = String(process.env.NEWS_BLEND_MODE || "").toLowerCase();
+  if (newsBlendMode === "always" || newsBlendMode === "true" || newsBlendMode === "1") {
+    try {
+      // Include transfer news and breaking sports news keywords
+      const keywords = ["transfer news", "breaking", "Fabrizio Romano", "David Ornstein", "football news"];
+      const newsItems = await getLatestNews(keywords).catch(() => []);
+      if (Array.isArray(newsItems)) {
+        // Weight news lower than fixtures for scoring, but include them
+        const newsNormalized = newsItems.map((n) => ({
+          ...n,
+          type: "news",
+          importance: n.importance || "low",
+          sport: "news",
+        }));
+        blended.push(...newsNormalized.slice(0, 20)); // Limit to top 20 news items
+      }
+    } catch (e) {
+      // ignore news blend errors
+    }
+  }
+
   // Return all normalized events; scoring/filtering happens in interestScorer.js
-  return normalized;
+  return blended;
 }
 
 export default { getInterestingEvents, setSportsAggregator };
+

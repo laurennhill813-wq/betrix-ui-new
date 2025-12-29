@@ -1,0 +1,151 @@
+// General news and content aggregator — fetches breaking news, transfer news, and general articles
+import fetch from "../lib/fetch.js";
+
+const NEWSAPI_KEY = process.env.NEWSAPI_KEY || null;
+const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || null;
+const NEWSDATA_KEY = process.env.NEWSDATA_KEY || null;
+
+// Normalize news item to common format
+function normalizeNewsItem(item, source) {
+  return {
+    id: item.id || item.url || `${Date.now()}-${Math.random()}`,
+    type: "news",
+    sport: "general",
+    league: item.category || item.source?.name || "News",
+    home: null,
+    away: null,
+    title: item.title || item.headline || "",
+    description: item.description || item.content || item.summary || "",
+    url: item.url || item.link || "",
+    imageUrl: item.urlToImage || item.image || item.thumbnail || null,
+    source,
+    status: "published",
+    time: item.publishedAt || item.pubDate || new Date().toISOString(),
+    importance: item.category === "breaking" ? "high" : "medium",
+  };
+}
+
+// NewsAPI (newsapi.org) — covers major news outlets globally
+async function fetchFromNewsApi(keywords = []) {
+  if (!NEWSAPI_KEY) return [];
+  try {
+    const q = keywords.slice(0, 3).join(" OR ");
+    const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&sortBy=publishedAt&language=en&pageSize=10&apiKey=${NEWSAPI_KEY}`;
+    const res = await fetch(url, { redirect: "follow", timeout: 8000 });
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data.articles) return [];
+    return data.articles.map((a) => normalizeNewsItem(a, "newsapi"));
+  } catch (e) {
+    return [];
+  }
+}
+
+// NewsData.io — includes sports transfer news, breaking sports news
+async function fetchFromNewsData(keywords = []) {
+  if (!NEWSDATA_KEY) return [];
+  try {
+    const q = keywords.slice(0, 3).join(" OR ");
+    const url = `https://newsdata.io/api/1/news?q=${encodeURIComponent(q)}&language=en&size=10&apikey=${NEWSDATA_KEY}`;
+    const res = await fetch(url, { redirect: "follow", timeout: 8000 });
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data.results) return [];
+    return data.results.map((a) => normalizeNewsItem(a, "newsdata"));
+  } catch (e) {
+    return [];
+  }
+}
+
+// RSS feed aggregation (general and sports news)
+async function fetchFromRssFeeds(keywords = []) {
+  const out = [];
+  try {
+    const feedsRaw = String(process.env.NEWS_RSS_FEEDS || "").trim();
+    if (!feedsRaw) return out;
+    const feeds = feedsRaw.split(",").map((s) => s.trim()).filter(Boolean);
+    if (feeds.length === 0) return out;
+
+    const keywords_lower = keywords.map((k) => String(k).toLowerCase());
+
+    for (const feed of feeds) {
+      try {
+        const res = await fetch(feed, { redirect: "follow", timeout: 8000 });
+        if (!res.ok) continue;
+        const txt = await res.text();
+        // Crude RSS parse
+        const items = txt.split(/<item[\s>]/i).slice(1);
+        for (const itm of items.slice(0, 10)) {
+          const titleMatch = itm.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+          const descMatch = itm.match(/<description[^>]*>([\s\S]*?)<\/description>/i);
+          const linkMatch = itm.match(/<link[^>]*>([\s\S]*?)<\/link>/i);
+          const imageMatch = itm.match(/<image[^>]*>([\s\S]*?)<\/image>/i);
+          const title = titleMatch ? titleMatch[1].trim().slice(0, 200) : "";
+          const desc = descMatch ? descMatch[1].trim().slice(0, 400) : "";
+          const link = linkMatch ? linkMatch[1].trim() : "";
+          const image = imageMatch ? imageMatch[1].trim() : null;
+
+          const hay = (title + " " + desc).toLowerCase();
+          const matchScore = keywords_lower.filter((k) => k && hay.includes(k)).length;
+
+          if (title && (matchScore > 0 || keywords_lower.length === 0)) {
+            out.push(
+              normalizeNewsItem(
+                { title, description: desc, url: link, urlToImage: image },
+                "rss",
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        /* ignore feed errors */
+      }
+    }
+  } catch (e) {}
+  return out;
+}
+
+// Fetch latest news including transfer news, breaking sports, general news
+export async function getLatestNews(keywords = []) {
+  try {
+    const k = Array.isArray(keywords)
+      ? keywords.filter(Boolean).map((s) => String(s).trim())
+      : [];
+    if (k.length === 0) {
+      k.push("sports", "football", "transfer news");
+    }
+
+    // Parallel fetch from multiple sources
+    const [newsapi, newsdata, rss] = await Promise.all([
+      fetchFromNewsApi(k).catch(() => []),
+      fetchFromNewsData(k).catch(() => []),
+      fetchFromRssFeeds(k).catch(() => []),
+    ]);
+
+    // Deduplicate by URL and title
+    const allItems = [...newsapi, ...newsdata, ...rss];
+    const seen = new Set();
+    const unique = [];
+    for (const item of allItems) {
+      const key = (item.url || item.title || "").toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(item);
+      }
+    }
+
+    // Sort by time (most recent first)
+    unique.sort((a, b) => {
+      const timeA = new Date(a.time || 0).getTime();
+      const timeB = new Date(b.time || 0).getTime();
+      return timeB - timeA;
+    });
+
+    return unique.slice(0, 30); // Return top 30 deduplicated items
+  } catch (e) {
+    console.warn("newsAggregator error", e?.message || e);
+    return [];
+  }
+}
+
+export default { getLatestNews };

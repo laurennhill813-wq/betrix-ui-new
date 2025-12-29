@@ -1,10 +1,27 @@
-// Simple heuristic-based interest scorer for events
+// Simple heuristic-based interest scorer for events and news
 import { getEventVelocity } from "./trending.js";
 
 export async function scoreEvent(event = {}) {
   try {
     let score = 0;
     if (!event) return 0;
+
+    // Handle news items differently from sports events
+    if (event.type === "news" || event.sport === "news") {
+      // News items get a baseline score
+      score += 15;
+      // Boost for high-importance news (breaking, transfers, etc.)
+      if (event.importance === "high") score += 25;
+      if (event.importance === "medium") score += 10;
+      // Boost for keywords in title/description
+      const text = ((event.title || "") + " " + (event.description || "")).toLowerCase();
+      if (text.includes("transfer") || text.includes("rumor") || text.includes("deal")) score += 20;
+      if (text.includes("breaking") || text.includes("exclusive")) score += 15;
+      if (text.includes("fabrizio") || text.includes("david ornstein") || text.includes("tier 1")) score += 20;
+      return Math.max(0, Math.floor(score));
+    }
+
+    // Sports event scoring
     const status = String(event.status || "").toUpperCase();
     // LIVE events are highly interesting
     if (status === "LIVE") score += 50;

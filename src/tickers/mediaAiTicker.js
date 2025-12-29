@@ -3,8 +3,9 @@ import { summarizeEventForTelegram } from "../ai/summarizer.js";
 import {
   selectBestImageForEvent,
   selectBestImageForEventCombined,
+  selectBestMediaForEventCombined,
 } from "../media/imageSelector.js";
-import { sendPhotoWithCaption } from "../services/telegram-sender.js";
+import { sendPhotoWithCaption, sendVideoWithCaption } from "../services/telegram-sender.js";
 import { scoreEvent } from "../brain/interestScorer.js";
 import {
   buildEventId,
