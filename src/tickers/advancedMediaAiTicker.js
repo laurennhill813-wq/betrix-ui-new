@@ -350,6 +350,15 @@ class SportRotationManager {
       return { sport: key, weight };
     });
 
+    // Log weight scores for debugging
+    const logScores = scores
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, 5)
+      .map(s => `${s.sport}:${s.weight.toFixed(4)}`)
+      .join(' | ');
+    console.log(`[SportRotation] Top weights: ${logScores}`);
+    console.log(`[SportRotation] Recent history: ${this.lastSports.slice(-5).join(' <- ')}`);
+
     // Weighted random pick
     const totalWeight = scores.reduce((sum, s) => sum + s.weight, 0);
     let random = Math.random() * totalWeight;
@@ -362,6 +371,7 @@ class SportRotationManager {
         if (this.lastSports.length > this.maxRecent) {
           this.lastSports.shift();
         }
+        console.log(`[SportRotation] ✅ Selected: ${s.sport} ${SUPPORTED_SPORTS[s.sport]?.emoji || ''}`);
         return s.sport;
       }
     }
@@ -405,9 +415,19 @@ async function getNewsArticles(count = 5) {
 async function getDiverseContent() {
   // Get the selected sport for this iteration
   const selectedSport = sportRotation.getNextSport();
+  console.log(`[AdvancedMediaAiTicker] getDiverseContent() requesting ${selectedSport}`);
   
   // Fetch all events
   const allLiveEvents = await getInterestingEvents().catch(() => []);
+  console.log(`[AdvancedMediaAiTicker] Fetched ${allLiveEvents.length} total events`);
+  if (allLiveEvents.length > 0) {
+    const sportBreakdown = {};
+    allLiveEvents.forEach(e => {
+      const s = String(e.sport || 'unknown').toLowerCase();
+      sportBreakdown[s] = (sportBreakdown[s] || 0) + 1;
+    });
+    console.log(`[AdvancedMediaAiTicker] Available sports: ${Object.entries(sportBreakdown).map(([k, v]) => `${k}(${v})`).join(', ')}`);
+  }
   
   // Try to filter for the selected sport first, but fallback to all if no match
   let liveEvents = allLiveEvents.filter(e => {
@@ -416,13 +436,17 @@ async function getDiverseContent() {
     return eventSport.includes(selectedKey) || selectedKey.includes(eventSport);
   });
   
+  console.log(`[AdvancedMediaAiTicker] Filtered to ${liveEvents.length} events for ${selectedSport}`);
+  
   // If filtering reduces events too much, use all events (graceful fallback)
   if (liveEvents.length === 0) {
+    console.log(`[AdvancedMediaAiTicker] No ${selectedSport} events found, falling back to all events`);
     liveEvents = allLiveEvents;
   }
   
   // Get news articles
   const newsArticles = await getNewsArticles(3).catch(() => []);
+  console.log(`[AdvancedMediaAiTicker] Fetched ${newsArticles.length} news articles`);
 
   // Combine and diversify
   const all = [...liveEvents, ...newsArticles];
@@ -454,11 +478,16 @@ export async function runAdvancedMediaAiTick() {
   }
 
   try {
+    console.log("[AdvancedMediaAiTicker] ⏰ Starting content selection cycle");
+    
     // Get diverse content (events + news)
     const content = await getDiverseContent();
     if (!content || content.length === 0) {
+      console.warn("[AdvancedMediaAiTicker] No content available from getDiverseContent()");
       return console.info("[AdvancedMediaAiTicker] No content available");
     }
+
+    console.log(`[AdvancedMediaAiTicker] Processing ${content.length} content items`);
 
     // Score all content
     const scored = await Promise.all(
@@ -469,6 +498,9 @@ export async function runAdvancedMediaAiTick() {
     );
 
     scored.sort((a, b) => b.score - a.score);
+    
+    // Log top candidates
+    console.log(`[AdvancedMediaAiTicker] Top 3 candidates by score: ${scored.slice(0, 3).map((s, i) => `${i+1}. ${s.item.sport}(${s.score.toFixed(1)})`).join(' | ')}`);
 
     // Filter and pick best candidate avoiding duplicates
     let chosen = null;
