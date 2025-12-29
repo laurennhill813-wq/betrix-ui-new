@@ -60,6 +60,7 @@ import ImageProvider from "./services/image-provider.js";
 import { registerDataExposureAPI } from "./app_clean.js";
 import app from "./app_clean.js";
 import { runMediaAiTick } from "./tickers/mediaAiTicker.js";
+import { setSportsAggregator } from "./aggregator/multiSportAggregator.js";
 import { canPostNow, markPosted } from "./lib/liveliness.js";
 import { Pool } from "pg";
 import { reconcileWithLipana } from "./tasks/reconcile-lipana.js";
@@ -427,6 +428,13 @@ const sportsAggregator = new SportsAggregator(redis, {
   rss: rssAggregator,
   openLiga,
   allowedProviders: ["SPORTSMONKS", "FOOTBALLDATA"],
+// Inject the real sportsAggregator into multiSportAggregator so getInterestingEvents() has data
+try {
+  setSportsAggregator(sportsAggregator);
+  logger.info("✅ SportsAggregator injected into multiSportAggregator for MediaAiTicker");
+} catch (e) {
+  logger.warn("Failed to inject sportsAggregator", e?.message || String(e));
+}
 });
 let flashLiveService = null;
 try {
