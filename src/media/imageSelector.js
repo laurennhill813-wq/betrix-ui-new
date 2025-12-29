@@ -70,6 +70,7 @@ async function getPublicTeamLogos(sportEvent = {}) {
         Accept: "application/json,text/html;q=0.9,*/*;q=0.8",
       };
       const res = await fetch(wikiUrl, { redirect: "follow", timeout: 5000, headers });
+      try { console.info('[imageSelector] wikiThumbAttempt', { team, wikiUrl, status: res && res.status }); } catch(e) {}
       if (res.ok) {
         const data = await res.json();
         if (data?.query?.pages) {
@@ -84,6 +85,7 @@ async function getPublicTeamLogos(sportEvent = {}) {
         }
       }
     } catch (e) {
+      try { console.warn('[imageSelector] wikiThumbError', { team, err: e && e.message }); } catch(_) {}
       // ignore
     }
   }
@@ -258,7 +260,13 @@ export async function selectBestImageForEventFallback(sportEvent = {}) {
     const q =
       `${sportEvent.home || ""} ${sportEvent.away || ""} ${sportEvent.league || ""}`.trim() ||
       "sports";
-    const found = await ImageProvider.findImage({ q, limit: 1 });
+    let found = null;
+    try {
+      found = await ImageProvider.findImage({ q, limit: 1 });
+      try { console.info('[imageSelector] imageProviderResult', { q, found }); } catch(e) {}
+    } catch (e) {
+      try { console.warn('[imageSelector] imageProviderError', e && e.message); } catch(e) {}
+    }
     if (found) {
       const resolved = await resolveDirectImage(found).catch(() => null);
       if (resolved)
