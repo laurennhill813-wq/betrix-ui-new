@@ -131,16 +131,16 @@ export async function runMediaAiTick() {
       return;
     }
 
-  const [image, aiSummary] = await Promise.all([
-    // try provider adapters first, then fall back to the generic ImageProvider
-    selectBestImageForEventCombined(chosen).catch(() => null),
+  const [media, aiSummary] = await Promise.all([
+    // try provider adapters (images + videos) first
+    selectBestMediaForEventCombined(chosen).catch(() => null),
     summarizeEventForTelegram(chosen, "auto").catch(() => ({
       caption: null,
       tone: null,
     })),
   ]);
 
-  if (!image || !image.imageUrl) {
+  if (!media || !media.mediaUrl) {
     console.warn(
       "[MediaAiTicker] No valid image resolved — attempting text-only fallback",
     );
@@ -183,15 +183,26 @@ export async function runMediaAiTick() {
       ? aiSummary.caption
       : `**${chosen.home || "Home"} vs ${chosen.away || "Away"}**`;
 
-  try {
-    await sendPhotoWithCaption({ chatId, photoUrl: image.imageUrl, caption });
-    console.info("[MediaAiTicker] Posted AI media item", {
-      sport: chosen.sport,
-      league: chosen.league,
-      source: image.source,
-      tone: aiSummary && aiSummary.tone,
-      score: chosen._score,
-    });
+    try {
+      if (media.type === 'video') {
+        await sendVideoWithCaption({ chatId, videoUrl: media.mediaUrl, caption });
+        console.info("[MediaAiTicker] Posted AI media video", {
+          sport: chosen.sport,
+          league: chosen.league,
+          source: media.source,
+          tone: aiSummary && aiSummary.tone,
+          score: chosen._score,
+        });
+      } else {
+        await sendPhotoWithCaption({ chatId, photoUrl: media.mediaUrl, caption });
+        console.info("[MediaAiTicker] Posted AI media item", {
+          sport: chosen.sport,
+          league: chosen.league,
+          source: media.source,
+          tone: aiSummary && aiSummary.tone,
+          score: chosen._score,
+        });
+      }
     await telemetry.incCounter("posts");
     // mark as posted in memory to avoid duplicates
     if (chosen._eventId) {

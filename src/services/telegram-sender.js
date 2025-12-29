@@ -399,4 +399,61 @@ export async function sendPhotoWithCaption({
   }
 }
 
+export async function sendVideoWithCaption({ chatId, videoUrl, caption, parse_mode = 'Markdown' }) {
+  if (!BOT_TOKEN) return;
+  if (!chatId) return console.warn('sendVideoWithCaption: chatId missing');
+  if (!videoUrl) return console.warn('sendVideoWithCaption: videoUrl missing');
+
+  const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`;
+  const body = { chat_id: chatId, video: videoUrl, caption, parse_mode };
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      console.error('Telegram sendVideo failed', res.status, text.slice ? text.slice(0,200) : text);
+
+      // fallback: attempt to upload the video if it's directly fetchable
+      try {
+        const vRes = await fetchWithSportradarSupport(videoUrl, { redirect: 'follow' });
+        const ct = vRes.headers && vRes.headers.get ? vRes.headers.get('content-type') : '';
+        if (vRes.ok && ct && ct.startsWith('video/')) {
+          const buf = Buffer.from(await vRes.arrayBuffer());
+          const ext = (ct.split('/')[1] || 'mp4').split(';')[0];
+          const filename = `upload.${ext}`;
+          const tmp = path.join(os.tmpdir(), `${Date.now()}-${filename}`);
+          try {
+            await fs.promises.writeFile(tmp, buf);
+            const form = new FormData();
+            form.append('chat_id', String(chatId));
+            if (caption) form.append('caption', caption);
+            form.append('video', fs.createReadStream(tmp), { filename, contentType: ct });
+            const headers = form.getHeaders();
+            const retry = await fetch(url, { method: 'POST', body: form, headers });
+            if (!retry.ok) {
+              const rtxt = await retry.text().catch(()=>'');
+              console.error('Telegram sendVideo (upload) failed', retry.status, rtxt.slice? rtxt.slice(0,200) : rtxt);
+            } else {
+              console.info('Telegram sendVideo upload fallback succeeded');
+              try { telemetry.incCounter('video_upload_fallback_success'); } catch(e){ }
+              return;
+            }
+          } finally {
+            try { await fs.promises.unlink(tmp); } catch(e){}
+          }
+        }
+      } catch (e) {
+        console.error('Telegram sendVideo fallback error', e && e.message ? e.message : e);
+      }
+    }
+  } catch (err) {
+    console.error('Telegram sendVideo network error', err && err.message ? err.message : err);
+  }
+}
+
 export default { sendPhotoWithCaption };

@@ -335,3 +335,120 @@ export async function selectBestImageForEventCombinedExtended(ev) {
   if (ext) return ext;
   return await selectBestImageForEventCombined(ev).catch(() => null);
 }
+
+// --- Video and media providers (YouTube, RSS, social embeds) ---
+// Return array of media candidates: { type: 'video'|'image'|'embed', url, source, title }
+async function getYouTubeVideosForEvent(sportEvent = {}) {
+  const out = [];
+  try {
+    const key = process.env.YOUTUBE_API_KEY;
+    if (!key) return out;
+    const q = `${sportEvent.home || ""} ${sportEvent.away || ""} ${sportEvent.league || ""}`.trim();
+    if (!q) return out;
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=5&q=${encodeURIComponent(q)}&key=${key}`;
+    const res = await fetch(url, { redirect: 'follow', timeout: 8000 });
+    if (!res.ok) return out;
+    const data = await res.json();
+    if (!data || !Array.isArray(data.items)) return out;
+    for (const it of data.items) {
+      const vid = it.id && it.id.videoId;
+      if (!vid) continue;
+      out.push({ type: 'video', url: `https://www.youtube.com/watch?v=${vid}`, source: 'youtube', title: it.snippet && it.snippet.title });
+    }
+  } catch (e) {
+    // ignore
+  }
+  return out;
+}
+
+async function getRssItemsForEvent(sportEvent = {}) {
+  const out = [];
+  try {
+    const feedsRaw = String(process.env.MEDIA_RSS_FEEDS || '').trim();
+    if (!feedsRaw) return out;
+    const feeds = feedsRaw.split(',').map(s=>s.trim()).filter(Boolean);
+    const keywords = [sportEvent.home, sportEvent.away, sportEvent.league].filter(Boolean).map(s=>String(s).toLowerCase());
+    if (feeds.length === 0 || keywords.length === 0) return out;
+    for (const f of feeds) {
+      try {
+        const r = await fetch(f, { redirect: 'follow', timeout: 8000 });
+        if (!r.ok) continue;
+        const txt = await r.text();
+        // crude parse: find <item> blocks
+        const items = txt.split(/<item[\s>]/i).slice(1);
+        for (const itm of items.slice(0,20)) {
+          const titleMatch = itm.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+          const linkMatch = itm.match(/<link[^>]*>([\s\S]*?)<\/link>/i);
+          const title = titleMatch ? titleMatch[1].trim() : null;
+          const link = linkMatch ? linkMatch[1].trim() : null;
+          const hay = ((title||'') + ' ' + (link||'')).toLowerCase();
+          if (keywords.some(k => k && hay.includes(k))) {
+            // detect youtube/tiktok links
+            if (link && link.includes('youtube.com')) out.push({ type: 'video', url: link, source: 'rss' , title});
+            else if (link && link.includes('tiktok.com')) out.push({ type: 'embed', url: link, source: 'rss' , title});
+            else out.push({ type: 'embed', url: link, source: 'rss', title });
+          }
+        }
+      } catch (e) {
+        /* ignore feed errors */
+      }
+    }
+  } catch (e) {}
+  return out;
+}
+
+// Generic extractor for social embeds (attempt oEmbed or og:meta)
+async function extractEmbedForUrl(url) {
+  try {
+    if (!url) return null;
+    // try oEmbed endpoints for TikTok
+    if (url.includes('tiktok.com')) {
+      try {
+        const oe = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`;
+        const r = await fetch(oe, { redirect: 'follow', timeout: 6000 });
+        if (r.ok) {
+          const j = await r.json();
+          if (j && j.html) return { type: 'embed', url, source: 'tiktok', html: j.html };
+        }
+      } catch (e) {}
+    }
+    // fallback: fetch page and try og:video / og:image
+    const r2 = await fetch(url, { redirect: 'follow', timeout: 8000 });
+    if (!r2.ok) return null;
+    const html = await r2.text();
+    let match = html.match(/<meta[^>]+property=["']og:video["'][^>]+content=["']([^"']+)["']/i);
+    if (!match) match = html.match(/<meta[^>]+name=["']twitter:player["'][^>]+content=["']([^"']+)["']/i);
+    if (match) return { type: 'video', url: match[1], source: 'embed' };
+    match = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
+    if (match) return { type: 'image', url: match[1], source: 'embed' };
+  } catch (e) {}
+  return null;
+}
+
+// Combined media selector: return best candidate (video preferred)
+export async function selectBestMediaForEventCombined(ev) {
+  try {
+    const [imageCand, yt, rss] = await Promise.all([
+      selectBestImageForEventCombined(ev).catch(()=>null),
+      getYouTubeVideosForEvent(ev).catch(()=>[]),
+      getRssItemsForEvent(ev).catch(()=>[])
+    ]);
+    const videos = [];
+    if (Array.isArray(yt) && yt.length) videos.push(...yt.map(v=>({...v, source: v.source||'youtube'})));
+    if (Array.isArray(rss) && rss.length) videos.push(...rss.filter(r=>r.type==='video'));
+    // If RSS contains embed-only links, attempt to extract
+    const embeds = (Array.isArray(rss)? rss.filter(r=>r.type==='embed') : []).slice(0,6);
+    for (const e of embeds) {
+      const ex = await extractEmbedForUrl(e.url).catch(()=>null);
+      if (ex) videos.push(ex);
+    }
+    // prefer videos: return first video candidate
+    if (videos.length > 0) {
+      return { mediaUrl: videos[0].url, type: videos[0].type || 'video', source: videos[0].source || 'video' };
+    }
+    if (imageCand) return { mediaUrl: imageCand.imageUrl, type: 'image', source: imageCand.source };
+  } catch (e) {
+    // ignore
+  }
+  return null;
+}
