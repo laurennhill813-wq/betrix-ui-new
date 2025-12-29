@@ -2066,6 +2066,83 @@ Include only valid JSON in the response if possible. After the JSON, you may inc
     if (data.startsWith("pay_confirm:")) {
       const method = data.split(":")[1];
 
+      // Handle NCBA payment confirmation
+      if (method === "ncba") {
+        try {
+          const userId = cq.from && cq.from.id ? cq.from.id : null;
+          const chatId =
+            cq.message && cq.message.chat && cq.message.chat.id
+              ? cq.message.chat.id
+              : null;
+
+          const amount = 100; // default NCBA amount
+
+          // Create payment order
+          const order = await createCustomPaymentOrder(
+            redis,
+            userId,
+            amount,
+            "NCBA",
+          );
+
+          const instructions = await (
+            await import("./payment-router.js")
+          ).getPaymentInstructions(redis, order.orderId, "NCBA");
+
+          let instrText = `🏦 NCBA Paybill Payment\n\n`;
+          instrText += `Order ID: \`${order.orderId}\`\n`;
+          instrText += `Amount: *${amount} KES*\n`;
+          instrText += `Paybill: *880100*\n`;
+          instrText += `Account: *1006989273*\n\n`;
+
+          if (instructions && instructions.manualSteps) {
+            instrText += instructions.manualSteps.join("\n");
+          } else {
+            instrText +=
+              `1️⃣ Open M-Pesa on your phone\n` +
+              `2️⃣ Select Lipa Na M-Pesa Online\n` +
+              `3️⃣ Enter Paybill: 880100\n` +
+              `4️⃣ Enter Account: 1006989273\n` +
+              `5️⃣ Enter Amount: ${amount} KES\n` +
+              `6️⃣ Enter M-Pesa PIN\n` +
+              `7️⃣ Share your receipt code here\n\n` +
+              `✅ After Paying:\n` +
+              `• Paste your M-Pesa receipt code in this chat\n` +
+              `• Your subscription activates immediately!`;
+          }
+
+          return {
+            method: "editMessageText",
+            chat_id: chatId,
+            message_id: cq.message.message_id,
+            text: instrText,
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: "✅ I have paid",
+                    callback_data: "ncba:payment_sent",
+                  },
+                  { text: "❌ Cancel", callback_data: "payment" },
+                ],
+              ],
+            },
+            parse_mode: "Markdown",
+          };
+        } catch (err) {
+          logger.warn(
+            "pay_confirm:ncba handler failed",
+            err?.message || String(err),
+          );
+          return {
+            method: "answerCallbackQuery",
+            callback_query_id: cq.id,
+            text: "❌ Failed to process NCBA payment. Please try again later.",
+            show_alert: true,
+          };
+        }
+      }
+
       // Only handle MPESA/STK confirmation here; other methods are no-ops
       if (method === "mpesa" || method === "mpesa_stk" || method === "lipana") {
         try {
