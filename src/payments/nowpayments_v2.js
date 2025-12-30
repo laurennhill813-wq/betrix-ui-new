@@ -1,5 +1,6 @@
 import crypto from "crypto";
-import logger from "../utils/logger.js";
+import { Logger } from "../utils/logger.js";
+const logger = new Logger("NowPayments");
 import { ensureFetch } from "../lib/fetch-polyfill.js";
 
 const L = logger;
