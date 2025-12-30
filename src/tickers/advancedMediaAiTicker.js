@@ -334,5 +334,8 @@ async function runAdvancedMediaAiTick() {
       }
     }
   }
+}
+
+export { runAdvancedMediaAiTick };
 
 
