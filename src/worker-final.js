@@ -59,7 +59,7 @@ import SportsDataAPI from "./services/sportsdata-api.js";
 import ImageProvider from "./services/image-provider.js";
 import { registerDataExposureAPI } from "./app_clean.js";
 import app from "./app_clean.js";
-import advancedMediaAiTicker from "./tickers/advancedMediaAiTicker.js";
+import * as advancedMediaAiTicker from "./tickers/advancedMediaAiTicker.js";
 import { setSportsAggregator } from "./aggregator/multiSportAggregator.js";
 import { canPostNow, markPosted } from "./lib/liveliness.js";
 import { Pool } from "pg";
