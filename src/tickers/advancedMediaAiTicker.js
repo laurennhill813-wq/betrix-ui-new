@@ -105,6 +105,7 @@ class ImageDeduplicator {
     // Check in-memory cache first
     if (this.hashCache.has(hash)) {
       return true;
+  /**
    * Normalize team name for comparison
    */
   normalize(name) {
