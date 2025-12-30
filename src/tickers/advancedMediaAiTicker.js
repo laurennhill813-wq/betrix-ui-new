@@ -336,11 +336,3 @@ async function runAdvancedMediaAiTick() {
 }
 
 
-export {
-  imageDedup,
-  teamDedup,
-  sportRotation,
-  SUPPORTED_SPORTS,
-  runAdvancedMediaAiTick,
-  setRedisClient
-};
