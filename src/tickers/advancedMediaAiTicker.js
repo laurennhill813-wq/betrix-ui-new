@@ -228,15 +228,17 @@ async function runAdvancedMediaAiTick() {
     if (caption.length > 1024) caption = caption.slice(0, 1020) + '...';
     try {
       if (isVideo) {
+        console.log(`[AdvancedMediaAiTicker] [POST_ATTEMPT] Calling sendVideoWithCaption for: ${mediaUrl}`);
         await sendVideoWithCaption({ chatId, videoUrl: mediaUrl, caption, parse_mode: "Markdown" });
-        console.log(`[AdvancedMediaAiTicker] Video posted: ${mediaUrl}`);
+        console.log(`[AdvancedMediaAiTicker] [POST_SUCCESS] Video posted: ${mediaUrl}`);
       } else {
+        console.log(`[AdvancedMediaAiTicker] [POST_ATTEMPT] Calling sendPhotoWithCaption for: ${mediaUrl}`);
         await sendPhotoWithCaption({ chatId, photoUrl: mediaUrl, caption, parse_mode: "Markdown" });
-        console.log(`[AdvancedMediaAiTicker] Photo posted: ${mediaUrl}`);
+        console.log(`[AdvancedMediaAiTicker] [POST_SUCCESS] Photo posted: ${mediaUrl}`);
       }
       posts++;
     } catch (err) {
-      console.error(`[AdvancedMediaAiTicker] Failed to post media:`, err);
+      console.error(`[AdvancedMediaAiTicker] [POST_ERROR] Failed to post media: ${mediaUrl} -`, err && err.message ? err.message : err);
     }
   }
 
@@ -254,12 +256,13 @@ async function runAdvancedMediaAiTick() {
     // Try video first if available
     if (item.videoUrl) {
       try {
+        console.log(`[AdvancedMediaAiTicker] [POST_ATTEMPT] Calling sendVideoWithCaption for news: ${item.videoUrl}`);
         await sendVideoWithCaption({ chatId, videoUrl: item.videoUrl, caption, parse_mode: "Markdown" });
-        console.log(`[AdvancedMediaAiTicker] News video posted: ${item.videoUrl}`);
+        console.log(`[AdvancedMediaAiTicker] [POST_SUCCESS] News video posted: ${item.videoUrl}`);
         posts++;
         if (posts >= maxPosts) break;
       } catch (err) {
-        console.error(`[AdvancedMediaAiTicker] Failed to post news video:`, err);
+        console.error(`[AdvancedMediaAiTicker] [POST_ERROR] Failed to post news video: ${item.videoUrl} -`, err && err.message ? err.message : err);
       }
     }
     // Try photoUrl, else fallback to imageUrl (and not the same as video)
@@ -271,12 +274,13 @@ async function runAdvancedMediaAiTick() {
     }
     if (photoCandidate) {
       try {
+        console.log(`[AdvancedMediaAiTicker] [POST_ATTEMPT] Calling sendPhotoWithCaption for news: ${photoCandidate}`);
         await sendPhotoWithCaption({ chatId, photoUrl: photoCandidate, caption, parse_mode: "Markdown" });
-        console.log(`[AdvancedMediaAiTicker] News photo posted: ${photoCandidate}`);
+        console.log(`[AdvancedMediaAiTicker] [POST_SUCCESS] News photo posted: ${photoCandidate}`);
         posts++;
         if (posts >= maxPosts) break;
       } catch (err) {
-        console.error(`[AdvancedMediaAiTicker] Failed to post news photo/image:`, err);
+        console.error(`[AdvancedMediaAiTicker] [POST_ERROR] Failed to post news photo/image: ${photoCandidate} -`, err && err.message ? err.message : err);
       }
     }
   }
