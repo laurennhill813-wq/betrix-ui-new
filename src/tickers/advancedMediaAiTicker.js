@@ -336,6 +336,6 @@ async function runAdvancedMediaAiTick() {
   }
 }
 
-export { runAdvancedMediaAiTick };
+export { runAdvancedMediaAiTick, setRedisClient };
 
 
