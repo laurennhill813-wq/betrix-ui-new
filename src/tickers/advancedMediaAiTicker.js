@@ -183,22 +183,80 @@ function getDiverseContent() {
 
 
 async function runAdvancedMediaAiTick() {
-  // TEST: Send a photo to the broadcast channel to verify Telegram posting works
   const chatId = process.env.BOT_BROADCAST_CHAT_ID || "-1003425723710";
-  const testImage = "https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png";
-  const testCaption = "✅ Test post: Telegram bot is working!";
+  // Fetch live events and news articles
+  let liveEvents = [];
+  let newsArticles = [];
   try {
-    await sendPhotoWithCaption({
-      chatId,
-      photoUrl: testImage,
-      caption: testCaption,
-      parse_mode: "Markdown"
-    });
-    console.log("[Test] Photo sent to Telegram channel: " + chatId);
-  } catch (err) {
-    console.error("[Test] Failed to send photo to Telegram:", err);
+    liveEvents = await getInterestingEvents();
+  } catch (e) {
+    console.warn("[AdvancedMediaAiTicker] Failed to fetch live events", e);
   }
-  return null;
+  try {
+    newsArticles = await getLatestNews();
+  } catch (e) {
+    console.warn("[AdvancedMediaAiTicker] Failed to fetch news articles", e);
+  }
+
+  // Merge and prioritize content
+  let allContent = [];
+  if ((liveEvents.length === 0 || !liveEvents) && newsArticles.length > 0) {
+    allContent = newsArticles.slice();
+  } else {
+    allContent = liveEvents.concat(newsArticles);
+  }
+
+  // Post up to 3 items per tick (configurable)
+  const maxPosts = Number(process.env.MEDIA_AI_MAX_POSTS_PER_TICK || 3);
+  let posts = 0;
+  for (const item of allContent) {
+    if (posts >= maxPosts) break;
+    let mediaUrl = null;
+    let isVideo = false;
+    // Prefer video if available, else photo
+    if (item.videoUrl) {
+      mediaUrl = item.videoUrl;
+      isVideo = true;
+    } else if (item.photoUrl) {
+      mediaUrl = item.photoUrl;
+    } else if (item.imageUrl) {
+      mediaUrl = item.imageUrl;
+    }
+    if (!mediaUrl) continue;
+
+    // Generate a long AI caption (news or event summary)
+    let caption = '';
+    try {
+      caption = await summarizeEventForTelegram(item, { long: true, includeArticle: true });
+    } catch (e) {
+      caption = item.title || item.caption || item.headline || 'Betrix Update';
+    }
+    // Telegram max caption length: 1024 for photos, 1024 for videos
+    if (caption.length > 1024) caption = caption.slice(0, 1020) + '...';
+
+    try {
+      if (isVideo) {
+        await sendVideoWithCaption({
+          chatId,
+          videoUrl: mediaUrl,
+          caption,
+          parse_mode: "Markdown"
+        });
+        console.log(`[AdvancedMediaAiTicker] Video posted: ${mediaUrl}`);
+      } else {
+        await sendPhotoWithCaption({
+          chatId,
+          photoUrl: mediaUrl,
+          caption,
+          parse_mode: "Markdown"
+        });
+        console.log(`[AdvancedMediaAiTicker] Photo posted: ${mediaUrl}`);
+      }
+      posts++;
+    } catch (err) {
+      console.error(`[AdvancedMediaAiTicker] Failed to post media:`, err);
+    }
+  }
 }
 
 
