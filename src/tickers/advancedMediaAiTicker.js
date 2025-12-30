@@ -182,9 +182,22 @@ function getDiverseContent() {
 }
 
 
-function runAdvancedMediaAiTick() {
-  // TODO: Implement the main ticker logic here (ES5 style)
-  // This is a placeholder to prevent import errors
+async function runAdvancedMediaAiTick() {
+  // TEST: Send a photo to the broadcast channel to verify Telegram posting works
+  const chatId = process.env.BOT_BROADCAST_CHAT_ID || "-1003425723710";
+  const testImage = "https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png";
+  const testCaption = "✅ Test post: Telegram bot is working!";
+  try {
+    await sendPhotoWithCaption({
+      chatId,
+      photoUrl: testImage,
+      caption: testCaption,
+      parse_mode: "Markdown"
+    });
+    console.log("[Test] Photo sent to Telegram channel: " + chatId);
+  } catch (err) {
+    console.error("[Test] Failed to send photo to Telegram:", err);
+  }
   return null;
 }
 
