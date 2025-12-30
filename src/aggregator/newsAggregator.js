@@ -128,7 +128,7 @@ export async function getLatestNews(keywords = []) {
     if (allItems.length === 0) {
       try {
         const q = k.join(" ");
-        // Google News
+        // Google News (2025 selectors)
         const urlGoogle = `https://news.google.com/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
         console.log('[Aggregator] Fetching Google News:', urlGoogle);
         const resGoogle = await fetch(urlGoogle);
@@ -136,33 +136,47 @@ export async function getLatestNews(keywords = []) {
         const htmlGoogle = await resGoogle.text();
         const $g = cheerio.load(htmlGoogle);
         let googleCount = 0;
-        $g("article").each((i, el) => {
-          const headline = $g(el).find("h3").text() || $g(el).find("h4").text();
-          const link = $g(el).find("a").attr("href");
-          let imageUrl = $g(el).find("img").attr("src");
-          if (headline && link) {
-            allItems.push({
-              id: link,
-              type: "news",
-              sport: "general",
-              league: "News",
-              home: null,
-              away: null,
-              title: headline,
-              description: "",
-              url: link.startsWith("http") ? link : `https://news.google.com${link}`,
-              imageUrl: imageUrl || null,
-              videoUrl: null,
-              source: "google-news",
-              status: "published",
-              time: new Date().toISOString(),
-              importance: "medium",
-            });
-            googleCount++;
+        $g('a').each((i, el) => {
+          const href = $g(el).attr('href') || '';
+          // Only consider article/read links
+          if (href.startsWith('/articles/') || href.startsWith('/read/')) {
+            const headline = $g(el).text().trim();
+            // Try to find image in parent or next siblings
+            let imageUrl = null;
+            const parent = $g(el).parent();
+            if (parent) {
+              const img = parent.find('img').first();
+              if (img && img.attr('src')) imageUrl = img.attr('src');
+            }
+            if (!imageUrl) {
+              // Try next siblings
+              const sibImg = $g(el).nextAll('img').first();
+              if (sibImg && sibImg.attr('src')) imageUrl = sibImg.attr('src');
+            }
+            if (headline && href) {
+              allItems.push({
+                id: href,
+                type: "news",
+                sport: "general",
+                league: "News",
+                home: null,
+                away: null,
+                title: headline,
+                description: "",
+                url: href.startsWith('http') ? href : `https://news.google.com${href}`,
+                imageUrl: imageUrl || null,
+                videoUrl: null,
+                source: "google-news",
+                status: "published",
+                time: new Date().toISOString(),
+                importance: "medium",
+              });
+              googleCount++;
+            }
           }
         });
         console.log('[Aggregator] Google News articles found:', googleCount);
-        // Bing News
+        // Bing News (2025 selectors)
         const urlBing = `https://www.bing.com/news/search?q=${encodeURIComponent(q)}`;
         console.log('[Aggregator] Fetching Bing News:', urlBing);
         const resBing = await fetch(urlBing);
@@ -170,29 +184,34 @@ export async function getLatestNews(keywords = []) {
         const htmlBing = await resBing.text();
         const $b = cheerio.load(htmlBing);
         let bingCount = 0;
-        $b(".news-card").each((i, el) => {
-          const headline = $b(el).find("a.title").text();
-          const link = $b(el).find("a.title").attr("href");
-          let imageUrl = $b(el).find("img").attr("src");
-          let videoUrl = null;
-          // Try to find video if present
-          const videoEl = $b(el).find("video");
-          if (videoEl.length) {
-            videoUrl = videoEl.attr("src") || null;
-          }
-          if (headline && link) {
+        $b('a').each((i, el) => {
+          const href = $b(el).attr('href') || '';
+          const title = $b(el).attr('title') || $b(el).attr('aria-label') || $b(el).text().trim();
+          // Only consider links to news articles
+          if (href.startsWith('http') && title.length > 10) {
+            // Try to find image in parent or next siblings
+            let imageUrl = null;
+            const parent = $b(el).parent();
+            if (parent) {
+              const img = parent.find('img').first();
+              if (img && img.attr('src')) imageUrl = img.attr('src');
+            }
+            if (!imageUrl) {
+              const sibImg = $b(el).nextAll('img').first();
+              if (sibImg && sibImg.attr('src')) imageUrl = sibImg.attr('src');
+            }
             allItems.push({
-              id: link,
+              id: href,
               type: "news",
               sport: "general",
               league: "News",
               home: null,
               away: null,
-              title: headline,
+              title: title,
               description: "",
-              url: link,
+              url: href,
               imageUrl: imageUrl || null,
-              videoUrl,
+              videoUrl: null,
               source: "bing-news",
               status: "published",
               time: new Date().toISOString(),
