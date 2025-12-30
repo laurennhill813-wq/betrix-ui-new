@@ -222,7 +222,6 @@ async function runAdvancedMediaAiTick() {
     } else if (item.imageUrl) {
       mediaUrl = item.imageUrl;
     }
-    if (!mediaUrl) continue;
     let caption = '';
     try {
       caption = await summarizeEventForTelegram(item, { long: true, includeArticle: true });
@@ -231,22 +230,29 @@ async function runAdvancedMediaAiTick() {
     }
     if (caption.length > 1024) caption = caption.slice(0, 1020) + '...';
     try {
-      if (isVideo) {
-        console.log(`[AdvancedMediaAiTicker] [POST_ATTEMPT] Calling sendVideoWithCaption for: ${mediaUrl}`);
-        await sendVideoWithCaption({ chatId, videoUrl: mediaUrl, caption, parse_mode: "Markdown" });
-        console.log(`[AdvancedMediaAiTicker] [POST_SUCCESS] Video posted: ${mediaUrl}`);
+      if (mediaUrl) {
+        if (isVideo) {
+          console.log(`[AdvancedMediaAiTicker] [POST_ATTEMPT] Calling sendVideoWithCaption for: ${mediaUrl}`);
+          await sendVideoWithCaption({ chatId, videoUrl: mediaUrl, caption, parse_mode: "Markdown" });
+          console.log(`[AdvancedMediaAiTicker] [POST_SUCCESS] Video posted: ${mediaUrl}`);
+        } else {
+          console.log(`[AdvancedMediaAiTicker] [POST_ATTEMPT] Calling sendPhotoWithCaption for: ${mediaUrl}`);
+          await sendPhotoWithCaption({ chatId, photoUrl: mediaUrl, caption, parse_mode: "Markdown" });
+          console.log(`[AdvancedMediaAiTicker] [POST_SUCCESS] Photo posted: ${mediaUrl}`);
+        }
       } else {
-        console.log(`[AdvancedMediaAiTicker] [POST_ATTEMPT] Calling sendPhotoWithCaption for: ${mediaUrl}`);
-        await sendPhotoWithCaption({ chatId, photoUrl: mediaUrl, caption, parse_mode: "Markdown" });
-        console.log(`[AdvancedMediaAiTicker] [POST_SUCCESS] Photo posted: ${mediaUrl}`);
+        // No media available, send text-only message
+        console.log(`[AdvancedMediaAiTicker] [POST_ATTEMPT] Sending text-only message for live event`);
+        await broadcastText({ chatId, text: caption, parse_mode: "Markdown" });
+        console.log(`[AdvancedMediaAiTicker] [POST_SUCCESS] Text-only live event posted`);
       }
       posts++;
     } catch (err) {
-      console.error(`[AdvancedMediaAiTicker] [POST_ERROR] Failed to post media: ${mediaUrl} -`, err && err.message ? err.message : err);
+      console.error(`[AdvancedMediaAiTicker] [POST_ERROR] Failed to post live event:`, err && err.message ? err.message : err);
     }
   }
 
-  // 2. Always post news articles (try both video and photo for each article)
+  // 2. Always post news articles (try both video and photo for each article, or text-only if no media)
   console.log('[AdvancedMediaAiTicker] TRACE: Entering newsArticles posting loop');
   for (const item of newsArticles) {
     console.log('[AdvancedMediaAiTicker] TRACE: newsArticle item:', JSON.stringify(item));
@@ -260,6 +266,7 @@ async function runAdvancedMediaAiTick() {
     }
     if (caption.length > 1024) caption = caption.slice(0, 1020) + '...';
 
+    let posted = false;
     // Try video first if available
     if (item.videoUrl) {
       try {
@@ -267,6 +274,7 @@ async function runAdvancedMediaAiTick() {
         await sendVideoWithCaption({ chatId, videoUrl: item.videoUrl, caption, parse_mode: "Markdown" });
         console.log(`[AdvancedMediaAiTicker] [POST_SUCCESS] News video posted: ${item.videoUrl}`);
         posts++;
+        posted = true;
         if (posts >= maxPosts) break;
       } catch (err) {
         console.error(`[AdvancedMediaAiTicker] [POST_ERROR] Failed to post news video: ${item.videoUrl} -`, err && err.message ? err.message : err);
@@ -279,15 +287,27 @@ async function runAdvancedMediaAiTick() {
     } else if (item.imageUrl && item.imageUrl !== item.videoUrl) {
       photoCandidate = item.imageUrl;
     }
-    if (photoCandidate) {
+    if (!posted && photoCandidate) {
       try {
         console.log(`[AdvancedMediaAiTicker] [POST_ATTEMPT] Calling sendPhotoWithCaption for news: ${photoCandidate}`);
         await sendPhotoWithCaption({ chatId, photoUrl: photoCandidate, caption, parse_mode: "Markdown" });
         console.log(`[AdvancedMediaAiTicker] [POST_SUCCESS] News photo posted: ${photoCandidate}`);
         posts++;
+        posted = true;
         if (posts >= maxPosts) break;
       } catch (err) {
         console.error(`[AdvancedMediaAiTicker] [POST_ERROR] Failed to post news photo/image: ${photoCandidate} -`, err && err.message ? err.message : err);
+      }
+    }
+    // If no media posted, send text-only message
+    if (!posted && !item.videoUrl && !photoCandidate) {
+      try {
+        console.log(`[AdvancedMediaAiTicker] [POST_ATTEMPT] Sending text-only message for news article`);
+        await broadcastText({ chatId, text: caption, parse_mode: "Markdown" });
+        console.log(`[AdvancedMediaAiTicker] [POST_SUCCESS] Text-only news article posted`);
+        posts++;
+      } catch (err) {
+        console.error(`[AdvancedMediaAiTicker] [POST_ERROR] Failed to post text-only news article:`, err && err.message ? err.message : err);
       }
     }
   }
