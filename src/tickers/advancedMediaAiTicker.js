@@ -266,6 +266,29 @@ async function runAdvancedMediaAiTick() {
     }
     if (caption.length > 1024) caption = caption.slice(0, 1020) + '...';
 
+    // --- Enhanced Betrix Ai News Branding and Formatting ---
+    // Compose a rich, branded message for text-only news
+    function formatNewsArticleBranded(item, caption) {
+      // Emojis and hashtags
+      const emoji = '📰';
+      const betrixBrand = 'Betrix Ai';
+      const hashtags = ['#BetrixNews', '#AI', '#Sports', '#BETRIXLive'];
+      // Title and source
+      const title = item.title ? `*${item.title.trim()}*` : '';
+      const source = item.source || item.author || 'News Source';
+      const date = item.pubDate || item.published || '';
+      const url = item.url || '';
+      // Compose message
+      let msg = `${emoji} *${betrixBrand}*
+  }
+      if (title) msg += `\n${title}`;
+      if (caption) msg += `\n${caption}`;
+      if (source || date) msg += `\n_Source: ${source}${date ? ' • ' + date : ''}_`;
+      if (url) msg += `\n[Read full article](${url})`;
+      msg += `\n\n${hashtags.join(' ')}`;
+      return msg;
+    }
+
     let posted = false;
     // Try video first if available
     if (item.videoUrl) {
@@ -299,18 +322,18 @@ async function runAdvancedMediaAiTick() {
         console.error(`[AdvancedMediaAiTicker] [POST_ERROR] Failed to post news photo/image: ${photoCandidate} -`, err && err.message ? err.message : err);
       }
     }
-    // If no media posted, send text-only message
+    // If no media posted, send branded, formatted text-only message
     if (!posted && !item.videoUrl && !photoCandidate) {
       try {
-        console.log(`[AdvancedMediaAiTicker] [POST_ATTEMPT] Sending text-only message for news article`);
-        await broadcastText({ chatId, text: caption, parse_mode: "Markdown" });
-        console.log(`[AdvancedMediaAiTicker] [POST_SUCCESS] Text-only news article posted`);
+        const brandedMsg = formatNewsArticleBranded(item, caption);
+        console.log(`[AdvancedMediaAiTicker] [POST_ATTEMPT] Sending branded text-only message for news article`);
+        await broadcastText({ chatId, text: brandedMsg, parse_mode: "Markdown" });
+        console.log(`[AdvancedMediaAiTicker] [POST_SUCCESS] Branded text-only news article posted`);
         posts++;
       } catch (err) {
-        console.error(`[AdvancedMediaAiTicker] [POST_ERROR] Failed to post text-only news article:`, err && err.message ? err.message : err);
+        console.error(`[AdvancedMediaAiTicker] [POST_ERROR] Failed to post branded text-only news article:`, err && err.message ? err.message : err);
       }
     }
-  }
 }
 
 
