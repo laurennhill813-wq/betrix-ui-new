@@ -19,7 +19,7 @@ function safeParseMeta(meta) {
   }
 }
 
-const logger = {
+export const logger = {
   info: (msg, meta) => {
     process.stdout.write(
       JSON.stringify({
@@ -63,8 +63,6 @@ const logger = {
     }
   },
 };
-
-module.exports = { logger };
 /**
  * Simple structured logger
  */

@@ -12,7 +12,8 @@ class LocalAIService {
     );
   }
 
-const { logger } = require("../utils/logger.js");
+
+import { logger } from "../utils/logger.js";
 
 class LocalAIService {
   constructor() {
