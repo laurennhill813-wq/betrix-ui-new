@@ -239,3 +239,7 @@ module.exports = {
   runAdvancedMediaAiTick: runAdvancedMediaAiTick,
   setRedisClient: typeof setRedisClient !== 'undefined' ? setRedisClient : function() {}
 };
+
+// ESM-compatible named exports for import { ... } syntax
+exports.runAdvancedMediaAiTick = runAdvancedMediaAiTick;
+exports.setRedisClient = typeof setRedisClient !== 'undefined' ? setRedisClient : function() {};
