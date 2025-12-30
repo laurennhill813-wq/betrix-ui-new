@@ -11,9 +11,7 @@ class LocalAIService {
       "[AI unavailable] Sorry, I couldn't generate a response right now. Please try again later or rephrase your request."
     );
   }
-// Use global fetch (Node.js 18+)
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
+
 const { logger } = require("../utils/logger.js");
 
 class LocalAIService {
@@ -21,6 +19,13 @@ class LocalAIService {
     this.name = "LocalAI";
     this.ollama_base = process.env.OLLAMA_BASE || "http://localhost:11434";
     this.ollama_model = process.env.OLLAMA_MODEL || "llama2";
+  }
+
+  // Provide a fallback response for failed AI operations
+  fallbackResponse(userMessage, context = {}) {
+    return (
+      "[AI unavailable] Sorry, I couldn't generate a response right now. Please try again later or rephrase your request."
+    );
   }
 
   // Try Ollama first, fall back to smart summarization
@@ -64,24 +69,25 @@ class LocalAIService {
   }
 
   // Smart summarization without external API (for sports captions)
-  import fetch from "../lib/fetch.js";
-  import { Logger } from "../utils/logger.js";
+  localSummarize(userMessage, context = {}) {
     try {
-  const logger = new Logger("LocalAI");
       const jsonMatch = userMessage.match(/\{[\s\S]*\}/);
-  class LocalAIService {
-    constructor() {
-      this.name = "LocalAI";
-      this.ollama_base = process.env.OLLAMA_BASE || "http://localhost:11434";
-      this.ollama_model = process.env.OLLAMA_MODEL || "llama2";
-    }
+      if (jsonMatch) {
+        const data = JSON.parse(jsonMatch[0]);
+        if (data.home && data.away && data.league) {
+          // Build a compelling sports caption with EMOJIS and PERSONALITY
+          const status = (data.status || "").toUpperCase();
+          const score = data.score || {};
+          const scoreStr =
+            score.home !== undefined && score.away !== undefined
+              ? `${score.home}-${score.away}`
+              : "";
+          const time = data.time ? `'${data.minute || data.time}` : "";
+          
+          // Personality-driven narratives with emojis
+          let story = "";
+          if (status === "LIVE") {
             story = `⚽ **${data.home} vs ${data.away}** — Live action! ${scoreStr} ${time}`;
-    // Provide a fallback response for failed AI operations
-    fallbackResponse(userMessage, context = {}) {
-      return (
-        "[AI unavailable] Sorry, I couldn't generate a response right now. Please try again later or rephrase your request."
-      );
-    }
           } else if (data.league && data.league.toLowerCase().includes("champions")) {
             story = `🏆 **${data.home} vs ${data.away}** — Elite clash in the ${data.league}!`;
           } else if (data.league && data.league.toLowerCase().includes("premier")) {
@@ -114,4 +120,4 @@ class LocalAIService {
   }
 }
 
-export { LocalAIService };
+module.exports = { LocalAIService };
