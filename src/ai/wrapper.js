@@ -5,7 +5,6 @@ import metrics from "../utils/metrics.js";
 
 export function createAIWrapper({
   azure,
-  gemini,
   huggingface,
   localAI,
   claude,
@@ -325,8 +324,6 @@ export function createAIWrapper({
         }
       }
       // Fallback chain — skip providers currently blocked by recent rate-limits
-      // If FORCE_AZURE is set, prefer Azure and avoid using Gemini to prevent Gemini quota errors
-      const skipGeminiBecauseForced = FORCE_AZURE;
       if (claude && claude.enabled && !isBlocked("claude")) {
         try {
           // pass augmented input (with RAG + persona system prompt in context)
@@ -355,35 +352,6 @@ export function createAIWrapper({
             return "Anthropic (Claude) billing issue: please enable billing or top up credits so BETRIX can generate responses.";
           }
           if (isRateLimitError(e)) blockProvider("claude", 60);
-        }
-      }
-      if (
-        !skipGeminiBecauseForced &&
-        gemini &&
-        gemini.enabled &&
-        !isBlocked("gemini")
-      ) {
-        try {
-          const out = await gemini.chat(message, context);
-          logger &&
-            logger.info &&
-            logger.info("AI provider used", { provider: "gemini" });
-          try {
-            console.info(
-              "AI provider used",
-              JSON.stringify({ provider: "gemini" }),
-            );
-          } catch (e) {}
-          return out;
-        } catch (e) {
-          logger && logger.warn && logger.warn("Gemini failed", e && e.message);
-          if (isRateLimitError(e)) {
-            const ttl = parseRetrySeconds(e) || 90;
-            blockProvider("gemini", ttl);
-            logger &&
-              logger.info &&
-              logger.info("Blocking gemini due to rate-limit", { ttl });
-          }
         }
       }
       if (huggingface && huggingface.isHealthy() && !isBlocked("huggingface")) {

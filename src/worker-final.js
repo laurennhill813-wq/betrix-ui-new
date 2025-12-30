@@ -23,7 +23,6 @@ import { TelegramService } from "./services/telegram.js";
 import { broadcastText } from "./telegram/broadcast.js";
 import { UserService } from "./services/user.js";
 // API-Football removed from runtime per operator request — prefer SportMonks and Football-Data
-import { GeminiService } from "./services/gemini.js";
 import { LocalAIService } from "./services/local-ai.js";
 import { HuggingFaceService } from "./services/huggingface.js";
 import { AzureAIService } from "./services/azure-ai.js";
@@ -344,7 +343,6 @@ if (pgPool) {
 }
 // Do not instantiate API-Football service — set to null so handlers fall back to SportMonks/Football-Data
 const apiFootball = null;
-const gemini = new GeminiService(CONFIG.GEMINI.API_KEY);
 const hfModels =
   process.env.HUGGINGFACE_MODELS || process.env.HUGGINGFACE_MODEL || null;
 const huggingface = new HuggingFaceService(
@@ -472,7 +470,6 @@ import { createAIWrapper } from "./ai/wrapper.js";
 
 const ai = createAIWrapper({
   azure,
-  gemini,
   huggingface,
   localAI,
   claude,
