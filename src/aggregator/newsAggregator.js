@@ -1,6 +1,6 @@
 // General news and content aggregator — fetches breaking news, transfer news, and general articles
 import fetch from "../lib/fetch.js";
-import cheerio from "cheerio";
+import * as cheerio from "cheerio";
 
 const NEWSAPI_KEY = process.env.NEWSAPI_KEY || null;
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || null;
