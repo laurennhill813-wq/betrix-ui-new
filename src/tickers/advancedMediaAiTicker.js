@@ -114,63 +114,6 @@ class ImageDeduplicator {
       .trim()
       .replace(/\s+/g, "_")
 
-      // Team/Competitor Deduplication Helper (ES5 style)
-      function TeamDeduplicator() {
-        this.recentTeams = new Set();
-        this.redisPrefix = "betrix:recent:team:";
-        this.windowMs = 2 * 60 * 60 * 1000; // 2 hours
-      }
-      TeamDeduplicator.prototype.normalize = function(name) {
-        if (!name) return "";
-        return name
-          .toLowerCase()
-          .trim()
-          .replace(/\s+/g, "_")
-          .replace(/[^a-z0-9_]/g, "");
-      };
-      TeamDeduplicator.prototype.hasRecentTeam = async function(homeTeam, awayTeam) {
-        var key1 = this.normalize(homeTeam);
-        var key2 = this.normalize(awayTeam);
-        if (!key1 || !key2) return false;
-        if (this.recentTeams.has(key1) || this.recentTeams.has(key2)) {
-          return true;
-        }
-        if (redis && typeof redis.get === 'function') {
-          try {
-            var results = await Promise.all([
-              redis.get(this.redisPrefix + key1).catch(function() { return null; }),
-              redis.get(this.redisPrefix + key2).catch(function() { return null; })
-            ]);
-            var exists1 = results[0];
-            var exists2 = results[1];
-            if (exists1 || exists2) {
-              this.recentTeams.add(key1);
-              this.recentTeams.add(key2);
-              return true;
-            }
-          } catch (e) {}
-        }
-        return false;
-      };
-      TeamDeduplicator.prototype.markTeamsPosted = async function(homeTeam, awayTeam) {
-        var key1 = this.normalize(homeTeam);
-        var key2 = this.normalize(awayTeam);
-        this.recentTeams.add(key1);
-        this.recentTeams.add(key2);
-        if (redis && typeof redis.set === 'function') {
-          try {
-            await Promise.all([
-              redis.set(this.redisPrefix + key1, "1", 'EX', 2 * 60 * 60).catch(function() { return redis.set(this.redisPrefix + key1, "1"); }.bind(this)),
-              redis.set(this.redisPrefix + key2, "1", 'EX', 2 * 60 * 60).catch(function() { return redis.set(this.redisPrefix + key2, "1"); }.bind(this))
-            ]);
-          } catch (e) {}
-        }
-      };
-      TeamDeduplicator.prototype.clearExpired = function() {
-        if (this.recentTeams.size > 1000) {
-          this.recentTeams.clear();
-        }
-      };
    * Pick next sport based on weights
    * Encourages variety by reducing weight of recently-posted sports
    */
