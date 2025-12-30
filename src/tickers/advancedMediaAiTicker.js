@@ -53,10 +53,8 @@ SportRotationManager.prototype.getNextSport = function(availableSports, recentSp
   if (Array.isArray(availableSports) && availableSports.length > 0) {
     var availSet = new Set(availableSports.map(function(s) { return String(s).toLowerCase(); }));
     sports = allEntries.filter(function(entry) { return availSet.has(String(entry[0]).toLowerCase()); });
-
-}
-
-export { runAdvancedMediaAiTick };
+  }
+  // ...existing code...
   var scores = sports.map(function(entry) {
     var key = entry[0];
     var config = entry[1];
