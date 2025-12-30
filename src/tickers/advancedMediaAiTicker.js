@@ -279,8 +279,7 @@ async function runAdvancedMediaAiTick() {
       const date = item.pubDate || item.published || '';
       const url = item.url || '';
       // Compose message
-      let msg = `${emoji} *${betrixBrand}*
-  }
+      let msg = `${emoji} *${betrixBrand}*`;
       if (title) msg += `\n${title}`;
       if (caption) msg += `\n${caption}`;
       if (source || date) msg += `\n_Source: ${source}${date ? ' • ' + date : ''}_`;
