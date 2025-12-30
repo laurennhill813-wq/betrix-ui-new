@@ -239,9 +239,4 @@ var validateAdvancedMediaConfig = function() {
   };
 }
 
-module.exports = {
-  ADVANCED_MEDIA_CONFIG: ADVANCED_MEDIA_CONFIG,
-  resolveSport: resolveSport,
-  getRedisKey: getRedisKey,
-  validateAdvancedMediaConfig: validateAdvancedMediaConfig
-};
+export { ADVANCED_MEDIA_CONFIG, resolveSport, getRedisKey, validateAdvancedMediaConfig };
