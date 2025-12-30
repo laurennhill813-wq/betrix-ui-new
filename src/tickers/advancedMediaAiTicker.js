@@ -28,6 +28,9 @@ ImageDeduplicator.prototype.hasPostedImage = function(imageUrl) {
   if (this.hashCache.has(hash)) {
     return true;
   }
+}
+
+export { runAdvancedMediaAiTick };
   // ...existing code...
 };
 
