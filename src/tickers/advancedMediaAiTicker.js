@@ -194,11 +194,13 @@ async function runAdvancedMediaAiTick() {
   }
   try {
     newsArticles = await getLatestNews();
+    console.log('[AdvancedMediaAiTicker] News articles fetched:', Array.isArray(newsArticles) ? newsArticles.length : newsArticles);
   } catch (e) {
     console.warn("[AdvancedMediaAiTicker] Failed to fetch news articles", e);
   }
 
   // Always post news articles, even if there are no live matches
+  console.log('[AdvancedMediaAiTicker] Posting logic reached. News articles:', Array.isArray(newsArticles) ? newsArticles.length : newsArticles);
   // Post up to maxPosts per tick (configurable)
   const maxPosts = Number(process.env.MEDIA_AI_MAX_POSTS_PER_TICK || 3);
   let posts = 0;
