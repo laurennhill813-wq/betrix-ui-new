@@ -19,7 +19,7 @@ function safeParseMeta(meta) {
   }
 }
 
-export const logger = {
+const logger = {
   info: (msg, meta) => {
     process.stdout.write(
       JSON.stringify({
