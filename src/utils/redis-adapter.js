@@ -1,4 +1,6 @@
-import logger from "./logger.js";
+
+import { Logger } from "./logger.js";
+const logger = new Logger("RedisAdapter");
 
 function createRedisAdapter(redis) {
   if (!redis) {
