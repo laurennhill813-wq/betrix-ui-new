@@ -12,7 +12,9 @@ class LocalAIService {
     );
   }
 // Use global fetch (Node.js 18+)
-import { logger } from "../utils/logger.mjs";
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { logger } = require("../utils/logger.js");
 
 class LocalAIService {
   constructor() {

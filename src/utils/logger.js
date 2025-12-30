@@ -64,7 +64,7 @@ const logger = {
   },
 };
 
-export { logger };
+module.exports = { logger };
 /**
  * Simple structured logger
  */
