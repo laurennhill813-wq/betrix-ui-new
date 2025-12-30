@@ -1,3 +1,9 @@
+  // Provide a fallback response for failed AI operations
+  fallbackResponse(userMessage, context = {}) {
+    return (
+      "[AI unavailable] Sorry, I couldn't generate a response right now. Please try again later or rephrase your request."
+    );
+  }
 import fetch from "../lib/fetch.js";
 import { Logger } from "../utils/logger.js";
 
