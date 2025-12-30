@@ -181,8 +181,6 @@ function getDiverseContent() {
     return result;
   });
 }
-
-
 async function runAdvancedMediaAiTick() {
   const chatId = process.env.BOT_BROADCAST_CHAT_ID || "-1003425723710";
   console.log('[AdvancedMediaAiTicker] TRACE: runAdvancedMediaAiTick STARTED');
