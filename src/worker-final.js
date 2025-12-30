@@ -61,7 +61,7 @@ import { registerDataExposureAPI } from "./app_clean.js";
 import app from "./app_clean.js";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
-const advancedMediaAiTicker = require("./tickers/advancedMediaAiTicker.js");
+const advancedMediaAiTicker = require("./tickers/advancedMediaAiTicker.cjs");
 import { setSportsAggregator } from "./aggregator/multiSportAggregator.js";
 import { canPostNow, markPosted } from "./lib/liveliness.js";
 import { Pool } from "pg";
