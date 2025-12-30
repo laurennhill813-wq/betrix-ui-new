@@ -5,7 +5,8 @@
 import premiumUI, {
   buildUpcomingFixtures,
 } from "../utils/premium-ui-builder.js";
-import logger from "../utils/logger.js";
+import { Logger } from "../utils/logger.js";
+const logger = new Logger("TelegramHandlerV2");
 import { buildSportsMenu } from "./menu-handler.js";
 import createRedisAdapter from "../utils/redis-adapter.js";
 import IntelligentMenuBuilder from "../utils/intelligent-menu-builder.js";
