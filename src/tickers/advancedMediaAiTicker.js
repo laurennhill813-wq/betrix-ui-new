@@ -96,6 +96,9 @@ SportRotationManager.prototype.clear = function() {
   this.lastSports = [];
 };
 
+var imageDedup = new ImageDeduplicator();
+var teamDedup = new TeamDeduplicator();
+var sportRotation = new SportRotationManager();
 var redis = null;
 function setRedisClient(r) {
   redis = r;
