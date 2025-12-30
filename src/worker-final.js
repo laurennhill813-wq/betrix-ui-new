@@ -1126,7 +1126,7 @@ try {
   );
   if (intervalSeconds > 0) {
     // Initialize Redis for Advanced Media AI Ticker deduplication
-    advancedMediaAiTicker.setRedisClient(redis);
+    setRedisClient(redis);
     
     setInterval(
       async () => {
@@ -1135,7 +1135,7 @@ try {
           const ok = await canPostNow();
           if (!ok) return;
 
-          await advancedMediaAiTicker.runAdvancedMediaAiTick();
+          await runAdvancedMediaAiTick();
           // markPosted is best-effort; if runAdvancedMediaAiTick posted, mark it
           try {
             await markPosted();
