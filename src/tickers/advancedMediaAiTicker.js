@@ -131,7 +131,19 @@ class TeamDeduplicator {
       .replace(/\s+/g, "_");
   }
 
-  // ...existing TeamDeduplicator methods...
+}
+
+/**
+ * Sport Rotation Manager
+ * Uses weighted distribution to balance coverage across sports
+ */
+class SportRotationManager {
+  constructor() {
+    this.lastSports = [];
+    this.maxRecent = 10; // Track last 10 posts
+  }
+
+  getNextSport(availableSports = null, recentSportStats = {}) {
     // availableSports: optional array of supported sport keys (lowercase)
     const allEntries = Object.entries(SUPPORTED_SPORTS);
     let sports = allEntries;
@@ -179,12 +191,28 @@ class TeamDeduplicator {
     for (const s of scores) {
       random -= s.weight;
       if (random <= 0) {
-        // Track this selection
-        this.lastSports.push(s.sport);
-        if (this.lastSports.length > this.maxRecent) {
-          this.lastSports.shift();
-        }
-        console.log(`[SportRotation] ✅ Selected: ${s.sport} ${SUPPORTED_SPORTS[s.sport]?.emoji || ''}`);
+        return s.sport;
+      }
+    }
+
+    return "soccer"; // fallback
+  }
+
+  add(sport) {
+    this.lastSports.push(sport);
+    if (this.lastSports.length > this.maxRecent) {
+      this.lastSports.shift();
+    }
+  }
+
+  getRecent() {
+    return this.lastSports.slice();
+  }
+
+  clear() {
+    this.lastSports = [];
+  }
+}
         return s.sport;
       }
     }
