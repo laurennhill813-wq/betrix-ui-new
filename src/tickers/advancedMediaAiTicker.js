@@ -105,63 +105,6 @@ class ImageDeduplicator {
     // Check in-memory cache first
     if (this.hashCache.has(hash)) {
       return true;
-    }
-
-    // Check Redis if available and has get method
-    if (redis && typeof redis.get === 'function') {
-      try {
-        const exists = await redis.get(this.redisPrefix + hash);
-        if (exists) {
-          this.hashCache.set(hash, true);
-          return true;
-        }
-      } catch (e) {
-        // Redis not available or method not supported, continue with memory-only
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Mark image as posted
-   */
-  async markImagePosted(imageUrl) {
-    if (!imageUrl) return;
-    const hash = this.hashUrl(imageUrl);
-    this.hashCache.set(hash, true);
-
-    if (redis && typeof redis.set === 'function') {
-      try {
-        // Store for 30 days using set with EX option or setex
-        await redis.set(
-          this.redisPrefix + hash,
-          "1",
-          'EX',
-          30 * 24 * 60 * 60
-        ).catch(() => {
-          // Fallback: if EX not supported, try without expiry
-          return redis.set(this.redisPrefix + hash, "1");
-        });
-      } catch (e) {
-        // Redis not available or method not supported, continue with memory-only
-      }
-    }
-  }
-}
-
-/**
- * Team/Competitor Deduplication Helper
- * Prevents posting the same teams/competitors repeatedly
- */
-class TeamDeduplicator {
-  constructor() {
-    this.recentTeams = new Set();
-    this.redisPrefix = "betrix:recent:team:";
-    this.windowMs = 2 * 60 * 60 * 1000; // 2 hours
-  }
-
-  /**
    * Normalize team name for comparison
    */
   normalize(name) {
