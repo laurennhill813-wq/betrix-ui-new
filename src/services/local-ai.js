@@ -13,7 +13,8 @@ class LocalAIService {
   }
 
 
-import { logger } from "../utils/logger.js";
+import loggerCjs from "../utils/logger.cjs";
+const { logger } = loggerCjs;
 
 class LocalAIService {
   constructor() {
