@@ -64,7 +64,7 @@ const logger = {
   },
 };
 
-export default logger;
+export { logger };
 /**
  * Simple structured logger
  */
