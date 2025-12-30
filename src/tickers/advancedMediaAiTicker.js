@@ -16,6 +16,7 @@ import crypto from "crypto";
 function ImageDeduplicator() {
   this.hashCache = new Map(); // In-memory cache
   this.redisPrefix = "betrix:posted:image:";
+
 }
 ImageDeduplicator.prototype.hashUrl = function(url) {
   if (!url) return null;
