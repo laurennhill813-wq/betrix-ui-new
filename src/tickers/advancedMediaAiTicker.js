@@ -198,22 +198,16 @@ async function runAdvancedMediaAiTick() {
     console.warn("[AdvancedMediaAiTicker] Failed to fetch news articles", e);
   }
 
-  // Merge and prioritize content
-  let allContent = [];
-  if ((liveEvents.length === 0 || !liveEvents) && newsArticles.length > 0) {
-    allContent = newsArticles.slice();
-  } else {
-    allContent = liveEvents.concat(newsArticles);
-  }
-
-  // Post up to 3 items per tick (configurable)
+  // Always post news articles, even if there are no live matches
+  // Post up to maxPosts per tick (configurable)
   const maxPosts = Number(process.env.MEDIA_AI_MAX_POSTS_PER_TICK || 3);
   let posts = 0;
-  for (const item of allContent) {
+
+  // 1. Post live events (if any)
+  for (const item of liveEvents) {
     if (posts >= maxPosts) break;
     let mediaUrl = null;
     let isVideo = false;
-    // Prefer video if available, else photo
     if (item.videoUrl) {
       mediaUrl = item.videoUrl;
       isVideo = true;
@@ -223,38 +217,68 @@ async function runAdvancedMediaAiTick() {
       mediaUrl = item.imageUrl;
     }
     if (!mediaUrl) continue;
-
-    // Generate a long AI caption (news or event summary)
     let caption = '';
     try {
       caption = await summarizeEventForTelegram(item, { long: true, includeArticle: true });
     } catch (e) {
       caption = item.title || item.caption || item.headline || 'Betrix Update';
     }
-    // Telegram max caption length: 1024 for photos, 1024 for videos
     if (caption.length > 1024) caption = caption.slice(0, 1020) + '...';
-
     try {
       if (isVideo) {
-        await sendVideoWithCaption({
-          chatId,
-          videoUrl: mediaUrl,
-          caption,
-          parse_mode: "Markdown"
-        });
+        await sendVideoWithCaption({ chatId, videoUrl: mediaUrl, caption, parse_mode: "Markdown" });
         console.log(`[AdvancedMediaAiTicker] Video posted: ${mediaUrl}`);
       } else {
-        await sendPhotoWithCaption({
-          chatId,
-          photoUrl: mediaUrl,
-          caption,
-          parse_mode: "Markdown"
-        });
+        await sendPhotoWithCaption({ chatId, photoUrl: mediaUrl, caption, parse_mode: "Markdown" });
         console.log(`[AdvancedMediaAiTicker] Photo posted: ${mediaUrl}`);
       }
       posts++;
     } catch (err) {
       console.error(`[AdvancedMediaAiTicker] Failed to post media:`, err);
+    }
+  }
+
+  // 2. Always post news articles (try both video and photo for each article)
+  for (const item of newsArticles) {
+    if (posts >= maxPosts) break;
+    let caption = '';
+    try {
+      caption = await summarizeEventForTelegram(item, { long: true, includeArticle: true });
+    } catch (e) {
+      caption = item.title || item.caption || item.headline || 'Betrix News';
+    }
+    if (caption.length > 1024) caption = caption.slice(0, 1020) + '...';
+
+    // Try video first if available
+    if (item.videoUrl) {
+      try {
+        await sendVideoWithCaption({ chatId, videoUrl: item.videoUrl, caption, parse_mode: "Markdown" });
+        console.log(`[AdvancedMediaAiTicker] News video posted: ${item.videoUrl}`);
+        posts++;
+        if (posts >= maxPosts) break;
+      } catch (err) {
+        console.error(`[AdvancedMediaAiTicker] Failed to post news video:`, err);
+      }
+    }
+    // Then try photo if available (and not the same as video)
+    if (item.photoUrl && item.photoUrl !== item.videoUrl) {
+      try {
+        await sendPhotoWithCaption({ chatId, photoUrl: item.photoUrl, caption, parse_mode: "Markdown" });
+        console.log(`[AdvancedMediaAiTicker] News photo posted: ${item.photoUrl}`);
+        posts++;
+        if (posts >= maxPosts) break;
+      } catch (err) {
+        console.error(`[AdvancedMediaAiTicker] Failed to post news photo:`, err);
+      }
+    } else if (item.imageUrl && item.imageUrl !== item.videoUrl) {
+      try {
+        await sendPhotoWithCaption({ chatId, photoUrl: item.imageUrl, caption, parse_mode: "Markdown" });
+        console.log(`[AdvancedMediaAiTicker] News image posted: ${item.imageUrl}`);
+        posts++;
+        if (posts >= maxPosts) break;
+      } catch (err) {
+        console.error(`[AdvancedMediaAiTicker] Failed to post news image:`, err);
+      }
     }
   }
 }
