@@ -11,7 +11,7 @@ class LocalAIService {
       "[AI unavailable] Sorry, I couldn't generate a response right now. Please try again later or rephrase your request."
     );
   }
-import fetch from "../lib/fetch.js";
+// Use global fetch (Node.js 18+)
 import { Logger } from "../utils/logger.js";
 
 const logger = new Logger("LocalAI");
