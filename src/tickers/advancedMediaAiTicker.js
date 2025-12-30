@@ -68,55 +68,9 @@ var getSupportedSports = function() {
     soccer: {
       apiId: "soccer",
       aliases: ["football", "epl", "premier league", "la liga", "serie a"],
-
-      // Image Deduplication Helper (ES5 style)
-      function ImageDeduplicator() {
-        this.hashCache = new Map(); // In-memory cache
-        this.redisPrefix = "betrix:posted:image:";
-      }
-      ImageDeduplicator.prototype.hashUrl = function(url) {
-        if (!url) return null;
-        return crypto.createHash("sha256").update(url).digest("hex");
-      };
-      ImageDeduplicator.prototype.hasPostedImage = async function(imageUrl) {
-        if (!imageUrl) return false;
-        var hash = this.hashUrl(imageUrl);
-        if (this.hashCache.has(hash)) {
-          return true;
-        }
-        if (redis && typeof redis.get === 'function') {
-          try {
-            var exists = await redis.get(this.redisPrefix + hash);
-            if (exists) {
-              this.hashCache.set(hash, true);
-              return true;
-            }
-          } catch (e) {}
-        }
-        return false;
-      };
-      ImageDeduplicator.prototype.markImagePosted = async function(imageUrl) {
-        if (!imageUrl) return;
-        var hash = this.hashUrl(imageUrl);
-        this.hashCache.set(hash, true);
-        if (redis && typeof redis.set === 'function') {
-          try {
-            await redis.set(
-              this.redisPrefix + hash,
-              "1",
-              'EX',
-              30 * 24 * 60 * 60
-            ).catch(function() {
-              return redis.set(this.redisPrefix + hash, "1");
-            }.bind(this));
-          } catch (e) {}
-        }
-      };
-      apiId: "news",
-      aliases: ["breaking news", "transfer news", "announcement"],
-      weight: weights.news,
-      emoji: "📰",
-      newsKeywords: ["breaking", "news", "announcement"],
+      weight: weights.soccer,
+      emoji: "⚽",
+      newsKeywords: ["transfer news", "football", "soccer", "goal"],
     },
   };
 };
