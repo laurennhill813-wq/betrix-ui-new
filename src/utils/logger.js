@@ -24,11 +24,12 @@ const logger = {
     process.stdout.write(
       JSON.stringify({
         ts: new Date().toISOString(),
-      },
+        level: fmtLevel("info"),
         msg: String(msg),
-        meta: safeParseMeta(meta),
-      }) + "\n",
-    };
+        meta: safeParseMeta(meta)
+      }) + "\n"
+    );
+  },
   },
   warn: (msg, meta) => {
     process.stderr.write(
@@ -36,8 +37,8 @@ const logger = {
         ts: new Date().toISOString(),
         level: fmtLevel("warn"),
         msg: String(msg),
-        meta: safeParseMeta(meta),
-      }) + "\n",
+        meta: safeParseMeta(meta)
+      }) + "\n"
     );
   },
   error: (msg, meta) => {
@@ -46,8 +47,8 @@ const logger = {
         ts: new Date().toISOString(),
         level: fmtLevel("error"),
         msg: String(msg),
-        meta: safeParseMeta(meta),
-      }) + "\n",
+        meta: safeParseMeta(meta)
+      }) + "\n"
     );
   },
   debug: (msg, meta) => {
@@ -57,8 +58,8 @@ const logger = {
           ts: new Date().toISOString(),
           level: fmtLevel("debug"),
           msg: String(msg),
-          meta: safeParseMeta(meta),
-        }) + "\n",
+          meta: safeParseMeta(meta)
+        }) + "\n"
       );
     }
   },
