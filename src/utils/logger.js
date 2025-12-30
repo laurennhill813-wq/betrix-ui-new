@@ -22,50 +22,50 @@ function safeParseMeta(meta) {
 const logger = {
   info: (msg, meta) => {
     process.stdout.write(
-      JSON.stringify({
-        ts: new Date().toISOString(),
-        level: fmtLevel("info"),
-        msg: String(msg),
-        meta: safeParseMeta(meta)
-      }) + "\n"
-    );
-  },
-  },
-  warn: (msg, meta) => {
-    process.stderr.write(
-      JSON.stringify({
-        ts: new Date().toISOString(),
-        level: fmtLevel("warn"),
-        msg: String(msg),
-        meta: safeParseMeta(meta)
-      }) + "\n"
-    );
-  },
-  error: (msg, meta) => {
-    process.stderr.write(
-      JSON.stringify({
-        ts: new Date().toISOString(),
-        level: fmtLevel("error"),
-        msg: String(msg),
-        meta: safeParseMeta(meta)
-      }) + "\n"
-    );
-  },
-  debug: (msg, meta) => {
-    if (process.env.DEBUG && process.env.DEBUG !== "false") {
-      process.stdout.write(
-        JSON.stringify({
-          ts: new Date().toISOString(),
-          level: fmtLevel("debug"),
-          msg: String(msg),
-          meta: safeParseMeta(meta)
-        }) + "\n"
-      );
-    }
-  },
-};
-/**
- * Simple structured logger
+      const logger = {
+        info: (msg, meta) => {
+          process.stdout.write(
+            JSON.stringify({
+              ts: new Date().toISOString(),
+              level: fmtLevel("info"),
+              msg: String(msg),
+              meta: safeParseMeta(meta)
+            }) + "\n"
+          );
+        },
+        warn: (msg, meta) => {
+          process.stderr.write(
+            JSON.stringify({
+              ts: new Date().toISOString(),
+              level: fmtLevel("warn"),
+              msg: String(msg),
+              meta: safeParseMeta(meta)
+            }) + "\n"
+          );
+        },
+        error: (msg, meta) => {
+          process.stderr.write(
+            JSON.stringify({
+              ts: new Date().toISOString(),
+              level: fmtLevel("error"),
+              msg: String(msg),
+              meta: safeParseMeta(meta)
+            }) + "\n"
+          );
+        },
+        debug: (msg, meta) => {
+          if (process.env.DEBUG && process.env.DEBUG !== "false") {
+            process.stdout.write(
+              JSON.stringify({
+                ts: new Date().toISOString(),
+                level: fmtLevel("debug"),
+                msg: String(msg),
+                meta: safeParseMeta(meta)
+              }) + "\n"
+            );
+          }
+        }
+      };
  */
 
 const LogLevel = {
