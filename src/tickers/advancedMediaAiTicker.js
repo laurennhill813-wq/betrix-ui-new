@@ -101,10 +101,25 @@ class ImageDeduplicator {
   async hasPostedImage(imageUrl) {
     if (!imageUrl) return false;
     const hash = this.hashUrl(imageUrl);
-    
     // Check in-memory cache first
     if (this.hashCache.has(hash)) {
       return true;
+    }
+    // ...existing code...
+  }
+}
+
+/**
+ * Team/Competitor Deduplication Helper
+ * Prevents posting the same teams/competitors repeatedly
+ */
+class TeamDeduplicator {
+  constructor() {
+    this.recentTeams = new Set();
+    this.redisPrefix = "betrix:recent:team:";
+    this.windowMs = 2 * 60 * 60 * 1000; // 2 hours
+  }
+
   /**
    * Normalize team name for comparison
    */
@@ -113,12 +128,10 @@ class ImageDeduplicator {
     return name
       .toLowerCase()
       .trim()
-      .replace(/\s+/g, "_")
+      .replace(/\s+/g, "_");
+  }
 
-   * Pick next sport based on weights
-   * Encourages variety by reducing weight of recently-posted sports
-   */
-  getNextSport(availableSports = null, recentSportStats = {}) {
+  // ...existing TeamDeduplicator methods...
     // availableSports: optional array of supported sport keys (lowercase)
     const allEntries = Object.entries(SUPPORTED_SPORTS);
     let sports = allEntries;
