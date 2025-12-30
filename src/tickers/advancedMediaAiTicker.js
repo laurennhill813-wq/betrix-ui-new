@@ -209,6 +209,8 @@ async function runAdvancedMediaAiTick() {
   // 1. Post live events (if any)
   console.log('[AdvancedMediaAiTicker] TRACE: Entering liveEvents posting loop');
   for (const item of liveEvents) {
+    console.log('[AdvancedMediaAiTicker] TRACE: liveEvent item:', JSON.stringify(item));
+    console.log('[AdvancedMediaAiTicker] TRACE: liveEvent mediaUrl:', item.videoUrl || item.photoUrl || item.imageUrl, 'videoUrl:', item.videoUrl, 'photoUrl:', item.photoUrl, 'imageUrl:', item.imageUrl);
     if (posts >= maxPosts) break;
     let mediaUrl = null;
     let isVideo = false;
@@ -247,6 +249,8 @@ async function runAdvancedMediaAiTick() {
   // 2. Always post news articles (try both video and photo for each article)
   console.log('[AdvancedMediaAiTicker] TRACE: Entering newsArticles posting loop');
   for (const item of newsArticles) {
+    console.log('[AdvancedMediaAiTicker] TRACE: newsArticle item:', JSON.stringify(item));
+    console.log('[AdvancedMediaAiTicker] TRACE: newsArticle videoUrl:', item.videoUrl, 'photoUrl:', item.photoUrl, 'imageUrl:', item.imageUrl);
     if (posts >= maxPosts) break;
     let caption = '';
     try {
