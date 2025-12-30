@@ -1,3 +1,10 @@
+class LocalAIService {
+  constructor() {
+    this.name = "LocalAI";
+    this.ollama_base = process.env.OLLAMA_BASE || "http://localhost:11434";
+    this.ollama_model = process.env.OLLAMA_MODEL || "llama2";
+  }
+
   // Provide a fallback response for failed AI operations
   fallbackResponse(userMessage, context = {}) {
     return (
