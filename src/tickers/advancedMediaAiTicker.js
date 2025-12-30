@@ -184,6 +184,7 @@ function getDiverseContent() {
 
 async function runAdvancedMediaAiTick() {
   const chatId = process.env.BOT_BROADCAST_CHAT_ID || "-1003425723710";
+  console.log('[AdvancedMediaAiTicker] TRACE: runAdvancedMediaAiTick STARTED');
   // Fetch live events and news articles
   let liveEvents = [];
   let newsArticles = [];
@@ -200,12 +201,13 @@ async function runAdvancedMediaAiTick() {
   }
 
   // Always post news articles, even if there are no live matches
-  console.log('[AdvancedMediaAiTicker] Posting logic reached. News articles:', Array.isArray(newsArticles) ? newsArticles.length : newsArticles);
+  console.log('[AdvancedMediaAiTicker] TRACE: Posting logic about to start. News articles:', Array.isArray(newsArticles) ? newsArticles.length : newsArticles, 'Live events:', Array.isArray(liveEvents) ? liveEvents.length : liveEvents);
   // Post up to maxPosts per tick (configurable)
   const maxPosts = Number(process.env.MEDIA_AI_MAX_POSTS_PER_TICK || 3);
   let posts = 0;
 
   // 1. Post live events (if any)
+  console.log('[AdvancedMediaAiTicker] TRACE: Entering liveEvents posting loop');
   for (const item of liveEvents) {
     if (posts >= maxPosts) break;
     let mediaUrl = null;
@@ -243,6 +245,7 @@ async function runAdvancedMediaAiTick() {
   }
 
   // 2. Always post news articles (try both video and photo for each article)
+  console.log('[AdvancedMediaAiTicker] TRACE: Entering newsArticles posting loop');
   for (const item of newsArticles) {
     if (posts >= maxPosts) break;
     let caption = '';
