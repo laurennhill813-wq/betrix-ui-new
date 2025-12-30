@@ -3,23 +3,7 @@
  * All environment variables with validation and defaults
  */
 
-const CONFIG = {
-  // Core
-  REDIS_URL: process.env.REDIS_URL,
-  TELEGRAM_TOKEN: process.env.TELEGRAM_TOKEN,
-  DATABASE_URL: process.env.DATABASE_URL,
-  TZ: process.env.TZ || "Africa/Nairobi",
 
-  // Pexels
-  PEXELS: {
-    API_KEY: process.env.PEXELS_API_KEY || "azPRTiiyT5Ga6IeZydwUoLOXISQgFgemLkr20MG6",
-    BASE: "https://api.pexels.com/v1",
-    VIDEO_BASE: "https://api.pexels.com/videos",
-  },
-/**
- * Centralized configuration management
- * All environment variables with validation and defaults
- */
 
 const CONFIG = {
   // Core
