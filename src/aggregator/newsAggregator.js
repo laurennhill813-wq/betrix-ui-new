@@ -116,12 +116,13 @@ export async function getLatestNews(keywords = []) {
 
     // Parallel fetch from multiple sources
     const [newsapi, newsdata, rss] = await Promise.all([
-      fetchFromNewsApi(k).catch(() => []),
-      fetchFromNewsData(k).catch(() => []),
-      fetchFromRssFeeds(k).catch(() => []),
+      fetchFromNewsApi(k).catch((err) => { console.warn('[Aggregator] fetchFromNewsApi error:', err); return []; }),
+      fetchFromNewsData(k).catch((err) => { console.warn('[Aggregator] fetchFromNewsData error:', err); return []; }),
+      fetchFromRssFeeds(k).catch((err) => { console.warn('[Aggregator] fetchFromRssFeeds error:', err); return []; }),
     ]);
 
     let allItems = [...newsapi, ...newsdata, ...rss];
+    console.log('[Aggregator] NewsAPI:', newsapi.length, 'NewsData:', newsdata.length, 'RSS:', rss.length);
 
     // If no API keys and no RSS, scrape Google News and Bing News
     if (allItems.length === 0) {
@@ -129,9 +130,12 @@ export async function getLatestNews(keywords = []) {
         const q = k.join(" ");
         // Google News
         const urlGoogle = `https://news.google.com/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
+        console.log('[Aggregator] Fetching Google News:', urlGoogle);
         const resGoogle = await fetch(urlGoogle);
+        console.log('[Aggregator] Google News status:', resGoogle.status);
         const htmlGoogle = await resGoogle.text();
         const $g = cheerio.load(htmlGoogle);
+        let googleCount = 0;
         $g("article").each((i, el) => {
           const headline = $g(el).find("h3").text() || $g(el).find("h4").text();
           const link = $g(el).find("a").attr("href");
@@ -154,13 +158,18 @@ export async function getLatestNews(keywords = []) {
               time: new Date().toISOString(),
               importance: "medium",
             });
+            googleCount++;
           }
         });
+        console.log('[Aggregator] Google News articles found:', googleCount);
         // Bing News
         const urlBing = `https://www.bing.com/news/search?q=${encodeURIComponent(q)}`;
+        console.log('[Aggregator] Fetching Bing News:', urlBing);
         const resBing = await fetch(urlBing);
+        console.log('[Aggregator] Bing News status:', resBing.status);
         const htmlBing = await resBing.text();
         const $b = cheerio.load(htmlBing);
+        let bingCount = 0;
         $b(".news-card").each((i, el) => {
           const headline = $b(el).find("a.title").text();
           const link = $b(el).find("a.title").attr("href");
@@ -189,8 +198,10 @@ export async function getLatestNews(keywords = []) {
               time: new Date().toISOString(),
               importance: "medium",
             });
+            bingCount++;
           }
         });
+        console.log('[Aggregator] Bing News articles found:', bingCount);
       } catch (e) {
         console.warn("newsAggregator web scrape error", e?.message || e);
       }
