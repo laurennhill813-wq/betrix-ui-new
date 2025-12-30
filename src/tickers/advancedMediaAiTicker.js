@@ -332,6 +332,6 @@ async function runAdvancedMediaAiTick() {
         console.error(`[AdvancedMediaAiTicker] [POST_ERROR] Failed to post branded text-only news article:`, err && err.message ? err.message : err);
       }
     }
-}
+  }
 
 
