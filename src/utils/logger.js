@@ -24,7 +24,7 @@ const logger = {
     process.stdout.write(
       JSON.stringify({
         ts: new Date().toISOString(),
-        level: fmtLevel("info"),
+      },
         msg: String(msg),
         meta: safeParseMeta(meta),
       }) + "\n",
