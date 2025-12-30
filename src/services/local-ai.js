@@ -12,7 +12,7 @@ class LocalAIService {
     );
   }
 // Use global fetch (Node.js 18+)
-import { logger } from "../utils/logger.js";
+import logger from "../utils/logger.js";
 
 class LocalAIService {
   constructor() {
