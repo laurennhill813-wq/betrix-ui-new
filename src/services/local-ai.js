@@ -1,19 +1,7 @@
-class LocalAIService {
-  constructor() {
-    this.name = "LocalAI";
-    this.ollama_base = process.env.OLLAMA_BASE || "http://localhost:11434";
-    this.ollama_model = process.env.OLLAMA_MODEL || "llama2";
-  }
 
-  // Provide a fallback response for failed AI operations
-  fallbackResponse(userMessage, context = {}) {
-    return (
-      "[AI unavailable] Sorry, I couldn't generate a response right now. Please try again later or rephrase your request."
-    );
-  }
+import { Logger } from "../utils/logger.js";
 
-
-const { logger } = require("../utils/logger.js");
+const logger = new Logger("LocalAIService");
 
 class LocalAIService {
   constructor() {
@@ -119,6 +107,7 @@ class LocalAIService {
     // Generic fallback if no structure detected
     return this.fallbackResponse(userMessage, context);
   }
+
 }
 
-module.exports = { LocalAIService };
+export { LocalAIService };
