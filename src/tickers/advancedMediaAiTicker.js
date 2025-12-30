@@ -187,7 +187,6 @@ function runAdvancedMediaAiTick() {
 
 
 export {
-  getSportStats,
   imageDedup,
   teamDedup,
   sportRotation,
