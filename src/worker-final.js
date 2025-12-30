@@ -59,7 +59,7 @@ import SportsDataAPI from "./services/sportsdata-api.js";
 import ImageProvider from "./services/image-provider.js";
 import { registerDataExposureAPI } from "./app_clean.js";
 import app from "./app_clean.js";
-import { runAdvancedMediaAiTick, setRedisClient } from "./tickers/advancedMediaAiTicker.js";
+import advancedMediaAiTicker from "./tickers/advancedMediaAiTicker.js";
 import { setSportsAggregator } from "./aggregator/multiSportAggregator.js";
 import { canPostNow, markPosted } from "./lib/liveliness.js";
 import { Pool } from "pg";
@@ -1126,7 +1126,7 @@ try {
   );
   if (intervalSeconds > 0) {
     // Initialize Redis for Advanced Media AI Ticker deduplication
-    setRedisClient(redis);
+    advancedMediaAiTicker.setRedisClient(redis);
     
     setInterval(
       async () => {
@@ -1135,7 +1135,7 @@ try {
           const ok = await canPostNow();
           if (!ok) return;
 
-          await runAdvancedMediaAiTick();
+          await advancedMediaAiTicker.runAdvancedMediaAiTick();
           // markPosted is best-effort; if runAdvancedMediaAiTick posted, mark it
           try {
             await markPosted();
