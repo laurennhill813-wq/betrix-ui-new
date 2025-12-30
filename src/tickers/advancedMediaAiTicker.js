@@ -213,12 +213,6 @@ class SportRotationManager {
     this.lastSports = [];
   }
 }
-        return s.sport;
-      }
-    }
-
-    return "soccer"; // fallback
-  }
 }
 
 /**
