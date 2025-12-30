@@ -1,5 +1,6 @@
 // General news and content aggregator — fetches breaking news, transfer news, and general articles
 import fetch from "../lib/fetch.js";
+import cheerio from "cheerio";
 
 const NEWSAPI_KEY = process.env.NEWSAPI_KEY || null;
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || null;
@@ -108,12 +109,10 @@ async function fetchFromRssFeeds(keywords = []) {
 // Fetch latest news including transfer news, breaking sports, general news
 export async function getLatestNews(keywords = []) {
   try {
+    // Always include general news keywords
     const k = Array.isArray(keywords)
-      ? keywords.filter(Boolean).map((s) => String(s).trim())
-      : [];
-    if (k.length === 0) {
-      k.push("sports", "football", "transfer news");
-    }
+      ? [...keywords.filter(Boolean).map((s) => String(s).trim()), "breaking news", "world", "technology", "entertainment", "politics", "science", "health"]
+      : ["breaking news", "world", "technology", "entertainment", "politics", "science", "health"];
 
     // Parallel fetch from multiple sources
     const [newsapi, newsdata, rss] = await Promise.all([
@@ -122,8 +121,82 @@ export async function getLatestNews(keywords = []) {
       fetchFromRssFeeds(k).catch(() => []),
     ]);
 
+    let allItems = [...newsapi, ...newsdata, ...rss];
+
+    // If no API keys and no RSS, scrape Google News and Bing News
+    if (allItems.length === 0) {
+      try {
+        const q = k.join(" ");
+        // Google News
+        const urlGoogle = `https://news.google.com/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
+        const resGoogle = await fetch(urlGoogle);
+        const htmlGoogle = await resGoogle.text();
+        const $g = cheerio.load(htmlGoogle);
+        $g("article").each((i, el) => {
+          const headline = $g(el).find("h3").text() || $g(el).find("h4").text();
+          const link = $g(el).find("a").attr("href");
+          let imageUrl = $g(el).find("img").attr("src");
+          if (headline && link) {
+            allItems.push({
+              id: link,
+              type: "news",
+              sport: "general",
+              league: "News",
+              home: null,
+              away: null,
+              title: headline,
+              description: "",
+              url: link.startsWith("http") ? link : `https://news.google.com${link}`,
+              imageUrl: imageUrl || null,
+              videoUrl: null,
+              source: "google-news",
+              status: "published",
+              time: new Date().toISOString(),
+              importance: "medium",
+            });
+          }
+        });
+        // Bing News
+        const urlBing = `https://www.bing.com/news/search?q=${encodeURIComponent(q)}`;
+        const resBing = await fetch(urlBing);
+        const htmlBing = await resBing.text();
+        const $b = cheerio.load(htmlBing);
+        $b(".news-card").each((i, el) => {
+          const headline = $b(el).find("a.title").text();
+          const link = $b(el).find("a.title").attr("href");
+          let imageUrl = $b(el).find("img").attr("src");
+          let videoUrl = null;
+          // Try to find video if present
+          const videoEl = $b(el).find("video");
+          if (videoEl.length) {
+            videoUrl = videoEl.attr("src") || null;
+          }
+          if (headline && link) {
+            allItems.push({
+              id: link,
+              type: "news",
+              sport: "general",
+              league: "News",
+              home: null,
+              away: null,
+              title: headline,
+              description: "",
+              url: link,
+              imageUrl: imageUrl || null,
+              videoUrl,
+              source: "bing-news",
+              status: "published",
+              time: new Date().toISOString(),
+              importance: "medium",
+            });
+          }
+        });
+      } catch (e) {
+        console.warn("newsAggregator web scrape error", e?.message || e);
+      }
+    }
+
     // Deduplicate by URL and title
-    const allItems = [...newsapi, ...newsdata, ...rss];
     const seen = new Set();
     const unique = [];
     for (const item of allItems) {
