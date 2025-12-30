@@ -1,22 +1,15 @@
 import { Logger } from "../utils/logger.js";
-import { GeminiService } from "../services/gemini.js";
+// GeminiService removed
 import { LocalAIService } from "../services/local-ai.js";
 
 const logger = new Logger("ai:newsEngine");
 
-const gemini = new GeminiService(process.env.GEMINI_API_KEY || null);
+// GeminiService removed
 const localAI = new LocalAIService();
 
+// Gemini removed
 async function tryGemini(prompt, context = {}) {
-  try {
-    if (!gemini || !gemini.enabled) return null;
-    const out = await gemini.chat(prompt, context);
-    if (out && String(out).trim()) return String(out).trim();
-    return null;
-  } catch (e) {
-    logger.warn("Gemini call failed", e?.message || String(e));
-    return null;
-  }
+  return null;
 }
 
 async function tryLocal(prompt, context = {}) {
@@ -38,8 +31,9 @@ export async function generateHeadline(event = {}, match = {}) {
   const short = `${team} ${type} ${minute}`.trim();
 
   const prompt = `Write a short, punchy news headline (max 6 words) for this sports update: ${short}`;
-  const g = await tryGemini(prompt, { expect: "headline" });
-  if (g) return g;
+  // Gemini removed
+  // const g = await tryGemini(prompt, { expect: "headline" });
+  // if (g) return g;
   const l = await tryLocal(prompt);
   if (l) return l;
 

@@ -131,12 +131,6 @@ const CONFIG = {
     SWIFT_SWIFT: process.env.SWIFT_SWIFT,
   },
 
-  // Gemini AI
-  GEMINI: {
-    API_KEY: process.env.GEMINI_API_KEY,
-    ENABLED: Boolean(process.env.GEMINI_API_KEY),
-    MAX_PROMPT_TOKENS: Number(process.env.GEMINI_MAX_PROMPT_TOKENS || 1500),
-  },
 
   // Twilio OTP
   TWILIO: {

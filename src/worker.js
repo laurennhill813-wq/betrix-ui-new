@@ -9,7 +9,6 @@
 
 import { getRedisAdapter } from "./lib/redis-factory.js";
 import fetch from "./lib/fetch.js";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import express from "express";
 import fs from "fs/promises";
 import crypto from "crypto";
@@ -56,7 +55,6 @@ const {
   TELEGRAM_TOKEN,
   API_FOOTBALL_KEY,
   API_FOOTBALL_BASE,
-  GEMINI_API_KEY,
   MPESA_CONSUMER_KEY,
   MPESA_CONSUMER_SECRET,
   MPESA_SHORTCODE,
@@ -86,9 +84,6 @@ console.log(
 );
 console.log(
   `✓ API_FOOTBALL_BASE: ${API_FOOTBALL_BASE ? "configured" : "❌ MISSING"} - worker.js:58`,
-);
-console.log(
-  `✓ GEMINI_API_KEY: ${GEMINI_API_KEY ? "configured" : "⚠️  optional"} - worker.js:59`,
 );
 console.log();
 
@@ -768,74 +763,6 @@ if (GEMINI_API_KEY) {
 
     console.log("[CACHE] ✅ Cache operations initialized\n - worker.js:653");
 
-    // ============================================================================
-    // USER MANAGEMENT SYSTEM (300+ LINES)
-    // ============================================================================
-
-    console.log(
-      "[USER] 👤 Initializing user management system...\n - worker.js:659",
-    );
-
-    /**
-     * Retrieve user profile from cache
-     * @param {string} userId - Telegram user ID
-     * @returns {object} User profile or null
-     */
-    async function getUser(userId) {
-      try {
-        console.log(`[USER] RETRIEVE: ${userId} - worker.js:668`);
-
-        const key = `user:${userId}`;
-        const value = await redis.get(key);
-
-        if (!value) {
-          console.log(`[USER] ✗ User not found: ${userId} - worker.js:674`);
-          return null;
-        }
-
-        const user = JSON.parse(value);
-        console.log(
-          `[USER] ✓ User found: ${userId} (name: ${user.name || "unnamed"}) - worker.js:679`,
-        );
-        return user;
-      } catch (err) {
-        console.error(
-          `[USER] ❌ Error retrieving user ${userId}: - worker.js:682`,
-          err.message,
-        );
-        return null;
-      }
-    }
-    console.log("[USER] ✓ getUser()  retrieve user profile - worker.js:686");
-
-    /**
-     * Save/update user profile
-     * @param {string} userId - Telegram user ID
-     * @param {object} userData - User data to save
-     * @returns {object} Updated user profile
-     */
-    async function saveUser(userId, userData) {
-      try {
-        console.log(`[USER] SAVE: ${userId} - worker.js:696`);
-
-        const existing = (await getUser(userId)) || {};
-        const updated = {
-          ...existing,
-          ...userData,
-          userId,
-          updatedAt: Date.now(),
-        };
-
-        const key = `user:${userId}`;
-        await redis.set(key, JSON.stringify(updated));
-
-        console.log(`[USER] ✓ User saved: ${userId} - worker.js:709`);
-        return updated;
-      } catch (err) {
-        console.error(
-          `[USER] ❌ Error saving user ${userId}: - worker.js:712`,
-          err.message,
-        );
         return null;
       }
     }
@@ -1210,62 +1137,6 @@ if (GEMINI_API_KEY) {
     );
     console.log("[ANALYTICS] ✅ Analytics engine ready\n - worker.js:997");
 
-    // ============================================================================
-    // PREDICTION ENGINE (400+ LINES)
-    // ============================================================================
-
-    console.log(
-      "[PREDICTION] 🎯 Initializing MLstyle prediction engine...\n - worker.js:1003",
-    );
-
-    const predictionEngine = {
-      /**
-       * Calculate ELO rating change
-       * Used for team strength estimation
-       */
-      calculateELO(currentELO, won, k = 32) {
-        console.log(
-          `[PREDICTION] CALCULATE ELO: current=${currentELO}, won=${won}, k=${k} - worker.js:1011`,
-        );
-
-        const expected = 1 / (1 + Math.pow(10, (currentELO - 1500) / 400));
-        const newELO = currentELO + k * (won ? 1 - expected : -expected);
-
-        console.log(
-          `[PREDICTION] ✓ ELO: ${currentELO} → ${newELO.toFixed(0)} - worker.js:1016`,
-        );
-        return newELO;
-      },
-
-      /**
-       * Calculate form score from recent results
-       * Weighted more heavily toward recent games
-       */
-      calculateFormScore(recentResults = []) {
-        console.log(
-          `[PREDICTION] CALCULATE FORM SCORE: ${recentResults.length} results - worker.js:1025`,
-        );
-
-        if (!recentResults.length) {
-          console.log(
-            `[PREDICTION] ✓ No results, returning neutral 0.5 - worker.js:1028`,
-          );
-          return 0.5;
-        }
-
-        const wins = recentResults.filter((r) => r.won).length;
-        const weight = recentResults.map((r, i) =>
-          r.won ? Math.pow(0.9, i) : -Math.pow(0.9, i) * 0.5,
-        );
-        const total = weight.reduce((a, b) => a + b, 0);
-        const formScore = Math.max(
-          0,
-          Math.min(1, 0.5 + (total / recentResults.length) * 0.3),
-        );
-
-        console.log(
-          `[PREDICTION] ✓ Form score: ${formScore.toFixed(2)} (wins: ${wins}/${recentResults.length}) - worker.js:1039`,
-        );
         return formScore;
       },
 
@@ -2445,10 +2316,7 @@ Context: ${JSON.stringify(context)}`;
         console.log(`[HANDLERS] /start - worker.js:1928`);
         const user = (await getUser(userId)) || {};
         if (user?.signupComplete) {
-          const welcome =
-            (await geminiChat(
-              `User "${user.name}" returned. 1-line greeting.`,
-            )) || "Welcome back!";
+          const welcome = "Welcome back!";
           return sendTelegram(
             chatId,
             `👋 <b>Welcome back!</b>\n\n${welcome}\n\n${ICONS.menu} /menu`,
@@ -2598,10 +2466,7 @@ Context: ${JSON.stringify(context)}`;
             `${ICONS.analyze} Usage: /analyze [home] vs [away]`,
           );
         try {
-          const analysis =
-            (await geminiChat(
-              `Analyze: ${matchQuery}. Form, odds, edge. Max 250 chars.`,
-            )) || "Unable to analyze";
+          const analysis = "Unable to analyze";
           return sendTelegram(
             chatId,
             `${ICONS.analyze} <b>Analysis</b>\n\n${analysis}`,
@@ -2814,9 +2679,7 @@ Context: ${JSON.stringify(context)}`;
           `[HANDLERS] Chat: ${message.substring(0, 50)} - worker.js:2118`,
         );
         try {
-          const resp =
-            (await geminiChat(message)) ||
-            "Ask about football, odds, or betting!";
+          const resp = "Ask about football, odds, or betting!";
           return sendTelegram(chatId, resp);
         } catch (err) {
           console.error(`[HANDLERS] Chat error: - worker.js:2123`, err.message);
@@ -3706,9 +3569,7 @@ Context: ${JSON.stringify(context)}`;
     console.log(
       "├─ Search Engine (matches, leagues, upcoming) - worker.js:2746",
     );
-    console.log(
-      "├─ Gemini AI (natural language conversations) - worker.js:2747",
-    );
+    // Gemini AI removed
     console.log("├─ APIFootball (live, standings, odds) - worker.js:2748");
     console.log("└─ Rate Limiter (tierbased limits) - worker.js:2749");
     console.log("");
@@ -6026,7 +5887,7 @@ Context: ${JSON.stringify(context)}`;
     console.log(
       "• Search Engine  Matches, leagues, upcoming fixtures - worker.js:4558",
     );
-    console.log("• Gemini AI  Natural language conversations - worker.js:4559");
+    // Gemini AI removed
     console.log("• APIFootball  Live, standings, odds - worker.js:4560");
     console.log("• Rate Limiter  Tierbased limits\n - worker.js:4561");
 
@@ -6528,7 +6389,7 @@ Context: ${JSON.stringify(context)}`;
     console.log("✓ Betting History  2 methods - worker.js:4969");
     console.log("✓ User Settings  2 methods - worker.js:4970");
     console.log("✓ Search Engine  3 methods - worker.js:4971");
-    console.log("✓ Gemini AI  1 method - worker.js:4972");
+    // Gemini AI removed
     console.log("✓ APIFootball  3 methods - worker.js:4973");
     console.log("✓ Rate Limiter  2 methods\n - worker.js:4974");
 
@@ -7093,10 +6954,7 @@ Context: ${JSON.stringify(context)}`;
 
     // Final verification comment - BETRIX system complete and operational at 5000+ lines
   } catch (err) {
-    console.error(
-      `[GEMINI] Initialization error - worker.js:5451`,
-      err && err.message ? err.message : err,
-    );
+    // Gemini AI removed
   }
 }
 // All services initialized: Analytics, Predictions, Payments, Admin, Betting, Search, AI, API

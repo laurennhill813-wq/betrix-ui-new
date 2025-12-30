@@ -9,10 +9,10 @@ import createRedisAdapter from "../utils/redis-adapter.js";
 const logger = new Logger("Predictor");
 
 class PredictionEngine {
-  constructor(redis, apiFootball, gemini) {
+  constructor(redis, apiFootball) {
     this.redis = createRedisAdapter(redis);
     this.apiFootball = apiFootball;
-    this.gemini = gemini;
+    // Gemini removed
   }
 
   /**
@@ -25,10 +25,8 @@ class PredictionEngine {
       const bookmakerOdds = fixtureData.odds || {};
 
       // AI prediction
-      const aiPrediction = await this.gemini.chat(
-        `Predict ${homeTeam} vs ${awayTeam}. Form: ${formScore}. H2H: ${headToHead}. Odds: ${JSON.stringify(bookmakerOdds)}. Give: winner, confidence (0-1), key factors.`,
-        {},
-      );
+      // Gemini removed
+      const aiPrediction = "Gemini AI is not available.";
 
       // Parse confidence from AI response
       const confidence = this.extractConfidence(aiPrediction);

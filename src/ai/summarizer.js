@@ -1,4 +1,4 @@
-import { GeminiService } from "../services/gemini.js";
+// GeminiService removed
 import { LocalAIService } from "../services/local-ai.js";
 import { AzureAIService } from "../services/azure-ai.js";
 import {
@@ -7,7 +7,7 @@ import {
   BETRIX_TONES,
 } from "./personality.js";
 
-const gemini = new GeminiService(process.env.GEMINI_API_KEY || null);
+// GeminiService removed
 const localAI = new LocalAIService();
 const azure = new AzureAIService(
   process.env.AZURE_AI_ENDPOINT || process.env.AZURE_ENDPOINT || null,
@@ -30,18 +30,9 @@ async function tryAzure(prompt) {
   }
 }
 
+// Gemini removed
 async function tryGemini(prompt) {
-  try {
-    if (!gemini || !gemini.enabled) return null;
-    const out = await gemini.chat(prompt, { expect: "short" });
-    if (out && String(out).trim()) return String(out).trim();
-    return null;
-  } catch (e) {
-    try {
-      console.warn("Gemini summarizer failed", e?.message || e);
-    } catch (_) {}
-    return null;
-  }
+  return null;
 }
 
 async function tryLocal(prompt) {
@@ -180,8 +171,9 @@ export async function summarizeEventForTelegram(
   const azureOut = await tryAzure(prompt);
   if (azureOut) return { caption: azureOut, tone: effectiveTone };
 
-  const gemOut = await tryGemini(prompt);
-  if (gemOut) return { caption: gemOut, tone: effectiveTone };
+  // Gemini removed
+  // const gemOut = await tryGemini(prompt);
+  // if (gemOut) return { caption: gemOut, tone: effectiveTone };
 
   // Fallback deterministic caption
   let fallback;

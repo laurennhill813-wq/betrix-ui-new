@@ -464,7 +464,6 @@ const groq = new GroqService(
     "https://api.groq.com",
 );
 
-// Composite AI wrapper: try Gemini per-request, fall back to LocalAI on errors.
 // create AI wrapper that uses Azure + RAG as the brain
 import { createAIWrapper } from "./ai/wrapper.js";
 
@@ -545,10 +544,6 @@ async function probeAIProviders() {
         huggingface && typeof huggingface.enabled !== "undefined"
           ? huggingface.enabled
           : false,
-      gemini:
-        gemini && typeof gemini.enabled !== "undefined"
-          ? gemini.enabled
-          : false,
       localAI:
         localAI && typeof localAI.isHealthy === "function"
           ? localAI.isHealthy()
@@ -565,18 +560,6 @@ async function probeAIProviders() {
 
 // keep analyzeSport stub if needed
 ai.analyzeSport = async function (sport, matchData, question) {
-  if (gemini && gemini.enabled) {
-    try {
-      if (typeof gemini.analyzeSport === "function")
-        return await gemini.analyzeSport(sport, matchData, question);
-    } catch (err) {
-      logger.warn(
-        "Gemini.analyzeSport failed, falling back",
-        err?.message || String(err),
-      );
-    }
-  }
-
   if (huggingface && huggingface.isHealthy()) {
     try {
       return await huggingface.analyzeSport(sport, matchData, question);
@@ -587,13 +570,11 @@ ai.analyzeSport = async function (sport, matchData, question) {
       );
     }
   }
-
   return localAI.analyzeSport(sport, matchData, question);
 };
 
 ai.isHealthy = function () {
   return (
-    (gemini && gemini.enabled) ||
     (huggingface && huggingface.isHealthy()) ||
     (localAI && typeof localAI.isHealthy === "function"
       ? localAI.isHealthy()
@@ -1393,13 +1374,11 @@ async function main() {
 
       // mark which AI is active for observability (set before processing)
       const preferred =
-        gemini && gemini.enabled
-          ? "gemini"
-          : azure && azure.isHealthy()
-            ? "azure"
-            : huggingface && huggingface.isHealthy()
-              ? "huggingface"
-              : "local";
+        azure && azure.isHealthy()
+          ? "azure"
+          : huggingface && huggingface.isHealthy()
+            ? "huggingface"
+            : "local";
       await redis.set("ai:active", preferred);
       await redis.expire("ai:active", 30);
 
@@ -1690,18 +1669,11 @@ async function handleUpdate(update) {
       if (cmd.startsWith("/")) {
         await handleCommand(chatId, userId, cmd, args, text);
       } else {
-        // Natural language - use composite AI (Gemini -> HuggingFace -> LocalAI)
+        // Natural language - use composite AI (Azure -> HuggingFace -> LocalAI)
         // Build a compact context object: minimal user info + recent messages
         const fullUser = (await userService.getUser(userId)) || {};
         // Ensure context is trimmed to model prompt budget before fetching recent messages
-        try {
-          await contextManager.trimContextToTokenBudget(
-            userId,
-            CONFIG.GEMINI.MAX_PROMPT_TOKENS || 1500,
-          );
-        } catch (e) {
-          logger.warn("Context trim failed", e?.message || String(e));
-        }
+        // Gemini context trim removed
         const recent = await contextManager.getContext(userId).catch(() => []);
         const recentTexts = recent
           .slice(-6)
@@ -2287,7 +2259,7 @@ async function handleCommand(chatId, userId, cmd, args, fullText) {
     } else if (adminCommands[cmd] && isAdmin) {
       await adminCommands[cmd]();
     } else {
-      // Unknown - use Gemini
+      // Unknown - use fallback chat
       await basicHandlers.chat(chatId, userId, fullText);
     }
 

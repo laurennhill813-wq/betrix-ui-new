@@ -9,9 +9,9 @@ import createRedisAdapter from "../utils/redis-adapter.js";
 const logger = new Logger("Premium");
 
 class PremiumService {
-  constructor(redis, gemini) {
+  constructor(redis) {
     this.redis = createRedisAdapter(redis);
-    this.gemini = gemini;
+    // Gemini removed
   }
 
   /**
@@ -33,8 +33,8 @@ Include:
 
 Keep it under 500 words. Professional tone.`;
 
-      const dossier = await this.gemini.chat(prompt, {});
-      return dossier;
+      // Gemini removed
+      return "Gemini AI is not available.";
     } catch (err) {
       logger.error("Dossier generation failed", err);
       return "Unable to generate dossier. Try again later.";

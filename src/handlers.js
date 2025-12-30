@@ -21,7 +21,7 @@ class BotHandlers {
     telegram,
     userService,
     apiFootball,
-    gemini,
+    // gemini removed
     redis,
     freeSports = null,
     extras = {},
@@ -29,7 +29,7 @@ class BotHandlers {
     this.telegram = telegram;
     this.userService = userService;
     this.apiFootball = apiFootball;
-    this.gemini = gemini;
+    // this.gemini = gemini; // Gemini removed
     this.redis = redis;
     this.freeSports = freeSports;
     // optional extra free-data services
@@ -46,13 +46,10 @@ class BotHandlers {
     const user = (await this.userService.getUser(userId)) || {};
 
     if (user?.signupComplete) {
-      const welcome = await this.gemini.chat(
-        `User "${user.name}" returned to BETRIX. Give a warm, personalized 1-line greeting.`,
-        { user },
-      );
+      // Gemini removed
       return this.telegram.sendMessage(
         chatId,
-        `👋 <b>Welcome back!</b>\n\n${welcome}\n\n📌 Use /menu to explore.`,
+        `👋 <b>Welcome back!</b>\n\nWelcome back to BETRIX!\n\n📌 Use /menu to explore.`,
       );
     }
 
@@ -170,10 +167,8 @@ class BotHandlers {
           } catch (e) {}
         }
 
-        const msg = await this.gemini.chat(
-          "No live football matches right now. Give a friendly 2-line response.",
-        );
-        return this.telegram.sendMessage(chatId, `${ICONS.live} ${msg}`);
+        // Gemini removed
+        return this.telegram.sendMessage(chatId, `${ICONS.live} No live football matches right now.`);
       }
 
       const matches = data.response.slice(0, CONFIG.PAGE_SIZE);
@@ -194,10 +189,8 @@ class BotHandlers {
       return this.telegram.sendMessage(chatId, text);
     } catch (err) {
       logger.error("Live error", err);
-      const fallback = await this.gemini.chat(
-        "Live match data temporarily unavailable. Give a brief, helpful 2-line response suggesting what they can do.",
-      );
-      return this.telegram.sendMessage(chatId, `❌ ${fallback}`);
+      // Gemini removed
+      return this.telegram.sendMessage(chatId, `❌ Live match data temporarily unavailable.`);
     }
   }
 
