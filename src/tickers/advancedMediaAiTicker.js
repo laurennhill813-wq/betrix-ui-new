@@ -1,3 +1,5 @@
+// Add CommonJS default export for ESM compatibility
+module.exports.default = module.exports;
 
 // --- ES5 FUNCTION CONSTRUCTORS (top-level) ---
 function ImageDeduplicator() {
