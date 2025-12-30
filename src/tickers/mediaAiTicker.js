@@ -1,11 +1,15 @@
 import { getInterestingEvents } from "../aggregator/multiSportAggregator.js";
 import { summarizeEventForTelegram } from "../ai/summarizer.js";
+import { generateHashtags } from "../ai/openaiHashtags.js";
 import {
   selectBestImageForEvent,
   selectBestImageForEventCombined,
   selectBestMediaForEventCombined,
 } from "../media/imageSelector.js";
+import { generateDalleImage } from "../ai/openaiDalle.js";
 import { sendPhotoWithCaption, sendVideoWithCaption } from "../services/telegram-sender.js";
+import { queuePostForApproval } from "../services/adminPostQueue.js";
+import { sendTelegramAdminAlert } from "../services/adminAlert.js";
 import { scoreEvent } from "../brain/interestScorer.js";
 import {
   buildEventId,
@@ -127,14 +131,37 @@ export async function runMediaAiTick() {
     score: chosen._score,
   });
 
-  // Fetch media and caption
-  const [media, aiSummary] = await Promise.all([
-    selectBestMediaForEventCombined(chosen).catch(() => null),
-    summarizeEventForTelegram(chosen, "conversational").catch(() => ({
-      caption: null,
-      tone: null,
-    })),
-  ]);
+  // Alternate between photo and video for variety
+  let media = null;
+  let tryVideo = Math.random() < 0.5;
+  if (tryVideo) {
+    media = await selectBestMediaForEventCombined(chosen).catch(() => null);
+    if (media && media.type !== "video") media = null;
+  }
+  if (!media) {
+    media = await selectBestMediaForEventCombined(chosen).catch(() => null);
+    if (media && media.type !== "image") media = null;
+  }
+  // Fallback to image if no video found
+  if (!media) {
+    media = await selectBestImageForEventCombined(chosen).catch(() => null);
+    if (media) media = { mediaUrl: media.imageUrl, type: "image", source: media.source };
+  }
+  // DALL-E fallback if no media found
+  if (!media || !media.mediaUrl) {
+    const dalleUrl = await generateDalleImage(chosen).catch(() => null);
+    if (dalleUrl) media = { mediaUrl: dalleUrl, type: "image", source: "dalle" };
+  }
+  // Caption
+  const aiSummary = await summarizeEventForTelegram(chosen, "conversational").catch(() => ({ caption: null, tone: null }));
+  // Generate hashtags using OpenAI
+  let hashtags = await generateHashtags(chosen).catch(() => []);
+  if (Array.isArray(hashtags) && hashtags.length) {
+    const tags = hashtags.map(t => t.startsWith('#') ? t : `#${t}`).join(' ');
+    if (aiSummary && aiSummary.caption) {
+      aiSummary.caption += `\n\n${tags}`;
+    }
+  }
 
   console.info("[MediaAiTicker] Media fetch result", {
     found: !!media,
@@ -186,6 +213,18 @@ export async function runMediaAiTick() {
       : `**${chosen.home || "Home"} vs ${chosen.away || "Away"}**`;
 
   try {
+    // Admin approval mode: if enabled, queue for admin instead of auto-post
+    if (process.env.MEDIA_ADMIN_APPROVAL === "true") {
+      await queuePostForApproval({
+        chatId,
+        media: finalMedia,
+        caption,
+        event: chosen,
+        timestamp: Date.now()
+      });
+      console.info("[MediaAiTicker] Post queued for admin approval");
+      return;
+    }
     if (finalMedia.type === "video") {
       await sendVideoWithCaption({ chatId, videoUrl: finalMedia.mediaUrl, caption });
       console.info("[MediaAiTicker] Posted video", {
@@ -202,6 +241,10 @@ export async function runMediaAiTick() {
       });
     }
     await telemetry.incCounter("posts");
+    // Engagement tracking placeholder: increment per-sport and per-type counters
+    if (chosen.sport) await telemetry.incCounter(`posts_${chosen.sport}`);
+    if (finalMedia && finalMedia.type) await telemetry.incCounter(`posts_type_${finalMedia.type}`);
+    // TODO: Integrate with real engagement data (likes/views) if available from Telegram API
     // Mark as posted
     if (chosen._eventId) {
       await markEventPosted(chosen._eventId, {
@@ -213,6 +256,10 @@ export async function runMediaAiTick() {
   } catch (err) {
     console.error("[MediaAiTicker] send failed", err && err.message);
     await telemetry.incCounter("failures");
+    // Notify admin on repeated failures (basic threshold)
+    if (process.env.ADMIN_TELEGRAM_ID) {
+      await sendTelegramAdminAlert(`[MediaAiTicker] send failed: ${err && err.message}`);
+    }
   }
 }
 

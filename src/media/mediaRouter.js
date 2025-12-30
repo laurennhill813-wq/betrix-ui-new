@@ -24,7 +24,7 @@ const DEFAULT_PLACEHOLDER =
   "https://via.placeholder.com/1024x512.png?text=BETRIX+Media";
 
 // Default provider priority (comma-separated ENV override allowed)
-const DEFAULT_PRIORITY = "getty,reuters,ap,imagn,sportradar";
+const DEFAULT_PRIORITY = "pexels,getty,reuters,ap,imagn,sportradar";
 const providerPriority = (
   process.env.MEDIA_PROVIDER_PRIORITY || DEFAULT_PRIORITY
 )

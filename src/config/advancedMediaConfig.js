@@ -1,18 +1,15 @@
-/**
- * Advanced Media AI Ticker Configuration
- * ======================================
- * Centralized configuration for multi-sport posting, deduplication, and news integration
- */
 
-export const ADVANCED_MEDIA_CONFIG = {
+// Advanced Media AI Ticker Configuration (CommonJS)
+
+var ADVANCED_MEDIA_CONFIG = {
   // ===== FEATURE TOGGLES =====
   ENABLED: process.env.ADVANCED_MEDIA_AI_ENABLED !== "false",
   
   // Enable image deduplication (prevent same images)
-  IMAGE_DEDUP_ENABLED: process.env.IMAGE_DEDUP_ENABLED !== "false",
+  IMAGE_DEDUP_ENABLED: false, // Disabled to allow all images
   
   // Enable team deduplication (prevent same teams)
-  TEAM_DEDUP_ENABLED: process.env.TEAM_DEDUP_ENABLED !== "false",
+  TEAM_DEDUP_ENABLED: false, // Disabled to allow all teams
   
   // Enable smart sport rotation (balanced coverage)
   SPORT_ROTATION_ENABLED: process.env.SPORT_ROTATION_ENABLED !== "false",
@@ -72,7 +69,7 @@ export const ADVANCED_MEDIA_CONFIG = {
     // News source keywords to track
     KEYWORDS: (process.env.NEWS_KEYWORDS || "transfer news,breaking news,announcement")
       .split(",")
-      .map(k => k.trim()),
+      .map(function(k) { return k.trim(); }),
     
     // Fetch this many news articles per tick
     FETCH_COUNT: Number(process.env.NEWS_FETCH_COUNT || 3),
@@ -181,7 +178,7 @@ export const ADVANCED_MEDIA_CONFIG = {
 /**
  * Helper: Get sport ID from user input
  */
-export function resolveSport(input) {
+var resolveSport = function(input) {
   if (!input) return null;
   
   const normalized = String(input).toLowerCase().trim();
@@ -204,7 +201,7 @@ export function resolveSport(input) {
 /**
  * Helper: Get Redis key for stored data
  */
-export function getRedisKey(type, value) {
+var getRedisKey = function(type, value) {
   const config = ADVANCED_MEDIA_CONFIG.REDIS;
   switch (type) {
     case "image":
@@ -221,7 +218,7 @@ export function getRedisKey(type, value) {
 /**
  * Validate configuration
  */
-export function validateAdvancedMediaConfig() {
+var validateAdvancedMediaConfig = function() {
   const errors = [];
   
   // Check sport weights sum to reasonable value (0.8-1.2)
@@ -242,4 +239,9 @@ export function validateAdvancedMediaConfig() {
   };
 }
 
-export default ADVANCED_MEDIA_CONFIG;
+module.exports = {
+  ADVANCED_MEDIA_CONFIG: ADVANCED_MEDIA_CONFIG,
+  resolveSport: resolveSport,
+  getRedisKey: getRedisKey,
+  validateAdvancedMediaConfig: validateAdvancedMediaConfig
+};

@@ -14,46 +14,43 @@
  * 6. **Smart Scoring**: Time-aware, trend-aware, diversity-aware
  */
 
-import { getInterestingEvents } from "../aggregator/multiSportAggregator.js";
-import { getLatestNews } from "../aggregator/newsAggregator.js";
-import { summarizeEventForTelegram } from "../ai/summarizer.js";
-import {
-  selectBestImageForEventCombined,
-  selectBestMediaForEventCombined,
-} from "../media/imageSelector.js";
-import { sendPhotoWithCaption, sendVideoWithCaption } from "../services/telegram-sender.js";
-import { scoreEvent } from "../brain/interestScorer.js";
-import {
-  buildEventId,
-  hasPostedWithin,
-  markEventPosted,
-} from "../brain/memory.js";
-import { bumpEventMention } from "../brain/trending.js";
-import telemetry from "../brain/telemetry.js";
-import { broadcastText } from "../telegram/broadcast.js";
-import { ADVANCED_MEDIA_CONFIG } from "../config/advancedMediaConfig.js";
-import crypto from "crypto";
+
+var getInterestingEvents = require("../aggregator/multiSportAggregator.js").getInterestingEvents;
+var getLatestNews = require("../aggregator/newsAggregator.js").getLatestNews;
+var summarizeEventForTelegram = require("../ai/summarizer.js").summarizeEventForTelegram;
+var selectBestImageForEventCombined = require("../media/imageSelector.js").selectBestImageForEventCombined;
+var selectBestMediaForEventCombined = require("../media/imageSelector.js").selectBestMediaForEventCombined;
+var sendPhotoWithCaption = require("../services/telegram-sender.js").sendPhotoWithCaption;
+var sendVideoWithCaption = require("../services/telegram-sender.js").sendVideoWithCaption;
+var scoreEvent = require("../brain/interestScorer.js").scoreEvent;
+var buildEventId = require("../brain/memory.js").buildEventId;
+var hasPostedWithin = require("../brain/memory.js").hasPostedWithin;
+var markEventPosted = require("../brain/memory.js").markEventPosted;
+var bumpEventMention = require("../brain/trending.js").bumpEventMention;
+var telemetry = require("../brain/telemetry.js");
+var broadcastText = require("../telegram/broadcast.js").broadcastText;
+var ADVANCED_MEDIA_CONFIG = require("../config/advancedMediaConfig.js").ADVANCED_MEDIA_CONFIG;
+var crypto = require("crypto");
 
 // Get Redis if available for advanced deduplication
-let redis = null;
-export function setRedisClient(r) {
+var redis = null;
+function setRedisClient(r) {
   redis = r;
 }
 
-const POSTING_COOLDOWN_MS = Number(
-  process.env.MEDIA_AI_COOLDOWN_MS || 30 * 1000,
-);
+
+var POSTING_COOLDOWN_MS = Number(process.env.MEDIA_AI_COOLDOWN_MS || 30 * 1000);
 
 // Store last posted info in memory (backed by Redis if available)
-let lastPostedAt = 0;
+var lastPostedAt = 0;
 
 /**
  * SUPPORTED SPORTS with sport ID mapping and aliases
  * Weights are dynamically loaded from ADVANCED_MEDIA_CONFIG
  * This enables easy customization via environment variables or defaults
  */
-const getSupportedSports = () => {
-  const weights = ADVANCED_MEDIA_CONFIG.SPORT_WEIGHTS || {
+var getSupportedSports = function() {
+  var weights = ADVANCED_MEDIA_CONFIG.SPORT_WEIGHTS || {
     soccer: 0.25,
     nfl: 0.15,
     nba: 0.15,
@@ -71,74 +68,50 @@ const getSupportedSports = () => {
     soccer: {
       apiId: "soccer",
       aliases: ["football", "epl", "premier league", "la liga", "serie a"],
-      weight: weights.soccer,
-      emoji: "⚽",
-      newsKeywords: ["transfer news", "football", "soccer", "goal"],
-    },
-    nfl: {
-      apiId: "nfl",
-      aliases: ["american football", "nfl", "afl"],
-      weight: weights.nfl,
-      emoji: "🏈",
-      newsKeywords: ["NFL", "touchdown", "football"],
-    },
-    nba: {
-      apiId: "nba",
-      aliases: ["basketball", "nba"],
-      weight: weights.nba,
-      emoji: "🏀",
-      newsKeywords: ["NBA", "basketball", "three pointer"],
-    },
-    tennis: {
-      apiId: "tennis",
-      aliases: ["atp", "wta", "wimbledon", "grand slam"],
-      weight: weights.tennis,
-      emoji: "🎾",
-      newsKeywords: ["tennis", "ATP", "WTA", "Federer", "Nadal"],
-    },
-    boxing: {
-      apiId: "boxing",
-      aliases: ["boxing", "mma", "ufc", "fighter"],
-      weight: weights.boxing,
-      emoji: "🥊",
-      newsKeywords: ["boxing", "UFC", "fighter", "knockout"],
-    },
-    cricket: {
-      apiId: "cricket",
-      aliases: ["cricket", "ipl", "test match", "t20"],
-      weight: weights.cricket,
-      emoji: "🏏",
-      newsKeywords: ["cricket", "IPL", "test match"],
-    },
-    nhl: {
-      apiId: "nhl",
-      aliases: ["ice hockey", "nhl", "hockey"],
-      weight: weights.nhl,
-      emoji: "🏒",
-      newsKeywords: ["hockey", "NHL", "goal"],
-    },
-    f1: {
-      apiId: "f1",
-      aliases: ["formula 1", "f1", "racing", "formula one"],
-      weight: weights.f1,
-      emoji: "🏎️",
-      newsKeywords: ["F1", "racing", "Ferrari", "Mercedes"],
-    },
-    mlb: {
-      apiId: "mlb",
-      aliases: ["baseball", "mlb"],
-      weight: weights.mlb,
-      emoji: "⚾",
-      newsKeywords: ["baseball", "MLB", "home run"],
-    },
-    rugby: {
-      apiId: "rugby",
-      aliases: ["rugby", "rugby league"],
-      weight: weights.rugby,
-      emoji: "🏉",
-      newsKeywords: ["rugby", "try", "scrum"],
-    },
-    news: {
+
+      // Image Deduplication Helper (ES5 style)
+      function ImageDeduplicator() {
+        this.hashCache = new Map(); // In-memory cache
+        this.redisPrefix = "betrix:posted:image:";
+      }
+      ImageDeduplicator.prototype.hashUrl = function(url) {
+        if (!url) return null;
+        return crypto.createHash("sha256").update(url).digest("hex");
+      };
+      ImageDeduplicator.prototype.hasPostedImage = async function(imageUrl) {
+        if (!imageUrl) return false;
+        var hash = this.hashUrl(imageUrl);
+        if (this.hashCache.has(hash)) {
+          return true;
+        }
+        if (redis && typeof redis.get === 'function') {
+          try {
+            var exists = await redis.get(this.redisPrefix + hash);
+            if (exists) {
+              this.hashCache.set(hash, true);
+              return true;
+            }
+          } catch (e) {}
+        }
+        return false;
+      };
+      ImageDeduplicator.prototype.markImagePosted = async function(imageUrl) {
+        if (!imageUrl) return;
+        var hash = this.hashUrl(imageUrl);
+        this.hashCache.set(hash, true);
+        if (redis && typeof redis.set === 'function') {
+          try {
+            await redis.set(
+              this.redisPrefix + hash,
+              "1",
+              'EX',
+              30 * 24 * 60 * 60
+            ).catch(function() {
+              return redis.set(this.redisPrefix + hash, "1");
+            }.bind(this));
+          } catch (e) {}
+        }
+      };
       apiId: "news",
       aliases: ["breaking news", "transfer news", "announcement"],
       weight: weights.news,
@@ -148,7 +121,7 @@ const getSupportedSports = () => {
   };
 };
 
-const SUPPORTED_SPORTS = getSupportedSports();
+var SUPPORTED_SPORTS = getSupportedSports();
 
 /**
  * Image Deduplication Helper
@@ -243,87 +216,64 @@ class TeamDeduplicator {
       .toLowerCase()
       .trim()
       .replace(/\s+/g, "_")
-      .replace(/[^a-z0-9_]/g, "");
-  }
 
-  /**
-   * Check if team was recently posted
-   */
-  async hasRecentTeam(homeTeam, awayTeam) {
-    const key1 = this.normalize(homeTeam);
-    const key2 = this.normalize(awayTeam);
-    
-    if (!key1 || !key2) return false;
-
-    // Check in-memory first
-    if (this.recentTeams.has(key1) || this.recentTeams.has(key2)) {
-      return true;
-    }
-
-    // Check Redis if available and has get method
-    if (redis && typeof redis.get === 'function') {
-      try {
-        const [exists1, exists2] = await Promise.all([
-          redis.get(this.redisPrefix + key1).catch(() => null),
-          redis.get(this.redisPrefix + key2).catch(() => null),
-        ]);
-        if (exists1 || exists2) {
-          this.recentTeams.add(key1);
-          this.recentTeams.add(key2);
+      // Team/Competitor Deduplication Helper (ES5 style)
+      function TeamDeduplicator() {
+        this.recentTeams = new Set();
+        this.redisPrefix = "betrix:recent:team:";
+        this.windowMs = 2 * 60 * 60 * 1000; // 2 hours
+      }
+      TeamDeduplicator.prototype.normalize = function(name) {
+        if (!name) return "";
+        return name
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, "_")
+          .replace(/[^a-z0-9_]/g, "");
+      };
+      TeamDeduplicator.prototype.hasRecentTeam = async function(homeTeam, awayTeam) {
+        var key1 = this.normalize(homeTeam);
+        var key2 = this.normalize(awayTeam);
+        if (!key1 || !key2) return false;
+        if (this.recentTeams.has(key1) || this.recentTeams.has(key2)) {
           return true;
         }
-      } catch (e) {
-        // Redis not available or method not supported, continue with memory-only
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Mark teams as recently posted
-   */
-  async markTeamsPosted(homeTeam, awayTeam) {
-    const key1 = this.normalize(homeTeam);
-    const key2 = this.normalize(awayTeam);
-
-    this.recentTeams.add(key1);
-    this.recentTeams.add(key2);
-
-    if (redis && typeof redis.set === 'function') {
-      try {
-        await Promise.all([
-          redis.set(this.redisPrefix + key1, "1", 'EX', 2 * 60 * 60).catch(() => redis.set(this.redisPrefix + key1, "1")),
-          redis.set(this.redisPrefix + key2, "1", 'EX', 2 * 60 * 60).catch(() => redis.set(this.redisPrefix + key2, "1")),
-        ]);
-      } catch (e) {
-        // Redis not available or method not supported, continue with memory-only
-      }
-    }
-  }
-
-  /**
-   * Clear old entries periodically
-   */
-  clearExpired() {
-    // In-memory cache clears every 2 hours automatically
-    if (this.recentTeams.size > 1000) {
-      this.recentTeams.clear();
-    }
-  }
-}
-
-/**
- * Sport Rotation Manager
- * Uses weighted distribution to balance coverage across sports
- */
-class SportRotationManager {
-  constructor() {
-    this.lastSports = [];
-    this.maxRecent = 10; // Track last 10 posts
-  }
-
-  /**
+        if (redis && typeof redis.get === 'function') {
+          try {
+            var results = await Promise.all([
+              redis.get(this.redisPrefix + key1).catch(function() { return null; }),
+              redis.get(this.redisPrefix + key2).catch(function() { return null; })
+            ]);
+            var exists1 = results[0];
+            var exists2 = results[1];
+            if (exists1 || exists2) {
+              this.recentTeams.add(key1);
+              this.recentTeams.add(key2);
+              return true;
+            }
+          } catch (e) {}
+        }
+        return false;
+      };
+      TeamDeduplicator.prototype.markTeamsPosted = async function(homeTeam, awayTeam) {
+        var key1 = this.normalize(homeTeam);
+        var key2 = this.normalize(awayTeam);
+        this.recentTeams.add(key1);
+        this.recentTeams.add(key2);
+        if (redis && typeof redis.set === 'function') {
+          try {
+            await Promise.all([
+              redis.set(this.redisPrefix + key1, "1", 'EX', 2 * 60 * 60).catch(function() { return redis.set(this.redisPrefix + key1, "1"); }.bind(this)),
+              redis.set(this.redisPrefix + key2, "1", 'EX', 2 * 60 * 60).catch(function() { return redis.set(this.redisPrefix + key2, "1"); }.bind(this))
+            ]);
+          } catch (e) {}
+        }
+      };
+      TeamDeduplicator.prototype.clearExpired = function() {
+        if (this.recentTeams.size > 1000) {
+          this.recentTeams.clear();
+        }
+      };
    * Pick next sport based on weights
    * Encourages variety by reducing weight of recently-posted sports
    */
@@ -449,31 +399,24 @@ async function getDiverseContent() {
     console.log(`[AdvancedMediaAiTicker] Available sports: ${Object.entries(sportBreakdown).map(([k, v]) => `${k}(${v})`).join(', ')}`);
     if (available.length > 0) {
       console.log(`[AdvancedMediaAiTicker] Supported sports available: ${available.join(', ')}`);
-    } else {
-      console.log(`[AdvancedMediaAiTicker] No supported sports detected in fetched events`);
-    }
-  }
-  
-  // Try to filter for the selected sport first, but fallback to all if no match
-  let liveEvents = allLiveEvents.filter(e => {
-    const eventSport = String(e.sport || '').toLowerCase();
-    const selectedKey = String(selectedSport).toLowerCase();
-    return eventSport.includes(selectedKey) || selectedKey.includes(eventSport);
-  });
-  
-  console.log(`[AdvancedMediaAiTicker] Filtered to ${liveEvents.length} events for ${selectedSport}`);
-  
-  // If filtering reduces events too much, use all events (graceful fallback)
-  if (liveEvents.length === 0) {
-    console.log(`[AdvancedMediaAiTicker] No ${selectedSport} events found, falling back to all events`);
-    liveEvents = allLiveEvents;
-  }
-  
-  // Get news articles
-  const newsArticles = await getNewsArticles(3).catch(() => []);
-  console.log(`[AdvancedMediaAiTicker] Fetched ${newsArticles.length} news articles`);
 
-  // If there are no live events for the selected sport, prefer news when available
+    // Sport Rotation Manager (ES5 style)
+    function SportRotationManager() {
+      this.recentSports = [];
+      this.maxHistory = ADVANCED_MEDIA_CONFIG.SPORT_ROTATION.RECENT_HISTORY;
+    }
+    SportRotationManager.prototype.add = function(sport) {
+      this.recentSports.push(sport);
+      if (this.recentSports.length > this.maxHistory) {
+        this.recentSports.shift();
+      }
+    };
+    SportRotationManager.prototype.getRecent = function() {
+      return this.recentSports.slice();
+    };
+    SportRotationManager.prototype.clear = function() {
+      this.recentSports = [];
+    };
   let all;
   if ((liveEvents.length === 0 || !liveEvents) && newsArticles.length > 0) {
     console.log(`[AdvancedMediaAiTicker] No events for ${selectedSport}; preferring news fallback`);
@@ -543,19 +486,7 @@ export async function runAdvancedMediaAiTick() {
         continue; // 70% of the time skip news
       }
 
-      // For events: check team deduplication
-      if (item.type === "event") {
-        const isDupTeam = await teamDedup.hasRecentTeam(
-          item.home,
-          item.away
-        );
-        if (isDupTeam) {
-          console.info(
-            `[AdvancedMediaAiTicker] Skipping duplicate teams: ${item.home} vs ${item.away}`
-          );
-          continue;
-        }
-      }
+      // For events: team deduplication bypassed (always proceed)
 
       chosen = item;
       break;
