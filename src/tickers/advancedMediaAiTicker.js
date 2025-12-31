@@ -18,8 +18,7 @@ const { bumpEventMention } = trending;
 import telemetry from "../brain/telemetry.js";
 import broadcast from "../telegram/broadcast.js";
 const { broadcastText } = broadcast;
-import config from "../config/advancedMediaConfig.js";
-const { ADVANCED_MEDIA_CONFIG } = config;
+import { ADVANCED_MEDIA_CONFIG } from "../config/advancedMediaConfig.js";
 import crypto from "crypto";
 
 function ImageDeduplicator() {
