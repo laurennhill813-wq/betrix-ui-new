@@ -1,7 +1,7 @@
 // General news and content aggregator — fetches breaking news, transfer news, and general articles
 
 import fetch from "../lib/fetch.js";
-import cheerio from "cheerio";
+import * as cheerio from "cheerio";
 import { scrapeGoogleNewsHeadless, scrapeBingNewsHeadless } from "./newsHeadlessScraper.js";
 
 const NEWSAPI_KEY = process.env.NEWSAPI_KEY || null;
