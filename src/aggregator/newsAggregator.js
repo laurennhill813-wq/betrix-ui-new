@@ -143,6 +143,7 @@ export async function getLatestNews(keywords = []) {
             const headline = $g(el).text().trim();
             // Try to find image in parent or next siblings
             let imageUrl = null;
+            let videoUrl = null;
             const parent = $g(el).parent();
             if (parent) {
               const img = parent.find('img').first();
@@ -153,28 +154,59 @@ export async function getLatestNews(keywords = []) {
               const sibImg = $g(el).nextAll('img').first();
               if (sibImg && sibImg.attr('src')) imageUrl = sibImg.attr('src');
             }
-            if (headline && href) {
-              allItems.push({
-                id: href,
-                type: "news",
-                sport: "general",
-                league: "News",
-                home: null,
-                away: null,
-                title: headline,
-                description: "",
-                url: href.startsWith('http') ? href : `https://news.google.com${href}`,
-                imageUrl: imageUrl || null,
-                videoUrl: null,
-                source: "google-news",
-                status: "published",
-                time: new Date().toISOString(),
-                importance: "medium",
-              });
-              googleCount++;
-            }
+            // Try to extract video from the article page (Open Graph, Twitter, <video>, <iframe>)
+            let articleUrl = href.startsWith('http') ? href : `https://news.google.com${href}`;
+            allItems.push({
+              id: href,
+              type: "news",
+              sport: "general",
+              league: "News",
+              home: null,
+              away: null,
+              title: headline,
+              description: "",
+              url: articleUrl,
+              imageUrl: imageUrl || null,
+              videoUrl: null, // will be filled below if found
+              source: "google-news",
+              status: "published",
+              time: new Date().toISOString(),
+              importance: "medium",
+            });
+            googleCount++;
           }
         });
+        // Try to extract video URLs for Google News articles (async, after initial scrape)
+        await Promise.all(
+          allItems.filter(item => item.source === "google-news").map(async (item) => {
+            try {
+              const res = await fetch(item.url, { redirect: "follow", timeout: 7000 });
+              if (!res.ok) return;
+              const html = await res.text();
+              // Try Open Graph video
+              let match = html.match(/<meta[^>]+property=["']og:video["'][^>]+content=["']([^"']+)["']/i);
+              if (!match) match = html.match(/<meta[^>]+name=["']twitter:player["'][^>]+content=["']([^"']+)["']/i);
+              let foundUrl = match ? match[1] : null;
+              if (!foundUrl) {
+                // Try <video src="...">
+                const videoTag = html.match(/<video[^>]+src=["']([^"']+)["']/i);
+                if (videoTag) foundUrl = videoTag[1];
+              }
+              if (!foundUrl) {
+                // Try <iframe src="...">
+                const iframeTag = html.match(/<iframe[^>]+src=["']([^"']+\.(mp4|webm|mov|avi|m3u8|mpd)[^"']*)["']/i);
+                if (iframeTag) foundUrl = iframeTag[1];
+              }
+              if (foundUrl) {
+                // Resolve relative URLs
+                try {
+                  foundUrl = new URL(foundUrl, item.url).href;
+                } catch (e) {}
+                item.videoUrl = foundUrl;
+              }
+            } catch (e) {}
+          })
+        );
         console.log('[Aggregator] Google News articles found:', googleCount);
         // Bing News (2025 selectors)
         const urlBing = `https://www.bing.com/news/search?q=${encodeURIComponent(q)}`;
@@ -191,6 +223,7 @@ export async function getLatestNews(keywords = []) {
           if (href.startsWith('http') && title.length > 10) {
             // Try to find image in parent or next siblings
             let imageUrl = null;
+            let videoUrl = null;
             const parent = $b(el).parent();
             if (parent) {
               const img = parent.find('img').first();
@@ -211,7 +244,7 @@ export async function getLatestNews(keywords = []) {
               description: "",
               url: href,
               imageUrl: imageUrl || null,
-              videoUrl: null,
+              videoUrl: null, // will be filled below if found
               source: "bing-news",
               status: "published",
               time: new Date().toISOString(),
@@ -220,6 +253,36 @@ export async function getLatestNews(keywords = []) {
             bingCount++;
           }
         });
+        // Try to extract video URLs for Bing News articles (async, after initial scrape)
+        await Promise.all(
+          allItems.filter(item => item.source === "bing-news").map(async (item) => {
+            try {
+              const res = await fetch(item.url, { redirect: "follow", timeout: 7000 });
+              if (!res.ok) return;
+              const html = await res.text();
+              // Try Open Graph video
+              let match = html.match(/<meta[^>]+property=["']og:video["'][^>]+content=["']([^"']+)["']/i);
+              if (!match) match = html.match(/<meta[^>]+name=["']twitter:player["'][^>]+content=["']([^"']+)["']/i);
+              let foundUrl = match ? match[1] : null;
+              if (!foundUrl) {
+                // Try <video src="...">
+                const videoTag = html.match(/<video[^>]+src=["']([^"']+)["']/i);
+                if (videoTag) foundUrl = videoTag[1];
+              }
+              if (!foundUrl) {
+                // Try <iframe src="...">
+                const iframeTag = html.match(/<iframe[^>]+src=["']([^"']+\.(mp4|webm|mov|avi|m3u8|mpd)[^"']*)["']/i);
+                if (iframeTag) foundUrl = iframeTag[1];
+              }
+              if (foundUrl) {
+                try {
+                  foundUrl = new URL(foundUrl, item.url).href;
+                } catch (e) {}
+                item.videoUrl = foundUrl;
+              }
+            } catch (e) {}
+          })
+        );
         console.log('[Aggregator] Bing News articles found:', bingCount);
       } catch (e) {
         console.warn("newsAggregator web scrape error", e?.message || e);
