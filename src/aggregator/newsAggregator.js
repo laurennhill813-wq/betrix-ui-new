@@ -138,27 +138,71 @@ export async function getLatestNews(keywords = []) {
         let googleCount = 0;
         // 2025: Google News now uses <article> tags with nested <a> for each news item
         const googleArticles = [];
-        const articleEls = $g('article');
+        let articleEls = $g('article');
         console.log(`[Aggregator][Google] Found ${articleEls.length} <article> tags`);
-        articleEls.each((i, artEl) => {
-          // Find the first <a> with an href containing /articles/ or /read/
-          const a = $g(artEl).find('a[href*="/articles/"],a[href*="/read/"]').first();
-          const href = a.attr('href') || '';
-          const headline = a.text().trim();
-          let imageUrl = null;
-          // Try to find an <img> inside the article
-          const img = $g(artEl).find('img').first();
-          if (img && img.attr('src')) imageUrl = img.attr('src');
-          let articleUrl = href.startsWith('http') ? href : `https://news.google.com${href}`;
-          if (href && headline.length > 10) {
-            googleArticles.push({
-              id: href,
-              title: headline,
-              url: articleUrl,
-              imageUrl: imageUrl || null
+        if (articleEls.length === 0) {
+          // Fallback: try divs with role="article" or all <a> with /articles/ in href
+          articleEls = $g('div[role="article"]');
+          console.log(`[Aggregator][Google] Fallback: Found ${articleEls.length} <div role=article> tags`);
+          if (articleEls.length === 0) {
+            const aEls = $g('a[href*="/articles/"]');
+            console.log(`[Aggregator][Google] Fallback: Found ${aEls.length} <a> tags with /articles/ in href`);
+            aEls.each((i, a) => {
+              const href = $g(a).attr('href') || '';
+              const headline = $g(a).text().trim();
+              let imageUrl = null;
+              const img = $g(a).find('img').first();
+              if (img && img.attr('src')) imageUrl = img.attr('src');
+              let articleUrl = href.startsWith('http') ? href : `https://news.google.com${href}`;
+              if (href && headline.length > 10) {
+                googleArticles.push({
+                  id: href,
+                  title: headline,
+                  url: articleUrl,
+                  imageUrl: imageUrl || null
+                });
+              }
+            });
+          } else {
+            articleEls.each((i, artEl) => {
+              const a = $g(artEl).find('a[href*="/articles/"]').first();
+              const href = a.attr('href') || '';
+              const headline = a.text().trim();
+              let imageUrl = null;
+              const img = $g(artEl).find('img').first();
+              if (img && img.attr('src')) imageUrl = img.attr('src');
+              let articleUrl = href.startsWith('http') ? href : `https://news.google.com${href}`;
+              if (href && headline.length > 10) {
+                googleArticles.push({
+                  id: href,
+                  title: headline,
+                  url: articleUrl,
+                  imageUrl: imageUrl || null
+                });
+              }
             });
           }
-        });
+        } else {
+          articleEls.each((i, artEl) => {
+            // Find the first <a> with an href containing /articles/ or /read/
+            const a = $g(artEl).find('a[href*="/articles/"],a[href*="/read/"]').first();
+            const href = a.attr('href') || '';
+            const headline = a.text().trim();
+            let imageUrl = null;
+            // Try to find an <img> inside the article
+            const img = $g(artEl).find('img').first();
+            if (img && img.attr('src')) imageUrl = img.attr('src');
+            let articleUrl = href.startsWith('http') ? href : `https://news.google.com${href}`;
+            if (href && headline.length > 10) {
+              googleArticles.push({
+                id: href,
+                title: headline,
+                url: articleUrl,
+                imageUrl: imageUrl || null
+              });
+            }
+          });
+        }
         // Debug: print sample of found articles
         console.log('[Aggregator][Google] Sample articles:', googleArticles.slice(0, 3));
         // Now fetch/process each article asynchronously
@@ -250,6 +294,12 @@ export async function getLatestNews(keywords = []) {
           let imageUrl = null;
           const img = $b(card).find('img').first();
           if (img && img.attr('src')) imageUrl = img.attr('src');
+          // Debug: log HTML of first 3 cards and their <a> tags
+          if (i < 3) {
+            console.log(`[Aggregator][Bing][Card ${i}] HTML:`, $b(card).html());
+            console.log(`[Aggregator][Bing][Card ${i}] <a> HTML:`, a.html());
+            console.log(`[Aggregator][Bing][Card ${i}] href:`, href, 'title:', title);
+          }
           if (
             href.startsWith('http') &&
             title.length > 10 &&
