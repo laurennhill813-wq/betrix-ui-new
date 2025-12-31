@@ -144,6 +144,7 @@ export async function getLatestNews(keywords = []) {
             // Try to find image in parent or next siblings
             let imageUrl = null;
             let videoUrl = null;
+            let description = "";
             const parent = $g(el).parent();
             if (parent) {
               const img = parent.find('img').first();
@@ -154,8 +155,23 @@ export async function getLatestNews(keywords = []) {
               const sibImg = $g(el).nextAll('img').first();
               if (sibImg && sibImg.attr('src')) imageUrl = sibImg.attr('src');
             }
-            // Try to extract video from the article page (Open Graph, Twitter, <video>, <iframe>)
+            // Try to extract description from the article page (meta description or first <p>)
             let articleUrl = href.startsWith('http') ? href : `https://news.google.com${href}`;
+            try {
+              const res = await fetch(articleUrl, { redirect: "follow", timeout: 7000 });
+              if (res.ok) {
+                const html = await res.text();
+                let match = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
+                if (!match) match = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
+                description = match ? match[1] : "";
+                if (!description) {
+                  // Try first <p>
+                  const pMatch = html.match(/<p[^>]*>(.*?)<\/p>/i);
+                  if (pMatch) description = pMatch[1].replace(/<[^>]+>/g, '').trim();
+                }
+                if (description && description.length > 400) description = description.slice(0, 400);
+              }
+            } catch (e) {}
             allItems.push({
               id: href,
               type: "news",
@@ -164,7 +180,7 @@ export async function getLatestNews(keywords = []) {
               home: null,
               away: null,
               title: headline,
-              description: "",
+              description: description || "",
               url: articleUrl,
               imageUrl: imageUrl || null,
               videoUrl: null, // will be filled below if found
@@ -224,6 +240,7 @@ export async function getLatestNews(keywords = []) {
             // Try to find image in parent or next siblings
             let imageUrl = null;
             let videoUrl = null;
+            let description = "";
             const parent = $b(el).parent();
             if (parent) {
               const img = parent.find('img').first();
@@ -233,6 +250,22 @@ export async function getLatestNews(keywords = []) {
               const sibImg = $b(el).nextAll('img').first();
               if (sibImg && sibImg.attr('src')) imageUrl = sibImg.attr('src');
             }
+            // Try to extract description from the article page (meta description or first <p>)
+            try {
+              const res = await fetch(href, { redirect: "follow", timeout: 7000 });
+              if (res.ok) {
+                const html = await res.text();
+                let match = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
+                if (!match) match = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
+                description = match ? match[1] : "";
+                if (!description) {
+                  // Try first <p>
+                  const pMatch = html.match(/<p[^>]*>(.*?)<\/p>/i);
+                  if (pMatch) description = pMatch[1].replace(/<[^>]+>/g, '').trim();
+                }
+                if (description && description.length > 400) description = description.slice(0, 400);
+              }
+            } catch (e) {}
             allItems.push({
               id: href,
               type: "news",
@@ -241,7 +274,7 @@ export async function getLatestNews(keywords = []) {
               home: null,
               away: null,
               title: title,
-              description: "",
+              description: description || "",
               url: href,
               imageUrl: imageUrl || null,
               videoUrl: null, // will be filled below if found
