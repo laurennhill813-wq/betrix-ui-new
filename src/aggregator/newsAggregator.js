@@ -136,62 +136,67 @@ export async function getLatestNews(keywords = []) {
         const htmlGoogle = await resGoogle.text();
         const $g = cheerio.load(htmlGoogle);
         let googleCount = 0;
+        // Collect Google News article links and metadata first
+        const googleArticles = [];
         $g('a').each((i, el) => {
           const href = $g(el).attr('href') || '';
-          // Only consider article/read links
           if (href.startsWith('/articles/') || href.startsWith('/read/')) {
             const headline = $g(el).text().trim();
-            // Try to find image in parent or next siblings
             let imageUrl = null;
-            let videoUrl = null;
-            let description = "";
             const parent = $g(el).parent();
             if (parent) {
               const img = parent.find('img').first();
               if (img && img.attr('src')) imageUrl = img.attr('src');
             }
             if (!imageUrl) {
-              // Try next siblings
               const sibImg = $g(el).nextAll('img').first();
               if (sibImg && sibImg.attr('src')) imageUrl = sibImg.attr('src');
             }
-            // Try to extract description from the article page (meta description or first <p>)
             let articleUrl = href.startsWith('http') ? href : `https://news.google.com${href}`;
-            try {
-              const res = await fetch(articleUrl, { redirect: "follow", timeout: 7000 });
-              if (res.ok) {
-                const html = await res.text();
-                let match = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
-                if (!match) match = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
-                description = match ? match[1] : "";
-                if (!description) {
-                  // Try first <p>
-                  const pMatch = html.match(/<p[^>]*>(.*?)<\/p>/i);
-                  if (pMatch) description = pMatch[1].replace(/<[^>]+>/g, '').trim();
-                }
-                if (description && description.length > 400) description = description.slice(0, 400);
-              }
-            } catch (e) {}
-            allItems.push({
+            googleArticles.push({
               id: href,
-              type: "news",
-              sport: "general",
-              league: "News",
-              home: null,
-              away: null,
               title: headline,
-              description: description || "",
               url: articleUrl,
-              imageUrl: imageUrl || null,
-              videoUrl: null, // will be filled below if found
-              source: "google-news",
-              status: "published",
-              time: new Date().toISOString(),
-              importance: "medium",
+              imageUrl: imageUrl || null
             });
-            googleCount++;
           }
         });
+        // Now fetch/process each article asynchronously
+        await Promise.all(googleArticles.map(async (art) => {
+          let description = "";
+          try {
+            const res = await fetch(art.url, { redirect: "follow", timeout: 7000 });
+            if (res.ok) {
+              const html = await res.text();
+              let match = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
+              if (!match) match = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
+              description = match ? match[1] : "";
+              if (!description) {
+                const pMatch = html.match(/<p[^>]*>(.*?)<\/p>/i);
+                if (pMatch) description = pMatch[1].replace(/<[^>]+>/g, '').trim();
+              }
+              if (description && description.length > 400) description = description.slice(0, 400);
+            }
+          } catch (e) {}
+          allItems.push({
+            id: art.id,
+            type: "news",
+            sport: "general",
+            league: "News",
+            home: null,
+            away: null,
+            title: art.title,
+            description: description || "",
+            url: art.url,
+            imageUrl: art.imageUrl,
+            videoUrl: null, // will be filled below if found
+            source: "google-news",
+            status: "published",
+            time: new Date().toISOString(),
+            importance: "medium",
+          });
+        }));
+        googleCount = googleArticles.length;
         // Try to extract video URLs for Google News articles (async, after initial scrape)
         await Promise.all(
           allItems.filter(item => item.source === "google-news").map(async (item) => {
@@ -232,15 +237,13 @@ export async function getLatestNews(keywords = []) {
         const htmlBing = await resBing.text();
         const $b = cheerio.load(htmlBing);
         let bingCount = 0;
+        // Collect Bing News article links and metadata first
+        const bingArticles = [];
         $b('a').each((i, el) => {
           const href = $b(el).attr('href') || '';
           const title = $b(el).attr('title') || $b(el).attr('aria-label') || $b(el).text().trim();
-          // Only consider links to news articles
           if (href.startsWith('http') && title.length > 10) {
-            // Try to find image in parent or next siblings
             let imageUrl = null;
-            let videoUrl = null;
-            let description = "";
             const parent = $b(el).parent();
             if (parent) {
               const img = parent.find('img').first();
@@ -250,42 +253,49 @@ export async function getLatestNews(keywords = []) {
               const sibImg = $b(el).nextAll('img').first();
               if (sibImg && sibImg.attr('src')) imageUrl = sibImg.attr('src');
             }
-            // Try to extract description from the article page (meta description or first <p>)
-            try {
-              const res = await fetch(href, { redirect: "follow", timeout: 7000 });
-              if (res.ok) {
-                const html = await res.text();
-                let match = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
-                if (!match) match = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
-                description = match ? match[1] : "";
-                if (!description) {
-                  // Try first <p>
-                  const pMatch = html.match(/<p[^>]*>(.*?)<\/p>/i);
-                  if (pMatch) description = pMatch[1].replace(/<[^>]+>/g, '').trim();
-                }
-                if (description && description.length > 400) description = description.slice(0, 400);
-              }
-            } catch (e) {}
-            allItems.push({
+            bingArticles.push({
               id: href,
-              type: "news",
-              sport: "general",
-              league: "News",
-              home: null,
-              away: null,
-              title: title,
-              description: description || "",
+              title,
               url: href,
-              imageUrl: imageUrl || null,
-              videoUrl: null, // will be filled below if found
-              source: "bing-news",
-              status: "published",
-              time: new Date().toISOString(),
-              importance: "medium",
+              imageUrl: imageUrl || null
             });
-            bingCount++;
           }
         });
+        await Promise.all(bingArticles.map(async (art) => {
+          let description = "";
+          try {
+            const res = await fetch(art.url, { redirect: "follow", timeout: 7000 });
+            if (res.ok) {
+              const html = await res.text();
+              let match = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
+              if (!match) match = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
+              description = match ? match[1] : "";
+              if (!description) {
+                const pMatch = html.match(/<p[^>]*>(.*?)<\/p>/i);
+                if (pMatch) description = pMatch[1].replace(/<[^>]+>/g, '').trim();
+              }
+              if (description && description.length > 400) description = description.slice(0, 400);
+            }
+          } catch (e) {}
+          allItems.push({
+            id: art.id,
+            type: "news",
+            sport: "general",
+            league: "News",
+            home: null,
+            away: null,
+            title: art.title,
+            description: description || "",
+            url: art.url,
+            imageUrl: art.imageUrl,
+            videoUrl: null, // will be filled below if found
+            source: "bing-news",
+            status: "published",
+            time: new Date().toISOString(),
+            importance: "medium",
+          });
+        }));
+        bingCount = bingArticles.length;
         // Try to extract video URLs for Bing News articles (async, after initial scrape)
         await Promise.all(
           allItems.filter(item => item.source === "bing-news").map(async (item) => {
