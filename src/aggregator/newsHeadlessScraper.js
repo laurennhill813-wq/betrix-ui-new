@@ -1,5 +1,5 @@
 // Headless news scraper using Puppeteer for Google and Bing News
-const puppeteer = require("puppeteer");
+import puppeteer from "puppeteer";
 
 async function scrapeGoogleNewsHeadless(query, maxArticles = 10) {
   const browser = await puppeteer.launch({ headless: "new" });
@@ -69,4 +69,4 @@ async function scrapeBingNewsHeadless(query, maxArticles = 10) {
   await browser.close();
   return articles.slice(0, maxArticles);
 }
-module.exports = { scrapeGoogleNewsHeadless, scrapeBingNewsHeadless };
+export { scrapeGoogleNewsHeadless, scrapeBingNewsHeadless };

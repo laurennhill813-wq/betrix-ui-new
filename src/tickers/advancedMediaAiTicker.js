@@ -1,32 +1,26 @@
 
 // --- ES5 FUNCTION CONSTRUCTORS (top-level) ---
-var multiSportAggregator = require("../aggregator/multiSportAggregator.js");
-var getInterestingEvents = multiSportAggregator.getInterestingEvents;
-var setSportsAggregator = multiSportAggregator.setSportsAggregator;
-var newsAggregator = require("../aggregator/newsAggregator.js");
-var getLatestNews = newsAggregator.getLatestNews;
-var summarizer = require("../ai/summarizer.js");
-var summarizeEventForTelegram = summarizer.summarizeEventForTelegram;
-var imageSelector = require("../media/imageSelector.js");
-var selectBestImageForEventCombined = imageSelector.selectBestImageForEventCombined;
-var selectBestMediaForEventCombined = imageSelector.selectBestMediaForEventCombined;
-var telegramSender = require("../services/telegram-sender.js");
-var sendPhotoWithCaption = telegramSender.sendPhotoWithCaption;
-var sendVideoWithCaption = telegramSender.sendVideoWithCaption;
-var interestScorer = require("../brain/interestScorer.js");
-var scoreEvent = interestScorer.scoreEvent;
-var memory = require("../brain/memory.js");
-var buildEventId = memory.buildEventId;
-var hasPostedWithin = memory.hasPostedWithin;
-var markEventPosted = memory.markEventPosted;
-var trending = require("../brain/trending.js");
-var bumpEventMention = trending.bumpEventMention;
-var telemetry = require("../brain/telemetry.js");
-var broadcast = require("../telegram/broadcast.js");
-var broadcastText = broadcast.broadcastText;
-var config = require("../config/advancedMediaConfig.js");
-var ADVANCED_MEDIA_CONFIG = config.ADVANCED_MEDIA_CONFIG;
-var crypto = require("crypto");
+import multiSportAggregator from "../aggregator/multiSportAggregator.js";
+const { getInterestingEvents, setSportsAggregator } = multiSportAggregator;
+import { getLatestNews } from "../aggregator/newsAggregator.js";
+import summarizer from "../ai/summarizer.js";
+const { summarizeEventForTelegram } = summarizer;
+import imageSelector from "../media/imageSelector.js";
+const { selectBestImageForEventCombined, selectBestMediaForEventCombined } = imageSelector;
+import telegramSender from "../services/telegram-sender.js";
+const { sendPhotoWithCaption, sendVideoWithCaption } = telegramSender;
+import interestScorer from "../brain/interestScorer.js";
+const { scoreEvent } = interestScorer;
+import memory from "../brain/memory.js";
+const { buildEventId, hasPostedWithin, markEventPosted } = memory;
+import trending from "../brain/trending.js";
+const { bumpEventMention } = trending;
+import telemetry from "../brain/telemetry.js";
+import broadcast from "../telegram/broadcast.js";
+const { broadcastText } = broadcast;
+import config from "../config/advancedMediaConfig.js";
+const { ADVANCED_MEDIA_CONFIG } = config;
+import crypto from "crypto";
 
 function ImageDeduplicator() {
   this.hashCache = new Map(); // In-memory cache

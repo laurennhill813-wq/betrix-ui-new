@@ -2,7 +2,7 @@
 // Delegates to the real SportsAggregator instance (injected from worker-final.js)
 // Also optionally blends in news items if NEWS_BLEND_MODE enabled
 
-const { getLatestNews } = require("./newsAggregator.js");
+import { getLatestNews } from "./newsAggregator.js";
 import rapidApi from "./rapidApiAggregator.js";
 
 let globalSportsAggregator = null;

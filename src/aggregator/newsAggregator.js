@@ -1,8 +1,8 @@
 // General news and content aggregator — fetches breaking news, transfer news, and general articles
 
-const fetch = require("../lib/fetch.js");
-const cheerio = require("cheerio");
-const { scrapeGoogleNewsHeadless, scrapeBingNewsHeadless } = require("./newsHeadlessScraper.js");
+import fetch from "../lib/fetch.js";
+import cheerio from "cheerio";
+import { scrapeGoogleNewsHeadless, scrapeBingNewsHeadless } from "./newsHeadlessScraper.js";
 
 const NEWSAPI_KEY = process.env.NEWSAPI_KEY || null;
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || null;
@@ -237,4 +237,4 @@ async function getLatestNews(keywords = []) {
   }
 }
 
-module.exports = { getLatestNews };
+export { getLatestNews };
