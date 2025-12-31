@@ -1,4 +1,4 @@
-import { getInterestingEvents } from "../aggregator/multiSportAggregator.js";
+const { getInterestingEvents } = require("../aggregator/multiSportAggregator.js");
 import { summarizeEventForTelegram } from "../ai/summarizer.js";
 import { generateHashtags } from "../ai/openaiHashtags.js";
 import {

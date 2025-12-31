@@ -1,17 +1,32 @@
 
 // --- ES5 FUNCTION CONSTRUCTORS (top-level) ---
-import { getInterestingEvents, setSportsAggregator } from "../aggregator/multiSportAggregator.js";
-import { getLatestNews } from "../aggregator/newsAggregator.js";
-import { summarizeEventForTelegram } from "../ai/summarizer.js";
-import { selectBestImageForEventCombined, selectBestMediaForEventCombined } from "../media/imageSelector.js";
-import { sendPhotoWithCaption, sendVideoWithCaption } from "../services/telegram-sender.js";
-import { scoreEvent } from "../brain/interestScorer.js";
-import { buildEventId, hasPostedWithin, markEventPosted } from "../brain/memory.js";
-import { bumpEventMention } from "../brain/trending.js";
-import telemetry from "../brain/telemetry.js";
-import { broadcastText } from "../telegram/broadcast.js";
-import { ADVANCED_MEDIA_CONFIG } from "../config/advancedMediaConfig.js";
-import crypto from "crypto";
+var multiSportAggregator = require("../aggregator/multiSportAggregator.js");
+var getInterestingEvents = multiSportAggregator.getInterestingEvents;
+var setSportsAggregator = multiSportAggregator.setSportsAggregator;
+var newsAggregator = require("../aggregator/newsAggregator.js");
+var getLatestNews = newsAggregator.getLatestNews;
+var summarizer = require("../ai/summarizer.js");
+var summarizeEventForTelegram = summarizer.summarizeEventForTelegram;
+var imageSelector = require("../media/imageSelector.js");
+var selectBestImageForEventCombined = imageSelector.selectBestImageForEventCombined;
+var selectBestMediaForEventCombined = imageSelector.selectBestMediaForEventCombined;
+var telegramSender = require("../services/telegram-sender.js");
+var sendPhotoWithCaption = telegramSender.sendPhotoWithCaption;
+var sendVideoWithCaption = telegramSender.sendVideoWithCaption;
+var interestScorer = require("../brain/interestScorer.js");
+var scoreEvent = interestScorer.scoreEvent;
+var memory = require("../brain/memory.js");
+var buildEventId = memory.buildEventId;
+var hasPostedWithin = memory.hasPostedWithin;
+var markEventPosted = memory.markEventPosted;
+var trending = require("../brain/trending.js");
+var bumpEventMention = trending.bumpEventMention;
+var telemetry = require("../brain/telemetry.js");
+var broadcast = require("../telegram/broadcast.js");
+var broadcastText = broadcast.broadcastText;
+var config = require("../config/advancedMediaConfig.js");
+var ADVANCED_MEDIA_CONFIG = config.ADVANCED_MEDIA_CONFIG;
+var crypto = require("crypto");
 
 function ImageDeduplicator() {
   this.hashCache = new Map(); // In-memory cache
@@ -352,5 +367,8 @@ async function runAdvancedMediaAiTick() {
 }
 
 export { runAdvancedMediaAiTick, setRedisClient };
+
+
+// --- ES5 FUNCTION CONSTRUCTORS (top-level) ---
 
 

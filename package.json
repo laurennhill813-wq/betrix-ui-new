@@ -50,6 +50,7 @@
     "node-fetch": "^3.3.2",
     "pg": "^8.16.3",
     "prom-client": "^14.0.0",
+    "puppeteer": "^24.34.0",
     "redis": "^4.7.1",
     "telegraf": "^4.16.3",
     "twilio": "^5.10.6",
