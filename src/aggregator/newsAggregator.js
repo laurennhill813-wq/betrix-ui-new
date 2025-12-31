@@ -136,23 +136,21 @@ export async function getLatestNews(keywords = []) {
         const htmlGoogle = await resGoogle.text();
         const $g = cheerio.load(htmlGoogle);
         let googleCount = 0;
-        // Collect Google News article links and metadata first
+        // 2025: Google News now uses <article> tags with nested <a> for each news item
         const googleArticles = [];
-        $g('a').each((i, el) => {
-          const href = $g(el).attr('href') || '';
-          if (href.startsWith('/articles/') || href.startsWith('/read/')) {
-            const headline = $g(el).text().trim();
-            let imageUrl = null;
-            const parent = $g(el).parent();
-            if (parent) {
-              const img = parent.find('img').first();
-              if (img && img.attr('src')) imageUrl = img.attr('src');
-            }
-            if (!imageUrl) {
-              const sibImg = $g(el).nextAll('img').first();
-              if (sibImg && sibImg.attr('src')) imageUrl = sibImg.attr('src');
-            }
-            let articleUrl = href.startsWith('http') ? href : `https://news.google.com${href}`;
+        const articleEls = $g('article');
+        console.log(`[Aggregator][Google] Found ${articleEls.length} <article> tags`);
+        articleEls.each((i, artEl) => {
+          // Find the first <a> with an href containing /articles/ or /read/
+          const a = $g(artEl).find('a[href*="/articles/"],a[href*="/read/"]').first();
+          const href = a.attr('href') || '';
+          const headline = a.text().trim();
+          let imageUrl = null;
+          // Try to find an <img> inside the article
+          const img = $g(artEl).find('img').first();
+          if (img && img.attr('src')) imageUrl = img.attr('src');
+          let articleUrl = href.startsWith('http') ? href : `https://news.google.com${href}`;
+          if (href && headline.length > 10) {
             googleArticles.push({
               id: href,
               title: headline,
@@ -161,6 +159,8 @@ export async function getLatestNews(keywords = []) {
             });
           }
         });
+        // Debug: print sample of found articles
+        console.log('[Aggregator][Google] Sample articles:', googleArticles.slice(0, 3));
         // Now fetch/process each article asynchronously
         await Promise.all(googleArticles.map(async (art) => {
           let description = "";
@@ -237,12 +237,19 @@ export async function getLatestNews(keywords = []) {
         const htmlBing = await resBing.text();
         const $b = cheerio.load(htmlBing);
         let bingCount = 0;
-        // Collect Bing News article links and metadata first (improved filtering)
+        // 2025: Bing News now uses <news-card> or <div class="news-card newsitem cardcommon b_cards2"> for each article
         const bingArticles = [];
-        $b('a').each((i, el) => {
-          const href = $b(el).attr('href') || '';
-          const title = $b(el).attr('title') || $b(el).attr('aria-label') || $b(el).text().trim();
-          // Only include links that look like real news articles
+        const cardEls = $b('div.news-card,div.newsitem,div.cardcommon,div.t_s').length > 0 ? $b('div.news-card,div.newsitem,div.cardcommon,div.t_s') : $b('a');
+        console.log(`[Aggregator][Bing] Found ${cardEls.length} candidate news cards/links`);
+        cardEls.each((i, card) => {
+          // Try to find the main <a> inside the card
+          let a = $b(card).find('a').first();
+          if (!a.length && $b(card).is('a')) a = $b(card);
+          const href = a.attr('href') || '';
+          const title = a.attr('title') || a.attr('aria-label') || a.text().trim();
+          let imageUrl = null;
+          const img = $b(card).find('img').first();
+          if (img && img.attr('src')) imageUrl = img.attr('src');
           if (
             href.startsWith('http') &&
             title.length > 10 &&
@@ -255,16 +262,6 @@ export async function getLatestNews(keywords = []) {
             !href.includes('microsoft.com/en-us/ai') &&
             (href.includes('/news/') || href.includes('/articles/') || href.match(/\d{4}\//))
           ) {
-            let imageUrl = null;
-            const parent = $b(el).parent();
-            if (parent) {
-              const img = parent.find('img').first();
-              if (img && img.attr('src')) imageUrl = img.attr('src');
-            }
-            if (!imageUrl) {
-              const sibImg = $b(el).nextAll('img').first();
-              if (sibImg && sibImg.attr('src')) imageUrl = sibImg.attr('src');
-            }
             bingArticles.push({
               id: href,
               title,
@@ -273,6 +270,8 @@ export async function getLatestNews(keywords = []) {
             });
           }
         });
+        // Debug: print sample of found Bing articles
+        console.log('[Aggregator][Bing] Sample articles:', bingArticles.slice(0, 3));
         await Promise.all(bingArticles.map(async (art) => {
           let description = "";
           try {
