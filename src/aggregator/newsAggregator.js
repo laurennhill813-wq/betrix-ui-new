@@ -237,12 +237,24 @@ export async function getLatestNews(keywords = []) {
         const htmlBing = await resBing.text();
         const $b = cheerio.load(htmlBing);
         let bingCount = 0;
-        // Collect Bing News article links and metadata first
+        // Collect Bing News article links and metadata first (improved filtering)
         const bingArticles = [];
         $b('a').each((i, el) => {
           const href = $b(el).attr('href') || '';
           const title = $b(el).attr('title') || $b(el).attr('aria-label') || $b(el).text().trim();
-          if (href.startsWith('http') && title.length > 10) {
+          // Only include links that look like real news articles
+          if (
+            href.startsWith('http') &&
+            title.length > 10 &&
+            !href.includes('bing.com/ck/a') &&
+            !href.includes('bing.com/translator') &&
+            !href.includes('bing.com/search') &&
+            !href.includes('privacy') &&
+            !href.includes('terms') &&
+            !href.includes('support.microsoft.com') &&
+            !href.includes('microsoft.com/en-us/ai') &&
+            (href.includes('/news/') || href.includes('/articles/') || href.match(/\d{4}\//))
+          ) {
             let imageUrl = null;
             const parent = $b(el).parent();
             if (parent) {
@@ -302,6 +314,28 @@ export async function getLatestNews(keywords = []) {
             importance: "medium",
           });
         }));
+        // If allItems has no valid news after filtering, force-push at least one Bing article (with fallback description)
+        if (allItems.filter(item => item.source === "bing-news").length === 0 && bingArticles.length > 0) {
+          const fallbackArt = bingArticles[0];
+          allItems.push({
+            id: fallbackArt.id,
+            type: "news",
+            sport: "general",
+            league: "News",
+            home: null,
+            away: null,
+            title: fallbackArt.title,
+            description: fallbackArt.title || "News Article",
+            url: fallbackArt.url,
+            imageUrl: fallbackArt.imageUrl,
+            videoUrl: null,
+            source: "bing-news",
+            status: "published",
+            time: new Date().toISOString(),
+            importance: "medium",
+          });
+          console.log('[Aggregator][Bing] Forced fallback news article posted:', fallbackArt.title);
+        }
         bingCount = bingArticles.length;
         // Try to extract video URLs for Bing News articles (async, after initial scrape)
         await Promise.all(
