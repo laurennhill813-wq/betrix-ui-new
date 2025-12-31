@@ -277,6 +277,13 @@ export async function getLatestNews(keywords = []) {
               if (description && description.length > 400) description = description.slice(0, 400);
             }
           } catch (e) {}
+          // Fallback: if description is missing or too short, use title as description
+          if (!description || description.length < 5) {
+            description = art.title || "";
+            console.log('[Aggregator][Bing] Fallback to title for description:', description);
+          } else {
+            console.log('[Aggregator][Bing] Extracted description:', description);
+          }
           allItems.push({
             id: art.id,
             type: "news",

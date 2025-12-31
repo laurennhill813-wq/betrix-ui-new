@@ -208,7 +208,8 @@ async function runAdvancedMediaAiTick() {
     // Filter out known placeholders and empty/generic content
     if (!title || title.length < 8) return false;
     if (title.includes('datenschutz') || title.includes('nutzungsbedingungen') || title.includes('privacy') || title.includes('terms')) return false;
-    if (!item.description || item.description.length < 10) return false;
+    // Lowered minimum description length to 5
+    if (!item.description || item.description.length < 5) return false;
     if (!url || url.includes('microsoft.com') || url.includes('bing.com') || url.includes('privacy') || url.includes('terms')) return false;
     return true;
   }
