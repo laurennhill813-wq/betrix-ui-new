@@ -163,6 +163,10 @@ export async function getLatestNews(keywords = []) {
                 });
               }
             });
+            // If still nothing, log a snippet of the HTML for analysis
+            if (googleArticles.length === 0) {
+              console.log('[Aggregator][Google] RAW HTML snippet:', htmlGoogle.slice(0, 1000));
+            }
           } else {
             articleEls.each((i, artEl) => {
               const a = $g(artEl).find('a[href*="/articles/"]').first();
@@ -320,6 +324,28 @@ export async function getLatestNews(keywords = []) {
             });
           }
         });
+        // Fallback: If no Bing articles found, scan all <a> tags with news-like hrefs
+        if (bingArticles.length === 0) {
+          const allLinks = $b('a');
+          let fallbackBing = [];
+          allLinks.each((i, el) => {
+            const href = $b(el).attr('href') || '';
+            const title = $b(el).attr('title') || $b(el).attr('aria-label') || $b(el).text().trim();
+            if (
+              href.startsWith('http') &&
+              title.length > 10 &&
+              (href.includes('/news/') || href.includes('/articles/') || href.match(/\d{4}\//))
+            ) {
+              fallbackBing.push({
+                id: href,
+                title,
+                url: href,
+                imageUrl: null
+              });
+            }
+          });
+          console.log('[Aggregator][Bing] Fallback <a> sample:', fallbackBing.slice(0, 3));
+        }
         // Debug: print sample of found Bing articles
         console.log('[Aggregator][Bing] Sample articles:', bingArticles.slice(0, 3));
         await Promise.all(bingArticles.map(async (art) => {
