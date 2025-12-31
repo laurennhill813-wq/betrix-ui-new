@@ -200,8 +200,22 @@ async function runAdvancedMediaAiTick() {
     console.warn("[AdvancedMediaAiTicker] Failed to fetch news articles", e);
   }
 
-  // Always post news articles, even if there are no live matches
-  console.log('[AdvancedMediaAiTicker] TRACE: Posting logic about to start. News articles:', Array.isArray(newsArticles) ? newsArticles.length : newsArticles, 'Live events:', Array.isArray(liveEvents) ? liveEvents.length : liveEvents);
+  // Filter out placeholder/irrelevant news articles before posting
+  function isValidNewsArticle(item) {
+    if (!item) return false;
+    const title = (item.title || '').toLowerCase();
+    const url = (item.url || '').toLowerCase();
+    // Filter out known placeholders and empty/generic content
+    if (!title || title.length < 8) return false;
+    if (title.includes('datenschutz') || title.includes('nutzungsbedingungen') || title.includes('privacy') || title.includes('terms')) return false;
+    if (!item.description || item.description.length < 10) return false;
+    if (!url || url.includes('microsoft.com') || url.includes('bing.com') || url.includes('privacy') || url.includes('terms')) return false;
+    return true;
+  }
+
+  newsArticles = newsArticles.filter(isValidNewsArticle);
+  console.log('[AdvancedMediaAiTicker] TRACE: Filtered newsArticles:', newsArticles.length);
+
   // Post up to maxPosts per tick (configurable)
   const maxPosts = Number(process.env.MEDIA_AI_MAX_POSTS_PER_TICK || 3);
   let posts = 0;
