@@ -9,7 +9,7 @@ import mediaRouter from "../media/mediaRouter.js";
 import { broadcastPhoto, broadcastText } from "../telegram/broadcast.js";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
-const { runMediaAiTick } = require("../tickers/mediaAiTicker.js");
+const { runMediaAiTick } = require("../tickers/mediaAiTicker.cjs");
 import { probeSportradarCapabilities } from "../services/providers/sportradar.js";
 import tls from "tls";
 import { URL } from "url";
