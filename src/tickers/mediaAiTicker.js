@@ -9,7 +9,7 @@ import {
 const { generateDalleImage } = require("../ai/openaiDalle.js");
 import { sendPhotoWithCaption, sendVideoWithCaption } from "../services/telegram-sender.js";
 const { queuePostForApproval } = require("../services/adminPostQueue.js");
-import { sendTelegramAdminAlert } from "../services/adminAlert.js";
+const { sendTelegramAdminAlert } = require("../services/adminAlert.js");
 import { scoreEvent } from "../brain/interestScorer.js";
 import {
   buildEventId,
