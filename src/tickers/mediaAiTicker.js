@@ -1,6 +1,6 @@
 const { getInterestingEvents } = require("../aggregator/multiSportAggregator.js");
 import { summarizeEventForTelegram } from "../ai/summarizer.js";
-import { generateHashtags } from "../ai/openaiHashtags.js";
+const { generateHashtags } = require("../ai/openaiHashtags.js");
 import {
   selectBestImageForEvent,
   selectBestImageForEventCombined,
