@@ -1,31 +1,32 @@
+
 const { getInterestingEvents } = require("../aggregator/multiSportAggregator.js");
-import { summarizeEventForTelegram } from "../ai/summarizer.js";
+const { summarizeEventForTelegram } = require("../ai/summarizer.js");
 const { generateHashtags } = require("../ai/openaiHashtags.js");
-import {
+const {
   selectBestImageForEvent,
   selectBestImageForEventCombined,
   selectBestMediaForEventCombined,
-} from "../media/imageSelector.js";
+} = require("../media/imageSelector.js");
 const { generateDalleImage } = require("../ai/openaiDalle.js");
-import { sendPhotoWithCaption, sendVideoWithCaption } from "../services/telegram-sender.js";
+const { sendPhotoWithCaption, sendVideoWithCaption } = require("../services/telegram-sender.js");
 const { queuePostForApproval } = require("../services/adminPostQueue.js");
 const { sendTelegramAdminAlert } = require("../services/adminAlert.js");
-import { scoreEvent } from "../brain/interestScorer.js";
-import {
+const { scoreEvent } = require("../brain/interestScorer.js");
+const {
   buildEventId,
   hasPostedWithin,
   markEventPosted,
-} from "../brain/memory.js";
-import { bumpEventMention } from "../brain/trending.js";
-import telemetry from "../brain/telemetry.js";
-import { broadcastText } from "../telegram/broadcast.js";
+} = require("../brain/memory.js");
+const { bumpEventMention } = require("../brain/trending.js");
+const telemetry = require("../brain/telemetry.js");
+const { broadcastText } = require("../telegram/broadcast.js");
 
 const POSTING_COOLDOWN_MS = Number(
   process.env.MEDIA_AI_COOLDOWN_MS || 30 * 1000,
 );
 let lastPostedAt = 0;
 
-export async function runMediaAiTick() {
+async function runMediaAiTick() {
   const now = Date.now();
   if (now - lastPostedAt < POSTING_COOLDOWN_MS) return;
 
@@ -263,4 +264,4 @@ export async function runMediaAiTick() {
   }
 }
 
-export default { runMediaAiTick };
+module.exports = { runMediaAiTick };
