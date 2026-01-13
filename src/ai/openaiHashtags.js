@@ -1,15 +1,18 @@
 // openaiHashtags.js
 // Generate hashtags for a sports event using OpenAI
-const axios = require("axios");
+import axios from "axios";
+
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
 const MODEL = "gpt-4.1";
+
 
 function buildHashtagPrompt(event) {
   return `Generate 3-5 relevant, trending hashtags (no #betting, no #ad) for a social media post about a match between ${event.home || "Team A"} and ${event.away || "Team B"} in ${event.league || "a major league"}. Return as a JSON array of strings, no explanation.`;
 }
 
-async function generateHashtags(event) {
+
+export async function generateHashtags(event) {
   if (!OPENAI_KEY) return [];
   const prompt = buildHashtagPrompt(event);
   try {
@@ -44,5 +47,3 @@ async function generateHashtags(event) {
     return [];
   }
 }
-
-module.exports = { generateHashtags };
