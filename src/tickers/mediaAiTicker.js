@@ -8,7 +8,7 @@ import {
 } from "../media/imageSelector.js";
 const { generateDalleImage } = require("../ai/openaiDalle.js");
 import { sendPhotoWithCaption, sendVideoWithCaption } from "../services/telegram-sender.js";
-import { queuePostForApproval } from "../services/adminPostQueue.js";
+const { queuePostForApproval } = require("../services/adminPostQueue.js");
 import { sendTelegramAdminAlert } from "../services/adminAlert.js";
 import { scoreEvent } from "../brain/interestScorer.js";
 import {
