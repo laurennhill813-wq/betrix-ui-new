@@ -1,16 +1,19 @@
 // openaiDalle.js
 // Generate an image using OpenAI DALL-E for a given event
-const axios = require("axios");
+import axios from "axios";
+
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
 const DALLE_MODEL = "dall-e-3";
+
 
 function buildPrompt(event) {
   // Simple prompt, can be improved for more context
   return `A vibrant, high-quality sports image for a match between ${event.home || "Team A"} and ${event.away || "Team B"} in ${event.league || "a major league"}.`;
 }
 
-async function generateDalleImage(event) {
+
+export async function generateDalleImage(event) {
   if (!OPENAI_KEY) return null;
   const prompt = buildPrompt(event);
   try {
@@ -38,5 +41,3 @@ async function generateDalleImage(event) {
     return null;
   }
 }
-
-module.exports = { generateDalleImage };
