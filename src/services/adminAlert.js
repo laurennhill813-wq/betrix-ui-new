@@ -1,11 +1,13 @@
 // adminAlert.js
 // Send Telegram alert to admin(s) on repeated failures
-const fetch = require("../lib/fetch.js");
+import fetch from "../lib/fetch.js";
+
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_IDS = (process.env.ADMIN_TELEGRAM_ID || "").split(",").map(id => id.trim()).filter(Boolean);
 
-async function sendTelegramAdminAlert(message) {
+
+export async function sendTelegramAdminAlert(message) {
   if (!BOT_TOKEN || !ADMIN_IDS.length) return;
   for (const chatId of ADMIN_IDS) {
     try {
@@ -17,5 +19,3 @@ async function sendTelegramAdminAlert(message) {
     } catch (e) {}
   }
 }
-
-module.exports = { sendTelegramAdminAlert };
